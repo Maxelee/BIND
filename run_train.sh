@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=fm_train
-#SBATCH --output=/mnt/home/mlee1/ceph/logs/fm_train_%j.out
-#SBATCH --error=/mnt/home/mlee1/ceph/logs/fm_train_%j.err
+#SBATCH --job-name=fm3d_train
+#SBATCH --output=/mnt/home/mlee1/ceph/logs/fm3d_train_%j.out
+#SBATCH --error=/mnt/home/mlee1/ceph/logs/fm3d_train_%j.err
 #SBATCH --time=48:00:00
 #SBATCH --partition=gpu
 #SBATCH --constraint=h100
@@ -16,17 +16,19 @@ cd /mnt/home/mlee1/vdm_bind2
 
 mkdir -p /mnt/home/mlee1/ceph/logs
 
-srun python train.py \
-    --data_root /mnt/home/mlee1/ceph/train_data_rotated2_128_cpu \
-    --batch_size 64 \
+srun python train_3d.py \
+    --data_root /mnt/home/mlee1/ceph/train_data_1024/train_3d \
+    --batch_size 1 \
     --num_workers 8 \
-    --base_ch 128 \
+    --crop_size 64 \
+    --n_stats_samples 256 \
+    --base_ch 16 \
     --n_blocks 2 \
-    --emb_dim 512 \
+    --emb_dim 256 \
     --dropout 0.1 \
     --cfg_dropout 0.1 \
     --interpolant fm \
     --lr 1e-4 \
     --max_epochs 200 \
-    --output_dir /mnt/home/mlee1/ceph/fm_runs \
-    --run_name fm_v2
+    --output_dir /mnt/home/mlee1/ceph/fm_runs_3d \
+    --run_name fm3d_v1

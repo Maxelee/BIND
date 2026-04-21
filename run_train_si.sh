@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=si_train
-#SBATCH --output=/mnt/home/mlee1/ceph/logs/si_train_%j.out
-#SBATCH --error=/mnt/home/mlee1/ceph/logs/si_train_%j.err
+#SBATCH --job-name=si3d_train
+#SBATCH --output=/mnt/home/mlee1/ceph/logs/si3d_train_%j.out
+#SBATCH --error=/mnt/home/mlee1/ceph/logs/si3d_train_%j.err
 #SBATCH --time=48:00:00
 #SBATCH --partition=gpu
 #SBATCH --constraint=h100
@@ -19,18 +19,20 @@ mkdir -p /mnt/home/mlee1/ceph/logs
 # Diagnostic: one line per rank showing task-to-GPU mapping.
 srun --ntasks-per-node=4 --gpus-per-node=4 bash -lc 'echo "diag rank=${SLURM_PROCID} local_rank=${SLURM_LOCALID} host=$(hostname) CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}"'
 
-srun python train.py \
-    --data_root /mnt/home/mlee1/ceph/train_data_rotated2_128_cpu \
-    --batch_size 64 \
+srun python train_3d.py \
+    --data_root /mnt/home/mlee1/ceph/train_data_1024/train_3d \
+    --batch_size 1 \
     --num_workers 8 \
-    --base_ch 128 \
+    --crop_size 64 \
+    --n_stats_samples 256 \
+    --base_ch 16 \
     --n_blocks 2 \
-    --emb_dim 512 \
+    --emb_dim 256 \
     --dropout 0.1 \
     --cfg_dropout 0.1 \
     --lr 1e-4 \
     --max_epochs 200 \
     --interpolant si \
     --sigma 0.5 \
-    --output_dir /mnt/home/mlee1/ceph/fm_runs \
-    --run_name si_sigma05
+    --output_dir /mnt/home/mlee1/ceph/fm_runs_3d \
+    --run_name si3d_sigma05

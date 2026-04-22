@@ -19,6 +19,56 @@ def parse_sim_ids(sim_ids: str | None) -> list[str] | None:
     return [chunk.strip() for chunk in sim_ids.split(",") if chunk.strip()]
 
 
+def _split_sim_ids_for_all(
+    sim_ids: list[str] | None,
+) -> tuple[list[str] | None, list[str] | None, list[str] | None]:
+    """Split suite=all IDs into CV/1P/Test subsets.
+
+    Supported explicit prefixes:
+    - cv:<id>
+    - 1p:<name> (or onep:<name>)
+    - test:<sim_id>
+
+    Unprefixed heuristic:
+    - numeric or CV_<n> -> CV
+    - everything else -> 1P and Test
+    """
+    if sim_ids is None:
+        return None, None, None
+
+    cv_ids: list[str] = []
+    onep_ids: list[str] = []
+    test_ids: list[str] = []
+
+    for raw in sim_ids:
+        token = raw.strip()
+        if not token:
+            continue
+
+        lower = token.lower()
+        if lower.startswith("cv:"):
+            cv_ids.append(token.split(":", 1)[1])
+            continue
+        if lower.startswith("1p:") or lower.startswith("onep:"):
+            onep_ids.append(token.split(":", 1)[1])
+            continue
+        if lower.startswith("test:"):
+            test_ids.append(token.split(":", 1)[1])
+            continue
+
+        if token.isdigit():
+            cv_ids.append(token)
+            continue
+        if token.upper().startswith("CV_") and token[3:].isdigit():
+            cv_ids.append(token[3:])
+            continue
+
+        onep_ids.append(token)
+        test_ids.append(token)
+
+    return cv_ids, onep_ids, test_ids
+
+
 def build_cv_specs(
     sim_ids: Iterable[str] | None,
     param_file: Path,
@@ -147,6 +197,7 @@ def build_test_specs_from_manifest(
     patch_pix: int,
     proj_frac: float,
     halo_mass_min: float,
+    sim_ids: Iterable[str] | None = None,
 ) -> list[SimulationSpec]:
     """Build test-suite specs from a JSON manifest.
 
@@ -168,6 +219,17 @@ def build_test_specs_from_manifest(
     sims = payload.get("simulations", [])
     if not sims:
         raise ValueError(f"No simulations found in manifest {manifest_path}")
+
+    if sim_ids is not None:
+        selected = [str(s) for s in sim_ids]
+        if not selected:
+            return []
+        selected_set = set(selected)
+        sims = [item for item in sims if str(item.get("sim_id")) in selected_set]
+        if not sims:
+            raise ValueError(
+                f"No simulations matched sim_ids={selected} in manifest {manifest_path}"
+            )
 
     specs: list[SimulationSpec] = []
     for item in sims:
@@ -218,8 +280,14 @@ def build_suite_specs(
     suite_norm = suite.lower()
     specs: list[SimulationSpec] = []
 
-    if suite_norm in {"all", "cv"}:
+    if suite_norm == "all":
+        cv_ids, onep_ids, test_ids = _split_sim_ids_for_all(sim_ids)
+    else:
         cv_ids = sim_ids if suite_norm == "cv" else None
+        onep_ids = sim_ids if suite_norm == "1p" else None
+        test_ids = sim_ids if suite_norm == "test" else None
+
+    if suite_norm in {"all", "cv"}:
         specs.extend(
             build_cv_specs(
                 cv_ids,
@@ -236,7 +304,6 @@ def build_suite_specs(
         )
 
     if suite_norm in {"all", "1p"}:
-        onep_ids = sim_ids if suite_norm == "1p" else None
         specs.extend(
             build_1p_specs(
                 onep_ids,
@@ -264,6 +331,7 @@ def build_suite_specs(
                 patch_pix,
                 proj_frac,
                 halo_mass_min,
+                sim_ids=test_ids,
             )
         )
 

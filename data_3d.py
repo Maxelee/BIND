@@ -229,7 +229,7 @@ class AstroDataset3D(Dataset):
         self,
         file_list: list[str],
         norm_stats: NormStats3D,
-        crop_size: int = 64,
+        crop_size: int = 128,
         random_crop: bool = True,
         augment_flip: bool = True,
     ):
@@ -312,7 +312,7 @@ def get_loaders_3d(
     norm_stats: NormStats3D,
     batch_size: int = 2,
     num_workers: int = 8,
-    crop_size: int = 64,
+    crop_size: int = 128,
     train_fraction: float = 0.9,
     split_seed: int = 42,
     max_train: int | None = None,

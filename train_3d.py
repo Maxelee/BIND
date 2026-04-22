@@ -118,7 +118,7 @@ class AstroDataModule3D(L.LightningDataModule):
         n_stats_samples: int = 256,
         train_fraction: float = 0.9,
         split_seed: int = 42,
-        crop_size: int = 64,
+        crop_size: int = 128,
         max_train_files: int | None = None,
         max_val_files: int | None = None,
     ):
@@ -216,7 +216,7 @@ def main():
     parser.add_argument("--data_root", type=str, default="/mnt/home/mlee1/ceph/train_data_1024/train_3d")
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--num_workers", type=int, default=8)
-    parser.add_argument("--crop_size", type=int, default=64)
+    parser.add_argument("--crop_size", type=int, default=128)
     parser.add_argument("--n_stats_samples", type=int, default=256)
     parser.add_argument("--train_fraction", type=float, default=0.9)
     parser.add_argument("--split_seed", type=int, default=42)

@@ -27,6 +27,13 @@ class ArtifactPaths:
     summary_json: Path
 
 
+def _format_mass_threshold_tag(halo_mass_min: float) -> str:
+    """Return a filesystem-safe mass-threshold tag with preserved significant digits."""
+    # Example: 1e13 -> 1p000e13, 2.5e14 -> 2p500e14
+    sci = f"{float(halo_mass_min):.3e}"
+    return sci.replace(".", "p").replace("+", "").replace("-", "m")
+
+
 def resolve_artifact_paths(output_root: Path, spec: SimulationSpec, model_name: str) -> ArtifactPaths:
     """Build the hierarchical output paths used by the runner."""
     suite_name = spec.suite
@@ -37,7 +44,7 @@ def resolve_artifact_paths(output_root: Path, spec: SimulationSpec, model_name: 
 
     sim_base = output_root / suite_name / sim_dir_name
     snap_dir = sim_base / f"snap_{spec.snapshot:03d}"
-    mass_tag = int(np.log10(spec.halo_mass_min))
+    mass_tag = _format_mass_threshold_tag(spec.halo_mass_min)
     mass_dir = snap_dir / f"mass_threshold_{mass_tag}"
     model_dir = mass_dir / model_name
 

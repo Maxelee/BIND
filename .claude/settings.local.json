@@ -3,7 +3,9 @@
     "allow": [
       "Bash(python3 -c ' *)",
       "Bash(jupyter nbconvert *)",
-      "Bash(/mnt/home/mlee1/venvs/torch3/bin/python3 -c ' *)"
+      "Bash(/mnt/home/mlee1/venvs/torch3/bin/python3 -c ' *)",
+      "Bash(python3 -c \"import json; nb = json.load\\(open\\('dmo_to_hydro.ipynb'\\)\\); print\\(f'Total cells: {len\\(nb[\\\\\"cells\\\\\"]\\)}'\\); [print\\(f'Cell {i}: {c[\\\\\"cell_type\\\\\"]} - {c.get\\(\\\\\"source\\\\\", [\\\\\"\\\\\"]\\)[0][:60]}...'\\) for i, c in enumerate\\(nb['cells']\\)]\")",
+      "Bash(python3 -c \"import numpy as np; d=np.load\\('/mnt/home/mlee1/ceph/BIND3d/sim_0/halo_0.npz'\\); print\\(list\\(d.keys\\(\\)\\)\\); print\\({k: d[k].shape for k in d.keys\\(\\)}\\)\")"
     ]
   }
 }

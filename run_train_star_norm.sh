@@ -20,7 +20,7 @@ srun python train_3d.py \
     --data_root /mnt/home/mlee1/ceph/train_data_1024/train_3d \
     --batch_size 1 \
     --num_workers 8 \
-    --crop_size 64 \
+    --crop_size 128 \
     --n_stats_samples 256 \
     --base_ch 16 \
     --n_blocks 2 \

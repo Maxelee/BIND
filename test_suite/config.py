@@ -19,56 +19,6 @@ def parse_sim_ids(sim_ids: str | None) -> list[str] | None:
     return [chunk.strip() for chunk in sim_ids.split(",") if chunk.strip()]
 
 
-def _split_sim_ids_for_all(
-    sim_ids: list[str] | None,
-) -> tuple[list[str] | None, list[str] | None, list[str] | None]:
-    """Split suite=all IDs into CV/1P/Test subsets.
-
-    Supported explicit prefixes:
-    - cv:<id>
-    - 1p:<name> (or onep:<name>)
-    - test:<sim_id>
-
-    Unprefixed heuristic:
-    - numeric or CV_<n> -> CV
-    - everything else -> 1P and Test
-    """
-    if sim_ids is None:
-        return None, None, None
-
-    cv_ids: list[str] = []
-    onep_ids: list[str] = []
-    test_ids: list[str] = []
-
-    for raw in sim_ids:
-        token = raw.strip()
-        if not token:
-            continue
-
-        lower = token.lower()
-        if lower.startswith("cv:"):
-            cv_ids.append(token.split(":", 1)[1])
-            continue
-        if lower.startswith("1p:") or lower.startswith("onep:"):
-            onep_ids.append(token.split(":", 1)[1])
-            continue
-        if lower.startswith("test:"):
-            test_ids.append(token.split(":", 1)[1])
-            continue
-
-        if token.isdigit():
-            cv_ids.append(token)
-            continue
-        if token.upper().startswith("CV_") and token[3:].isdigit():
-            cv_ids.append(token[3:])
-            continue
-
-        onep_ids.append(token)
-        test_ids.append(token)
-
-    return cv_ids, onep_ids, test_ids
-
-
 def build_cv_specs(
     sim_ids: Iterable[str] | None,
     param_file: Path,
@@ -189,6 +139,57 @@ def build_1p_specs(
     return specs
 
 
+def build_sb35_specs(
+    sim_ids: Iterable[str] | None,
+    param_file: Path,
+    nbody_root: Path,
+    hydro_root: Path,
+    fof_root: Path,
+    snapshot: int,
+    box_size: float,
+    npix: int,
+    patch_pix: int,
+    proj_frac: float,
+    halo_mass_min: float,
+) -> list[SimulationSpec]:
+    """Build simulation specs for the SB35 suite.
+
+    FoF catalogs use the groups_NNN.*.hdf5 naming convention (handled
+    automatically by load_halo_catalog's fallback glob).
+    """
+    df = pd.read_csv(param_file, sep=r"\s+", comment="#", header=None, skiprows=1)
+    if sim_ids is None:
+        ids = [str(i) for i in range(1024)]
+    else:
+        ids = [str(s) for s in sim_ids]
+
+    specs: list[SimulationSpec] = []
+    for sid in ids:
+        sim_name = f"SB35_{sid}"
+        row = df[df[0] == sim_name]
+        if row.empty:
+            raise ValueError(f"No parameters found for {sim_name} in {param_file}")
+        params = row.iloc[0, 1:36].values.astype(np.float32)
+
+        specs.append(
+            SimulationSpec(
+                suite="SB35",
+                sim_id=sid,
+                snapshot=snapshot,
+                nbody_path=nbody_root / sim_name,
+                hydro_snapdir=hydro_root / sim_name / f"snapdir_{snapshot:03d}",
+                group_catalog=fof_root / sim_name,
+                params=params,
+                box_size=box_size,
+                npix=npix,
+                patch_pix=patch_pix,
+                proj_frac=proj_frac,
+                halo_mass_min=halo_mass_min,
+            )
+        )
+    return specs
+
+
 def build_test_specs_from_manifest(
     manifest_path: Path,
     snapshot: int,
@@ -259,6 +260,47 @@ def build_test_specs_from_manifest(
     return specs
 
 
+def _split_sim_ids_for_all_sb35(
+    sim_ids: list[str] | None,
+) -> tuple[list[str] | None, list[str] | None, list[str] | None, list[str] | None]:
+    """Extend _split_sim_ids_for_all to also handle sb35: prefix."""
+    if sim_ids is None:
+        return None, None, None, None
+
+    cv_ids: list[str] = []
+    onep_ids: list[str] = []
+    test_ids: list[str] = []
+    sb35_ids: list[str] = []
+
+    for raw in sim_ids:
+        token = raw.strip()
+        if not token:
+            continue
+        lower = token.lower()
+        if lower.startswith("cv:"):
+            cv_ids.append(token.split(":", 1)[1])
+        elif lower.startswith("1p:") or lower.startswith("onep:"):
+            onep_ids.append(token.split(":", 1)[1])
+        elif lower.startswith("test:"):
+            test_ids.append(token.split(":", 1)[1])
+        elif lower.startswith("sb35:"):
+            sb35_ids.append(token.split(":", 1)[1])
+        elif token.isdigit():
+            cv_ids.append(token)
+        elif token.upper().startswith("CV_") and token[3:].isdigit():
+            cv_ids.append(token[3:])
+        else:
+            onep_ids.append(token)
+            test_ids.append(token)
+
+    return (
+        cv_ids or None,
+        onep_ids or None,
+        test_ids or None,
+        sb35_ids or None,
+    )
+
+
 def build_suite_specs(
     suite: str,
     sim_ids: list[str] | None,
@@ -275,17 +317,22 @@ def build_suite_specs(
     onep_nbody_root: Path,
     onep_hydro_root: Path,
     test_manifest: Path | None,
+    sb35_param_file: Path | None = None,
+    sb35_nbody_root: Path | None = None,
+    sb35_hydro_root: Path | None = None,
+    sb35_fof_root: Path | None = None,
 ) -> list[SimulationSpec]:
     """Build full simulation list for a chosen suite."""
     suite_norm = suite.lower()
     specs: list[SimulationSpec] = []
 
     if suite_norm == "all":
-        cv_ids, onep_ids, test_ids = _split_sim_ids_for_all(sim_ids)
+        cv_ids, onep_ids, test_ids, sb35_ids = _split_sim_ids_for_all_sb35(sim_ids)
     else:
         cv_ids = sim_ids if suite_norm == "cv" else None
         onep_ids = sim_ids if suite_norm == "1p" else None
         test_ids = sim_ids if suite_norm == "test" else None
+        sb35_ids = sim_ids if suite_norm == "sb35" else None
 
     if suite_norm in {"all", "cv"}:
         specs.extend(
@@ -332,6 +379,28 @@ def build_suite_specs(
                 proj_frac,
                 halo_mass_min,
                 sim_ids=test_ids,
+            )
+        )
+
+    if suite_norm == "sb35":
+        if sb35_param_file is None or sb35_nbody_root is None or sb35_hydro_root is None or sb35_fof_root is None:
+            raise ValueError(
+                "--sb35_param_file, --sb35_nbody_root, --sb35_hydro_root, and --sb35_fof_root "
+                "are required for suite=sb35 or suite=all"
+            )
+        specs.extend(
+            build_sb35_specs(
+                sb35_ids,
+                sb35_param_file,
+                sb35_nbody_root,
+                sb35_hydro_root,
+                sb35_fof_root,
+                snapshot,
+                box_size,
+                npix,
+                patch_pix,
+                proj_frac,
+                halo_mass_min,
             )
         )
 

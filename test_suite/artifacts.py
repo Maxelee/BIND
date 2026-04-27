@@ -185,13 +185,13 @@ def load_composite(path: Path) -> dict:
     }
 
 
-def _to_builtin(value):
+def to_jsonable(value):
     if isinstance(value, Path):
         return str(value)
     if isinstance(value, dict):
-        return {k: _to_builtin(v) for k, v in value.items()}
+        return {k: to_jsonable(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
-        return [_to_builtin(v) for v in value]
+        return [to_jsonable(v) for v in value]
     if isinstance(value, np.ndarray):
         return value.tolist()
     if isinstance(value, (np.floating, np.integer)):
@@ -201,5 +201,4 @@ def _to_builtin(value):
 
 def save_summary_json(path: Path, summary: dict) -> None:
     """Write a JSON summary with numpy-safe conversion."""
-    serializable = _to_builtin(summary)
-    path.write_text(json.dumps(serializable, indent=2, sort_keys=True))
+    path.write_text(json.dumps(to_jsonable(summary), indent=2, sort_keys=True))

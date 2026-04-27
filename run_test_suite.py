@@ -8,24 +8,10 @@ from pathlib import Path
 
 import numpy as np
 
+from test_suite.artifacts import to_jsonable
 from test_suite.config import build_suite_specs, parse_sim_ids
 from test_suite.runner import run_suite
 from test_suite.schemas import RunConfig
-
-
-def _to_jsonable(value):
-    """Recursively convert Path/numpy objects to JSON-serializable types."""
-    if isinstance(value, Path):
-        return str(value)
-    if isinstance(value, dict):
-        return {k: _to_jsonable(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_to_jsonable(v) for v in value]
-    if isinstance(value, np.ndarray):
-        return value.tolist()
-    if isinstance(value, (np.floating, np.integer)):
-        return value.item()
-    return value
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,8 +19,13 @@ def parse_args() -> argparse.Namespace:
         description="Run CV/1P/Test halo generation with notebook-consistent procedure."
     )
 
-    parser.add_argument("--suite", choices=["cv", "1p", "test", "all"], default="cv")
+    parser.add_argument("--suite", choices=["cv", "1p", "test", "sb35", "all"], default="cv")
     parser.add_argument("--sim_ids", type=str, default=None, help="Comma-separated ids for a single suite")
+
+    parser.add_argument("--n_chunks", type=int, default=1,
+                        help="Split the spec list into N chunks and process only one (for SLURM array jobs)")
+    parser.add_argument("--chunk_id", type=int, default=0,
+                        help="Which chunk to process (0-indexed, used with --n_chunks)")
 
     parser.add_argument("--snapshot", type=int, default=90)
     parser.add_argument("--box_size", type=float, default=50.0)
@@ -50,8 +41,17 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--n_steps", type=int, default=50)
     parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--device", type=str, default="auto", help="auto, cuda, cpu")
+    parser.add_argument("--device", type=str, default="cuda", help="auto, cuda, cpu")
     parser.add_argument("--no_amp", action="store_true")
+    parser.add_argument(
+        "--channel_correction",
+        type=str,
+        default=None,
+        help=(
+            "Optional comma-separated per-channel multiplicative correction factors "
+            "(truth/gen), e.g. '1.00,1.02,1.38'. Applied via target_mean shift before inference."
+        ),
+    )
 
     parser.add_argument("--prep_only", action="store_true")
     parser.add_argument("--regenerate", action="store_true")
@@ -76,7 +76,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--cv_hydro_root",
         type=Path,
-        default=Path("/mnt/home/mlee1/Sims/IllustrisTNG/L50n512/CV"),
+        default=Path("/mnt/ceph/users/camels/Sims/IllustrisTNG/L50n512/CV"),
     )
 
     parser.add_argument(
@@ -102,6 +102,27 @@ def parse_args() -> argparse.Namespace:
         help="JSON manifest path for suite=test entries",
     )
 
+    parser.add_argument(
+        "--sb35_param_file",
+        type=Path,
+        default=Path("/mnt/home/mlee1/Sims/IllustrisTNG_DM/L50n512/SB35/CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt"),
+    )
+    parser.add_argument(
+        "--sb35_nbody_root",
+        type=Path,
+        default=Path("/mnt/home/mlee1/Sims/IllustrisTNG_DM/L50n512/SB35"),
+    )
+    parser.add_argument(
+        "--sb35_hydro_root",
+        type=Path,
+        default=Path("/mnt/ceph/users/camels/Sims/IllustrisTNG_extras/L50n512/SB35"),
+    )
+    parser.add_argument(
+        "--sb35_fof_root",
+        type=Path,
+        default=Path("/mnt/ceph/users/camels/FOF_Subfind/IllustrisTNG_DM/L50n512/SB35"),
+    )
+
     return parser.parse_args()
 
 
@@ -110,6 +131,18 @@ def main() -> None:
 
     args.output_root.mkdir(parents=True, exist_ok=True)
     checkpoint = args.checkpoint_path or (args.run_dir / "checkpoints" / "last.ckpt")
+
+    correction = None
+    if args.channel_correction:
+        parts = [p.strip() for p in args.channel_correction.split(",") if p.strip()]
+        if len(parts) != 3:
+            raise ValueError(
+                "--channel_correction must provide exactly 3 comma-separated values "
+                "for gas, dm, stars channels"
+            )
+        correction = np.asarray([float(p) for p in parts], dtype=np.float32)
+        if not np.all(np.isfinite(correction)) or np.any(correction <= 0):
+            raise ValueError("--channel_correction values must be finite and > 0")
 
     sim_ids = parse_sim_ids(args.sim_ids)
     specs = build_suite_specs(
@@ -128,7 +161,17 @@ def main() -> None:
         onep_nbody_root=args.onep_nbody_root,
         onep_hydro_root=args.onep_hydro_root,
         test_manifest=args.test_manifest,
+        sb35_param_file=args.sb35_param_file,
+        sb35_nbody_root=args.sb35_nbody_root,
+        sb35_hydro_root=args.sb35_hydro_root,
+        sb35_fof_root=args.sb35_fof_root,
     )
+
+    if args.n_chunks > 1:
+        if not (0 <= args.chunk_id < args.n_chunks):
+            raise ValueError(f"--chunk_id {args.chunk_id} out of range for --n_chunks {args.n_chunks}")
+        chunk_size = (len(specs) + args.n_chunks - 1) // args.n_chunks
+        specs = specs[args.chunk_id * chunk_size : (args.chunk_id + 1) * chunk_size]
 
     run_cfg = RunConfig(
         run_dir=args.run_dir,
@@ -145,13 +188,17 @@ def main() -> None:
         regenerate=args.regenerate,
         regenerate_all=args.regenerate_all,
         repaste=args.repaste,
+        channel_correction=correction,
     )
 
     print("=" * 80)
     print("TEST SUITE RUNNER")
     print("=" * 80)
     print(f"Suite: {args.suite}")
-    print(f"Simulations: {len(specs)}")
+    if args.n_chunks > 1:
+        print(f"Chunk: {args.chunk_id + 1}/{args.n_chunks}  ({len(specs)} sims)")
+    else:
+        print(f"Simulations: {len(specs)}")
     print(f"Model run dir: {run_cfg.run_dir}")
     print(f"Checkpoint: {run_cfg.checkpoint_path}")
     print(f"Output root: {run_cfg.output_root}")
@@ -159,6 +206,11 @@ def main() -> None:
     print(f"Regenerate: {run_cfg.regenerate}")
     print(f"Regenerate all: {run_cfg.regenerate_all}")
     print(f"Repaste: {run_cfg.repaste}")
+    if run_cfg.channel_correction is not None:
+        print(f"Channel correction (truth/gen): {run_cfg.channel_correction.tolist()}")
+    if args.suite in {"sb35", "all"}:
+        print(f"SB35 hydro root: {args.sb35_hydro_root}")
+        print(f"SB35 FoF root:   {args.sb35_fof_root}")
     print("=" * 80)
 
     summaries = run_suite(
@@ -177,7 +229,7 @@ def main() -> None:
     }
 
     summary_path = args.output_root / f"run_summary_{args.suite}.json"
-    summary_path.write_text(json.dumps(_to_jsonable(out_summary), indent=2, sort_keys=True))
+    summary_path.write_text(json.dumps(to_jsonable(out_summary), indent=2, sort_keys=True))
     print(f"Saved run summary to {summary_path}")
 
 

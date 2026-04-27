@@ -350,19 +350,17 @@ class FlowMatching:
         """
         B = x1.shape[0]
         t = torch.rand(B, device=x1.device)
+        t4 = t[:, None, None, None]
         noise = torch.randn_like(x1)
 
-        # Linear interpolation
-        x_t = (1 - t[:, None, None, None]) * noise + t[:, None, None, None] * x1
+        x_t = (1 - t4) * noise + t4 * x1
         velocity_target = x1 - noise
 
-        # Classifier-free guidance: randomly drop params
         if self.cfg_dropout > 0 and self.model.training:
             mask = torch.rand(B, device=x1.device) < self.cfg_dropout
             params = params.clone()
             params[mask] = 0.0
 
-        # Model input: concat noisy target with spatial conditioning
         model_input = torch.cat([x_t, condition, large_scale], dim=1)
         v_pred = self.model(model_input, t, params)
 
@@ -403,9 +401,7 @@ class FlowMatching:
             inp = torch.cat([x, condition, large_scale], dim=1)
 
             if cfg_scale != 1.0:
-                # Conditional prediction
                 v_cond = self.model(inp, t, params)
-                # Unconditional prediction (zero params)
                 v_uncond = self.model(inp, t, torch.zeros_like(params))
                 v = v_uncond + cfg_scale * (v_cond - v_uncond)
             else:

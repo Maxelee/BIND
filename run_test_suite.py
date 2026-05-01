@@ -80,6 +80,12 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--cv_fof_root",
+        type=Path,
+        default=Path("/mnt/ceph/users/camels/FOF_Subfind/IllustrisTNG_DM/L50n512/CV"),
+    )
+
+    parser.add_argument(
         "--onep_param_file",
         type=Path,
         default=Path("/mnt/home/mlee1/Sims/IllustrisTNG/L50n512/1P/CosmoAstroSeed_IllustrisTNG_L50n512_1P.txt"),
@@ -93,6 +99,12 @@ def parse_args() -> argparse.Namespace:
         "--onep_hydro_root",
         type=Path,
         default=Path("/mnt/home/mlee1/Sims/IllustrisTNG/L50n512/1P"),
+    )
+
+    parser.add_argument(
+        "--onep_fof_root",
+        type=Path,
+        default=Path("/mnt/ceph/users/camels/FOF_Subfind/IllustrisTNG_DM/L50n512/1P"),
     )
 
     parser.add_argument(
@@ -157,9 +169,11 @@ def main() -> None:
         cv_param_file=args.cv_param_file,
         cv_nbody_root=args.cv_nbody_root,
         cv_hydro_root=args.cv_hydro_root,
+        cv_fof_root=args.cv_fof_root,
         onep_param_file=args.onep_param_file,
         onep_nbody_root=args.onep_nbody_root,
         onep_hydro_root=args.onep_hydro_root,
+        onep_fof_root=args.onep_fof_root,
         test_manifest=args.test_manifest,
         sb35_param_file=args.sb35_param_file,
         sb35_nbody_root=args.sb35_nbody_root,

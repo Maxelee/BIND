@@ -46,3 +46,4 @@ class RunConfig:
     regenerate: bool = False
     regenerate_all: bool = False
     repaste: bool = False
+    channel_correction: np.ndarray | None = None

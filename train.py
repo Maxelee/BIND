@@ -1,6 +1,5 @@
 """Multi-GPU training script for conditional flow matching with PyTorch Lightning."""
 
-import os
 import argparse
 import torch
 import lightning as L
@@ -21,17 +20,31 @@ class FlowMatchingLit(L.LightningModule):
                  n_params=35, lr=1e-4, weight_decay=1e-4, ema_decay=0.9999,
                  cfg_dropout=0.1, warmup_steps=1000, n_sampling_steps=50,
                  star_occ_weight=1.0, star_zero_norm=None,
-                 interpolant='fm', sigma=0.5):
+                 interpolant='fm', sigma=0.5, stars_two_head=False):
         super().__init__()
         self.save_hyperparameters()
 
+        # Stars two-head mode: target gets a 4-channel layout
+        # (DM_hydro, Gas, occupancy, conditional density), so the model needs
+        # in_ch = 4 (state) + 1 (condition) + 3 (large_scale) = 8 and out_ch = 4.
+        # All other code paths default to the original 7→3 architecture, so old
+        # checkpoints reload identically.
+        out_ch = 4 if stars_two_head else 3
+        in_ch = out_ch + 1 + 3   # state + condition + large_scale
+
         self.unet = UNet(
-            in_ch=7, out_ch=3, base_ch=base_ch, ch_mult=ch_mult,
+            in_ch=in_ch, out_ch=out_ch, base_ch=base_ch, ch_mult=ch_mult,
             n_blocks=n_blocks, emb_dim=emb_dim,
             attn_resolutions=attn_resolutions, dropout=dropout,
             n_params=n_params,
         )
         if interpolant == 'si':
+            # Stars two-head not wired into the SI branch yet; SI is unused
+            # in current analyses. Flag it loudly if someone tries.
+            assert not stars_two_head, (
+                'stars_two_head=True is not implemented for the StochasticInterpolant '
+                'branch. Use --interpolant fm.'
+            )
             self.fm = StochasticInterpolant(self.unet, sigma=sigma,
                                             cfg_dropout=cfg_dropout,
                                             star_occ_weight=star_occ_weight,
@@ -39,7 +52,8 @@ class FlowMatchingLit(L.LightningModule):
         else:
             self.fm = FlowMatching(self.unet, cfg_dropout=cfg_dropout,
                                    star_occ_weight=star_occ_weight,
-                                   star_zero_norm=star_zero_norm)
+                                   star_zero_norm=star_zero_norm,
+                                   out_channels=out_ch)
         self.ema = ExponentialMovingAverage(self.unet.parameters(), decay=ema_decay)
 
     def training_step(self, batch, batch_idx):
@@ -63,6 +77,13 @@ class FlowMatchingLit(L.LightningModule):
 
     def on_before_zero_grad(self, *args, **kwargs):
         self.ema.update()
+
+    def on_save_checkpoint(self, checkpoint):
+        checkpoint['ema_state_dict'] = self.ema.state_dict()
+
+    def on_load_checkpoint(self, checkpoint):
+        if 'ema_state_dict' in checkpoint:
+            self.ema.load_state_dict(checkpoint['ema_state_dict'])
 
     def configure_optimizers(self):
         opt = torch.optim.AdamW(
@@ -89,13 +110,14 @@ class FlowMatchingLit(L.LightningModule):
 class AstroDataModule(L.LightningDataModule):
 
     def __init__(self, data_root, norm_stats_path=None, batch_size=64,
-                 num_workers=8, n_stats_samples=10000):
+                 num_workers=8, n_stats_samples=10000, stars_two_head=False):
         super().__init__()
         self.data_root = data_root
         self.norm_stats_path = norm_stats_path
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.n_stats_samples = n_stats_samples
+        self.stars_two_head = stars_two_head
 
     def setup(self, stage=None):
         train_files = load_file_list(self.data_root, 'train')
@@ -107,9 +129,20 @@ class AstroDataModule(L.LightningDataModule):
         if stats_path.exists():
             self.norm_stats = NormStats.load(stats_path)
             print(f'Loaded norm stats from {stats_path}')
+            if self.stars_two_head and not self.norm_stats.stars_two_head:
+                raise RuntimeError(
+                    f'stars_two_head=True but {stats_path} was computed in '
+                    f'single-head mode (lacks stars_occ/cond stats). Delete '
+                    f'the file and re-run to recompute, or pass a different '
+                    f'norm_stats_path.'
+                )
         else:
-            print(f'Computing norm stats from {self.n_stats_samples} samples...')
-            self.norm_stats = compute_norm_stats(train_files, self.n_stats_samples)
+            print(f'Computing norm stats from {self.n_stats_samples} samples '
+                  f'(stars_two_head={self.stars_two_head})...')
+            self.norm_stats = compute_norm_stats(
+                train_files, self.n_stats_samples,
+                stars_two_head=self.stars_two_head,
+            )
             stats_path.parent.mkdir(parents=True, exist_ok=True)
             self.norm_stats.save(stats_path)
             print(f'Saved norm stats to {stats_path}')
@@ -142,7 +175,13 @@ def main():
     parser.add_argument('--dropout', type=float, default=0.1)
     parser.add_argument('--cfg_dropout', type=float, default=0.1)
     parser.add_argument('--star_occ_weight', type=float, default=1.0,
-                        help='Extra loss weight for occupied stellar pixels (1=disabled)')
+                        help='Extra loss weight for occupied stellar pixels (1=disabled). '
+                             'Ignored when --stars_two_head is set.')
+    parser.add_argument('--stars_two_head', action='store_true',
+                        help='Split Stars target into (occupancy, conditional density) '
+                             'and have the model predict both. Out_ch becomes 4. At '
+                             'inference the two channels are recombined via a soft '
+                             'multiplier before writing the standard 3-channel artifact.')
     parser.add_argument('--interpolant', type=str, default='fm', choices=['si', 'fm'],
                         help='si=stochastic interpolant (DMO→hydro), fm=original flow matching (noise→hydro)')
     parser.add_argument('--sigma', type=float, default=0.5,
@@ -168,6 +207,7 @@ def main():
         norm_stats_path=str(run_dir / 'norm_stats.npz'),
         batch_size=args.batch_size,
         num_workers=args.num_workers,
+        stars_two_head=args.stars_two_head,
     )
 
     # Compute/load norm stats up-front so we can derive star_zero_norm before
@@ -175,7 +215,13 @@ def main():
     # will load from the cached npz rather than recomputing).
     dm.setup()
     ns = dm.norm_stats
-    star_zero_norm = float((0.0 - ns.target_mean[2]) / (ns.target_std[2] + 1e-8))
+    # star_zero_norm is only meaningful in single-head mode (channel 2 = stars
+    # density). In two-head mode channel 2 is occupancy and the loss-side
+    # weighting is disabled.
+    if args.stars_two_head:
+        star_zero_norm = None
+    else:
+        star_zero_norm = float((0.0 - ns.target_mean[2]) / (ns.target_std[2] + 1e-8))
 
     model = FlowMatchingLit(
         base_ch=args.base_ch, n_blocks=args.n_blocks, emb_dim=args.emb_dim,
@@ -184,6 +230,7 @@ def main():
         ema_decay=args.ema_decay, warmup_steps=args.warmup_steps,
         star_occ_weight=args.star_occ_weight, star_zero_norm=star_zero_norm,
         interpolant=args.interpolant, sigma=args.sigma,
+        stars_two_head=args.stars_two_head,
     )
 
     callbacks = [

@@ -24,6 +24,7 @@ def build_cv_specs(
     param_file: Path,
     nbody_root: Path,
     hydro_root: Path,
+    fof_root: Path,
     snapshot: int,
     box_size: float,
     npix: int,
@@ -45,6 +46,11 @@ def build_cv_specs(
         if row.empty:
             raise ValueError(f"No parameters found for {sim_name} in {param_file}")
         params = row.iloc[0, 1:36].values.astype(np.float32)
+        # CV table lists VariableWindSpecMomentum=2000, but the CV box was
+        # actually run at the fiducial value of 0 (matches 1P_p1_0 and the
+        # SB35 minmax fiducial). Override here so conditioning matches the
+        # true simulation value.
+        params[14] = 0.0
 
         specs.append(
             SimulationSpec(
@@ -53,7 +59,7 @@ def build_cv_specs(
                 snapshot=snapshot,
                 nbody_path=nbody_root / sim_name,
                 hydro_snapdir=hydro_root / sim_name / f"snapdir_{snapshot:03d}",
-                group_catalog=hydro_root / sim_name / f"groups_{snapshot:03d}",
+                group_catalog=fof_root / sim_name,
                 params=params,
                 box_size=box_size,
                 npix=npix,
@@ -96,6 +102,7 @@ def build_1p_specs(
     param_file: Path,
     nbody_root: Path,
     hydro_root: Path,
+    fof_root: Path,
     snapshot: int,
     box_size: float,
     npix: int,
@@ -115,11 +122,11 @@ def build_1p_specs(
             raise ValueError(f"No parameters found for {sim_name} in {param_file}")
 
         params = row.iloc[0, 1:-1].values.astype(np.float32)
-        # Keep consistency with prior workflow where AGN1 defaults to 2000 in 1P tables.
-        if sim_name.split("_")[1] != "p15":
-            params[14] = 2000.0
 
         nbody_sim = _resolve_1p_nbody_sim(sim_name)
+        fof_catalog = fof_root / sim_name
+        if not fof_catalog.exists():
+            fof_catalog = fof_root / "1P_p1_0"
         specs.append(
             SimulationSpec(
                 suite="1P",
@@ -127,7 +134,7 @@ def build_1p_specs(
                 snapshot=snapshot,
                 nbody_path=nbody_root / nbody_sim,
                 hydro_snapdir=hydro_root / sim_name / f"snapdir_{snapshot:03d}",
-                group_catalog=hydro_root / sim_name / f"groups_{snapshot:03d}",
+                group_catalog=fof_catalog,
                 params=params,
                 box_size=box_size,
                 npix=npix,
@@ -313,9 +320,11 @@ def build_suite_specs(
     cv_param_file: Path,
     cv_nbody_root: Path,
     cv_hydro_root: Path,
+    cv_fof_root: Path,
     onep_param_file: Path,
     onep_nbody_root: Path,
     onep_hydro_root: Path,
+    onep_fof_root: Path,
     test_manifest: Path | None,
     sb35_param_file: Path | None = None,
     sb35_nbody_root: Path | None = None,
@@ -341,6 +350,7 @@ def build_suite_specs(
                 cv_param_file,
                 cv_nbody_root,
                 cv_hydro_root,
+                cv_fof_root,
                 snapshot,
                 box_size,
                 npix,
@@ -357,6 +367,7 @@ def build_suite_specs(
                 onep_param_file,
                 onep_nbody_root,
                 onep_hydro_root,
+                onep_fof_root,
                 snapshot,
                 box_size,
                 npix,

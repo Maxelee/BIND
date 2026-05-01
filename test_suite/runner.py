@@ -5,7 +5,6 @@ from __future__ import annotations
 import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
-from pathlib import Path
 
 import numpy as np
 import torch
@@ -53,9 +52,26 @@ def load_model_bundle(run_cfg: RunConfig) -> tuple[NormStats, object, torch.devi
     """Load norm stats and model checkpoint once for all simulations."""
     device = _resolve_device(run_cfg.device)
     norm_stats = NormStats.load(run_cfg.run_dir / "norm_stats.npz")
+
+    # Optional post-training per-channel calibration.
+    # Multiplicative factors in physical space map to additive shifts in log-space.
+    if run_cfg.channel_correction is not None:
+        corr = np.asarray(run_cfg.channel_correction, dtype=np.float32)
+        if corr.shape != (3,):
+            raise ValueError(
+                f"channel_correction must have shape (3,), got {corr.shape}"
+            )
+        if not np.all(np.isfinite(corr)) or np.any(corr <= 0):
+            raise ValueError("channel_correction must be finite and > 0 for all channels")
+        norm_stats.target_mean = norm_stats.target_mean.copy()
+        norm_stats.target_mean += np.log10(corr)
+
     model = FlowMatchingLit.load_from_checkpoint(run_cfg.checkpoint_path, map_location=device)
     model.eval()
     model.to(device)
+    # Never apply EMA — always use the raw checkpoint weights.
+    # fm_two_head was trained before EMA saving was added; its shadow_params are
+    # corrupt/zero and would overwrite the valid raw weights.
     return norm_stats, model.fm, device
 
 

@@ -108,3 +108,78 @@ def batch_profiles(fields, n_bins=32):
         profs.append(prof)
     profs = np.stack(profs)
     return r, profs.mean(0), profs.std(0)
+
+
+def power_spectrum_pylians_2d(field_2d, box_size=50.0, MAS='None', threads=4,
+                              as_overdensity=True):
+    """Azimuthally averaged 2D P(k) via Pylians Pk_plane.
+
+    Args:
+        field_2d: (H, W) 2D map. If as_overdensity=True the field is
+            converted to delta = field / mean - 1 before being passed in.
+        box_size: physical box size in Mpc/h
+        MAS: mass-assignment-scheme deconvolution ('None', 'NGP', 'CIC',
+            'TSC', 'PCS'). Use 'None' for maps that are already gridded
+            via summing particles (no kernel).
+        threads: OpenMP threads
+        as_overdensity: convert to overdensity before spectrum (standard).
+    Returns:
+        k: wavenumber bins (Mpc/h)^-1
+        pk: power per bin
+        nmodes: number of modes per bin
+    """
+    import Pk_library as PKL
+    f = np.asarray(field_2d, dtype=np.float32)
+    if as_overdensity:
+        mu = f.mean()
+        if mu <= 0:
+            raise ValueError('field mean must be positive to compute overdensity')
+        f = f / mu - 1.0
+    p = PKL.Pk_plane(f, box_size, MAS=MAS, threads=threads, verbose=False)
+    return np.asarray(p.k), np.asarray(p.Pk), np.asarray(p.Nmodes)
+
+
+def batch_power_spectra_pylians(fields, box_size=50.0, MAS='None', threads=4,
+                                as_overdensity=True):
+    """Apply power_spectrum_pylians_2d across a batch; returns k, mean, std."""
+    pks = []
+    k_ref = None
+    for f in fields:
+        k, pk, _ = power_spectrum_pylians_2d(
+            f, box_size=box_size, MAS=MAS, threads=threads,
+            as_overdensity=as_overdensity,
+        )
+        if k_ref is None:
+            k_ref = k
+        pks.append(pk)
+    pks = np.stack(pks)
+    return k_ref, pks.mean(0), pks.std(0)
+
+
+def pixel_ks_test(truth, generated, n_samples=1_000_000, positive_only=True,
+                  seed=0):
+    """KS test on pooled pixel values from truth and generated fields.
+
+    Args:
+        truth, generated: arrays of arbitrary shape (flattened internally).
+        n_samples: cap on the number of pixels per side sent to ks_2samp
+            (scipy is O(n log n); > 1e6 is slow for little statistical gain).
+        positive_only: if True, keep only strictly positive pixels (density
+            fields have a physical floor at 0).
+        seed: RNG seed for the sub-sampling.
+    Returns:
+        ks_stat, p_value
+    """
+    from scipy.stats import ks_2samp
+    rng = np.random.default_rng(seed)
+    t = truth.ravel()
+    g = generated.ravel()
+    if positive_only:
+        t = t[t > 0]
+        g = g[g > 0]
+    if len(t) > n_samples:
+        t = rng.choice(t, size=n_samples, replace=False)
+    if len(g) > n_samples:
+        g = rng.choice(g, size=n_samples, replace=False)
+    res = ks_2samp(t, g)
+    return float(res.statistic), float(res.pvalue)

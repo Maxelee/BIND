@@ -331,19 +331,23 @@ class FlowMatching:
     Sampling: Euler ODE integration from t=0 (noise) to t=1 (data)
     """
 
-    def __init__(self, model, cfg_dropout=0.0, star_occ_weight=5.0, star_zero_norm=None):
+    def __init__(self, model, cfg_dropout=0.0, star_occ_weight=5.0,
+                 star_zero_norm=None, out_channels=3):
         self.model = model
         self.cfg_dropout = cfg_dropout
         self.star_occ_weight = star_occ_weight
         # Normalised value of a zero-density stellar pixel; anything above this is "occupied".
         # Set from norm_stats: (0 - target_mean[2]) / target_std[2].
+        # In two-head Stars mode this knob is unused (channel 2 is occupancy,
+        # not stars density) — keep star_occ_weight=1.0 in that case.
         self.star_zero_norm = star_zero_norm
+        self.out_channels = out_channels
 
     def loss(self, x1, condition, large_scale, params):
         """Compute flow matching loss.
 
         Args:
-            x1: (B, 3, H, W) — normalized target fields
+            x1: (B, C, H, W) — normalized target fields (C = self.out_channels)
             condition: (B, 1, H, W) — normalized DMO condition
             large_scale: (B, 3, H, W) — normalized large-scale context
             params: (B, 35) — normalized parameters
@@ -366,12 +370,19 @@ class FlowMatching:
 
         per_pixel = (v_pred - velocity_target) ** 2
 
-        # Upweight occupied stellar pixels so the loss isn't dominated by the many
-        # empty pixels that all share the same target value (star_zero_norm).
-        if self.star_occ_weight != 1.0 and self.star_zero_norm is not None:
-            star_occ = (x1[:, 2:3] > self.star_zero_norm + 0.1).float()
+        if self.star_occ_weight != 1.0:
             w = torch.ones_like(per_pixel)
-            w[:, 2:3] = 1.0 + (self.star_occ_weight - 1.0) * star_occ
+            if self.out_channels == 4:
+                # Two-head Stars mode: ch2=occupancy, ch3=conditional density.
+                # Upweight both stellar channels on pixels that are truly occupied
+                # (occupancy target > 0.5, i.e. the binary label is 1).
+                star_occ = (x1[:, 2:3] > 0.5).float()
+                w[:, 2:3] = 1.0 + (self.star_occ_weight - 1.0) * star_occ
+                w[:, 3:4] = 1.0 + (self.star_occ_weight - 1.0) * star_occ
+            elif self.star_zero_norm is not None:
+                # Single-head mode: ch2 is stars density; upweight occupied pixels.
+                star_occ = (x1[:, 2:3] > self.star_zero_norm + 0.1).float()
+                w[:, 2:3] = 1.0 + (self.star_occ_weight - 1.0) * star_occ
             per_pixel = per_pixel * w
 
         return per_pixel.mean()
@@ -387,13 +398,14 @@ class FlowMatching:
             n_steps: number of Euler steps
             cfg_scale: classifier-free guidance scale (1.0 = no guidance)
         Returns:
-            (B, 3, H, W) generated fields
+            (B, self.out_channels, H, W) generated fields
         """
         self.model.eval()
         B = condition.shape[0]
         device = condition.device
 
-        x = torch.randn(B, 3, condition.shape[2], condition.shape[3], device=device)
+        x = torch.randn(B, self.out_channels,
+                        condition.shape[2], condition.shape[3], device=device)
         dt = 1.0 / n_steps
 
         for i in range(n_steps):

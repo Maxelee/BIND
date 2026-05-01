@@ -30,23 +30,37 @@ def pixelize_z_projection(
     return field
 
 
-def _nbody_snapshot_file(nbody_path: Path, snapshot: int) -> Path:
+def _dmo_snapshot_files(nbody_path: Path, snapshot: int) -> list[str]:
+    """Return sorted list of DMO snapshot files (single-file or multi-chunk)."""
     single = nbody_path / f"snap_{snapshot:03d}.hdf5"
     if single.exists():
-        return single
-    chunk0 = nbody_path / f"snapdir_{snapshot:03d}" / f"snap_{snapshot:03d}.0.hdf5"
-    if chunk0.exists():
-        return chunk0
+        return [str(single)]
+    pattern = nbody_path / f"snapdir_{snapshot:03d}" / f"snap_{snapshot:03d}.*.hdf5"
+    files = sorted(glob.glob(str(pattern)))
+    if files:
+        return files
     raise FileNotFoundError(f"Could not find DMO snapshot for {nbody_path} snapshot {snapshot}")
 
 
 def load_dmo_projection(spec: SimulationSpec) -> np.ndarray:
-    """Load DMO particles and project to 2D full-box map."""
-    nbody_snap = _nbody_snapshot_file(spec.nbody_path, spec.snapshot)
-    with h5py.File(nbody_snap, "r") as handle:
-        dmo_pos = handle["PartType1/Coordinates"][:] / 1000.0
-        mt = handle["Header"].attrs["MassTable"]
-        dmo_mass_arr = np.full(len(dmo_pos), mt[1] * 1e10, dtype=np.float32)
+    """Load DMO particles and project to 2D full-box map.
+
+    For suites without a separate N-body run (e.g. SB35), nbody_path should
+    point to the hydro simulation root — PartType1 (DM) is read from there.
+    Multi-chunk snapshots are fully concatenated before projection.
+    """
+    snap_files = _dmo_snapshot_files(spec.nbody_path, spec.snapshot)
+
+    pos_chunks: list[np.ndarray] = []
+    dm_particle_mass: float | None = None
+    for fname in snap_files:
+        with h5py.File(fname, "r") as handle:
+            pos_chunks.append(handle["PartType1/Coordinates"][:])
+            if dm_particle_mass is None:
+                dm_particle_mass = float(handle["Header"].attrs["MassTable"][1]) * 1e10
+
+    dmo_pos = np.concatenate(pos_chunks) / 1000.0
+    dmo_mass_arr = np.full(len(dmo_pos), dm_particle_mass, dtype=np.float32)
 
     if spec.proj_frac < 1.0:
         mask = dmo_pos[:, 2] < spec.box_size * spec.proj_frac
@@ -58,10 +72,15 @@ def load_dmo_projection(spec: SimulationSpec) -> np.ndarray:
 
 def load_halo_catalog(spec: SimulationSpec) -> tuple[list[dict], np.ndarray, np.ndarray]:
     """Load FoF group catalog, apply halo mass cut, and build halo list."""
+    # Try multi-chunk layout first (CV/1P hydro groups), then single-file (SB35 DM FoF)
     patt = spec.group_catalog / f"fof_subhalo_tab_{spec.snapshot:03d}.*.hdf5"
     files = sorted(glob.glob(str(patt)))
     if not files:
-        raise FileNotFoundError(f"No FoF group files found with pattern {patt}")
+        single = spec.group_catalog / f"fof_subhalo_tab_{spec.snapshot:03d}.hdf5"
+        if single.exists():
+            files = [str(single)]
+    if not files:
+        raise FileNotFoundError(f"No FoF group files found in {spec.group_catalog}")
 
     all_masses: list[np.ndarray] = []
     all_positions: list[np.ndarray] = []
@@ -139,16 +158,74 @@ def extract_halo_cutouts(
 
 
 def normalize_cutout(hc: dict, ns: NormStats, sim_params: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Normalize one halo cutout and associated parameter vector."""
+    """Normalize one halo cutout and associated parameter vector.
+
+    Parameters with `ns.param_log_flag == 1` are log10-transformed before
+    min/max scaling — `ns.param_min`/`ns.param_max` are already in log10
+    space for those entries (see `data.NormStats`).
+    """
     condition = log_transform(hc["condition"])[None]
     condition = (condition - ns.cond_mean) / (ns.cond_std + 1e-8)
 
     large_scale = log_transform(hc["large_scale"])
     large_scale = (large_scale - ns.ls_mean[:, None, None]) / (ns.ls_std[:, None, None] + 1e-8)
 
+    p = sim_params.astype(np.float64)
+    p = np.where(ns.param_log_flag == 1, np.log10(np.maximum(p, 1e-30)), p)
     rang = ns.param_max - ns.param_min
-    params = (sim_params.astype(np.float32) - ns.param_min) / (rang + 1e-8)
+    params = ((p - ns.param_min) / (rang + 1e-8)).astype(np.float32)
     return condition, large_scale, params
+
+
+def _denormalize_to_physical(
+    gen_np: np.ndarray, norm_stats: NormStats
+) -> np.ndarray:
+    """Take raw model output (B, C, H, W) in normalized space and return
+    physical-space (B, 3, H, W) [DM_hydro, Gas, Stars].
+
+    Single-head (C=3): standard inverse standardize → 10^x - 1 per channel.
+    Two-head    (C=4): channels 0/1 are DM_hydro/Gas as usual; channels 2/3
+        are recombined via a soft multiplier into Stars:
+            occ_raw     = clip(gen[2] * stars_occ_std + stars_occ_mean, 0, 1)
+            density_log = gen[3] * stars_cond_std + stars_cond_mean
+            stars       = occ_raw * (10 ** density_log - 1)
+    """
+    if norm_stats.stars_two_head:
+        if gen_np.shape[1] != 4:
+            raise ValueError(
+                f"norm_stats.stars_two_head=True but model produced "
+                f"{gen_np.shape[1]} channels (expected 4)"
+            )
+        out = np.zeros((gen_np.shape[0], 3) + gen_np.shape[2:], dtype=np.float32)
+        # DM_hydro and Gas: same standard inverse as single-head
+        for ch in range(2):
+            x = gen_np[:, ch] * norm_stats.target_std[ch] + norm_stats.target_mean[ch]
+            out[:, ch] = 10.0 ** x - 1.0
+        # Stars: hard binary gate on occupancy × conditional density.
+        # occ_prob is near-bimodal (≈0 or ≈1 with negligible ambiguous mass);
+        # a soft multiply lets the density head leak through on "empty" pixels
+        # (occ_prob~0.05 × large_density >> threshold), inflating occupancy by
+        # ~55 pp. Thresholding at 0.5 reduces that error to <0.5 pp.
+        occ_raw = gen_np[:, 2] * norm_stats.stars_occ_std + norm_stats.stars_occ_mean
+        occ_gate = (occ_raw > 0.5).astype(np.float32)
+        density_log = (
+            gen_np[:, 3] * norm_stats.stars_cond_std + norm_stats.stars_cond_mean
+        )
+        density_phys = 10.0 ** density_log - 1.0
+        out[:, 2] = occ_gate * density_phys
+        return np.clip(out, 0, None).astype(np.float32)
+
+    # Single-head path (legacy)
+    if gen_np.shape[1] != 3:
+        raise ValueError(
+            f"norm_stats.stars_two_head=False but model produced "
+            f"{gen_np.shape[1]} channels (expected 3)"
+        )
+    out = gen_np.astype(np.float32, copy=True)
+    for ch in range(3):
+        out[:, ch] = out[:, ch] * norm_stats.target_std[ch] + norm_stats.target_mean[ch]
+        out[:, ch] = 10.0 ** out[:, ch] - 1.0
+    return np.clip(out, 0, None)
 
 
 def generate_halo_patches(
@@ -161,7 +238,11 @@ def generate_halo_patches(
     batch_size: int,
     use_amp: bool,
 ) -> np.ndarray:
-    """Run model inference on all halo cutouts and denormalize to physical space."""
+    """Run model inference on all halo cutouts and denormalize to physical space.
+
+    Always returns (N, 3, H, W) [DM_hydro, Gas, Stars] regardless of whether
+    the model uses single-head or two-head Stars internally.
+    """
     outputs: list[np.ndarray] = []
 
     with torch.no_grad():
@@ -182,11 +263,7 @@ def generate_halo_patches(
                 gen = fm.sample(cond_t, ls_t, params_t, n_steps=n_steps)
 
             gen_np = gen.float().cpu().numpy().astype(np.float32)
-            for ch in range(3):
-                gen_np[:, ch] = gen_np[:, ch] * norm_stats.target_std[ch] + norm_stats.target_mean[ch]
-                gen_np[:, ch] = 10.0 ** gen_np[:, ch] - 1.0
-            gen_np = np.clip(gen_np, 0, None)
-            outputs.append(gen_np)
+            outputs.append(_denormalize_to_physical(gen_np, norm_stats))
 
     if not outputs:
         return np.zeros((0, 3, 0, 0), dtype=np.float32)

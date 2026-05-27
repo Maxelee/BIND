@@ -5,7 +5,38 @@ worth remembering. Newest entries on top. Keep entries short — link commits an
 files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
+## 2026-05-27 — `ksz_project`: validation E (SBI coverage) + F (v_los robustness)
 
+Extended the kSZ validation pipeline with the remaining two §4 plots:
+
+- **E. Leave-one-out coverage** on the 102-sim Test (SB35) pool. Built a tiny
+  dependency-free emulator in `analysis/ksz/inference.py`: per-mass-bin ridge
+  regression θ_std → x_k with empirical residual σ, plus analytic Gaussian
+  posterior on raw θ (with N(0, prior_std²) prior on standardised θ).
+  `validation_e.py` runs LOO at level 0.6827 with multiplicative measurement
+  noise (default 5%) and 8 realizations per held-out sim.
+- **F. v_los robustness** uses the same emulator with an extra multiplicative
+  systematic x_obs = x_true × (1 + ε_v), ε_v ~ N(0, σ_v²), swept across
+  σ_v ∈ {0, 0.05, 0.10, 0.20, 0.30}.  Posterior shift / coverage
+  degradation as a function of σ_v.
+- Wired into `run_ksz_validation_a.sh` (PLOTS default → `ABCDEFG`).
+
+Honest smoke result on fm_two_head / Test / 5 mass bins (3 survive the
+≥ 80 %-sim-coverage filter, since SB35 sims have few halos at log M > 14):
+**only 2/35 params are data-informed**: p00 (Ω_m, constraint = 0.32) and p06
+(Ω_b, constraint = 0.14) where `constraint = 1 − σ_post / σ_prior` in std-θ
+space.  All others are prior-dominated by construction — coverage = 1.0 is a
+mathematical identity, not calibration.  Both informed params are also
+over-covered (1.0 vs 0.68), meaning the ridge-emulator residual σ is wider
+than the per-sim true scatter (this is the conservative direction).  F is
+correspondingly flat in σ_v: when the data don't constrain a parameter, v_los
+systematics can't move the posterior.  Both are useful negative results: the
+stacked τ(M) observable alone is rank-3 — to get usable constraints on
+subgrid params we need (a) more mass bins (HMF-limited above 10^14 — plot G)
+or (b) a richer observable (annular profiles → plot B, or τ × M scaling →
+future work).  Recorded in `figures/ksz_validation_e_*.txt`.
+
+---
 ## 2026-05-27 — `ksz_project`: Paper-2 scoping + validation pipeline A–G
 
 New branch `ksz_project` (off `main`). Adds the Paper-2 scoping doc and a

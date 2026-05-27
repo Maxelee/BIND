@@ -9,21 +9,22 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
 
-# Paper-2 validation plots A, B, C, D, G — per-halo τ recovery / annular
-# profiles / Spearman parameter sensitivity / stacked τ(M) / HMF coverage.
+# Paper-2 validation plots A, B, C, D, E, F, G — per-halo τ recovery /
+# annular profiles / Spearman parameter sensitivity / stacked τ(M) /
+# leave-one-out SBI coverage / v_los robustness / HMF coverage.
 # All consume pre-existing artifacts from run_test_suite_parallel.sh, so this
 # is CPU-only and short.
 #
 # Outputs (per model):
-#   analysis_physics_cache/ksz_validation_{a,b,c,d}_<MODEL>.npz
+#   analysis_physics_cache/ksz_validation_{a,b,c,d,e,f}_<MODEL>.npz
 #   analysis_physics_cache/ksz_validation_g.npz   (model-independent)
-#   figures/ksz_validation_{a,b,c,d,g}_<MODEL>.pdf
+#   figures/ksz_validation_{a,b,c,d,e,f,g}_<MODEL>.pdf
 #
 # Examples:
 #   sbatch run_ksz_validation_a.sh
 #   sbatch --export=ALL,MODEL_NAME=fm_thermo,SUITES="CV 1P" run_ksz_validation_a.sh
 #   bash run_ksz_validation_a.sh                                  # interactive
-#   PLOTS=DG bash run_ksz_validation_a.sh                          # only D + G
+#   PLOTS=EF bash run_ksz_validation_a.sh                          # only E + F
 
 set -euo pipefail
 
@@ -60,11 +61,22 @@ MASS_BINS_D=${MASS_BINS_D:-"1e13 2e13 5e13 1e14 1e15"}
 MASS_BINS_G=${MASS_BINS_G:-"1e13 2e13 5e13 1e14 1e15"}
 MIN_PER_SIM_G=${MIN_PER_SIM_G:-1.0}
 
+# SBI-coverage (E) and v_los robustness (F) settings — both use the same
+# stacked τ(M) observable as D and the Test suite as the (θ, x) training pool.
+SUITES_EF=${SUITES_EF:-Test}
+MASS_BINS_EF=${MASS_BINS_EF:-"1e13 2e13 5e13 1e14 1e15"}
+NOISE_FRAC_EF=${NOISE_FRAC_EF:-0.05}
+N_REALIZATIONS_EF=${N_REALIZATIONS_EF:-8}
+RIDGE_EF=${RIDGE_EF:-1e-2}
+PRIOR_STD_EF=${PRIOR_STD_EF:-3.0}
+LEVEL_EF=${LEVEL_EF:-0.6827}
+VLOS_SIGMAS=${VLOS_SIGMAS:-"0 0.05 0.10 0.20 0.30"}
+
 CACHE_DIR=${CACHE_DIR:-analysis_physics_cache}
 FIG_DIR=${FIG_DIR:-figures}
 
-# Choose which plots to run: any non-empty substring match of A/B/C/D/G
-PLOTS=${PLOTS:-ABCDG}
+# Choose which plots to run: any non-empty substring match of A/B/C/D/E/F/G
+PLOTS=${PLOTS:-ABCDEFG}
 
 mkdir -p "$CACHE_DIR" "$FIG_DIR"
 
@@ -128,6 +140,43 @@ if [[ "$PLOTS" == *D* ]]; then
         --out "$OUT_NPZ_D"
     python -m analysis.ksz.plot_validation_d \
         --input "$OUT_NPZ_D" --out "$OUT_PDF_D"
+fi
+
+# ── Plot E ───────────────────────────────────────────────────────────────────
+if [[ "$PLOTS" == *E* ]]; then
+    OUT_NPZ_E=${OUT_NPZ_E:-${CACHE_DIR}/ksz_validation_e_${MODEL_NAME}.npz}
+    OUT_PDF_E=${OUT_PDF_E:-${FIG_DIR}/ksz_validation_e_${MODEL_NAME}.pdf}
+    echo "=== Validation E — SBI leave-one-out coverage ==="
+    python -m analysis.ksz.validation_e \
+        --testsuite_root "$TESTSUITE_ROOT" --model "$MODEL_NAME" \
+        --suites $SUITES_EF --halo_mass_min "$HALO_MASS_MIN" \
+        --box_size "$BOX_SIZE" --patch_size_mpc_h "$PATCH_SIZE_MPC_H" \
+        --hubble "$HUBBLE" --aperture "$D_APERTURE" \
+        --r_ap_mpc_h "$R_AP_MPC_H" --mass_bins $MASS_BINS_EF \
+        --ridge "$RIDGE_EF" --prior_std "$PRIOR_STD_EF" \
+        --noise_frac "$NOISE_FRAC_EF" --n_realizations "$N_REALIZATIONS_EF" \
+        --level "$LEVEL_EF" --out "$OUT_NPZ_E"
+    python -m analysis.ksz.plot_validation_e \
+        --input "$OUT_NPZ_E" --out "$OUT_PDF_E"
+fi
+
+# ── Plot F ───────────────────────────────────────────────────────────────────
+if [[ "$PLOTS" == *F* ]]; then
+    OUT_NPZ_F=${OUT_NPZ_F:-${CACHE_DIR}/ksz_validation_f_${MODEL_NAME}.npz}
+    OUT_PDF_F=${OUT_PDF_F:-${FIG_DIR}/ksz_validation_f_${MODEL_NAME}.pdf}
+    echo "=== Validation F — v_los robustness ==="
+    python -m analysis.ksz.validation_f \
+        --testsuite_root "$TESTSUITE_ROOT" --model "$MODEL_NAME" \
+        --suites $SUITES_EF --halo_mass_min "$HALO_MASS_MIN" \
+        --box_size "$BOX_SIZE" --patch_size_mpc_h "$PATCH_SIZE_MPC_H" \
+        --hubble "$HUBBLE" --aperture "$D_APERTURE" \
+        --r_ap_mpc_h "$R_AP_MPC_H" --mass_bins $MASS_BINS_EF \
+        --ridge "$RIDGE_EF" --prior_std "$PRIOR_STD_EF" \
+        --noise_frac "$NOISE_FRAC_EF" --n_realizations "$N_REALIZATIONS_EF" \
+        --vlos_sigmas $VLOS_SIGMAS --level "$LEVEL_EF" \
+        --out "$OUT_NPZ_F"
+    python -m analysis.ksz.plot_validation_f \
+        --input "$OUT_NPZ_F" --out "$OUT_PDF_F"
 fi
 
 # ── Plot G ───────────────────────────────────────────────────────────────────

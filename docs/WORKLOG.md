@@ -5,6 +5,50 @@ worth remembering. Newest entries on top. Keep entries short — link commits an
 files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
+## 2026-05-27 — `ksz_project`: validation A–G correctness pass (3 fixes)
+
+Audited A–G for the kSZ τ observable and fixed three real problems (least →
+most important). All A–G re-run on `fm_two_head` (CV+1P+Test) exit 0.
+
+- **Fix 3 — consistency + C significance.** Added `tau_utils.per_halo_tau`
+  (disk | CAP, scalar/per-halo radii) as the single estimator used by
+  A/C/D/E/F (was 3 divergent local copies). Rewrote `validation_c.py` to
+  aggregate to **one stacked τ per sim** before the Spearman — within an SB35
+  sim all halos share θ, so per-halo pooling was pseudo-replication (N_halos
+  not N_sims) with meaningless p-values. Now N=101 sims, honest p. BIND tracks
+  truth: Ω_b ρ=+0.36 (truth +0.37), Ω_m −0.35, p12/p4/p25 agree.
+- **Fix 2 — real coverage test.** `validation_e.py` now feeds the posterior the
+  **real held-out stack `x[i]`**, not `emu.predict(θ_i)`; the old version was
+  self-referential and could only ever over-cover. Added SBC ranks
+  (Φ(θ_true), uniform iff calibrated) + per-param KS p + out-of-sample residual.
+  Honest result: emulator out-of-sample residual ≈ **0.337**; SBC **rejects
+  uniformity (KS p≈0) even for the 2 informed params** (Ω_m constraint 0.32,
+  Ω_b 0.14) — coverage→1.0 is *over*-dispersion, not calibration. Argues for
+  real BIND-in-the-loop NPE/NLE over the linear surrogate. `validation_f.py`
+  rebuilt on the same real-data base → Ω_m coverage now degrades 1.00→0.98 as
+  σ_v→0.30 (was trivially flat); docstring flags flatness is only meaningful
+  for data-informed params.
+- **Fix 1 — LOS / canonical observable (the §6.1 risk).** CAP is now the
+  default estimator for C/D/E/F (∑w=0 cancels the uniform 50 Mpc/h LOS
+  background, mirroring ACT). Loader records `truth_source`/`los_depth_mpc_h`;
+  every observable script prints a `[LOS]` banner
+  (`fullbox → 50.0 Mpc/h, ~10× cluster depth`) so 2D-vs-cube projection can't be
+  silently conflated. Documented the decision in
+  [docs/paper2_ksz_plan.md](paper2_ksz_plan.md) §6.1 + a §4 "what this
+  establishes" note: **A–C are emulator-fidelity checks at the 50 Mpc/h
+  projection, not cluster-depth τ.**
+- **Cube validation (ACT-comparable τ).** Ran A–G on the cube suite
+  `fm_testsuite_cube` / `fm_cube_two_head` (6.25 Mpc/h LOS ≈ cluster depth; LOS
+  banner confirms `truth_source=cube`). Outputs keyed `_fm_cube_two_head`
+  alongside the 2D ones. **Key finding:** at cluster depth the background no
+  longer dilutes the halo signal, so BIND's over-prediction is more visible —
+  D's CAP τ(M) is **+11.6 % above truth at logM≈13.15** (vs +3.2 % for 2D),
+  +5–8 % higher mass; A bias +0.03 dex (vs +0.01). The +12 % at the ACT-deficit
+  mass scale is a BIND-fidelity floor for the inference error budget. E's
+  out-of-sample emulator residual 0.28 (vs 0.34 for 2D); still only Ω_m/Ω_b
+  informed, SBC non-uniform.
+
+---
 ## 2026-05-27 — `ksz_project`: validation E (SBI coverage) + F (v_los robustness)
 
 Extended the kSZ validation pipeline with the remaining two §4 plots:

@@ -31,42 +31,8 @@ from pathlib import Path
 
 import numpy as np
 
-from ._io import find_sim_dirs, load_sim
-from .tau_utils import (
-    aperture_cap_signal,
-    aperture_gas_mass,
-    gas_mass_to_tau_in_aperture,
-    gas_surface_density_to_tau,
-)
-
-
-def _per_halo_tau_disk(
-    patches: np.ndarray,
-    r_ap_pix: float,
-    pix_size_mpc_h: float,
-    hubble: float,
-) -> np.ndarray:
-    mass = aperture_gas_mass(patches, r_ap_pix)
-    area = np.pi * (r_ap_pix * pix_size_mpc_h) ** 2
-    return gas_mass_to_tau_in_aperture(mass, area, hubble=hubble)
-
-
-def _per_halo_tau_cap(
-    patches: np.ndarray,
-    r_ap_pix: float,
-    pix_size_mpc_h: float,
-    hubble: float,
-) -> np.ndarray:
-    """CAP-filtered τ: aperture sum with weights {+1 in disk, −n_in/n_ann in annulus}.
-
-    The CAP weights have ∑ w = 0, so a uniform background cancels exactly.
-    aperture_cap_signal(.) returns ∑ w · M  [Msun/h]; dividing by the disk
-    area gives an effective Σ_gas estimate, which we convert to τ.
-    """
-    cap_mass = aperture_cap_signal(patches, r_ap_pix)
-    disk_area = np.pi * (r_ap_pix * pix_size_mpc_h) ** 2  # area of the +1 disk
-    sigma_eff = cap_mass / disk_area
-    return gas_surface_density_to_tau(sigma_eff, hubble=hubble)
+from ._io import find_sim_dirs, load_sim, los_advisory
+from .tau_utils import per_halo_tau
 
 
 def _stack(values: np.ndarray, mass: np.ndarray, edges: np.ndarray
@@ -113,6 +79,7 @@ def main() -> None:
     all_mass: list[np.ndarray] = []
     all_tau_b: list[np.ndarray] = []
     all_tau_t: list[np.ndarray] = []
+    banner_shown = False
 
     for suite in args.suites:
         sims = find_sim_dirs(args.testsuite_root, suite)
@@ -133,6 +100,9 @@ def main() -> None:
                 continue
             if art is None:
                 continue
+            if not banner_shown:
+                print(los_advisory(art.truth_source, art.los_depth_mpc_h, args.aperture))
+                banner_shown = True
 
             pix_size = args.patch_size_mpc_h / art.patch_pix
             r_ap_pix = args.r_ap_mpc_h / pix_size
@@ -144,11 +114,10 @@ def main() -> None:
                 if r_out_pix >= art.patch_pix / 2:
                     print(f"[warn] {sd.name}: CAP outer radius {r_out_pix:.1f} px "
                           f">= half-patch ({art.patch_pix // 2}); truncated.")
-                tau_b = _per_halo_tau_cap(art.bind_gas, r_ap_pix, pix_size, args.hubble)
-                tau_t = _per_halo_tau_cap(art.truth_gas, r_ap_pix, pix_size, args.hubble)
-            else:
-                tau_b = _per_halo_tau_disk(art.bind_gas, r_ap_pix, pix_size, args.hubble)
-                tau_t = _per_halo_tau_disk(art.truth_gas, r_ap_pix, pix_size, args.hubble)
+            tau_b = per_halo_tau(art.bind_gas, r_ap_pix, pix_size, args.hubble,
+                                 estimator=args.aperture)
+            tau_t = per_halo_tau(art.truth_gas, r_ap_pix, pix_size, args.hubble,
+                                 estimator=args.aperture)
 
             all_mass.append(art.halo_masses)
             all_tau_b.append(tau_b)

@@ -31,7 +31,7 @@ import numpy as np
 
 from .tau_utils import (
     aperture_gas_mass,
-    gas_mass_to_tau_in_aperture,
+    per_halo_tau,
     r200_to_pixels,
 )
 
@@ -118,6 +118,7 @@ def _process_sim(
     box_size: float,
     hubble: float,
     patch_size_mpc_h: float,
+    estimator: str,
 ) -> dict | None:
     """Collect per-halo τ arrays for one simulation directory.
 
@@ -191,19 +192,20 @@ def _process_sim(
         print(f"[warn] {sim_dir.name}: {n_fallback}/{len(halos)} halos had r200=0; "
               f"using fixed_r_pix={fixed_r_pix} for those.")
 
-    # NB: aperture_gas_mass uses a single scalar radius.  For per-halo radii
-    # (R200-based) we loop; cost is negligible vs the SBI cost downstream.
+    # τ via the single shared estimator (disk = no background subtraction;
+    # cap = ACT-style compensated aperture, the kSZ-canonical observable that
+    # cancels the uniform line-of-sight background — see tau_utils.per_halo_tau).
+    pix_size_mpc_h = patch_size_mpc_h / patch_pix
+    aperture_area = np.pi * (np.asarray(r_pix, dtype=np.float64) * pix_size_mpc_h) ** 2
+    bind_tau = per_halo_tau(gen_gas, r_pix, pix_size_mpc_h, hubble, estimator=estimator)
+    truth_tau = per_halo_tau(truth_gas, r_pix, pix_size_mpc_h, hubble, estimator=estimator)
+
+    # Disk-summed aperture gas mass kept as a diagnostic (independent of estimator).
     bind_mass = np.empty(len(halos), dtype=np.float64)
     truth_mass = np.empty(len(halos), dtype=np.float64)
-    aperture_area = np.empty(len(halos), dtype=np.float64)
-    pix_size_mpc_h = patch_size_mpc_h / patch_pix
     for i, r in enumerate(r_pix):
         bind_mass[i] = aperture_gas_mass(gen_gas[i:i + 1], float(r))[0]
         truth_mass[i] = aperture_gas_mass(truth_gas[i:i + 1], float(r))[0]
-        aperture_area[i] = np.pi * (float(r) * pix_size_mpc_h) ** 2
-
-    bind_tau = gas_mass_to_tau_in_aperture(bind_mass, aperture_area, hubble=hubble)
-    truth_tau = gas_mass_to_tau_in_aperture(truth_mass, aperture_area, hubble=hubble)
 
     return {
         "suite": np.array([suite] * len(halos)),
@@ -234,6 +236,11 @@ def main() -> None:
     p.add_argument("--halo_mass_min", type=float, default=1e13,
                    help="Mass threshold tag used at runtime (default 1e13).")
     p.add_argument("--aperture", choices=["r200", "fixed"], default="r200")
+    p.add_argument("--estimator", choices=["disk", "cap"], default="disk",
+                   help="τ estimator. 'disk' = aperture-mean Σ (no background "
+                        "subtraction); 'cap' = compensated aperture, the "
+                        "kSZ-canonical observable used by D/E/F. Default 'disk' "
+                        "keeps A's positive-definite per-halo recovery view.")
     p.add_argument("--r200_factor", type=float, default=1.0,
                    help="Multiplier on R200c when --aperture r200.")
     p.add_argument("--fixed_r_pix", type=float, default=8.0,
@@ -264,6 +271,7 @@ def main() -> None:
                     fixed_r_pix=args.fixed_r_pix,
                     box_size=args.box_size, hubble=args.hubble,
                     patch_size_mpc_h=args.patch_size_mpc_h,
+                    estimator=args.estimator,
                 )
             except Exception as exc:  # surface but don't kill the walk
                 print(f"[err]  {suite}/{sd.name}: {exc}")
@@ -281,6 +289,7 @@ def main() -> None:
     meta = dict(
         model=args.model,
         aperture=args.aperture,
+        estimator=args.estimator,
         r200_factor=args.r200_factor,
         fixed_r_pix=args.fixed_r_pix,
         halo_mass_min=args.halo_mass_min,

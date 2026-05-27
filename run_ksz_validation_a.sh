@@ -120,8 +120,8 @@ if [[ "$PLOTS" == *C* ]]; then
         --testsuite_root "$TESTSUITE_ROOT" --model "$MODEL_NAME" \
         --suite "$SUITE_C" --halo_mass_min "$HALO_MASS_MIN" \
         --box_size "$BOX_SIZE" --patch_size_mpc_h "$PATCH_SIZE_MPC_H" \
-        --hubble "$HUBBLE" --r200_factor "$R200_FACTOR" \
-        --fixed_r_pix "$FIXED_R_PIX" --out "$OUT_NPZ_C"
+        --hubble "$HUBBLE" --aperture "$D_APERTURE" \
+        --r_ap_mpc_h "$R_AP_MPC_H" --out "$OUT_NPZ_C"
     python -m analysis.ksz.plot_validation_c \
         --input "$OUT_NPZ_C" --out "$OUT_PDF_C"
 fi

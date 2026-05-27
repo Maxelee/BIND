@@ -29,6 +29,24 @@ def find_sim_dirs(testsuite_root: Path, suite: str) -> list[Path]:
     return sorted(p for p in suite_dir.iterdir() if p.is_dir())
 
 
+def los_advisory(truth_source: str, los_depth_mpc_h: float, estimator: str) -> str:
+    """One-line banner stating what the aperture τ actually integrates.
+
+    Surfaces the §6.1 line-of-sight risk so it can't be forgotten: a full-box
+    2D projection integrates ~10× the cluster depth, which is only defensible
+    with the background-subtracting CAP estimator.
+    """
+    if truth_source == "cube":
+        return (f"[LOS] truth_source=cube → τ integrates {los_depth_mpc_h:.2f} Mpc/h "
+                f"(≈cluster depth; kSZ-appropriate).")
+    if estimator == "cap":
+        sub = "uniform LOS background cancels (∑w=0); residual 2-halo remains"
+    else:
+        sub = "NO background subtraction — τ includes the full-box LOS column"
+    return (f"[LOS] truth_source={truth_source} → τ integrates {los_depth_mpc_h:.1f} "
+            f"Mpc/h (~10× cluster depth). estimator={estimator}: {sub}.")
+
+
 @dataclass(frozen=True)
 class SimArtifacts:
     suite: str
@@ -39,9 +57,18 @@ class SimArtifacts:
     r200_mpc_h: np.ndarray        # (N,)   Mpc/h (0 where unknown)
     centers: np.ndarray           # (N, 2) Mpc/h (sky-plane only)
     params: np.ndarray            # (N, 35) raw CAMELS params (per halo)
-    bind_gas: np.ndarray          # (N, P, P) gas-mass-surface-density-per-pixel (Msun/h/pixel)
+    bind_gas: np.ndarray          # (N, P, P) gas-mass-per-pixel (Msun/h/pixel)
     truth_gas: np.ndarray         # (N, P, P) same convention as bind_gas
     n_fallback_r200: int = 0      # halos whose r200 was missing
+    # ── line-of-sight projection bookkeeping (the §6.1 risk) ──────────────────
+    # The aperture τ integrates the *entire* projection depth of these maps.
+    #   truth_source="cube"    → 3D thin-slab voxel projection, LOS = patch side
+    #                            (≈ cluster depth; the kSZ-appropriate path).
+    #   truth_source="fullbox" → full-box 2D projection, LOS = box_size (~10×
+    #                            too deep). Use the CAP estimator so the uniform
+    #                            background cancels; residual 2-halo remains.
+    truth_source: str = "unknown"
+    los_depth_mpc_h: float = float("nan")
 
 
 def _extract_truth_gas_from_full_maps(
@@ -135,6 +162,9 @@ def load_sim(
         if truth.shape[0] != len(centers):
             return None
         truth_gas = np.asarray(truth[:, GAS_CH], dtype=np.float32)
+        # Cube truth: 3D voxel sub-cube summed along z → LOS depth = patch side.
+        truth_source = "cube"
+        los_depth_mpc_h = float(patch_size_mpc_h)
     else:
         npix = int(round(patch_pix * box_size / patch_size_mpc_h))
         truth_gas = _extract_truth_gas_from_full_maps(
@@ -146,6 +176,9 @@ def load_sim(
         )
         if truth_gas.shape[0] == 0:
             return None
+        # Full-box 2D truth: integrates the whole box along the LOS.
+        truth_source = "fullbox"
+        los_depth_mpc_h = float(box_size)
 
     n_fallback = int((r200_mpc_h <= 0).sum())
     return SimArtifacts(
@@ -160,4 +193,6 @@ def load_sim(
         bind_gas=bind_gas,
         truth_gas=truth_gas,
         n_fallback_r200=n_fallback,
+        truth_source=truth_source,
+        los_depth_mpc_h=los_depth_mpc_h,
     )

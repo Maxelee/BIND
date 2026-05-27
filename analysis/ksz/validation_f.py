@@ -7,9 +7,15 @@ docs/paper2_ksz_plan.md), larger σ_v emulates an unmodelled multiplicative
 v_los systematic.
 
 For each σ_v in --vlos_sigmas we run the same leave-one-out coverage protocol
-as validation_e and record per-parameter coverage.  If coverage is roughly
-flat as a function of σ_v, the τ-only path is robust to v_los systematics; if
-it degrades quickly, the paper has to flag the systematic.
+as validation_e — with the synthetic observation built from the **real
+held-out stack** ``x[i]`` (not the emulator's own mean), so the systematic
+genuinely perturbs the data the posterior sees.  If coverage is roughly flat
+as a function of σ_v, the τ-only path is robust to v_los systematics; if it
+degrades quickly, the paper has to flag the systematic.
+
+Caveat: a flat curve is only meaningful for *data-informed* parameters.  When
+the stacked observable does not constrain a parameter (posterior ≈ prior), its
+coverage is insensitive to σ_v regardless — see validation_e's `constraint`.
 
 Usage:
     python -m analysis.ksz.validation_f \\
@@ -28,36 +34,20 @@ from pathlib import Path
 
 import numpy as np
 
-from ._io import find_sim_dirs, load_sim
+from ._io import find_sim_dirs, load_sim, los_advisory
 from .inference import (
     GaussianPosterior,
     StackedEmulator,
     central_credible_contains,
     stack_per_sim,
 )
-from .tau_utils import (
-    aperture_cap_signal,
-    aperture_gas_mass,
-    gas_mass_to_tau_in_aperture,
-    gas_surface_density_to_tau,
-)
-
-
-def _per_halo_tau_disk(patches, r_ap_pix, pix_size_mpc_h, hubble):
-    mass = aperture_gas_mass(patches, r_ap_pix)
-    area = np.pi * (r_ap_pix * pix_size_mpc_h) ** 2
-    return gas_mass_to_tau_in_aperture(mass, area, hubble=hubble)
-
-
-def _per_halo_tau_cap(patches, r_in_pix, pix_size_mpc_h, hubble):
-    sig = aperture_cap_signal(patches, r_in_pix)
-    area = np.pi * (r_in_pix * pix_size_mpc_h) ** 2
-    return gas_surface_density_to_tau(sig / area, hubble=hubble)
+from .tau_utils import per_halo_tau
 
 
 def _gather_pairs(args, edges):
     thetas: list[np.ndarray] = []
     xs: list[np.ndarray] = []
+    banner_shown = False
     for suite in args.suites:
         sims = find_sim_dirs(args.testsuite_root, suite)
         for sd in sims:
@@ -73,13 +63,14 @@ def _gather_pairs(args, edges):
                 continue
             if art is None or art.params.shape[1] == 0:
                 continue
+            if not banner_shown:
+                print(los_advisory(art.truth_source, art.los_depth_mpc_h, args.aperture))
+                banner_shown = True
             theta = art.params[0]
             pix_size = args.patch_size_mpc_h / art.patch_pix
             r_ap_pix = args.r_ap_mpc_h / pix_size
-            if args.aperture == "cap":
-                tau_b = _per_halo_tau_cap(art.bind_gas, r_ap_pix, pix_size, args.hubble)
-            else:
-                tau_b = _per_halo_tau_disk(art.bind_gas, r_ap_pix, pix_size, args.hubble)
+            tau_b = per_halo_tau(art.bind_gas, r_ap_pix, pix_size, args.hubble,
+                                 estimator=args.aperture)
             x, _ = stack_per_sim(tau_b, art.halo_masses, edges)
             thetas.append(theta)
             xs.append(x)
@@ -99,7 +90,9 @@ def _loo_coverage(theta, x, *, ridge, prior_std, noise_frac, vlos_sigma,
         mask = np.ones(n, dtype=bool)
         mask[i] = False
         emu = StackedEmulator.fit(theta[mask], x[mask], ridge=ridge)
-        x_true = emu.predict(theta[i:i+1])[0]
+        # Real held-out forward-model stack (not emu.predict) so the v_los
+        # systematic perturbs genuine data and the posterior can actually drift.
+        x_true = x[i]
         sigma_meas = noise_frac * np.abs(x_true)
         for _ in range(n_realizations):
             eps_v = rng.normal(scale=vlos_sigma) if vlos_sigma > 0 else 0.0

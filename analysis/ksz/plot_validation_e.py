@@ -29,6 +29,8 @@ def main():
     constraint = z["constraint"] if "constraint" in z.files else np.zeros_like(coverage)
     n_sims = int(z["n_sims"])
     n_real = int(z["n_realizations"])
+    sbc_ranks = z["sbc_ranks"] if "sbc_ranks" in z.files else None
+    sbc_ks_p = z["sbc_ks_p"] if "sbc_ks_p" in z.files else None
 
     p = len(coverage)
     fig, (ax1, ax2, ax3) = plt.subplots(
@@ -71,6 +73,35 @@ def main():
     plt.close(fig)
     print(f"[save] {args.out}")
 
+    # ── SBC rank histogram (separate fig): the money plot for calibration ──
+    # For a calibrated posterior the ranks Φ(θ_true) are Uniform(0,1).  Only the
+    # data-informed params carry information; prior-dominated params pile at 0.5.
+    if sbc_ranks is not None:
+        informed = constraint > 0.1
+        figs, (axa, axb) = plt.subplots(1, 2, figsize=(10, 3.6))
+        for ax, mask, ttl in (
+            (axa, informed, "data-informed params (constraint > 0.1)"),
+            (axb, ~informed, "prior-dominated params"),
+        ):
+            r = sbc_ranks[:, mask].ravel()
+            r = r[np.isfinite(r)]
+            if r.size:
+                ax.hist(r, bins=10, range=(0, 1), color="C0",
+                        edgecolor="k", lw=0.4, density=True)
+            ax.axhline(1.0, color="k", ls="--", lw=1, label="uniform (calibrated)")
+            ax.set_xlim(0, 1)
+            ax.set_xlabel(r"SBC rank  $\Phi((\theta_\mathrm{true}-\mu)/\sigma)$")
+            ax.set_ylabel("density")
+            ax.set_title(ttl, fontsize=9)
+            ax.legend(fontsize=8, frameon=False)
+        n_inf = int(informed.sum())
+        figs.suptitle(f"Validation E — SBC rank uniformity ({n_inf} informed params)")
+        figs.tight_layout()
+        sbc_out = args.out.with_name(args.out.stem + "_sbc" + args.out.suffix)
+        figs.savefig(sbc_out)
+        plt.close(figs)
+        print(f"[save] {sbc_out}")
+
     # text summary alongside the PDF
     txt = args.out.with_suffix(".txt")
     with open(txt, "w") as fh:
@@ -89,8 +120,11 @@ def main():
                 tag = "  prior-dominated"
             elif j in bad:
                 tag = "  *"
+            ks = ""
+            if sbc_ks_p is not None and np.isfinite(sbc_ks_p[j]):
+                ks = f"  SBC-KS_p={sbc_ks_p[j]:.2f}"
             fh.write(f"p{j:02d}  cov={coverage[j]:.3f} ± {cov_err[j]:.3f}  "
-                     f"constraint={constraint[j]:.2f}  |bias|/σ={abs_bias[j]:.2f}{tag}\n")
+                     f"constraint={constraint[j]:.2f}  |bias|/σ={abs_bias[j]:.2f}{ks}{tag}\n")
     print(f"[save] {txt}")
 
 

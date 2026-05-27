@@ -145,6 +145,18 @@ subgrid parameters under field-level forward modeling with BIND?
 Show all of these before any inference. If A–C fail, BIND isn't fit for
 purpose at the τ observable; stop.
 
+> **What the current pipeline establishes (read before trusting the plots).**
+> A–C are BIND-vs-truth *emulator-fidelity* checks computed at the projection
+> depth of the maps fed in (50 Mpc/h for the 2D `fm_two_head` model). They
+> answer "does BIND reproduce the simulation's projected gas in an aperture?",
+> **not** "does BIND reproduce the cluster optical depth ACT measures" — that
+> requires the cube/3D forward model or a depth correction (see §6.1 Decision).
+> D/E/F use the CAP estimator (uniform LOS background subtracted). E is a real
+> coverage/SBC test: the synthetic observation is the *true held-out stack*, not
+> the emulator's own mean, so it can actually detect mis-specification. C uses
+> sim-level aggregation (one stacked τ per sim), so its Spearman p-values are
+> honest (N = N_sims, not N_halos).
+
 - **A. Per-halo τ recovery scatter.** True τ_halo vs BIND τ_halo for
   1P / CV / SB35-holdout, colored by M_halo bin. Want: diagonal, low scatter,
   no mass-dependent bias.
@@ -218,6 +230,39 @@ purpose at the τ observable; stop.
   which is what ACT-DR6 does data-side), or (c) explicitly model the
   projection with a per-tile depth correction.
 - **Decision point.** Pick the method early; validate via plot D.
+- **Decision (2026-05-27).** The aperture τ in `analysis/ksz/` integrates the
+  *full projection depth* of whatever maps it is given. We adopt a two-track
+  resolution:
+  1. **Canonical estimator = compensated aperture (CAP).** All stacked-observable
+     plots (C/D/E/F) default to CAP (`tau_utils.per_halo_tau(..., estimator="cap")`).
+     Because the CAP weights satisfy ∑w = 0, a spatially *uniform* line-of-sight
+     background cancels exactly — this is mitigation (b) and mirrors what ACT-DR6
+     does data-side. It does **not** remove correlated 2-halo structure within
+     √2·R_ap, which remains a flagged systematic for the full-box (2D) model.
+  2. **Preferred forward model = cube/3D mode (mitigation a).** The cube model
+     (`--no_large_scale`) projects each halo over a ~6.25 Mpc/h thin slab
+     (≈ cluster depth), written as `truth_halos_cube.npz`. The validation loader
+     auto-detects this and reports `truth_source`/`los_depth_mpc_h`; every
+     observable script prints a `[LOS]` banner stating the integrated depth so
+     the 2D-vs-cube distinction can't be silently conflated.
+  - **Status (cube run done, 2026-05-27).** Both forward models are now
+    validated:
+    - **2D `fm_two_head` (50 Mpc/h LOS)** — `fm_testsuite/`. A–C are
+      emulator-fidelity at the 50 Mpc/h projection; D's CAP is
+      background-subtracted with residual 2-halo.
+    - **Cube `fm_cube_two_head` (6.25 Mpc/h LOS ≈ cluster depth)** —
+      `fm_testsuite_cube/`. This is the ACT-comparable observable (LOS banner
+      confirms `truth_source=cube → 6.25 Mpc/h`). Run the validation by setting
+      `TESTSUITE_ROOT=…/fm_testsuite_cube MODEL_NAME=fm_cube_two_head`.
+  - **Headline fidelity result.** At cluster depth the per-halo signal is no
+    longer diluted by ~45 Mpc/h of background, so BIND's gas **over-prediction
+    is more visible**: D's stacked CAP τ(M) sits **+11.6 % above truth at
+    logM≈13.15** (vs +3.2 % for the 2D model), tapering to +5–8 % at higher
+    mass; A's per-halo bias is +0.03 dex (vs +0.01 dex for 2D). The +12 % at
+    logM≈13.15 — exactly the ACT-DR6 deficit scale — is a BIND-fidelity floor:
+    sub-dominant to the factor-~2 deficit but a systematic to carry into the
+    inference error budget. (Per-tile depth correction, mitigation c, remains
+    an option if a tighter floor is needed.)
 
 ### 6.2 Velocity-field treatment
 - **The issue.** kSZ = τ × v_los. ACT-DR6 reconstructs v_los from galaxy

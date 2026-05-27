@@ -144,3 +144,60 @@ def aperture_cap_signal(
 def r200_to_pixels(r200_mpc_h: np.ndarray, patch_size_mpc_h: float, patch_pix: int) -> np.ndarray:
     """Convert R_200c [Mpc/h] to a pixel radius on a patch of side patch_size_mpc_h."""
     return np.asarray(r200_mpc_h, dtype=np.float64) * (patch_pix / float(patch_size_mpc_h))
+
+
+# ---------------------------------------------------------------------------
+# Single source of truth for the per-halo aperture τ (used by A/C/D/E/F)
+# ---------------------------------------------------------------------------
+def per_halo_tau(
+    patches: np.ndarray,            # (N, P, P) gas mass per pixel [Msun/h]
+    r_ap_pix,                       # scalar or (N,) aperture radius in pixels
+    pix_size_mpc_h: float,
+    hubble: float = 0.6711,
+    *,
+    estimator: str = "cap",
+    electron_per_proton: float = ELECTRON_PER_PROTON,
+    sqrt2: bool = True,
+) -> np.ndarray:
+    """Aperture-averaged τ per halo, with a single shared definition.
+
+    ``estimator``:
+      * ``"disk"`` — mean Σ_gas in a disk of radius ``r_ap_pix`` converted to τ.
+        This integrates the *entire* line-of-sight column inside the patch
+        (the BIND/truth projection depth), with **no background subtraction**.
+      * ``"cap"`` — ACT-DR6-style compensated aperture: τ ∝ Σ_disk − Σ_annulus
+        with the annulus out to √2·r_ap_pix.  A spatially uniform line-of-sight
+        background cancels exactly (∑w = 0), so this is the kSZ-canonical
+        estimator and the recommended default (see ``docs/paper2_ksz_plan.md``
+        §6.1).  CAP τ can be negative for low-S/N halos.
+
+    ``r_ap_pix`` may be a scalar (one mask, fast path) or a per-halo array
+    (looped — cost is negligible vs downstream inference).  For ``"cap"`` it is
+    the inner-disk radius; for ``"disk"`` it is the disk radius.
+    """
+    if patches.ndim != 3:
+        raise ValueError(f"expected (N, P, P), got {patches.shape}")
+    if estimator not in ("disk", "cap"):
+        raise ValueError(f"unknown estimator {estimator!r} (use 'disk' or 'cap')")
+    n = patches.shape[0]
+    r_arr = np.atleast_1d(np.asarray(r_ap_pix, dtype=np.float64))
+    scalar_r = r_arr.size == 1
+    pix_area = pix_size_mpc_h ** 2
+
+    tau = np.empty(n, dtype=np.float64)
+    for i in range(n):
+        r = float(r_arr[0] if scalar_r else r_arr[i])
+        disk_area_mpc_h2 = np.pi * (r * pix_size_mpc_h) ** 2
+        if disk_area_mpc_h2 <= 0:
+            tau[i] = np.nan
+            continue
+        if estimator == "disk":
+            mass = aperture_gas_mass(patches[i:i + 1], r)[0]
+            sigma = mass / disk_area_mpc_h2
+        else:  # cap: ∑w·M / A_disk = Σ_disk − Σ_annulus
+            cap_mass = aperture_cap_signal(patches[i:i + 1], r, sqrt2=sqrt2)[0]
+            sigma = cap_mass / disk_area_mpc_h2
+        tau[i] = gas_surface_density_to_tau(
+            np.asarray(sigma), hubble=hubble, electron_per_proton=electron_per_proton
+        )
+    return tau

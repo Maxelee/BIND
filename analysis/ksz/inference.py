@@ -187,3 +187,20 @@ def central_credible_contains(mu_post: np.ndarray, sd_post: np.ndarray,
     lo = mu_post - z * sd_post
     hi = mu_post + z * sd_post
     return (theta_true >= lo) & (theta_true <= hi)
+
+
+def gaussian_rank(mu_post: np.ndarray, sd_post: np.ndarray,
+                  theta_true: np.ndarray) -> np.ndarray:
+    """SBC rank ∈ [0,1] per parameter: the posterior CDF evaluated at the truth,
+    Φ((θ_true − μ)/σ).
+
+    For a *calibrated* posterior these ranks are Uniform(0,1) across independent
+    (θ_true, data) pairs.  Systematic over-coverage (posterior too wide) pushes
+    the ranks toward 0.5; under-coverage (too narrow / biased) pushes mass to
+    the 0 and 1 edges.  This is the standard simulation-based-calibration
+    diagnostic and is meaningful only because the data fed to the posterior is
+    the *real* held-out forward-model output, not the emulator's own mean.
+    """
+    from scipy.special import erf
+    z = (theta_true - mu_post) / np.maximum(sd_post, 1e-12)
+    return 0.5 * (1.0 + erf(z / np.sqrt(2.0)))

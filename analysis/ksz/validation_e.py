@@ -1,10 +1,20 @@
-"""Validation plot E — SBI coverage on synthetic data.
+"""Validation plot E — SBI coverage / simulation-based calibration.
 
 For each sim in the chosen training pool (default: Test = SB35 sub-sample),
 we (1) stack BIND τ(M) into the same mass bins used by validation_d, (2)
 treat (θ_sim, x_sim) as a labelled pair, and (3) run a leave-one-out coverage
 test of the analytic Gaussian posterior provided by
 ``analysis.ksz.inference``.
+
+**The synthetic observation is the real held-out stack** ``x[i]`` — i.e. the
+actual forward-model output for the left-out sim — *not* the emulator's own
+prediction ``emu.predict(θ_i)``.  This is the key correctness point: feeding
+the emulator its own mean back in would make the test self-consistent by
+construction and blind to emulator mis-specification (it could only ever
+over-cover).  Using the real held-out stack exercises the emulator's
+out-of-sample residual, so coverage below nominal genuinely flags a posterior
+that is too narrow/biased, and the SBC rank statistics (Φ(θ_true) per param,
+should be Uniform(0,1) if calibrated) are meaningful.
 
 The credibility-level coverage of each of the 35 CAMELS parameters should be
 close to the nominal level (default 0.6827) if the inference is well
@@ -30,35 +40,15 @@ from pathlib import Path
 
 import numpy as np
 
-from ._io import find_sim_dirs, load_sim
+from ._io import find_sim_dirs, load_sim, los_advisory
 from .inference import (
     GaussianPosterior,
     StackedEmulator,
     central_credible_contains,
+    gaussian_rank,
     stack_per_sim,
 )
-from .tau_utils import (
-    aperture_cap_signal,
-    aperture_gas_mass,
-    gas_mass_to_tau_in_aperture,
-    gas_surface_density_to_tau,
-)
-
-
-# --- mirror the per-halo τ definitions from validation_d --------------------
-
-
-def _per_halo_tau_disk(patches, r_ap_pix, pix_size_mpc_h, hubble):
-    mass = aperture_gas_mass(patches, r_ap_pix)
-    area = np.pi * (r_ap_pix * pix_size_mpc_h) ** 2
-    return gas_mass_to_tau_in_aperture(mass, area, hubble=hubble)
-
-
-def _per_halo_tau_cap(patches, r_in_pix, pix_size_mpc_h, hubble):
-    sig = aperture_cap_signal(patches, r_in_pix)
-    area = np.pi * (r_in_pix * pix_size_mpc_h) ** 2
-    sigma_msun_h_per_mpc2_h = sig / area
-    return gas_surface_density_to_tau(sigma_msun_h_per_mpc2_h, hubble=hubble)
+from .tau_utils import per_halo_tau
 
 
 # --- gather per-sim (θ, x) pairs --------------------------------------------
@@ -68,6 +58,7 @@ def _gather_pairs(args, edges):
     thetas: list[np.ndarray] = []
     xs: list[np.ndarray] = []
     sim_ids: list[str] = []
+    banner_shown = False
     for suite in args.suites:
         sims = find_sim_dirs(args.testsuite_root, suite)
         for sd in sims:
@@ -83,13 +74,14 @@ def _gather_pairs(args, edges):
                 continue
             if art is None or art.params.shape[1] == 0:
                 continue
+            if not banner_shown:
+                print(los_advisory(art.truth_source, art.los_depth_mpc_h, args.aperture))
+                banner_shown = True
             theta = art.params[0]                       # all halos share θ
             pix_size = args.patch_size_mpc_h / art.patch_pix
             r_ap_pix = args.r_ap_mpc_h / pix_size
-            if args.aperture == "cap":
-                tau_b = _per_halo_tau_cap(art.bind_gas, r_ap_pix, pix_size, args.hubble)
-            else:
-                tau_b = _per_halo_tau_disk(art.bind_gas, r_ap_pix, pix_size, args.hubble)
+            tau_b = per_halo_tau(art.bind_gas, r_ap_pix, pix_size, args.hubble,
+                                 estimator=args.aperture)
             x, _ = stack_per_sim(tau_b, art.halo_masses, edges)
             thetas.append(theta)
             xs.append(x)
@@ -163,32 +155,49 @@ def main():
     abs_bias = np.zeros(p_params, dtype=np.float64)   # mean |μ_post − θ_true| / σ_post
     posterior_widths = np.zeros((n, p_params), dtype=np.float64)
     posterior_means = np.zeros((n, p_params), dtype=np.float64)
+    sbc_ranks = np.full((n, p_params), np.nan, dtype=np.float64)
+    emu_resid = np.zeros((n, x.shape[1]), dtype=np.float64)  # out-of-sample residual
 
     for i in range(n):
         mask = np.ones(n, dtype=bool)
         mask[i] = False
         emu = StackedEmulator.fit(theta[mask], x[mask], ridge=args.ridge)
-        x_true = emu.predict(theta[i:i+1])[0]         # in-emulator prediction
-        sigma_meas = args.noise_frac * np.abs(x_true)
+        # Synthetic observation = the REAL held-out forward-model stack x[i],
+        # NOT emu.predict(theta_i).  This exercises the emulator's out-of-sample
+        # residual (recorded below) so the coverage test can actually fail.
+        x_real = x[i]
+        emu_resid[i] = x_real - emu.predict(theta[i:i + 1])[0]
+        sigma_meas = args.noise_frac * np.abs(x_real)
         for _ in range(args.n_realizations):
-            x_obs = x_true + rng.normal(scale=sigma_meas)
+            x_obs = x_real + rng.normal(scale=sigma_meas)
             post = GaussianPosterior.from_observation(
                 emu, x_obs, sigma_meas=sigma_meas, prior_std=args.prior_std,
             )
             ok = central_credible_contains(post.mean, post.std, theta[i], level=args.level)
             hits += ok.astype(np.int64)
             abs_bias += np.abs(post.mean - theta[i]) / np.maximum(post.std, 1e-12)
-        # Record the noiseless posterior for diagnostics
+        # Noiseless posterior on the real held-out data → SBC rank + width diag.
         post0 = GaussianPosterior.from_observation(
-            emu, x_true, sigma_meas=sigma_meas, prior_std=args.prior_std,
+            emu, x_real, sigma_meas=sigma_meas, prior_std=args.prior_std,
         )
         posterior_widths[i] = post0.std
         posterior_means[i] = post0.mean
+        sbc_ranks[i] = gaussian_rank(post0.mean, post0.std, theta[i])
 
     coverage = hits / n_trials
     abs_bias /= n_trials
     # Binomial 1-σ error on coverage
     cov_err = np.sqrt(coverage * (1.0 - coverage) / n_trials)
+
+    # SBC uniformity: KS test of each param's ranks against Uniform(0,1).
+    # Only informative for data-constrained params (prior-dominated ranks
+    # cluster near 0.5 and will "fail" trivially — flagged via `constraint`).
+    from scipy.stats import kstest
+    sbc_ks_p = np.full(p_params, np.nan)
+    for j in range(p_params):
+        r = sbc_ranks[np.isfinite(sbc_ranks[:, j]), j]
+        if r.size >= 5 and not np.allclose(r, r[0]):
+            sbc_ks_p[j] = float(kstest(r, "uniform").pvalue)
 
     # Constraint fraction in std-θ space: 1 - σ_post / σ_prior.
     # 0 → pure prior; 1 → perfectly constrained.  Use the noiseless run.
@@ -206,6 +215,9 @@ def main():
         abs_bias_in_sigma=abs_bias,
         posterior_widths=posterior_widths,
         posterior_means=posterior_means,
+        sbc_ranks=sbc_ranks,
+        sbc_ks_p=sbc_ks_p,
+        emu_resid=emu_resid,
         theta_truth=theta,
         x_truth=x,
         mass_centers=centers,
@@ -224,13 +236,19 @@ def main():
         })),
     )
     print(f"[save] {args.out}")
-    print(f"# Validation E — leave-one-out coverage at level {args.level:.4f}")
-    n_constrained = int((constraint > 0.1).sum())
+    print(f"# Validation E — LOO coverage + SBC at level {args.level:.4f}")
+    informed = constraint > 0.1
+    n_constrained = int(informed.sum())
     print(f"# {n_constrained}/{len(constraint)} params have constraint > 0.1 (data-informed)")
+    print(f"# mean |out-of-sample emulator residual| / |x| = "
+          f"{np.mean(np.abs(emu_resid) / np.maximum(np.abs(x), 1e-30)):.3f}")
     worst = np.argsort(np.abs(coverage - args.level))[::-1][:5]
     for j in worst:
+        ks = sbc_ks_p[j]
+        ks_s = f"{ks:.2f}" if np.isfinite(ks) else "  na"
+        tag = "  [informed]" if informed[j] else ""
         print(f"  param {j:2d}: cov={coverage[j]:.3f} ± {cov_err[j]:.3f}  "
-              f"|bias|/σ={abs_bias[j]:.2f}")
+              f"|bias|/σ={abs_bias[j]:.2f}  SBC-KS p={ks_s}{tag}")
 
 
 if __name__ == "__main__":

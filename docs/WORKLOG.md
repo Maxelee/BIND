@@ -6,6 +6,35 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-05-27 — `ksz_project`: Paper-2 scoping + validation pipeline A–G
+
+New branch `ksz_project` (off `main`). Adds the Paper-2 scoping doc and a
+CPU-only kSZ validation pipeline on top of existing `test_suite/` artifacts.
+
+- [docs/paper2_ksz_plan.md](paper2_ksz_plan.md) — motivation, falsifiable
+  deliverable, procedure, 7 validation plots, 6 result figures, risks.
+- `analysis/ksz/` — shared loaders (`_io.py`, `tau_utils.py`) and per-plot
+  modules. Currently implemented:
+  - **A** per-halo τ recovery scatter (BIND vs truth, mass-binned dex stats),
+  - **B** annular τ(R/R200) profiles, mass-binned median ± 16–84%,
+  - **C** Spearman τ–parameter sensitivity (35-bar BIND vs truth on Test suite,
+    CV excluded due to zero param variance),
+  - **D** stacked τ(M) in ACT-DR6-like apertures (disk or compensated CAP),
+  - **G** HMF coverage / per-sim halo counts (model-independent).
+- `run_ksz_validation_a.sh` — single SLURM script (also runs as `bash`) driving
+  A–G; `PLOTS=ABCDG` default, `--partition=gen --mem=32G --time=02:00:00`.
+
+Smoke results on `fm_two_head`: A bias ≈ +0.01 dex, scatter 3–7%; D shows a
++5–10% mass-trending overprediction at R_ap=0.5 Mpc/h (CAP); G flags
+log M > 14 as HMF-limited at ~2 halos/sim. Next: E (SBI coverage), F (v_los
+robustness).
+
+Caveats hit and recorded to memory: CAMELS test-suite dir names are
+case-sensitive (`CV / 1P / Test`, not `cv/1p/sb35`); legacy `halo_catalog.npz`
+stores R200 under `radii` in **kpc/h** (no `r200s` key).
+
+---
+
 ## 2026-05-27 — Repo hygiene, branch reorganization, and agent instructions
 
 **Repo cleanup.** The repo had no `.gitignore`, so ~304 untracked items

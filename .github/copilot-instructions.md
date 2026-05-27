@@ -47,3 +47,12 @@ Output: hydro fields `[DM_hydro, Gas, Stars]` as 128×128 maps.
   CV param files list 2000 — override before normalizing CV data.
 - **1P truth maps** vary with astro params (only the DMO input is shared); an
   "all identical" check on 1P truth is a false alarm, not a bug.
+
+## This branch: feature/3d-cube
+Adds a 3D variant of the engine: `model_3d.py` (`UNet3d`/`FlowMatching3d`, 3D
+convs, `in_ch=4`, no large_scale), `data_3d.py` (`NormStats3d`, mask-aware
+zero-voxel fill via `fill_zeros_smooth`, drops the 36th constant param column),
+`train_3d.py` (uses `torch.compile`; handles `_orig_mod.` checkpoint prefixes;
+`map_location='cpu'` for DDP). `run_test_suite_3d.py` runs on pre-extracted halo
+volumes (no projection/compositing). Keep `*_3d` modules parallel to their 2D
+counterparts. Also covers the 2D "cube" projection path (`--no_large_scale`).

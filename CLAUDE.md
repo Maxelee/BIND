@@ -77,3 +77,17 @@ Two complementary records, both worth consulting at the start of a task and upda
 
 - **`docs/WORKLOG.md`** (in-repo, shared with the human and Copilot) — a reverse-chronological log of notable sessions: what changed, why, and decisions. **At the end of a session that made a meaningful change** (a reorg, a new analysis branch, a non-trivial fix, an abandoned approach worth recording), prepend a short dated entry. Keep it terse; link files/commits rather than restating diffs. Don't log trivial edits.
 - **Claude Code file-based memory** at `/mnt/home/mlee1/.claude/projects/-mnt-home-mlee1-vdm-bind2/memory/` (indexed by `MEMORY.md`) — durable, non-obvious facts not derivable from code/git (project overview, the data caveats above, the branch convention, analysis findings). Add to it when you learn something that should persist across sessions but doesn't belong in the repo.
+
+---
+
+## This branch: `feature/3d-cube`
+
+Extends the 2D engine (documented above) to **3D halo volumes** and the **2D "cube"-projection** dataset. Everything above still holds; the parallel `*_3d` modules mirror their 2D counterparts but operate on `(C, D, H, W)` volumes. Keep the 3D code parallel to the 2D code — same conditioning scheme, same two-head Stars option.
+
+- **`model_3d.py`** — `UNet3d` / `FlowMatching3d`: 3D-conv versions of the UNet and OT flow matching. `in_ch=4` (state 3 + DMO condition 1); **there is no `large_scale` conditioning in 3D**. Same AdaGroupNorm time+param conditioning.
+- **`data_3d.py`** — `NormStats3d` + `AstroDataset3d` work on pre-extracted halo volumes. Two 3D-specific points: (1) `fill_zeros_smooth` does **mask-aware Gaussian filling of empty voxels** before normalization, and the fill settings are stored in the stats so inference reproduces training; (2) the param vector's 36th column is a constant `50000.0` placeholder and is dropped — only the first 35 are used.
+- **`train_3d.py`** — `FlowMatching3dLit`, like the 2D trainer but: **uses `torch.compile`** (compiled on first train start, with `_orig_mod.` checkpoint-prefix handling so compiled/uncompiled checkpoints interchange), migrates `torch_ema` shadow params onto the correct device, and loads checkpoints with `map_location='cpu'` to avoid DDP OOM. `batch_size` defaults to 1 (volumes are large).
+- **`run_test_suite_3d.py`** — generates directly on **pre-extracted halo volumes** (`sim_N/halo_M.npz`); unlike the 2D `test_suite/`, there is no full-box projection or compositing step. Supports `--n_chunks/--chunk_id` for SLURM arrays.
+- **2D cube path** — reuses `main`'s `CubeAstroDataset` (6.25 Mpc/h projections, `--no_large_scale`); `analysis_2d_cube.ipynb` / `comparison_2d_vs_cube.ipynb` compare it against the original 2D projections.
+
+Commands: `sbatch run_train_3d_two_head.sh` (3D train) · `sbatch run_train_cube_two_head.sh` (2D cube train) · `python run_test_suite_3d.py …` or `sbatch run_test_suite_parallel_3d.sh` (3D eval).

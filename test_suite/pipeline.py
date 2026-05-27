@@ -12,8 +12,54 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from data import NormStats, log_transform
+from data import NormStats, N_THERMO, THERMO_KEYS, log_transform, thermo_inverse
 from .schemas import SimulationSpec
+
+
+# ---------------------------------------------------------------------------
+# Gas thermodynamics — per-particle physics + projection, ported verbatim from
+# make_train_data/add_gas_thermo_maps.py so that test-suite truth thermo maps
+# are generated with the exact same recipe as the training targets.
+# ---------------------------------------------------------------------------
+
+GAMMA       = 5.0 / 3.0
+X_H         = 0.76
+M_PROTON_KG = 1.6726219e-27        # kg
+K_B_J_PER_K = 1.380649e-23         # J/K
+SIGMA_T_M2  = 6.6524587e-29        # m^2
+M_E_C2_J    = 8.187105776e-14      # J
+KPC_IN_M    = 3.085677581e19       # m per kpc
+MSUN_KG     = 1.989e30             # kg
+KEV_IN_J    = 1.602176634e-16      # J per keV
+MPC_IN_M    = KPC_IN_M * 1e3       # m per Mpc
+
+
+def gas_temperature_K(internal_energy_code, electron_abundance):
+    """Gas temperature [K] from code-unit InternalEnergy [(km/s)^2]."""
+    mu = 4.0 / (1.0 + 3.0 * X_H + 4.0 * X_H * electron_abundance)
+    u_SI = internal_energy_code * 1e6   # (km/s)^2 -> (m/s)^2
+    return (GAMMA - 1.0) * u_SI * mu * M_PROTON_KG / K_B_J_PER_K
+
+
+def compton_y_integrand_per_particle(internal_energy_code, electron_abundance,
+                                     mass_code, mass_code_to_kg):
+    """Per-particle Compton-y integrand [m^2]; sum over a pixel -> y * pixel_area.
+
+    float64 throughout to avoid subnormal flush-to-zero; caller normalises by
+    pixel_area before casting to float32 (see project_thermo_fullbox).
+    """
+    T = gas_temperature_K(internal_energy_code, electron_abundance)
+    mass_kg = mass_code.astype(np.float64) * mass_code_to_kg
+    n_e_V = electron_abundance.astype(np.float64) * X_H * mass_kg / M_PROTON_KG
+    return SIGMA_T_M2 * K_B_J_PER_K * T.astype(np.float64) * n_e_V / M_E_C2_J
+
+
+def _safe_divide(numerator, denominator):
+    """Mass-weighted mean numerator/denominator, zero where denom ~ 0."""
+    dmax = denominator.max() if denominator.size else 0.0
+    thresh = 1e-12 * max(float(dmax), 1e-30)
+    return np.divide(numerator, denominator, out=np.zeros_like(numerator),
+                     where=denominator > thresh)
 
 
 def pixelize_z_projection(
@@ -357,55 +403,68 @@ def normalize_cutout(hc: dict, ns: NormStats, sim_params: np.ndarray) -> tuple[n
     return condition, large_scale, params
 
 
+def _denormalize_thermo(gen_thermo: np.ndarray, norm_stats: NormStats) -> np.ndarray:
+    """Inverse-transform the N_THERMO model channels to physical units.
+
+    gen_thermo: (B, N_THERMO, H, W) in normalized space, THERMO_KEYS order.
+    Returns (B, N_THERMO, H, W) >= 0 via thermo_inverse (10^(t*std+mean)).
+    """
+    mean = norm_stats.thermo_mean[None, :, None, None]
+    std = norm_stats.thermo_std[None, :, None, None]
+    return np.clip(thermo_inverse(gen_thermo, mean, std), 0, None).astype(np.float32)
+
+
 def _denormalize_to_physical(
     gen_np: np.ndarray, norm_stats: NormStats
 ) -> np.ndarray:
     """Take raw model output (B, C, H, W) in normalized space and return
-    physical-space (B, 3, H, W) [DM_hydro, Gas, Stars].
+    physical-space (B, 3 [+N_THERMO], H, W).
 
-    Single-head (C=3): standard inverse standardize → 10^x - 1 per channel.
-    Two-head    (C=4): channels 0/1 are DM_hydro/Gas as usual; channels 2/3
-        are recombined via a soft multiplier into Stars:
-            occ_raw     = clip(gen[2] * stars_occ_std + stars_occ_mean, 0, 1)
-            density_log = gen[3] * stars_cond_std + stars_cond_mean
-            stars       = occ_raw * (10 ** density_log - 1)
+    The first 3 returned channels are always [DM_hydro, Gas, Stars]:
+      Single-head: mass channels 0..2 → 10^x - 1 per channel.
+      Two-head:    channels 0/1 are DM_hydro/Gas; channels 2/3 recombine into
+                   Stars via a hard occupancy gate × conditional density.
+    When norm_stats.predict_thermo, the trailing N_THERMO channels (compton_y,
+    temperature, entropy, pressure) are inverse-log10'd and appended, so the
+    return is (B, 3 + N_THERMO, H, W). Thermo channels are intensive/extensive
+    physical quantities — they are NOT mass and must not enter the composite.
     """
+    base_out = 4 if norm_stats.stars_two_head else 3
+    n_thermo = N_THERMO if norm_stats.predict_thermo else 0
+    expected = base_out + n_thermo
+    if gen_np.shape[1] != expected:
+        raise ValueError(
+            f"model produced {gen_np.shape[1]} channels but norm_stats implies "
+            f"{expected} (stars_two_head={norm_stats.stars_two_head}, "
+            f"predict_thermo={norm_stats.predict_thermo})"
+        )
+
+    mass = np.zeros((gen_np.shape[0], 3) + gen_np.shape[2:], dtype=np.float32)
     if norm_stats.stars_two_head:
-        if gen_np.shape[1] != 4:
-            raise ValueError(
-                f"norm_stats.stars_two_head=True but model produced "
-                f"{gen_np.shape[1]} channels (expected 4)"
-            )
-        out = np.zeros((gen_np.shape[0], 3) + gen_np.shape[2:], dtype=np.float32)
-        # DM_hydro and Gas: same standard inverse as single-head
+        # DM_hydro and Gas: standard inverse standardize.
         for ch in range(2):
             x = gen_np[:, ch] * norm_stats.target_std[ch] + norm_stats.target_mean[ch]
-            out[:, ch] = 10.0 ** x - 1.0
+            mass[:, ch] = 10.0 ** x - 1.0
         # Stars: hard binary gate on occupancy × conditional density.
-        # occ_prob is near-bimodal (≈0 or ≈1 with negligible ambiguous mass);
-        # a soft multiply lets the density head leak through on "empty" pixels
-        # (occ_prob~0.05 × large_density >> threshold), inflating occupancy by
-        # ~55 pp. Thresholding at 0.5 reduces that error to <0.5 pp.
+        # occ_prob is near-bimodal (≈0 or ≈1); a soft multiply lets the density
+        # head leak through on "empty" pixels, inflating occupancy by ~55 pp.
+        # Thresholding at 0.5 reduces that error to <0.5 pp.
         occ_raw = gen_np[:, 2] * norm_stats.stars_occ_std + norm_stats.stars_occ_mean
         occ_gate = (occ_raw > 0.5).astype(np.float32)
         density_log = (
             gen_np[:, 3] * norm_stats.stars_cond_std + norm_stats.stars_cond_mean
         )
-        density_phys = 10.0 ** density_log - 1.0
-        out[:, 2] = occ_gate * density_phys
-        return np.clip(out, 0, None).astype(np.float32)
+        mass[:, 2] = occ_gate * (10.0 ** density_log - 1.0)
+    else:
+        for ch in range(3):
+            x = gen_np[:, ch] * norm_stats.target_std[ch] + norm_stats.target_mean[ch]
+            mass[:, ch] = 10.0 ** x - 1.0
+    mass = np.clip(mass, 0, None).astype(np.float32)
 
-    # Single-head path (legacy)
-    if gen_np.shape[1] != 3:
-        raise ValueError(
-            f"norm_stats.stars_two_head=False but model produced "
-            f"{gen_np.shape[1]} channels (expected 3)"
-        )
-    out = gen_np.astype(np.float32, copy=True)
-    for ch in range(3):
-        out[:, ch] = out[:, ch] * norm_stats.target_std[ch] + norm_stats.target_mean[ch]
-        out[:, ch] = 10.0 ** out[:, ch] - 1.0
-    return np.clip(out, 0, None)
+    if n_thermo == 0:
+        return mass
+    thermo = _denormalize_thermo(gen_np[:, base_out:base_out + n_thermo], norm_stats)
+    return np.concatenate([mass, thermo], axis=1)
 
 
 def generate_halo_patches(
@@ -422,8 +481,10 @@ def generate_halo_patches(
 ) -> np.ndarray:
     """Run model inference on all halo cutouts and denormalize to physical space.
 
-    Always returns (N, 3, H, W) [DM_hydro, Gas, Stars] regardless of whether
-    the model uses single-head or two-head Stars internally.
+    Returns (N, 3, H, W) [DM_hydro, Gas, Stars] regardless of whether the model
+    uses single-head or two-head Stars internally.  When the model also predicts
+    thermo fields (norm_stats.predict_thermo), the return is
+    (N, 3 + N_THERMO, H, W) with the trailing channels in THERMO_KEYS order.
 
     param_indices: optional array of indices into the 35-param vector to pass
         to the model.  Use when the model was trained with --exclude_cosmo_params
@@ -461,7 +522,8 @@ def generate_halo_patches(
             outputs.append(_denormalize_to_physical(gen_np, norm_stats))
 
     if not outputs:
-        return np.zeros((0, 3, 0, 0), dtype=np.float32)
+        n_out = 3 + (N_THERMO if norm_stats.predict_thermo else 0)
+        return np.zeros((0, n_out, 0, 0), dtype=np.float32)
     return np.concatenate(outputs, axis=0)
 
 
@@ -822,3 +884,147 @@ def load_truth_maps(spec: SimulationSpec) -> np.ndarray:
     truth_gas = _project_species(gas_pos, gas_mass, spec.box_size, spec.npix)
     truth_star = _project_species(star_pos, star_mass, spec.box_size, spec.npix)
     return np.stack([truth_dm, truth_gas, truth_star]).astype(np.float32)
+
+
+# ---------------------------------------------------------------------------
+# Truth thermo maps (snapshot reprojection)
+# ---------------------------------------------------------------------------
+
+def load_gas_thermo_particles(spec: SimulationSpec) -> tuple[float, dict]:
+    """Load gas (PartType0) fields for thermo maps plus HubbleParam.
+
+    Returns (h, gas) where gas has keys: pos_mpc (N,3) Mpc/h, mass (N,) code
+    units [1e10 Msun/h], density (N,) code units, u (N,) InternalEnergy
+    [(km/s)^2], xe (N,) ElectronAbundance, sfr (N,) StarFormationRate.
+    Star-forming gas is kept here; the caller applies the SFR>0 cut.
+    """
+    pattern = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.*.hdf5"
+    snap_files = sorted(glob.glob(str(pattern)))
+    if not snap_files:
+        single = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.hdf5"
+        if single.exists():
+            snap_files = [str(single)]
+    if not snap_files:
+        raise FileNotFoundError(f"No hydro snapshots found for {spec.hydro_snapdir}")
+
+    pos_l, mass_l, dens_l, u_l, xe_l, sfr_l = [], [], [], [], [], []
+    h: float | None = None
+    for fname in snap_files:
+        with h5py.File(fname, "r") as f:
+            if h is None:
+                h = float(f["Header"].attrs["HubbleParam"])
+            if "PartType0" not in f:
+                continue
+            g = f["PartType0"]
+            pos_l.append(g["Coordinates"][:])
+            mass_l.append(g["Masses"][:])
+            dens_l.append(g["Density"][:])
+            u_l.append(g["InternalEnergy"][:])
+            xe_l.append(g["ElectronAbundance"][:])
+            sfr_l.append(g["StarFormationRate"][:])
+
+    if not pos_l:
+        raise RuntimeError(f"No gas particles (PartType0) found in {spec.hydro_snapdir}")
+
+    pos_mpc = np.concatenate(pos_l, axis=0).astype(np.float32) / 1000.0  # kpc/h -> Mpc/h
+    gas = dict(
+        pos_mpc=pos_mpc,
+        mass=np.concatenate(mass_l).astype(np.float32),
+        density=np.concatenate(dens_l).astype(np.float32),
+        u=np.concatenate(u_l).astype(np.float32),
+        xe=np.concatenate(xe_l).astype(np.float32),
+        sfr=np.concatenate(sfr_l).astype(np.float32),
+    )
+    return float(h), gas
+
+
+def project_thermo_fullbox(spec: SimulationSpec) -> np.ndarray:
+    """Axis-aligned full-box projection of the 4 thermo fields (THERMO_KEYS order).
+
+    Mirrors the per-particle physics and weighting of
+    make_train_data/add_gas_thermo_maps.py (star-forming gas excluded;
+    temperature/pressure/entropy are mass-weighted means; compton_y is the
+    line-of-sight sum divided by pixel area).  Unlike the training pipeline this
+    projects the whole box axis-aligned (no per-halo rotation), matching the
+    test-suite cutout convention used for the mass truth maps so generated and
+    truth patches share a frame.
+
+    Returns (N_THERMO, npix, npix) float32 in THERMO_KEYS order.
+    """
+    h, gas = load_gas_thermo_particles(spec)
+    npix, box = spec.npix, spec.box_size
+
+    density_to_kg_m3 = 1e10 * MSUN_KG * h ** 2 / KPC_IN_M ** 3   # code density -> kg/m^3
+    mass_code_to_kg = 1e10 * MSUN_KG / h                          # 1e10 Msun/h -> kg
+    pixel_side_m = (box / npix) / h * MPC_IN_M                     # comoving pixel side [m]
+    pixel_area_m2 = pixel_side_m ** 2
+
+    hot = gas["sfr"] <= 0.0
+    pos = gas["pos_mpc"][hot]
+    mass = gas["mass"][hot]
+    dens = gas["density"][hot]
+    u = gas["u"][hot]
+    xe = gas["xe"][hot]
+
+    T = gas_temperature_K(u, xe)                                  # [K]
+    rho_phys = dens.astype(np.float64) * density_to_kg_m3         # [kg/m^3]
+    u_phys = u.astype(np.float64) * 1e6                           # [m/s]^2
+    P = ((GAMMA - 1.0) * rho_phys * u_phys).astype(np.float32)    # [Pa]
+    n_e = (xe.astype(np.float64) * X_H * rho_phys / M_PROTON_KG * 1e-6).astype(np.float32)  # [cm^-3]
+    n_e_safe = np.where(n_e > 0, n_e, 1.0)
+    K = ((K_B_J_PER_K * T / KEV_IN_J) / n_e_safe ** (2.0 / 3.0)).astype(np.float32)  # [keV cm^2]
+    K[n_e <= 0] = 0.0
+    y_int = compton_y_integrand_per_particle(u, xe, mass, mass_code_to_kg)
+
+    def _proj(w: np.ndarray) -> np.ndarray:
+        return pixelize_z_projection(pos, w, box, npix)
+
+    m_map = _proj(mass.astype(np.float32))
+    Tm = _proj((T * mass).astype(np.float32))
+    Pm = _proj((P * mass).astype(np.float32))
+    Km = _proj((K * mass).astype(np.float32))
+    y_map = _proj((y_int / pixel_area_m2).astype(np.float32))
+
+    temperature = _safe_divide(Tm, m_map)
+    pressure = _safe_divide(Pm, m_map)
+    entropy = _safe_divide(Km, m_map)
+    compton_y = y_map  # w_y was already divided by pixel_area before CIC
+
+    return np.stack([compton_y, temperature, entropy, pressure]).astype(np.float32)
+
+
+def extract_halo_thermo_cutouts(
+    thermo_fullbox: np.ndarray,
+    halos: list[dict],
+    box_size: float,
+    npix: int,
+    patch_pix: int,
+) -> np.ndarray:
+    """Per-halo periodic cutouts of the full-box thermo maps.
+
+    Returns (N_halos, N_THERMO, patch_pix, patch_pix) float32, aligned to the
+    same halo-center pixel convention as extract_halo_cutouts so generated and
+    truth patches are spatially registered.
+    """
+    pixels_per_mpc = npix / box_size
+    out = np.zeros((len(halos), N_THERMO, patch_pix, patch_pix), dtype=np.float32)
+    for i, halo in enumerate(halos):
+        cx = int(halo["halo_center"][0] * pixels_per_mpc) % npix
+        cy = int(halo["halo_center"][1] * pixels_per_mpc) % npix
+        for ch in range(N_THERMO):
+            out[i, ch] = extract_periodic_cutout(thermo_fullbox[ch], cx, cy, patch_pix)
+    return out
+
+
+def compute_truth_thermo_patches(spec: SimulationSpec, halos: list[dict]) -> np.ndarray:
+    """Reconstruct per-halo truth thermo patches from the hydro snapshot.
+
+    Returns (N_halos, N_THERMO, patch_pix, patch_pix) float32 in THERMO_KEYS
+    order (empty when there are no halos).
+    """
+    if not halos:
+        return np.zeros((0, N_THERMO, spec.patch_pix, spec.patch_pix), dtype=np.float32)
+    thermo_fullbox = project_thermo_fullbox(spec)
+    return extract_halo_thermo_cutouts(
+        thermo_fullbox, halos, spec.box_size, spec.npix, spec.patch_pix
+    )

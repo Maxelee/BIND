@@ -9,7 +9,8 @@ from torch.utils.data import DataLoader
 from pathlib import Path
 
 from data import (load_file_list, compute_norm_stats, AstroDataset, NormStats,
-                  load_file_list_cube, compute_norm_stats_cube, CubeAstroDataset)
+                  load_file_list_cube, compute_norm_stats_cube, CubeAstroDataset,
+                  N_THERMO)
 from model import UNet, FlowMatching, StochasticInterpolant
 
 
@@ -22,7 +23,7 @@ class FlowMatchingLit(L.LightningModule):
                  cfg_dropout=0.1, warmup_steps=1000, n_sampling_steps=50,
                  star_occ_weight=1.0, star_zero_norm=None,
                  interpolant='fm', sigma=0.5, stars_two_head=False,
-                 no_large_scale=False):
+                 no_large_scale=False, predict_thermo=False):
         super().__init__()
         self.save_hyperparameters()
 
@@ -30,8 +31,12 @@ class FlowMatchingLit(L.LightningModule):
         # (DM_hydro, Gas, occupancy, conditional density), so the model needs
         # in_ch = 4 (state) + 1 (condition) + 3 (large_scale) = 8 and out_ch = 4.
         # When no_large_scale=True the large_scale channels are absent, reducing
-        # in_ch by 3. All other code paths default to the original architecture.
-        out_ch = 4 if stars_two_head else 3
+        # in_ch by 3. predict_thermo appends N_THERMO thermo channels to the
+        # target (and hence to out_ch / in_ch state). All other code paths
+        # default to the original architecture.
+        base_out = 4 if stars_two_head else 3
+        n_thermo = N_THERMO if predict_thermo else 0
+        out_ch = base_out + n_thermo
         ls_ch = 0 if no_large_scale else 3
         in_ch = out_ch + 1 + ls_ch   # state + condition + large_scale
 
@@ -42,10 +47,14 @@ class FlowMatchingLit(L.LightningModule):
             n_params=n_params,
         )
         if interpolant == 'si':
-            # Stars two-head not wired into the SI branch yet; SI is unused
+            # Stars two-head / thermo not wired into the SI branch; SI is unused
             # in current analyses. Flag it loudly if someone tries.
             assert not stars_two_head, (
                 'stars_two_head=True is not implemented for the StochasticInterpolant '
+                'branch. Use --interpolant fm.'
+            )
+            assert not predict_thermo, (
+                'predict_thermo=True is not implemented for the StochasticInterpolant '
                 'branch. Use --interpolant fm.'
             )
             self.fm = StochasticInterpolant(self.unet, sigma=sigma,
@@ -56,7 +65,8 @@ class FlowMatchingLit(L.LightningModule):
             self.fm = FlowMatching(self.unet, cfg_dropout=cfg_dropout,
                                    star_occ_weight=star_occ_weight,
                                    star_zero_norm=star_zero_norm,
-                                   out_channels=out_ch)
+                                   out_channels=out_ch,
+                                   stars_two_head=stars_two_head)
         self.ema = ExponentialMovingAverage(self.unet.parameters(), decay=ema_decay)
 
     def training_step(self, batch, batch_idx):
@@ -114,7 +124,7 @@ class AstroDataModule(L.LightningDataModule):
 
     def __init__(self, data_root, norm_stats_path=None, batch_size=64,
                  num_workers=8, n_stats_samples=10000, stars_two_head=False,
-                 param_indices=None, no_large_scale=False):
+                 param_indices=None, no_large_scale=False, predict_thermo=False):
         super().__init__()
         self.data_root = data_root
         self.norm_stats_path = norm_stats_path
@@ -124,6 +134,7 @@ class AstroDataModule(L.LightningDataModule):
         self.stars_two_head = stars_two_head
         self.param_indices = param_indices
         self.no_large_scale = no_large_scale
+        self.predict_thermo = predict_thermo
 
     def setup(self, stage=None):
         if self.no_large_scale:
@@ -146,18 +157,30 @@ class AstroDataModule(L.LightningDataModule):
                     f'the file and re-run to recompute, or pass a different '
                     f'norm_stats_path.'
                 )
+            if self.predict_thermo and not self.norm_stats.predict_thermo:
+                raise RuntimeError(
+                    f'predict_thermo=True but {stats_path} was computed without '
+                    f'thermo stats. Delete the file and re-run to recompute, or '
+                    f'pass a different norm_stats_path.'
+                )
         else:
             print(f'Computing norm stats from {self.n_stats_samples} samples '
                   f'(stars_two_head={self.stars_two_head}, '
-                  f'no_large_scale={self.no_large_scale})...')
-            compute_fn = (
-                compute_norm_stats_cube if self.no_large_scale
-                else compute_norm_stats
-            )
-            self.norm_stats = compute_fn(
-                train_files, self.n_stats_samples,
-                stars_two_head=self.stars_two_head,
-            )
+                  f'no_large_scale={self.no_large_scale}, '
+                  f'predict_thermo={self.predict_thermo})...')
+            if self.no_large_scale:
+                # Cube dataset has no thermo fields; predict_thermo is rejected
+                # in main() before reaching here.
+                self.norm_stats = compute_norm_stats_cube(
+                    train_files, self.n_stats_samples,
+                    stars_two_head=self.stars_two_head,
+                )
+            else:
+                self.norm_stats = compute_norm_stats(
+                    train_files, self.n_stats_samples,
+                    stars_two_head=self.stars_two_head,
+                    predict_thermo=self.predict_thermo,
+                )
             stats_path.parent.mkdir(parents=True, exist_ok=True)
             self.norm_stats.save(stats_path)
             print(f'Saved norm stats to {stats_path}')
@@ -210,6 +233,11 @@ def main():
     parser.add_argument('--no_large_scale', action='store_true',
                         help='Disable large-scale conditioning (for cube-projection datasets '
                              'that lack a large_scale field). Reduces UNet in_ch by 3.')
+    parser.add_argument('--predict_thermo', action='store_true',
+                        help='Also predict the 4 thermodynamic gas fields '
+                             '(compton_y, temperature, entropy, pressure) as extra output '
+                             'channels appended after the mass target. Requires the '
+                             'large-scale (rotated2_128) data path and --interpolant fm.')
     # Training
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
@@ -222,6 +250,12 @@ def main():
                         default='/mnt/home/mlee1/ceph/fm_runs')
     parser.add_argument('--run_name', type=str, default='fm_base')
     args = parser.parse_args()
+
+    if args.predict_thermo and args.no_large_scale:
+        parser.error('--predict_thermo requires the large-scale data path; cube '
+                     '(--no_large_scale) files have no thermo fields.')
+    if args.predict_thermo and args.interpolant != 'fm':
+        parser.error('--predict_thermo is only implemented for --interpolant fm.')
 
     # Cosmological parameter indices to exclude when --exclude_cosmo_params is set.
     COSMO_INDICES = [0, 1, 7, 8]
@@ -244,6 +278,7 @@ def main():
         stars_two_head=args.stars_two_head,
         param_indices=param_indices,
         no_large_scale=args.no_large_scale,
+        predict_thermo=args.predict_thermo,
     )
 
     # Compute/load norm stats up-front so we can derive star_zero_norm before
@@ -268,6 +303,7 @@ def main():
         interpolant=args.interpolant, sigma=args.sigma,
         stars_two_head=args.stars_two_head,
         no_large_scale=args.no_large_scale,
+        predict_thermo=args.predict_thermo,
         n_params=n_params,
     )
 

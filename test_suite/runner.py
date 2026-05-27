@@ -9,7 +9,7 @@ from dataclasses import asdict
 import numpy as np
 import torch
 
-from data import NormStats
+from data import NormStats, N_THERMO, THERMO_KEYS
 from train import FlowMatchingLit
 
 from .artifacts import (
@@ -20,6 +20,7 @@ from .artifacts import (
     load_halo_catalog,
     load_halo_cutouts,
     load_truth_halos_cube,
+    load_truth_thermo_patches,
     resolve_artifact_paths,
     save_composite,
     save_full_maps,
@@ -28,10 +29,12 @@ from .artifacts import (
     save_halo_cutouts,
     save_summary_json,
     save_truth_halos_cube,
+    save_truth_thermo_patches,
 )
 from .pipeline import (
     build_bind_composite,
     compute_per_halo_mass_error,
+    compute_truth_thermo_patches,
     extract_halo_cutouts,
     extract_halo_cutouts_cube,
     extract_halo_cutouts_cube_from_3d,
@@ -55,8 +58,37 @@ def _resolve_device(device_name: str) -> torch.device:
     return torch.device(device_name)
 
 
-def load_model_bundle(run_cfg: RunConfig) -> tuple[NormStats, object, torch.device]:
-    """Load norm stats and model checkpoint once for all simulations."""
+def _thermo_patch_metrics(gen_thermo: np.ndarray, truth_thermo: np.ndarray) -> dict:
+    """Per-channel log10(gen/truth) bias & scatter over jointly-positive pixels.
+
+    Thermo fields span many orders of magnitude, so a dex (log10) bias/scatter
+    is the natural per-pixel error metric.  gen_thermo / truth_thermo are
+    (N, N_THERMO, H, W) in THERMO_KEYS order.  Returns a dict keyed by channel
+    name with n_pix, log10_bias_median, and log10_scatter_std.
+    """
+    metrics: dict = {}
+    for j, key in enumerate(THERMO_KEYS):
+        g = gen_thermo[:, j].ravel()
+        t = truth_thermo[:, j].ravel()
+        mask = (g > 0) & (t > 0)
+        if not mask.any():
+            metrics[key] = {"n_pix": 0, "log10_bias_median": None,
+                            "log10_scatter_std": None}
+            continue
+        d = np.log10(g[mask]) - np.log10(t[mask])
+        metrics[key] = {
+            "n_pix": int(mask.sum()),
+            "log10_bias_median": float(np.median(d)),
+            "log10_scatter_std": float(np.std(d)),
+        }
+    return metrics
+
+
+def load_model_bundle(run_cfg: RunConfig) -> tuple:
+    """Load norm stats and model checkpoint once for all simulations.
+
+    Returns (norm_stats, fm, device, param_indices, no_large_scale, predict_thermo).
+    """
     device = _resolve_device(run_cfg.device)
     norm_stats = NormStats.load(run_cfg.run_dir / "norm_stats.npz")
 
@@ -90,7 +122,10 @@ def load_model_bundle(run_cfg: RunConfig) -> tuple[NormStats, object, torch.devi
         else None
     )
     no_large_scale = bool(getattr(model.hparams, "no_large_scale", False))
-    return norm_stats, model.fm, device, param_indices, no_large_scale
+    # predict_thermo is authoritative from norm_stats (the model emits the extra
+    # channels iff the stats carry thermo normalization).
+    predict_thermo = bool(getattr(norm_stats, "predict_thermo", False))
+    return norm_stats, model.fm, device, param_indices, no_large_scale, predict_thermo
 
 
 def _prepare_data(
@@ -98,6 +133,7 @@ def _prepare_data(
     run_cfg: RunConfig,
     load_truth: bool,
     no_large_scale: bool = False,
+    predict_thermo: bool = False,
 ) -> tuple[dict, object]:
     """Load from cache or prepare DMO/halo/cutout artifacts."""
     paths = resolve_artifact_paths(run_cfg.output_root, spec, run_cfg.model_name)
@@ -178,10 +214,26 @@ def _prepare_data(
             save_halo_cutouts(cutouts_path, halo_cutouts)
         truth_halos = None  # not computed for standard (large-scale) models
 
+    # ── Per-halo truth thermo patches (snapshot reprojection) ────────────────
+    # Reconstructs the 4 gas-thermo fields from the hydro snapshot with the same
+    # recipe as the training targets, axis-aligned and cut at each halo center
+    # so the patches register with the generated ones. Only needed for models
+    # that predict thermo. Not done in prep_only (predict_thermo is unknown
+    # without the model/norm_stats); it is computed lazily on the first run.
+    truth_thermo: np.ndarray | None = None
+    if load_truth and predict_thermo:
+        thermo_path = paths.truth_thermo_patches_npz
+        if thermo_path.exists() and not run_cfg.regenerate_all:
+            truth_thermo = load_truth_thermo_patches(thermo_path)
+        else:
+            truth_thermo = compute_truth_thermo_patches(spec, halos)
+            save_truth_thermo_patches(thermo_path, truth_thermo)
+
     payload = {
         "dmo_fullbox": dmo_fullbox,
         "truth_maps": truth_maps,
         "truth_halos": truth_halos,
+        "truth_thermo": truth_thermo,
         "halos": halos,
         "halo_masses": halo_masses,
         "halo_positions": halo_positions,
@@ -200,10 +252,12 @@ def run_single_simulation(
     load_truth: bool,
     param_indices: np.ndarray | None = None,
     no_large_scale: bool = False,
+    predict_thermo: bool = False,
 ) -> dict:
     """Run one simulation through prepare/generate/paste stages."""
     prepared, paths = _prepare_data(spec, run_cfg, load_truth=load_truth,
-                                    no_large_scale=no_large_scale)
+                                    no_large_scale=no_large_scale,
+                                    predict_thermo=predict_thermo)
 
     dmo_fullbox = prepared["dmo_fullbox"]
     truth_maps = prepared["truth_maps"]
@@ -267,7 +321,7 @@ def run_single_simulation(
         composite_bundle = build_bind_composite(
             dmo_fullbox,
             halos,
-            generated_halos,
+            generated_halos[:, :3],  # mass channels only; thermo is not composited
             halo_cutouts,
             box_size=spec.box_size,
             npix=spec.npix,
@@ -296,6 +350,23 @@ def run_single_simulation(
                 "mass_error_median_pct": float(mass_stats["median_pct"]),
             }
         )
+
+    # ── Per-halo thermo evaluation (dex bias/scatter vs truth) ───────────────
+    # Thermo fields live in the trailing channels of generated_halos and are
+    # evaluated per-halo (not composited): compton_y is extensive while
+    # temperature/pressure/entropy are intensive mass-weighted means, so the
+    # mass-conservation composite does not apply to them.
+    if predict_thermo:
+        truth_thermo = prepared.get("truth_thermo")
+        has_thermo_channels = generated_halos.shape[1] >= 3 + N_THERMO
+        gen_thermo = (
+            generated_halos[:, 3:3 + N_THERMO] if has_thermo_channels else None
+        )
+        if (
+            truth_thermo is not None and gen_thermo is not None
+            and len(truth_thermo) == len(gen_thermo) and len(gen_thermo) > 0
+        ):
+            summary["thermo_metrics"] = _thermo_patch_metrics(gen_thermo, truth_thermo)
 
     save_summary_json(paths.summary_json, summary)
     return summary
@@ -333,14 +404,17 @@ def run_suite(
     norm_stats = fm = device = None
     param_indices = None
     no_large_scale = False
+    predict_thermo = False
     if not run_cfg.prep_only:
-        norm_stats, fm, device, param_indices, no_large_scale = load_model_bundle(run_cfg)
+        (norm_stats, fm, device, param_indices,
+         no_large_scale, predict_thermo) = load_model_bundle(run_cfg)
 
     for spec in specs:
         try:
             summary = run_single_simulation(spec, run_cfg, norm_stats, fm, device, load_truth,
                                             param_indices=param_indices,
-                                            no_large_scale=no_large_scale)
+                                            no_large_scale=no_large_scale,
+                                            predict_thermo=predict_thermo)
             results.append(summary)
             print(
                 f"[{spec.sim_label}] halos={summary['n_halos']} "

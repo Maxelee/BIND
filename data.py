@@ -32,6 +32,37 @@ def _default_param_log_flag():
     return PARAM_LOG_FLAG.astype(np.int32)
 
 
+# Thermodynamic gas-derived fields stored alongside the mass targets in the
+# rotated2_128 training files (see make_train_data/add_gas_thermo_maps.py).
+# Canonical channel order — used everywhere thermo channels are emitted.
+#   compton_y   : dimensionless line-of-sight Compton-y (extensive sum)
+#   temperature : mass-weighted gas temperature [K]      (intensive)
+#   entropy     : mass-weighted entropy [keV cm^2]        (intensive)
+#   pressure    : mass-weighted thermal pressure [Pa]      (intensive)
+# All four are strictly positive with a huge dynamic range, so they use a
+# per-channel log10 transform (NOT log10(1+x), which collapses sub-unity
+# fields like compton_y/pressure to ~0). A per-channel floor makes the
+# transform zero-safe for the rare empty (no hot gas) pixel.
+THERMO_KEYS = ('compton_y', 'temperature', 'entropy', 'pressure')
+N_THERMO = len(THERMO_KEYS)
+
+
+def thermo_forward(x, mean, std, floor):
+    """Standardized zero-safe log10 transform for thermo fields.
+
+    t = (log10(max(x, floor)) - mean) / std.  Args may be scalars (one
+    channel) or broadcastable arrays (mean/std/floor shaped (C,1,1) against
+    x shaped (C,H,W)).  Shared by AstroDataset and test_suite inference so the
+    forward/inverse math has a single source of truth.
+    """
+    return (np.log10(np.maximum(x, floor)) - mean) / (std + 1e-8)
+
+
+def thermo_inverse(t, mean, std):
+    """Invert thermo_forward back to physical units (always > 0)."""
+    return np.power(10.0, t * std + mean)
+
+
 @dataclass
 class NormStats:
     """Per-channel normalization statistics for log10(1+x) transformed fields.
@@ -61,6 +92,14 @@ class NormStats:
     stars_occ_std: float = 1.0      # sqrt(p(1-p)) when computed from data
     stars_cond_mean: float = 0.0    # mean of log10(1+stars) on occupied pixels
     stars_cond_std: float = 1.0     # std  of log10(1+stars) on occupied pixels
+    # Thermo fields (used iff predict_thermo=True). When set, the dataset
+    # appends N_THERMO channels (THERMO_KEYS order) after the mass target, each
+    # normalized via thermo_forward(). Defaults are safe passthroughs so old
+    # norm_stats.npz files load with predict_thermo=False and behave identically.
+    predict_thermo: bool = False
+    thermo_mean: np.ndarray = field(default_factory=lambda: np.zeros(N_THERMO, np.float32))
+    thermo_std: np.ndarray = field(default_factory=lambda: np.ones(N_THERMO, np.float32))
+    thermo_floor: np.ndarray = field(default_factory=lambda: np.ones(N_THERMO, np.float32))
 
     def save(self, path):
         # np.savez stores bools as 0-d arrays — cast on load.
@@ -91,7 +130,37 @@ def log_transform(x):
     return np.log10(1.0 + x)
 
 
-def compute_norm_stats(file_list, n_samples=5000, seed=42, stars_two_head=False):
+def _compute_thermo_stats(thermo_chunks):
+    """Per-channel floor/mean/std for the thermo log10 transform.
+
+    floor = 10**(0.1 percentile of log10 over positive pixels), giving a
+    zero-safe lower bound that does not distort the bulk distribution.
+    mean/std are taken over ALL pixels after clipping to the floor, matching
+    thermo_forward() applied at training time.
+    """
+    thermo_mean = np.zeros(N_THERMO, np.float32)
+    thermo_std = np.ones(N_THERMO, np.float32)
+    thermo_floor = np.ones(N_THERMO, np.float32)
+    for j, k in enumerate(THERMO_KEYS):
+        a = np.concatenate([c.ravel() for c in thermo_chunks[k]]).astype(np.float64)
+        pos = a[a > 0]
+        if pos.size == 0:
+            continue
+        floor = float(10.0 ** np.percentile(np.log10(pos), 0.1))
+        t = np.log10(np.maximum(a, floor))
+        thermo_floor[j] = floor
+        thermo_mean[j] = float(t.mean())
+        thermo_std[j] = float(max(t.std(), 1e-6))
+    return {
+        'predict_thermo': True,
+        'thermo_mean': thermo_mean,
+        'thermo_std': thermo_std,
+        'thermo_floor': thermo_floor,
+    }
+
+
+def compute_norm_stats(file_list, n_samples=5000, seed=42, stars_two_head=False,
+                       predict_thermo=False):
     """Compute normalization statistics from a random subset of files.
 
     When ``stars_two_head=True`` we additionally compute statistics for the
@@ -101,12 +170,16 @@ def compute_norm_stats(file_list, n_samples=5000, seed=42, stars_two_head=False)
       - stars_cond_mean / stars_cond_std: mean & std of log10(1+stars)
         computed only over occupied pixels (avoids the zero-pixel
         domination that biases the standard target_mean[2] / target_std[2]).
+
+    When ``predict_thermo=True`` we also compute per-channel floor/mean/std for
+    the THERMO_KEYS fields (see _compute_thermo_stats).
     """
     rng = np.random.RandomState(seed)
     indices = rng.choice(len(file_list), min(n_samples, len(file_list)), replace=False)
 
     targets, conds, large_scales, params = [], [], [], []
     raw_stars_chunks = []  # only populated when stars_two_head
+    thermo_chunks = {k: [] for k in THERMO_KEYS}  # only populated when predict_thermo
     for idx in indices:
         d = np.load(file_list[idx])
         targets.append(log_transform(d['target']))        # (3,128,128)
@@ -115,6 +188,11 @@ def compute_norm_stats(file_list, n_samples=5000, seed=42, stars_two_head=False)
         params.append(d['params'])
         if stars_two_head:
             raw_stars_chunks.append(d['target'][2])        # raw mass density
+        # Not every no-lowmass sim has thermo maps (the thermo job processed
+        # most sims, not all), so skip files lacking the keys here.
+        if predict_thermo and all(k in d.files for k in THERMO_KEYS):
+            for k in THERMO_KEYS:
+                thermo_chunks[k].append(d[k])
 
     targets = np.stack(targets)       # (N,3,128,128)
     conds = np.stack(conds)           # (N,128,128)
@@ -145,6 +223,9 @@ def compute_norm_stats(file_list, n_samples=5000, seed=42, stars_two_head=False)
             'stars_cond_mean': cond_mean,
             'stars_cond_std':  max(cond_std, 1e-6),
         }
+
+    if predict_thermo:
+        extra.update(_compute_thermo_stats(thermo_chunks))
 
     return NormStats(
         target_mean=target_mean,
@@ -241,10 +322,19 @@ class AstroDataset(Dataset):
 
         return np.stack([dm, gas, occ_norm, density_norm]).astype(np.float32)
 
-    def __getitem__(self, idx):
-        d = np.load(self.file_list[idx])
+    def _build_thermo(self, d):
+        """Return (N_THERMO, H, W) normalized thermo channels in THERMO_KEYS order."""
+        chans = [
+            thermo_forward(d[k].astype(np.float64), self.ns.thermo_mean[j],
+                           self.ns.thermo_std[j], self.ns.thermo_floor[j])
+            for j, k in enumerate(THERMO_KEYS)
+        ]
+        return np.stack(chans).astype(np.float32)
 
+    def _build_item(self, d):
         target = self._build_target(d['target'])
+        if self.ns.predict_thermo:
+            target = np.concatenate([target, self._build_thermo(d)], axis=0)
 
         cond = log_transform(d['condition'])[None]  # (1,128,128)
         cond = self._normalize(cond, self.ns.cond_mean, self.ns.cond_std)
@@ -263,6 +353,20 @@ class AstroDataset(Dataset):
             'large_scale': torch.from_numpy(ls.astype(np.float32)),
             'params': torch.from_numpy(params),
         }
+
+    def __getitem__(self, idx):
+        if not self.ns.predict_thermo:
+            return self._build_item(np.load(self.file_list[idx]))
+        # Most — but not all — no-lowmass sims have thermo maps appended. A file
+        # lacking them can't provide a thermo target, so resample a random index.
+        # Missing files cluster by sim (consecutive in the list), so a random
+        # jump escapes immediately where linear probing could get stuck.
+        for _ in range(100):
+            d = np.load(self.file_list[idx])
+            if all(k in d.files for k in THERMO_KEYS):
+                return self._build_item(d)
+            idx = np.random.randint(len(self.file_list))
+        raise RuntimeError('No file with all THERMO_KEYS found in 100 tries')
 
 
 def get_loaders(data_root, norm_stats, batch_size=64, num_workers=8,

@@ -1,0 +1,46 @@
+{
+  "phase": "3",
+  "gate": "Gate 3",
+  "sanity_qdm_qstar": true,
+  "rho_mass_trend": false,
+  "frob_finite": true,
+  "eig_positive": true,
+  "PASS": true,
+  "config": {
+    "cv_root": "/mnt/home/mlee1/ceph/fm_testsuite/CV",
+    "truth_cache": "/mnt/home/mlee1/vdm_bind2/scatter/cv_truth_obs.npz",
+    "bind_cache": "/mnt/home/mlee1/vdm_bind2/scatter/cv_bind_obs_K10.npz",
+    "obs_8": [
+      "log10_M_DM",
+      "log10_M_gas",
+      "log10_M_star",
+      "log10_Sigma_gas_c",
+      "q_DM",
+      "q_gas",
+      "q_star",
+      "log10_f_b"
+    ],
+    "obs_7_primary": [
+      "log10_M_DM",
+      "log10_M_gas",
+      "log10_M_star",
+      "log10_Sigma_gas_c",
+      "q_DM",
+      "q_gas",
+      "q_star"
+    ],
+    "mass_threshold_msunh": 10000000000000.0,
+    "K_bind_samples": 10,
+    "lowess_frac": 0.4,
+    "bootstrap_B": 2000,
+    "fit_source": "combined",
+    "mass_bin_edges": [
+      13.0,
+      13.3,
+      13.7,
+      14.8
+    ],
+    "corr_method_matrix": "spearman",
+    "corr_method_paa": "pearson"
+  }
+}

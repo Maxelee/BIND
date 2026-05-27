@@ -1,0 +1,97 @@
+{
+  "rho_truth": [
+    {
+      "lo": 13.0,
+      "hi": 13.3,
+      "n": 643,
+      "rho": 0.3432515019236775,
+      "se": 0.0367775911341815,
+      "mid": 13.15
+    },
+    {
+      "lo": 13.3,
+      "hi": 13.7,
+      "n": 355,
+      "rho": 0.40057400200096027,
+      "se": 0.05035265997162213,
+      "mid": 13.5
+    },
+    {
+      "lo": 13.7,
+      "hi": 14.8,
+      "n": 156,
+      "rho": 0.4643675617581514,
+      "se": 0.0710164760079945,
+      "mid": 14.25
+    }
+  ],
+  "rho_bind": [
+    {
+      "lo": 13.0,
+      "hi": 13.3,
+      "n": 643,
+      "rho": 0.4943323805148362,
+      "se": 0.0333768047440799,
+      "mid": 13.15
+    },
+    {
+      "lo": 13.3,
+      "hi": 13.7,
+      "n": 355,
+      "rho": 0.572430201088458,
+      "se": 0.0409650641457697,
+      "mid": 13.5
+    },
+    {
+      "lo": 13.7,
+      "hi": 14.8,
+      "n": 156,
+      "rho": 0.5882062872405999,
+      "se": 0.05661182357806604,
+      "mid": 14.25
+    }
+  ],
+  "bin_edges": [
+    13.0,
+    13.3,
+    13.7,
+    14.8
+  ],
+  "config": {
+    "cv_root": "/mnt/home/mlee1/ceph/fm_testsuite/CV",
+    "truth_cache": "/mnt/home/mlee1/vdm_bind2/scatter/cv_truth_obs.npz",
+    "bind_cache": "/mnt/home/mlee1/vdm_bind2/scatter/cv_bind_obs_K10.npz",
+    "obs_8": [
+      "log10_M_DM",
+      "log10_M_gas",
+      "log10_M_star",
+      "log10_Sigma_gas_c",
+      "q_DM",
+      "q_gas",
+      "q_star",
+      "log10_f_b"
+    ],
+    "obs_7_primary": [
+      "log10_M_DM",
+      "log10_M_gas",
+      "log10_M_star",
+      "log10_Sigma_gas_c",
+      "q_DM",
+      "q_gas",
+      "q_star"
+    ],
+    "mass_threshold_msunh": 10000000000000.0,
+    "K_bind_samples": 10,
+    "lowess_frac": 0.4,
+    "bootstrap_B": 2000,
+    "fit_source": "combined",
+    "mass_bin_edges": [
+      13.0,
+      13.3,
+      13.7,
+      14.8
+    ],
+    "corr_method_matrix": "spearman",
+    "corr_method_paa": "pearson"
+  }
+}

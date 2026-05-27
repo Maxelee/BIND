@@ -1,0 +1,85 @@
+{
+  "phase": "2",
+  "gate": "Gate 2",
+  "n_halos": 1154,
+  "K": 10,
+  "cardinality_ok": true,
+  "fit_pool_mean_zero_ok": true,
+  "fit_pool_mean_per_obs": {
+    "log10_M_DM": -0.001455508203492506,
+    "log10_M_gas": 0.011054242431981573,
+    "log10_M_star": 0.0034063800316107484,
+    "log10_Sigma_gas_c": 0.006585400238668557,
+    "q_DM": 0.0041185610495382986,
+    "q_gas": 0.008028343936393798,
+    "q_star": 0.0036317763651273756,
+    "log10_f_b": 0.023562084234391645
+  },
+  "per_source_offsets": {
+    "truth/log10_M_DM": 0.0031722893828709455,
+    "truth/log10_M_gas": -0.08992169843362262,
+    "truth/log10_M_star": -0.2065410652401666,
+    "truth/log10_Sigma_gas_c": -0.24066178954263928,
+    "truth/q_DM": -0.013793218157181614,
+    "truth/q_gas": 0.036358493087384106,
+    "truth/q_star": 0.012188424706838298,
+    "truth/log10_f_b": -0.21482970490362213,
+    "bind/log10_M_DM": -0.0060833057898559495,
+    "bind/log10_M_gas": 0.11203018329758575,
+    "bind/log10_M_star": 0.21335382530338806,
+    "bind/log10_Sigma_gas_c": 0.25383259001997643,
+    "bind/q_DM": 0.022030340256258194,
+    "bind/q_gas": -0.020301805214596503,
+    "bind/q_star": -0.0049248719765835535,
+    "bind/log10_f_b": 0.2619538733724054
+  },
+  "max_truth_bind_mean_diff_per_obs": {
+    "log10_M_DM": 0.0014430820452648874,
+    "log10_M_gas": 0.028795598732592964,
+    "log10_M_star": 0.041511156288351,
+    "log10_Sigma_gas_c": 0.06205102594323186,
+    "q_DM": 0.00791471440401681,
+    "q_gas": 0.011494516245685205,
+    "q_star": 0.021262056980968613,
+    "log10_f_b": 0.026705118450502052
+  },
+  "any_diff_above_0p10_dex": false,
+  "PASS": true,
+  "config": {
+    "cv_root": "/mnt/home/mlee1/ceph/fm_testsuite/CV",
+    "truth_cache": "/mnt/home/mlee1/vdm_bind2/scatter/cv_truth_obs.npz",
+    "bind_cache": "/mnt/home/mlee1/vdm_bind2/scatter/cv_bind_obs_K10.npz",
+    "obs_8": [
+      "log10_M_DM",
+      "log10_M_gas",
+      "log10_M_star",
+      "log10_Sigma_gas_c",
+      "q_DM",
+      "q_gas",
+      "q_star",
+      "log10_f_b"
+    ],
+    "obs_7_primary": [
+      "log10_M_DM",
+      "log10_M_gas",
+      "log10_M_star",
+      "log10_Sigma_gas_c",
+      "q_DM",
+      "q_gas",
+      "q_star"
+    ],
+    "mass_threshold_msunh": 10000000000000.0,
+    "K_bind_samples": 10,
+    "lowess_frac": 0.4,
+    "bootstrap_B": 2000,
+    "fit_source": "combined",
+    "mass_bin_edges": [
+      13.0,
+      13.3,
+      13.7,
+      14.8
+    ],
+    "corr_method_matrix": "spearman",
+    "corr_method_paa": "pearson"
+  }
+}

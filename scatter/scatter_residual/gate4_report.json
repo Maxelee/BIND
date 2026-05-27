@@ -1,0 +1,14 @@
+{
+  "phase": "4",
+  "gate": "Gate 4",
+  "fig1_pdf": true,
+  "fig1_png": true,
+  "fig2_pdf": true,
+  "fig2_png": true,
+  "fig3_pdf": true,
+  "fig3_png": true,
+  "summary_table_exists": true,
+  "section_paragraph_exists": true,
+  "report_exists": true,
+  "PASS": true
+}

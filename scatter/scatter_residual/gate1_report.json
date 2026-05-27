@@ -1,0 +1,153 @@
+{
+  "phase": "1",
+  "gate": "Gate 1",
+  "n_halos_post_cut": 1154,
+  "n_halos_required": 100,
+  "halo_count_ok": true,
+  "K": 10,
+  "K_required": 10,
+  "K_ok": true,
+  "median_log10_M_DM_truth": 13.325231919493994,
+  "median_log10_M_DM_bind": 13.32662028705134,
+  "median_diff": -0.0013883675573449494,
+  "median_diff_ok": true,
+  "no_nan_inf_primary": true,
+  "truth_stats": {
+    "log10_M_DM": {
+      "n": 1154,
+      "median": 13.325231919493994,
+      "mad": 0.19646426531911754,
+      "finite_frac": 1.0
+    },
+    "log10_M_gas": {
+      "n": 1154,
+      "median": 12.435531466750355,
+      "mad": 0.24589085508000252,
+      "finite_frac": 1.0
+    },
+    "log10_M_star": {
+      "n": 1154,
+      "median": 11.405469106795696,
+      "mad": 0.19581403035086087,
+      "finite_frac": 1.0
+    },
+    "log10_Sigma_gas_c": {
+      "n": 1154,
+      "median": 10.356148851003766,
+      "mad": 0.1883479542246418,
+      "finite_frac": 1.0
+    },
+    "q_DM": {
+      "n": 1154,
+      "median": 0.7017607986927032,
+      "mad": 0.10162907838821411,
+      "finite_frac": 1.0
+    },
+    "q_gas": {
+      "n": 1154,
+      "median": 0.8527086973190308,
+      "mad": 0.06582364439964294,
+      "finite_frac": 1.0
+    },
+    "q_star": {
+      "n": 1154,
+      "median": 0.45274099707603455,
+      "mad": 0.1455790102481842,
+      "finite_frac": 1.0
+    },
+    "log10_f_b": {
+      "n": 1154,
+      "median": -0.901417588612062,
+      "mad": 0.05220085839955091,
+      "finite_frac": 1.0
+    }
+  },
+  "bind_stats": {
+    "log10_M_DM": {
+      "n": 11540,
+      "median": 13.32752602742546,
+      "mad": 0.19633896059470857,
+      "finite_frac": 1.0
+    },
+    "log10_M_gas": {
+      "n": 11540,
+      "median": 12.467499151097568,
+      "mad": 0.25118311013838035,
+      "finite_frac": 1.0
+    },
+    "log10_M_star": {
+      "n": 11540,
+      "median": 11.424347827723857,
+      "mad": 0.1922408018442514,
+      "finite_frac": 1.0
+    },
+    "log10_Sigma_gas_c": {
+      "n": 11540,
+      "median": 10.397040846498676,
+      "mad": 0.18665491277452784,
+      "finite_frac": 1.0
+    },
+    "q_DM": {
+      "n": 11540,
+      "median": 0.7078703939914703,
+      "mad": 0.10362496972084045,
+      "finite_frac": 1.0
+    },
+    "q_gas": {
+      "n": 11540,
+      "median": 0.8484061658382416,
+      "mad": 0.06862494349479675,
+      "finite_frac": 1.0
+    },
+    "q_star": {
+      "n": 11540,
+      "median": 0.44546085596084595,
+      "mad": 0.14275409281253815,
+      "finite_frac": 1.0
+    },
+    "log10_f_b": {
+      "n": 11540,
+      "median": -0.8816539735226092,
+      "mad": 0.04519169204264051,
+      "finite_frac": 1.0
+    }
+  },
+  "PASS": true,
+  "config": {
+    "cv_root": "/mnt/home/mlee1/ceph/fm_testsuite/CV",
+    "truth_cache": "/mnt/home/mlee1/vdm_bind2/scatter/cv_truth_obs.npz",
+    "bind_cache": "/mnt/home/mlee1/vdm_bind2/scatter/cv_bind_obs_K10.npz",
+    "obs_8": [
+      "log10_M_DM",
+      "log10_M_gas",
+      "log10_M_star",
+      "log10_Sigma_gas_c",
+      "q_DM",
+      "q_gas",
+      "q_star",
+      "log10_f_b"
+    ],
+    "obs_7_primary": [
+      "log10_M_DM",
+      "log10_M_gas",
+      "log10_M_star",
+      "log10_Sigma_gas_c",
+      "q_DM",
+      "q_gas",
+      "q_star"
+    ],
+    "mass_threshold_msunh": 10000000000000.0,
+    "K_bind_samples": 10,
+    "lowess_frac": 0.4,
+    "bootstrap_B": 2000,
+    "fit_source": "combined",
+    "mass_bin_edges": [
+      13.0,
+      13.3,
+      13.7,
+      14.8
+    ],
+    "corr_method_matrix": "spearman",
+    "corr_method_paa": "pearson"
+  }
+}

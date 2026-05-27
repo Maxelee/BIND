@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+import re
 import torch
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
@@ -9,6 +10,7 @@ from dataclasses import dataclass, field
 
 
 SB35_CSV = '/mnt/home/mlee1/Sims/IllustrisTNG_extras/L50n512/SB35/SB35_param_minmax.csv'
+SB35_PARAMS_TXT = '/mnt/home/mlee1/Sims/IllustrisTNG_extras/L50n512/SB35/CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt'
 _sb_meta = pd.read_csv(SB35_CSV)
 PARAM_LOG_FLAG = _sb_meta['LogFlag'].to_numpy().astype(np.int32)        # (35,)
 PARAM_MIN_RAW  = _sb_meta['MinVal'].to_numpy().astype(np.float64)        # (35,)
@@ -172,12 +174,21 @@ class AstroDataset(Dataset):
     """Dataset for cosmological baryonic field painting.
     
     Returns dict with keys: target (3,128,128), condition (1,128,128),
-    large_scale (3,128,128), params (35,) — all normalized.
+    large_scale (3,128,128), params (N,) — all normalized.
+
+    If ``param_indices`` is provided (a list/array of integer indices), only
+    those columns of the 35-param vector are returned.  Normalization is still
+    computed over all 35 params first; the selection happens afterwards, so
+    ``norm_stats`` does not need to change.
     """
 
-    def __init__(self, file_list, norm_stats):
+    def __init__(self, file_list, norm_stats, param_indices=None):
         self.file_list = file_list
         self.ns = norm_stats
+        self.param_indices = (
+            np.asarray(param_indices, dtype=np.int64)
+            if param_indices is not None else None
+        )
 
     def __len__(self):
         return len(self.file_list)
@@ -243,6 +254,8 @@ class AstroDataset(Dataset):
                              self.ns.ls_std[:, None, None])
 
         params = self._normalize_params(d['params'].astype(np.float32))
+        if self.param_indices is not None:
+            params = params[self.param_indices]
 
         return {
             'target': torch.from_numpy(target.astype(np.float32)),
@@ -270,3 +283,226 @@ def get_loaders(data_root, norm_stats, batch_size=64, num_workers=8,
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False,
                              num_workers=num_workers, pin_memory=True)
     return train_loader, test_loader
+
+
+# ---------------------------------------------------------------------------
+# Cube dataset (6.25 Mpc/h^3 box projections — no large-scale conditioning)
+# ---------------------------------------------------------------------------
+
+def load_file_list_cube(data_root, split='train'):
+    """Recursively enumerate all .npz files under data_root/split/.
+
+    On first call the result is written to a cache file
+    (file_list_cache.txt inside the split directory) so that subsequent
+    runs on slow distributed filesystems skip the expensive rglob scan.
+    """
+    root = Path(data_root) / split
+    cache = root / 'file_list_cache.txt'
+    if cache.exists():
+        with open(cache) as f:
+            files = [line.strip() for line in f if line.strip()]
+        if files:
+            return files
+    # Cache missing or empty — scan and write it.
+    files = sorted(str(p) for p in root.rglob('*.npz'))
+    if not files:
+        raise FileNotFoundError(f'No .npz files found under {root}')
+    with open(cache, 'w') as f:
+        f.write('\n'.join(files) + '\n')
+    print(f'[load_file_list_cube:{split}] cached {len(files)} paths → {cache}')
+    return files
+
+
+def compute_norm_stats_cube(file_list, n_samples=5000, seed=42,
+                            stars_two_head=False):
+    """Compute normalization statistics for the cube (no-large-scale) dataset.
+
+    Files are expected to have keys: dm, dm_hydro, gas, star, conditional_params.
+    Returns a NormStats instance; ls_mean/ls_std are kept as zeros/ones because
+    this dataset has no large-scale conditioning channel.
+    """
+    rng = np.random.RandomState(seed)
+    indices = rng.choice(len(file_list), min(n_samples, len(file_list)), replace=False)
+
+    targets, conds, params_list = [], [], []
+    raw_stars_chunks = []
+    for idx in indices:
+        d = np.load(file_list[idx])
+        raw_target = np.stack([d['dm_hydro'], d['gas'], d['star']])  # (3,128,128)
+        targets.append(log_transform(raw_target))
+        conds.append(log_transform(d['dm']))
+        params_list.append(d['conditional_params'])
+        if stars_two_head:
+            raw_stars_chunks.append(d['star'])
+
+    targets = np.stack(targets)        # (N,3,128,128)
+    conds = np.stack(conds)            # (N,128,128)
+    params_arr = np.stack(params_list) # (N,35)
+
+    target_mean = targets.mean(axis=(0, 2, 3)).astype(np.float32)
+    target_std = targets.std(axis=(0, 2, 3)).astype(np.float32)
+
+    extra = {}
+    if stars_two_head:
+        raw_stars = np.stack(raw_stars_chunks)
+        occ = (raw_stars > 0).astype(np.float32)
+        p = float(occ.mean())
+        occ_std = float(np.sqrt(max(p * (1 - p), 1e-8)))
+        log_density = np.log10(1.0 + raw_stars)
+        occ_mask = occ > 0
+        if occ_mask.any():
+            cond_mean = float(log_density[occ_mask].mean())
+            cond_std  = float(log_density[occ_mask].std())
+        else:
+            cond_mean, cond_std = 0.0, 1.0
+        extra = {
+            'stars_two_head': True,
+            'stars_occ_mean': p,
+            'stars_occ_std':  occ_std,
+            'stars_cond_mean': cond_mean,
+            'stars_cond_std':  max(cond_std, 1e-6),
+        }
+
+    return NormStats(
+        target_mean=target_mean,
+        target_std=target_std,
+        cond_mean=float(conds.mean()),
+        cond_std=float(conds.std()),
+        # No large-scale conditioning; keep neutral defaults for compatibility.
+        ls_mean=np.zeros(3, dtype=np.float32),
+        ls_std=np.ones(3, dtype=np.float32),
+        param_min=PARAM_MIN_NORM.copy(),
+        param_max=PARAM_MAX_NORM.copy(),
+        param_log_flag=PARAM_LOG_FLAG.astype(np.int32),
+        **extra,
+    )
+
+
+def load_sb35_param_table(path=SB35_PARAMS_TXT):
+    """Load the SB35 parameter table.
+
+    Returns a numpy array of shape (N, 35) where index i corresponds to
+    simulation SB35_i.  Columns are the 35 raw parameter values (no log
+    transform applied); the seed column is dropped.
+    """
+    rows = []
+    with open(path) as f:
+        for lineno, line in enumerate(f):
+            if lineno == 0:  # header
+                continue
+            cols = line.split()
+            # cols[0] = 'SB35_N', cols[1:-1] = 35 params, cols[-1] = seed
+            rows.append([float(v) for v in cols[1:-1]])
+    return np.array(rows, dtype=np.float64)  # (N, 35)
+
+
+class CubeAstroDataset(Dataset):
+    """Dataset for cube-projected fields (6.25 Mpc/h^3 box, no large-scale).
+
+    File keys: dm (condition), dm_hydro / gas / star (targets),
+    conditional_params (35 SB35 parameters).  When conditional_params is
+    absent (e.g. test splits generated without it), the parameters are looked
+    up from the SB35 params table using the sim number encoded in the parent
+    directory name (e.g. "sim_1001" → row 1001).
+
+    Returns dict with keys: target (C,128,128), condition (1,128,128),
+    params (N,) — all normalized.  No 'large_scale' key is emitted.
+    """
+
+    def __init__(self, file_list, norm_stats, param_indices=None,
+                 sb35_table=None):
+        self.file_list = file_list
+        self.ns = norm_stats
+        self.param_indices = (
+            np.asarray(param_indices, dtype=np.int64)
+            if param_indices is not None else None
+        )
+        # Loaded lazily on first miss; can be pre-supplied to avoid I/O.
+        self._sb35_table = sb35_table
+
+    def __len__(self):
+        return len(self.file_list)
+
+    def _lookup_sb35_params(self, file_path):
+        """Return raw (35,) float32 params for file_path via the SB35 table."""
+        if self._sb35_table is None:
+            self._sb35_table = load_sb35_param_table()
+        m = re.search(r'sim_(\d+)', str(file_path))
+        if m is None:
+            raise KeyError(f'Cannot extract sim index from path: {file_path}')
+        idx = int(m.group(1))
+        return self._sb35_table[idx].astype(np.float32)
+
+    def _normalize(self, x, mean, std):
+        return (x - mean) / (std + 1e-8)
+
+    def _normalize_params(self, p):
+        p = np.where(self.ns.param_log_flag == 1,
+                     np.log10(np.maximum(p, 1e-30)),
+                     p)
+        rang = self.ns.param_max - self.ns.param_min
+        return (p - self.ns.param_min) / (rang + 1e-8)
+
+    def _build_target(self, raw_target):
+        """Return (3,H,W) or (4,H,W) two-head target — same logic as AstroDataset."""
+        if not self.ns.stars_two_head:
+            target = log_transform(raw_target)
+            return self._normalize(
+                target, self.ns.target_mean[:, None, None],
+                self.ns.target_std[:, None, None],
+            )
+
+        log_dm = log_transform(raw_target[0])
+        log_gas = log_transform(raw_target[1])
+        dm = (log_dm - self.ns.target_mean[0]) / (self.ns.target_std[0] + 1e-8)
+        gas = (log_gas - self.ns.target_mean[1]) / (self.ns.target_std[1] + 1e-8)
+
+        raw_stars = raw_target[2]
+        occ = (raw_stars > 0).astype(np.float32)
+        log_density = log_transform(raw_stars)
+        occ_norm = (occ - self.ns.stars_occ_mean) / (self.ns.stars_occ_std + 1e-8)
+        density_norm = (log_density - self.ns.stars_cond_mean) / (
+            self.ns.stars_cond_std + 1e-8
+        )
+        density_norm = np.where(occ > 0, density_norm, 0.0)
+
+        return np.stack([dm, gas, occ_norm, density_norm]).astype(np.float32)
+
+    def __getitem__(self, idx):
+        # A small number of files may be unreadable; skip them by trying the
+        # next few indices.  Cap at 100 to avoid a runaway loop on ceph.
+        for attempt in range(min(100, len(self.file_list))):
+            try:
+                return self._load_item((idx + attempt) % len(self.file_list))
+            except (KeyError, Exception):
+                continue
+        raise RuntimeError(f'No valid item found in 100 attempts starting from index {idx}')
+
+    def _load_item(self, idx):
+        d = np.load(self.file_list[idx])
+
+        raw_target = np.stack([
+            d['dm_hydro'].astype(np.float64),
+            d['gas'].astype(np.float64),
+            d['star'].astype(np.float64),
+        ])  # (3,128,128)
+        target = self._build_target(raw_target)
+
+        cond = log_transform(d['dm'])[None]  # (1,128,128)
+        cond = self._normalize(cond, self.ns.cond_mean, self.ns.cond_std)
+
+        # conditional_params may be absent in some splits; fall back to SB35
+        # table lookup using the sim number in the parent directory name.
+        if 'conditional_params' in d.files:
+            raw_params = d['conditional_params'].astype(np.float32)
+        else:
+            raw_params = self._lookup_sb35_params(self.file_list[idx])
+        params = self._normalize_params(raw_params)
+        if self.param_indices is not None:
+            params = params[self.param_indices]
+
+        return {
+            'target': torch.from_numpy(target.astype(np.float32)),
+            'condition': torch.from_numpy(cond.astype(np.float32)),
+            'params': torch.from_numpy(params),
+        }

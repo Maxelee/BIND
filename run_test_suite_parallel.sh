@@ -4,7 +4,7 @@
 #SBATCH --error=/mnt/home/mlee1/ceph/logs/fm_testsuite_par_%A_%a.err
 #SBATCH --time=24:00:00
 #SBATCH --partition=gpu
-#SBATCH --constraint=h100
+#SBATCH --constraint=a100
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gpus=1
@@ -125,7 +125,7 @@ else
 fi
 
 # ── Build extra flags ─────────────────────────────────────────────────────────
-EXTRA_FLAGS=(--regenerate)
+EXTRA_FLAGS=(--regenerate_all)
 [[ "${PREP_ONLY:-0}" == "1" ]]  && EXTRA_FLAGS+=(--prep_only)
 [[ "${SKIP_TRUTH:-0}" == "1" ]] && EXTRA_FLAGS+=(--skip_truth)
 [[ "${NO_AMP:-0}" == "1" ]]     && EXTRA_FLAGS+=(--no_amp)

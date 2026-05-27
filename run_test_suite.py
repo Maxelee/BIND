@@ -59,6 +59,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repaste", action="store_true")
     parser.add_argument("--no_patch_mass_match", action="store_true")
     parser.add_argument("--taper_frac", type=float, default=0.15)
+    parser.add_argument(
+        "--r200_factor",
+        type=float,
+        default=0.0,
+        help=(
+            "Radius of circular paste region as a multiple of R200c. "
+            "0 (default) uses the legacy square taper; 2.0 pastes within 2×R200c."
+        ),
+    )
     parser.add_argument("--skip_truth", action="store_true", help="Skip hydro truth map projection")
 
     parser.add_argument("--max_workers", type=int, default=1)
@@ -196,6 +205,7 @@ def main() -> None:
         batch_size=args.batch_size,
         patch_mass_match=not args.no_patch_mass_match,
         taper_frac=args.taper_frac,
+        r200_factor=args.r200_factor,
         use_amp=not args.no_amp,
         device=args.device,
         prep_only=args.prep_only,

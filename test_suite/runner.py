@@ -19,6 +19,7 @@ from .artifacts import (
     load_generated_halos,
     load_halo_catalog,
     load_halo_cutouts,
+    load_truth_halos_cube,
     resolve_artifact_paths,
     save_composite,
     save_full_maps,
@@ -26,15 +27,21 @@ from .artifacts import (
     save_halo_catalog,
     save_halo_cutouts,
     save_summary_json,
+    save_truth_halos_cube,
 )
 from .pipeline import (
     build_bind_composite,
     compute_per_halo_mass_error,
     extract_halo_cutouts,
+    extract_halo_cutouts_cube,
+    extract_halo_cutouts_cube_from_3d,
+    extract_truth_cutouts_cube_from_3d,
     generate_halo_patches,
+    load_dmo_particles,
     load_dmo_projection,
     load_halo_catalog as load_halo_catalog_raw,
     load_truth_maps,
+    voxelize_dmo_3d,
 )
 from .schemas import RunConfig, SimulationSpec
 
@@ -72,13 +79,25 @@ def load_model_bundle(run_cfg: RunConfig) -> tuple[NormStats, object, torch.devi
     # Never apply EMA — always use the raw checkpoint weights.
     # fm_two_head was trained before EMA saving was added; its shadow_params are
     # corrupt/zero and would overwrite the valid raw weights.
-    return norm_stats, model.fm, device
+
+    # Auto-detect param_indices from hparams so models trained with
+    # --exclude_cosmo_params (n_params=31) receive the correct filtered vector.
+    _COSMO_INDICES = [0, 1, 7, 8]
+    n_params = getattr(model.hparams, "n_params", 35)
+    param_indices = (
+        np.array([i for i in range(35) if i not in _COSMO_INDICES])
+        if n_params < 35
+        else None
+    )
+    no_large_scale = bool(getattr(model.hparams, "no_large_scale", False))
+    return norm_stats, model.fm, device, param_indices, no_large_scale
 
 
 def _prepare_data(
     spec: SimulationSpec,
     run_cfg: RunConfig,
     load_truth: bool,
+    no_large_scale: bool = False,
 ) -> tuple[dict, object]:
     """Load from cache or prepare DMO/halo/cutout artifacts."""
     paths = resolve_artifact_paths(run_cfg.output_root, spec, run_cfg.model_name)
@@ -93,26 +112,76 @@ def _prepare_data(
 
     if (
         paths.halo_catalog_npz.exists()
-        and paths.halo_cutouts_npz.exists()
         and not run_cfg.regenerate_all
     ):
-        halos, halo_masses, halo_positions = load_halo_catalog(paths.halo_catalog_npz)
-        halo_cutouts = load_halo_cutouts(paths.halo_cutouts_npz)
+        halos, halo_masses, halo_r200s, halo_positions = load_halo_catalog(paths.halo_catalog_npz)
+        # Old cached catalogs lack R200 data; reload from FOF if needed.
+        if run_cfg.r200_factor > 0 and all(h.get("r200", 0.0) == 0.0 for h in halos):
+            halos, halo_masses, halo_r200s, halo_positions = load_halo_catalog_raw(spec)
     else:
-        halos, halo_masses, halo_positions = load_halo_catalog_raw(spec)
-        halo_cutouts = extract_halo_cutouts(
-            dmo_fullbox,
-            halos,
-            box_size=spec.box_size,
-            npix=spec.npix,
-            patch_pix=spec.patch_pix,
-        )
-        save_halo_catalog(paths.halo_catalog_npz, halos, halo_masses, halo_positions)
-        save_halo_cutouts(paths.halo_cutouts_npz, halo_cutouts)
+        halos, halo_masses, halo_r200s, halo_positions = load_halo_catalog_raw(spec)
+        save_halo_catalog(paths.halo_catalog_npz, halos, halo_masses, halo_r200s, halo_positions)
+
+    # ── Cutout extraction ────────────────────────────────────────────────────
+    if no_large_scale:
+        # Cube model: replicate training-data geometry exactly.
+        # 1. Voxelize the full DMO box to 1024^3 with MASL CIC.
+        # 2. Extract a 128^3 sub-cube centred on each halo voxel (periodic BC).
+        # 3. Sum along z → 128×128 DM mass map per halo.
+        # This matches how the cube training files were generated.
+        cutouts_path = paths.halo_cutouts_cube_npz
+        if cutouts_path.exists() and not run_cfg.regenerate_all:
+            halo_cutouts = load_halo_cutouts(cutouts_path)
+        else:
+            dmo_particles, particle_mass = load_dmo_particles(spec)
+            field3d = voxelize_dmo_3d(
+                dmo_particles, particle_mass, spec.box_size, spec.npix
+            )
+            del dmo_particles  # free ~several GB before per-halo extraction
+            halo_cutouts = extract_halo_cutouts_cube_from_3d(
+                field3d,
+                halos,
+                halo_positions,
+                box_size=spec.box_size,
+                patch_pix=spec.patch_pix,
+            )
+            del field3d
+            save_halo_cutouts(cutouts_path, halo_cutouts)
+
+        # ── Cube hydro truth patches ─────────────────────────────────────────
+        # Voxelize each hydro species (DM, Gas, Stars) to 3D using the same
+        # MASL CIC procedure as the DMO condition, then extract 128^3 per halo
+        # and sum along z.  This gives truth patches in the exact same geometry
+        # as the training targets, enabling direct per-halo comparison.
+        truth_halos: np.ndarray | None = None
+        if load_truth:
+            truth_path = paths.truth_halos_cube_npz
+            if truth_path.exists() and not run_cfg.regenerate_all:
+                truth_halos = load_truth_halos_cube(truth_path)
+            else:
+                truth_halos = extract_truth_cutouts_cube_from_3d(
+                    spec, halos, halo_positions
+                )
+                save_truth_halos_cube(truth_path, truth_halos)
+    else:
+        cutouts_path = paths.halo_cutouts_npz
+        if cutouts_path.exists() and not run_cfg.regenerate_all:
+            halo_cutouts = load_halo_cutouts(cutouts_path)
+        else:
+            halo_cutouts = extract_halo_cutouts(
+                dmo_fullbox,
+                halos,
+                box_size=spec.box_size,
+                npix=spec.npix,
+                patch_pix=spec.patch_pix,
+            )
+            save_halo_cutouts(cutouts_path, halo_cutouts)
+        truth_halos = None  # not computed for standard (large-scale) models
 
     payload = {
         "dmo_fullbox": dmo_fullbox,
         "truth_maps": truth_maps,
+        "truth_halos": truth_halos,
         "halos": halos,
         "halo_masses": halo_masses,
         "halo_positions": halo_positions,
@@ -129,9 +198,12 @@ def run_single_simulation(
     fm,
     device: torch.device | None,
     load_truth: bool,
+    param_indices: np.ndarray | None = None,
+    no_large_scale: bool = False,
 ) -> dict:
     """Run one simulation through prepare/generate/paste stages."""
-    prepared, paths = _prepare_data(spec, run_cfg, load_truth=load_truth)
+    prepared, paths = _prepare_data(spec, run_cfg, load_truth=load_truth,
+                                    no_large_scale=no_large_scale)
 
     dmo_fullbox = prepared["dmo_fullbox"]
     truth_maps = prepared["truth_maps"]
@@ -166,6 +238,8 @@ def run_single_simulation(
             n_steps=run_cfg.n_steps,
             batch_size=run_cfg.batch_size,
             use_amp=run_cfg.use_amp,
+            param_indices=param_indices,
+            no_large_scale=no_large_scale,
         )
         save_generated_halos(paths.generated_halos_npz, generated_halos)
 
@@ -200,6 +274,7 @@ def run_single_simulation(
             patch_pix=spec.patch_pix,
             patch_mass_match=run_cfg.patch_mass_match,
             taper_frac=run_cfg.taper_frac,
+            r200_factor=run_cfg.r200_factor,
         )
         mass_stats = compute_per_halo_mass_error(
             dmo_fullbox,
@@ -256,12 +331,16 @@ def run_suite(
         return results
 
     norm_stats = fm = device = None
+    param_indices = None
+    no_large_scale = False
     if not run_cfg.prep_only:
-        norm_stats, fm, device = load_model_bundle(run_cfg)
+        norm_stats, fm, device, param_indices, no_large_scale = load_model_bundle(run_cfg)
 
     for spec in specs:
         try:
-            summary = run_single_simulation(spec, run_cfg, norm_stats, fm, device, load_truth)
+            summary = run_single_simulation(spec, run_cfg, norm_stats, fm, device, load_truth,
+                                            param_indices=param_indices,
+                                            no_large_scale=no_large_scale)
             results.append(summary)
             print(
                 f"[{spec.sim_label}] halos={summary['n_halos']} "

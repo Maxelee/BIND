@@ -47,3 +47,4 @@ class RunConfig:
     regenerate_all: bool = False
     repaste: bool = False
     channel_correction: np.ndarray | None = None
+    r200_factor: float = 0.0  # 0 = square paste (legacy); >0 = circular at r200_factor * R200c

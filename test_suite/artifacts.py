@@ -22,6 +22,8 @@ class ArtifactPaths:
     full_maps_npz: Path
     halo_catalog_npz: Path
     halo_cutouts_npz: Path
+    halo_cutouts_cube_npz: Path   # DMO condition patches (3D voxel method, cube model)
+    truth_halos_cube_npz: Path    # hydro truth patches   (3D voxel method, cube model)
     generated_halos_npz: Path
     composite_npz: Path
     summary_json: Path
@@ -56,6 +58,8 @@ def resolve_artifact_paths(output_root: Path, spec: SimulationSpec, model_name: 
         full_maps_npz=snap_dir / "full_maps.npz",
         halo_catalog_npz=mass_dir / "halo_catalog.npz",
         halo_cutouts_npz=mass_dir / "halo_cutouts.npz",
+        halo_cutouts_cube_npz=mass_dir / "halo_cutouts_cube.npz",
+        truth_halos_cube_npz=mass_dir / "truth_halos_cube.npz",
         generated_halos_npz=model_dir / "generated_halos.npz",
         composite_npz=model_dir / "composite.npz",
         summary_json=model_dir / "summary.json",
@@ -86,35 +90,50 @@ def load_full_maps(path: Path) -> tuple[np.ndarray, np.ndarray | None]:
     return dmo, truth
 
 
-def save_halo_catalog(path: Path, halos: list[dict], halo_masses: np.ndarray, halo_positions: np.ndarray) -> None:
+def save_halo_catalog(
+    path: Path,
+    halos: list[dict],
+    halo_masses: np.ndarray,
+    halo_r200s: np.ndarray,
+    halo_positions: np.ndarray,
+) -> None:
     """Save halo list and source arrays."""
     centers = np.asarray([h["halo_center"] for h in halos], dtype=np.float32)
     params = np.asarray([h["params"] for h in halos], dtype=np.float32)
     masses = np.asarray([h["halo_mass"] for h in halos], dtype=np.float32)
+    r200s = np.asarray([h.get("r200", 0.0) for h in halos], dtype=np.float32)
 
     np.savez(
         path,
         centers=centers,
         params=params,
         masses=masses,
+        r200s=r200s,
         halo_masses=halo_masses.astype(np.float32),
+        halo_r200s=halo_r200s.astype(np.float32),
         halo_positions=halo_positions.astype(np.float32),
     )
 
 
-def load_halo_catalog(path: Path) -> tuple[list[dict], np.ndarray, np.ndarray]:
-    """Load halo list and source arrays from cache."""
+def load_halo_catalog(path: Path) -> tuple[list[dict], np.ndarray, np.ndarray, np.ndarray]:
+    """Load halo list and source arrays from cache.
+
+    Returns (halos, halo_masses, halo_r200s, halo_positions).  Old cache files
+    without R200 data return zeros for halo_r200s and r200=0.0 per halo.
+    """
     loaded = np.load(path)
     centers = loaded["centers"]
     params = loaded["params"]
     masses = loaded["masses"]
+    r200s = loaded["r200s"] if "r200s" in loaded else np.zeros(len(centers), dtype=np.float32)
+    halo_r200s = loaded["halo_r200s"] if "halo_r200s" in loaded else np.zeros(len(loaded["halo_masses"]), dtype=np.float32)
 
     halos = [
-        {"halo_center": centers[i], "halo_mass": float(masses[i]), "params": params[i]}
+        {"halo_center": centers[i], "halo_mass": float(masses[i]), "r200": float(r200s[i]), "params": params[i]}
         for i in range(len(centers))
     ]
 
-    return halos, loaded["halo_masses"], loaded["halo_positions"]
+    return halos, loaded["halo_masses"], halo_r200s, loaded["halo_positions"]
 
 
 def save_halo_cutouts(path: Path, halo_cutouts: list[dict]) -> None:
@@ -202,3 +221,21 @@ def to_jsonable(value):
 def save_summary_json(path: Path, summary: dict) -> None:
     """Write a JSON summary with numpy-safe conversion."""
     path.write_text(json.dumps(to_jsonable(summary), indent=2, sort_keys=True))
+
+
+def save_truth_halos_cube(path: Path, truth_halos: np.ndarray) -> None:
+    """Save per-halo hydro truth patches from 3D cube voxelization.
+
+    Args:
+        truth_halos: (N_halos, 3, patch_pix, patch_pix) float32 array with
+            channels [DM_hydro, Gas, Stars].
+    """
+    np.savez(path, truth_halos=truth_halos.astype(np.float32))
+
+
+def load_truth_halos_cube(path: Path) -> np.ndarray:
+    """Load per-halo hydro truth patches saved by save_truth_halos_cube.
+
+    Returns (N_halos, 3, patch_pix, patch_pix) float32 array.
+    """
+    return np.load(path)["truth_halos"]

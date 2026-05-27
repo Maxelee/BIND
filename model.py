@@ -274,7 +274,10 @@ class StochasticInterpolant:
             params = params.clone()
             params[mask] = 0.0
 
-        model_input = torch.cat([x_t, condition, large_scale], dim=1)
+        if large_scale is not None:
+            model_input = torch.cat([x_t, condition, large_scale], dim=1)
+        else:
+            model_input = torch.cat([x_t, condition], dim=1)
         v_pred = self.model(model_input, t, params)
 
         per_pixel = (v_pred - velocity_target) ** 2
@@ -287,16 +290,16 @@ class StochasticInterpolant:
 
         return per_pixel.mean()
 
-    @torch.no_grad()
-    def sample(self, condition, large_scale, params, n_steps=50, cfg_scale=1.0):
+    def sample(self, condition, large_scale=None, params=None, n_steps=50, cfg_scale=1.0, grad=False):
         """Generate samples via Euler ODE integration starting from DMO.
 
         Args:
             condition: (B, 1, H, W)
-            large_scale: (B, 3, H, W)
+            large_scale: (B, 3, H, W) or None when no large-scale conditioning
             params: (B, 35)
             n_steps: number of Euler steps
             cfg_scale: classifier-free guidance scale (1.0 = no guidance)
+            grad: if True, enable gradients so d(output)/d(params) can be computed
         Returns:
             (B, 3, H, W) generated fields
         """
@@ -304,21 +307,26 @@ class StochasticInterpolant:
         B = condition.shape[0]
         device = condition.device
 
-        x = self._x0_from_dmo(condition)
-        dt = 1.0 / n_steps
+        ctx = torch.enable_grad() if grad else torch.no_grad()
+        with ctx:
+            x = self._x0_from_dmo(condition)
+            dt = 1.0 / n_steps
 
-        for i in range(n_steps):
-            t = torch.full((B,), i * dt, device=device)
-            inp = torch.cat([x, condition, large_scale], dim=1)
+            for i in range(n_steps):
+                t = torch.full((B,), i * dt, device=device)
+                if large_scale is not None:
+                    inp = torch.cat([x, condition, large_scale], dim=1)
+                else:
+                    inp = torch.cat([x, condition], dim=1)
 
-            if cfg_scale != 1.0:
-                v_cond = self.model(inp, t, params)
-                v_uncond = self.model(inp, t, torch.zeros_like(params))
-                v = v_uncond + cfg_scale * (v_cond - v_uncond)
-            else:
-                v = self.model(inp, t, params)
+                if cfg_scale != 1.0:
+                    v_cond = self.model(inp, t, params)
+                    v_uncond = self.model(inp, t, torch.zeros_like(params))
+                    v = v_uncond + cfg_scale * (v_cond - v_uncond)
+                else:
+                    v = self.model(inp, t, params)
 
-            x = x + v * dt
+                x = x + v * dt
 
         return x
 
@@ -365,7 +373,10 @@ class FlowMatching:
             params = params.clone()
             params[mask] = 0.0
 
-        model_input = torch.cat([x_t, condition, large_scale], dim=1)
+        if large_scale is not None:
+            model_input = torch.cat([x_t, condition, large_scale], dim=1)
+        else:
+            model_input = torch.cat([x_t, condition], dim=1)
         v_pred = self.model(model_input, t, params)
 
         per_pixel = (v_pred - velocity_target) ** 2
@@ -387,16 +398,16 @@ class FlowMatching:
 
         return per_pixel.mean()
 
-    @torch.no_grad()
-    def sample(self, condition, large_scale, params, n_steps=50, cfg_scale=1.0):
+    def sample(self, condition, large_scale=None, params=None, n_steps=50, cfg_scale=1.0, grad=False):
         """Generate samples via Euler ODE integration.
 
         Args:
             condition: (B, 1, H, W)
-            large_scale: (B, 3, H, W)
+            large_scale: (B, 3, H, W) or None when no large-scale conditioning
             params: (B, 35)
             n_steps: number of Euler steps
             cfg_scale: classifier-free guidance scale (1.0 = no guidance)
+            grad: if True, enable gradients so d(output)/d(params) can be computed
         Returns:
             (B, self.out_channels, H, W) generated fields
         """
@@ -404,21 +415,26 @@ class FlowMatching:
         B = condition.shape[0]
         device = condition.device
 
-        x = torch.randn(B, self.out_channels,
-                        condition.shape[2], condition.shape[3], device=device)
-        dt = 1.0 / n_steps
+        ctx = torch.enable_grad() if grad else torch.no_grad()
+        with ctx:
+            x = torch.randn(B, self.out_channels,
+                            condition.shape[2], condition.shape[3], device=device)
+            dt = 1.0 / n_steps
 
-        for i in range(n_steps):
-            t = torch.full((B,), i * dt, device=device)
-            inp = torch.cat([x, condition, large_scale], dim=1)
+            for i in range(n_steps):
+                t = torch.full((B,), i * dt, device=device)
+                if large_scale is not None:
+                    inp = torch.cat([x, condition, large_scale], dim=1)
+                else:
+                    inp = torch.cat([x, condition], dim=1)
 
-            if cfg_scale != 1.0:
-                v_cond = self.model(inp, t, params)
-                v_uncond = self.model(inp, t, torch.zeros_like(params))
-                v = v_uncond + cfg_scale * (v_cond - v_uncond)
-            else:
-                v = self.model(inp, t, params)
+                if cfg_scale != 1.0:
+                    v_cond = self.model(inp, t, params)
+                    v_uncond = self.model(inp, t, torch.zeros_like(params))
+                    v = v_uncond + cfg_scale * (v_cond - v_uncond)
+                else:
+                    v = self.model(inp, t, params)
 
-            x = x + v * dt
+                x = x + v * dt
 
         return x

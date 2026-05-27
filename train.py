@@ -8,7 +8,8 @@ from torch_ema import ExponentialMovingAverage
 from torch.utils.data import DataLoader
 from pathlib import Path
 
-from data import load_file_list, compute_norm_stats, AstroDataset, NormStats
+from data import (load_file_list, compute_norm_stats, AstroDataset, NormStats,
+                  load_file_list_cube, compute_norm_stats_cube, CubeAstroDataset)
 from model import UNet, FlowMatching, StochasticInterpolant
 
 
@@ -20,17 +21,19 @@ class FlowMatchingLit(L.LightningModule):
                  n_params=35, lr=1e-4, weight_decay=1e-4, ema_decay=0.9999,
                  cfg_dropout=0.1, warmup_steps=1000, n_sampling_steps=50,
                  star_occ_weight=1.0, star_zero_norm=None,
-                 interpolant='fm', sigma=0.5, stars_two_head=False):
+                 interpolant='fm', sigma=0.5, stars_two_head=False,
+                 no_large_scale=False):
         super().__init__()
         self.save_hyperparameters()
 
         # Stars two-head mode: target gets a 4-channel layout
         # (DM_hydro, Gas, occupancy, conditional density), so the model needs
         # in_ch = 4 (state) + 1 (condition) + 3 (large_scale) = 8 and out_ch = 4.
-        # All other code paths default to the original 7→3 architecture, so old
-        # checkpoints reload identically.
+        # When no_large_scale=True the large_scale channels are absent, reducing
+        # in_ch by 3. All other code paths default to the original architecture.
         out_ch = 4 if stars_two_head else 3
-        in_ch = out_ch + 1 + 3   # state + condition + large_scale
+        ls_ch = 0 if no_large_scale else 3
+        in_ch = out_ch + 1 + ls_ch   # state + condition + large_scale
 
         self.unet = UNet(
             in_ch=in_ch, out_ch=out_ch, base_ch=base_ch, ch_mult=ch_mult,
@@ -59,7 +62,7 @@ class FlowMatchingLit(L.LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self.fm.loss(
             batch['target'], batch['condition'],
-            batch['large_scale'], batch['params'],
+            batch.get('large_scale'), batch['params'],
         )
         self.log('train/loss', loss, prog_bar=True, sync_dist=True)
         return loss
@@ -67,7 +70,7 @@ class FlowMatchingLit(L.LightningModule):
     def validation_step(self, batch, batch_idx):
         loss = self.fm.loss(
             batch['target'], batch['condition'],
-            batch['large_scale'], batch['params'],
+            batch.get('large_scale'), batch['params'],
         )
         self.log('val/loss', loss, prog_bar=True, sync_dist=True)
 
@@ -110,7 +113,8 @@ class FlowMatchingLit(L.LightningModule):
 class AstroDataModule(L.LightningDataModule):
 
     def __init__(self, data_root, norm_stats_path=None, batch_size=64,
-                 num_workers=8, n_stats_samples=10000, stars_two_head=False):
+                 num_workers=8, n_stats_samples=10000, stars_two_head=False,
+                 param_indices=None, no_large_scale=False):
         super().__init__()
         self.data_root = data_root
         self.norm_stats_path = norm_stats_path
@@ -118,10 +122,16 @@ class AstroDataModule(L.LightningDataModule):
         self.num_workers = num_workers
         self.n_stats_samples = n_stats_samples
         self.stars_two_head = stars_two_head
+        self.param_indices = param_indices
+        self.no_large_scale = no_large_scale
 
     def setup(self, stage=None):
-        train_files = load_file_list(self.data_root, 'train')
-        test_files = load_file_list(self.data_root, 'test')
+        if self.no_large_scale:
+            train_files = load_file_list_cube(self.data_root, 'train')
+            test_files = load_file_list_cube(self.data_root, 'test')
+        else:
+            train_files = load_file_list(self.data_root, 'train')
+            test_files = load_file_list(self.data_root, 'test')
 
         # Compute or load normalization stats
         stats_path = Path(self.norm_stats_path or
@@ -138,8 +148,13 @@ class AstroDataModule(L.LightningDataModule):
                 )
         else:
             print(f'Computing norm stats from {self.n_stats_samples} samples '
-                  f'(stars_two_head={self.stars_two_head})...')
-            self.norm_stats = compute_norm_stats(
+                  f'(stars_two_head={self.stars_two_head}, '
+                  f'no_large_scale={self.no_large_scale})...')
+            compute_fn = (
+                compute_norm_stats_cube if self.no_large_scale
+                else compute_norm_stats
+            )
+            self.norm_stats = compute_fn(
                 train_files, self.n_stats_samples,
                 stars_two_head=self.stars_two_head,
             )
@@ -147,8 +162,11 @@ class AstroDataModule(L.LightningDataModule):
             self.norm_stats.save(stats_path)
             print(f'Saved norm stats to {stats_path}')
 
-        self.train_ds = AstroDataset(train_files, self.norm_stats)
-        self.val_ds = AstroDataset(test_files, self.norm_stats)
+        DatasetCls = CubeAstroDataset if self.no_large_scale else AstroDataset
+        self.train_ds = DatasetCls(train_files, self.norm_stats,
+                                   param_indices=self.param_indices)
+        self.val_ds = DatasetCls(test_files, self.norm_stats,
+                                 param_indices=self.param_indices)
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True,
@@ -186,6 +204,12 @@ def main():
                         help='si=stochastic interpolant (DMO→hydro), fm=original flow matching (noise→hydro)')
     parser.add_argument('--sigma', type=float, default=0.5,
                         help='Stochastic interpolant noise amplitude (0=deterministic bridge)')
+    parser.add_argument('--exclude_cosmo_params', action='store_true',
+                        help='Drop the 5 cosmological parameters (indices 0,1,7,8) '
+                             'from the conditioning vector, training with 31 params. We leave in Omega b')
+    parser.add_argument('--no_large_scale', action='store_true',
+                        help='Disable large-scale conditioning (for cube-projection datasets '
+                             'that lack a large_scale field). Reduces UNet in_ch by 3.')
     # Training
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
@@ -199,6 +223,16 @@ def main():
     parser.add_argument('--run_name', type=str, default='fm_base')
     args = parser.parse_args()
 
+    # Cosmological parameter indices to exclude when --exclude_cosmo_params is set.
+    COSMO_INDICES = [0, 1, 7, 8]
+    if args.exclude_cosmo_params:
+        import numpy as _np
+        param_indices = [i for i in range(35) if i not in COSMO_INDICES]
+        n_params = len(param_indices)          # 31
+    else:
+        param_indices = None
+        n_params = 35
+
     run_dir = Path(args.output_dir) / args.run_name
     run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -208,6 +242,8 @@ def main():
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         stars_two_head=args.stars_two_head,
+        param_indices=param_indices,
+        no_large_scale=args.no_large_scale,
     )
 
     # Compute/load norm stats up-front so we can derive star_zero_norm before
@@ -231,6 +267,8 @@ def main():
         star_occ_weight=args.star_occ_weight, star_zero_norm=star_zero_norm,
         interpolant=args.interpolant, sigma=args.sigma,
         stars_two_head=args.stars_two_head,
+        no_large_scale=args.no_large_scale,
+        n_params=n_params,
     )
 
     callbacks = [

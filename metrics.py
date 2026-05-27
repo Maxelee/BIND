@@ -1,46 +1,37 @@
 """Evaluation metrics: power spectrum, radial profiles, mass comparison, distributions."""
 
 import numpy as np
+import Pk_library as PKL
 
 
 CHANNEL_NAMES = ['DM_hydro', 'Gas', 'Stars']
 
 
-def power_spectrum_2d(field, box_size=6.25):
-    """Compute azimuthally averaged 2D power spectrum via FFT.
+def power_spectrum_2d(field, box_size=6.25, MAS='None', threads=1):
+    """Compute azimuthally averaged 2D power spectrum via Pylians Pk_library.
 
     Args:
         field: (H, W) 2D array (in original or normalized units)
         box_size: physical box size in Mpc/h
+        MAS: mass-assignment scheme used to paint the field ('None', 'NGP',
+             'CIC', 'TSC', 'PCS')
+        threads: number of OpenMP threads for Pylians
     Returns:
-        k: wavenumber bins (1D)
-        pk: power per bin (1D)
+        k: wavenumber bin centres in h/Mpc (1D)
+        pk: power spectrum in (Mpc/h)^2 (1D)
     """
-    N = field.shape[0]
-    fft = np.fft.fft2(field)
-    pk2d = np.abs(fft) ** 2 * (box_size / N) ** 2
-
-    kfreq = np.fft.fftfreq(N, d=box_size / N) * 2 * np.pi
-    kx, ky = np.meshgrid(kfreq, kfreq, indexing='ij')
-    kmag = np.sqrt(kx**2 + ky**2)
-
-    # Azimuthal average
-    k_bins = np.linspace(0, kfreq.max() * np.sqrt(2), N // 2)
-    k_centers = 0.5 * (k_bins[:-1] + k_bins[1:])
-    pk = np.zeros(len(k_centers))
-    for i in range(len(k_centers)):
-        mask = (kmag >= k_bins[i]) & (kmag < k_bins[i + 1])
-        if mask.sum() > 0:
-            pk[i] = pk2d[mask].mean()
-    return k_centers, pk
+    delta = np.asarray(field, dtype=np.float32) / np.mean(field)
+    Pk2D = PKL.Pk_plane(delta, box_size, 'CIC', threads)
+    return Pk2D.k, Pk2D.Pk
 
 
-def radial_profile(field, n_bins=32):
+def radial_profile(field, n_bins=15, logspace=True):
     """Compute azimuthally averaged radial profile centered on the image.
 
     Args:
         field: (H, W) 2D array
         n_bins: number of radial bins
+        logspace: if True, use logarithmically spaced bins (r_min=1 px = 50 kpc)
     Returns:
         r_centers: radial bin centers in pixels
         profile: mean value per bin
@@ -50,7 +41,10 @@ def radial_profile(field, n_bins=32):
     r = np.sqrt(x**2 + y**2)
 
     r_max = min(H, W) / 2
-    bins = np.linspace(0, r_max, n_bins + 1)
+    if logspace:
+        bins = np.logspace(np.log10(1.0), np.log10(r_max), n_bins + 1)
+    else:
+        bins = np.linspace(0, r_max, n_bins + 1)
     r_centers = 0.5 * (bins[:-1] + bins[1:])
     profile = np.zeros(n_bins)
     for i in range(n_bins):
@@ -92,11 +86,13 @@ def batch_power_spectra(fields, box_size=6.25):
     return k, pks.mean(0), pks.std(0)
 
 
-def batch_profiles(fields, n_bins=32):
+def batch_profiles(fields, n_bins=15, logspace=True):
     """Compute radial profiles for a batch of fields.
 
     Args:
         fields: (N, H, W)
+        n_bins: number of radial bins
+        logspace: if True, use logarithmically spaced bins
     Returns:
         r: radial bin centers
         prof_mean: mean profile
@@ -104,7 +100,7 @@ def batch_profiles(fields, n_bins=32):
     """
     profs = []
     for i in range(len(fields)):
-        r, prof = radial_profile(fields[i], n_bins)
+        r, prof = radial_profile(fields[i], n_bins, logspace=logspace)
         profs.append(prof)
     profs = np.stack(profs)
     return r, profs.mean(0), profs.std(0)

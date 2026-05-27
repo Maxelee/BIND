@@ -1,0 +1,48 @@
+[setup]
+boxlength		= 200
+zstart			= 127
+levelmin		= LMIN
+levelmin_TF		= LTF
+levelmax		= LMAX
+padding			= PAD 
+overlap			= LAP
+ref_center		= HCENTER
+ref_extent		= HEXTENT
+align_top		= no
+baryons			= yes
+use_2LPT		= yes
+use_LLA			= no
+periodic_TF		= yes
+
+[cosmology]
+Omega_m			= p1.0
+Omega_L			= p29.0
+w0			    = -1.0
+wa			    = 0.0
+Omega_b			= p8.0
+H0			    = p9.0
+sigma_8			= p2.0
+nspec			= p27.0
+transfer		= camb_file
+transfer_file   = /mnt/home/mlee1/ZOOM_SCRIPTS_round3/parameters/Tk_m_z=127.txt
+
+[random]
+seed[8]         = SEED8
+seed[9]         = SEED9
+seed[10]		= SEED10
+seed[11]		= SEED11
+
+[output]
+format			= arepo
+filename		= ics.hdf5
+arepo_num_files         = 16
+
+[poisson]
+fft_fine		= yes
+accuracy		= 1e-5
+pre_smooth		= 3
+post_smooth		= 3
+smoother		= gs
+laplace_order		= 6
+grad_order		= 6
+    

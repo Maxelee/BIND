@@ -1,0 +1,214 @@
+
+%%%%%%%%%% parameters varying between runs %%%%%%%%%%%%
+%----  Relevant files
+InitCondFile        ICSPATH
+%---- Cosmological parameters
+Omega0                p1.0
+HubbleParam           p9.0
+OmegaLambda           p29.0
+
+%----  Relevant files
+OutputDir           PATH
+SnapshotFileBase    snap
+OutputListFilename  /mnt/home/mlee1/ZOOM_SCRIPTS_round3/parameters/time_parent.txt
+
+%---- File formats
+ICFormat           3
+SnapFormat         3 
+
+%---- CPU-time limits
+TimeLimitCPU           703000 % 48700 148000 195000 398000 703000 = ( (0.5 / 1.5 / 2 / 4 / 7) days - ~2 hours ) / 0.85
+CpuTimeBetRestartFile  7200 % 7200 14400 21600 43200 = 2 / 4 / 6 / 12 hours 
+ResubmitOn        0
+ResubmitCommand   my-scriptfile 
+
+%----- Memory alloction
+MaxMemSize             7000
+
+%---- Caracteristics of run
+TimeBegin           0.0078125  % Begin of the simulation
+TimeMax		    1.0        % End of the simulation
+
+%---- Basic code options that set the type of simulation
+ComovingIntegrationOn    1 
+PeriodicBoundariesOn     1
+CoolingOn		 0
+StarformationOn		 0
+
+%---- Cosmological parameters
+OmegaBaryon           0.0
+BoxSize               200000.0
+
+%---- Output frequency and output paramaters
+OutputListOn              1 
+TimeBetSnapshot           0.0
+TimeOfFirstSnapshot       0.0
+TimeBetStatistics         0.01
+NumFilesPerSnapshot       16
+NumFilesWrittenInParallel 16
+
+%---- Accuracy of time integration
+TypeOfTimestepCriterion  0 
+ErrTolIntAccuracy        0.012 
+CourantFac               0.3
+MaxSizeTimestep          0.005
+MinSizeTimestep          2.0e-9 
+
+%---- Parameters for star formation model
+%CritPhysDensity      0       % critical physical density for star formation (in cm^(-3))
+%MaxSfrTimescale      2.27    % in internal time units (1.5)
+%CritOverDensity      57.7    % overdensity threshold value
+%TempSupernova        5.73e7  % in Kelvin (1.0e8)
+%TempClouds           1000.0  % in Kelvin
+%FactorEVP            573.0   % (1000.0)
+%TemperatureThresh    0 
+
+%---- Treatment of empty space and temperature limits
+InitGasTemp                           170
+MinGasTemp                            5.0
+MinimumDensityOnStartUp               1.0e-20
+LimitUBelowThisDensity                0.0
+LimitUBelowCertainDensityToThisValue  0.0
+MinEgySpec                            0.0
+
+%---- Tree algorithm, force accuracy, domain update frequency
+TypeOfOpeningCriterion                1
+ErrTolTheta                           0.7
+ErrTolForceAcc                        0.0025
+MultipleDomains                       8 
+TopNodeFactor                         2.5
+ActivePartFracForNewDomainDecomp      0.01
+ 
+%---- Initial density estimate
+DesNumNgb              64 
+MaxNumNgbDeviation     4
+
+%---- System of units
+UnitLength_in_cm         3.085678e21        ;  1.0 kpc
+UnitMass_in_g            1.989e43           ;  1.0e10 solar masses
+UnitVelocity_in_cm_per_s 1e5                ;  1 km/sec
+GravityConstantInternal  0
+
+%---- Gravitational softening lengths
+SofteningComovingType0    2.0    
+SofteningComovingType1    2.0    
+SofteningComovingType2    4.0
+SofteningComovingType3    8.0
+SofteningComovingType4    16.0
+SofteningComovingType5    2.0
+
+SofteningMaxPhysType0     1.0   
+SofteningMaxPhysType1     1.0
+SofteningMaxPhysType2     4.0
+SofteningMaxPhysType3     8.0
+SofteningMaxPhysType4     16.0
+SofteningMaxPhysType5     1.0
+
+SofteningTypeOfPartType0        0
+SofteningTypeOfPartType1        1
+SofteningTypeOfPartType2        2
+SofteningTypeOfPartType3        2
+SofteningTypeOfPartType4        5
+SofteningTypeOfPartType5        2
+
+GasSoftFactor             2.5
+%MinimumComovingHydroSoftening   0.25
+%AdaptiveHydroSofteningSpacing   1.2
+
+%----- Mesh regularization options
+CellShapingSpeed       0.5               
+%CellMaxAngleFactor     2.25          
+CellShapingFactor      1.0
+%ReferenceGasPartMass   0
+%TargetGasMassFactor    1
+%RefinementCriterion    1
+%DerefinementCriterion  1
+
+%----- Magnetohydrodynamics
+%MHDSeedDir             4
+%MHDSeedValue           1.0e-14 
+
+%----- Cooling
+%TreecoolFile           code/Arepo/data/TREECOOL_fg_dec11
+
+%----- Subfind
+ErrTolThetaSubfind     0.7
+DesLinkNgb             20
+
+%----- Enrichment
+%IMF_MinMass_Msun           0.1
+%IMF_MaxMass_Msun           100.0
+%AGB_MassTransferOn         1
+%SNIa_MassTransferOn        1
+%SNII_MassTransferOn        1
+%SNII_MinMass_Msun          8.0
+%SNII_MaxMass_Msun          100.0
+%SNIa_Rate_TAU              0.04
+%SNIa_Rate_Norm             1.3e-3
+%YieldTablePath             ./GFM_Tables/Yields/
+%DesNumNgbEnrichment        64 % NOTE: different from IllustrisTNG setting
+%MaxNumNgbDeviationEnrichment 4
+
+%----- NSNS Enrichment
+%NSNS_MassTransferOn       1         % do the thing
+%NSNS_MassPerEvent         0.05      % Msun, from Shen et al. 2015, equals (mass ejected per NSNS merger) 
+%NSNS_Rate_TAU             0.1       % again, Shen 2015, 0.04 would be for the same as SNIa, could go down to 0.05
+%NSNS_per_SNIa             1e-3      % right now, just a number ERR and I talked about, need a reference
+
+%----- Initial gas metallicity
+%PreEnrichTime              0.01 
+%PreEnrichAbundanceFile     L75TNG_initial_abundances.txt
+
+%----- Wind
+%ThermalWindFraction          0.1   
+%VariableWindSpecMomentum     0.0
+%WindFreeTravelMaxTimeFactor  0.025
+%WindFreeTravelDensFac        0.05
+%TimeBetOnTheFlyFoF           1.03
+%MinWindVel                   350.0
+
+%----- Reduction of wind energy for enriched gas
+%WindEnergyReductionFactor       0.25
+%WindEnergyReductionMetallicity  0.002
+%WindEnergyReductionExponent     2
+
+%-----  Black holes
+%BlackHoleAccretionFactor         1.0 
+%BlackHoleFeedbackFactor          0.1
+%BlackHoleEddingtonFactor         1.0
+%SeedBlackHoleMass                8.0e-5
+%MinFoFMassForNewSeed             5.0
+%DesNumNgbBlackHole               128
+%BlackHoleMaxAccretionRadius      1.e20
+%BlackHoleRadiativeEfficiency     0.2
+
+%-----  Black hole adios wind model
+%QuasarThreshold                        0.002    
+%RadioFeedbackMinDensityFactor          0.01
+
+%-----  Black central placement
+%BlackHoleCenteringMassMultiplier       1000
+
+%-----  Metal cooling
+%CoolingTablePath		./GFM_Tables/Cooling/cooling_metal_AGN_Compton_self_shielding_Rahmati12.hdf5
+%MinMetalTemp                    1e4
+
+%-----  Photometrics
+%PhotometricsTablePath           ./GFM_Tables/Photometrics/
+
+%----- AGN radiation
+%TreecoolFileAGN             code/Arepo/data/TREECOOL_AGN
+%SelfShieldingDensity        0.1295
+%ObscurationFactor           0.3
+%ObscurationSlope            0.07
+
+%----- Softer EOS
+%FactorForSofterEQS   0.3
+%TempForSofterEQS     1e4
+
+%----- Wind stripping
+%WindDumpFactor       0.6
+
+%----- Self-Shielding
+%SelfShieldingFile    code/Arepo/data/SelfShielding_Rahmati12 
+

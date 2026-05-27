@@ -1,0 +1,1153 @@
+%% Beginning of file 'sample701.tex'
+%%
+%% Version 7.0.1. Created May 2025.
+%% Version 7. Created January 2025.  
+%%
+%% AASTeX v7+ calls the following external packages:
+%% times, hyperref, ifthen, hyphens, longtable, xcolor, 
+%% bookmarks, array, rotating, ulem, and lineno 
+%%
+%% RevTeX is no longer used in AASTeX v7+.
+%%
+\documentclass[linenumbers,trackchanges, twocolumn]{aastex701}
+%%
+%% This initial command takes arguments that can be used to easily modify 
+%% the output of the compiled manuscript. Any combination of arguments can be 
+%% invoked like this:
+%%
+%% \documentclass[argument1,argument2,argument3,...]{aastex701}
+%%
+%% Six of the arguments are typestting options. They are:
+%%
+%%  twocolumn   : two text columns, 10 point font, single spaced article.
+%%                This is the most compact and represent the final published
+%%                derived PDF copy of the accepted manuscript from the publisher
+%%  default     : one text column, 10 point font, single spaced (default).
+%%  manuscript  : one text column, 12 point font, double spaced article.
+%%  preprint    : one text column, 12 point font, single spaced article.  
+%%  preprint2   : two text columns, 12 point font, single spaced article.
+%%  modern      : a stylish, single text column, 12 point font, article with
+%% 		  wider left and right margins. This uses the Daniel
+%% 		  Foreman-Mackey and David Hogg design.
+%%
+%% Note that you can submit to the AAS Journals in any of these 6 styles.
+%%
+%% There are other optional arguments one can invoke to allow other stylistic
+%% actions. The available options are:
+%%
+%%   astrosymb    : Loads Astrosymb font and define \astrocommands. 
+%%   tighten      : Makes baselineskip slightly smaller, only works with 
+%%                  the twocolumn substyle.
+%%   times        : uses times font instead of the default.
+%%   linenumbers  : turn on linenumbering. Note this is mandatory for AAS
+%%                  Journal submissions and revisions.
+%%   trackchanges : Shows added text in bold.
+%%   longauthor   : Do not use the more compressed footnote style (default) for 
+%%                  the author/collaboration/affiliations. Instead print all
+%%                  affiliation information after each name. Creates a much 
+%%                  longer author list but may be desirable for short 
+%%                  author papers.
+%% twocolappendix : make 2 column appendix.
+%%   anonymous    : Do not show the authors, affiliations, acknowledgments,
+%%                  and author contributions for dual anonymous review.
+%%  resetfootnote : Reset footnotes to 1 in the body of the manuscript.
+%%                  Useful when there are a lot of authors and affiliations
+%%		    in the front matter.
+%%   longbib      : Print article titles in the references. This option
+%% 		    is mandatory for PSJ manuscripts.
+%%
+%% Since v6, AASTeX has included \hyperref support. While we have built in 
+%% specific %% defaults into the classfile you can manually override them 
+%% with the \hypersetup command. For example,
+%%
+%% \hypersetup{linkcolor=red,citecolor=green,filecolor=cyan,urlcolor=magenta}
+%%
+%% will change the color of the internal links to red, the links to the
+%% bibliography to green, the file links to cyan, and the external links to
+%% magenta. Additional information on \hyperref options can be found here:
+%% https://www.tug.org/applications/hyperref/manual.html#x1-40003
+%%
+%% The "bookmarks" has been changed to "true" in hyperref
+%% to improve the accessibility of the compiled pdf file.
+%%
+%% If you want to create your own macros, you can do so
+%% using \newcommand. Your macros should appear before
+%% the \begin{document} command.
+%%
+\newcommand{\vdag}{(v)^\dagger}
+\newcommand\aastex{AAS\TeX}
+\newcommand\latex{La\TeX}
+\usepackage{bm}
+\usepackage{amsmath}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% The following section outlines numerous optional output that
+%% can be displayed in the front matter or as running meta-data.
+%%
+%% Running header information. A short title on odd pages and 
+%% short author list on even pages. Note that this
+%% information may be modified in production.
+%%\shorttitle{AASTeX v7.0.1 Sample article}
+%%\shortauthors{The Terra Mater collaboration}
+%%
+%% Include dates for submitted, revised, and accepted.
+%%\received{February 1, 2025}
+%%\revised{March 1, 2025}
+%%\accepted{\today}
+%%
+%% Indicate AAS Journal the manuscript was submitted to.
+%%\submitjournal{PSJ}
+%% Note that this command adds "Submitted to " the argument.
+%%
+%% You can add a light gray and diagonal water-mark to the first page 
+%% with this command:
+%% \watermark{text}
+%% where "text", e.g. DRAFT, is the text to appear.  If the text is 
+%% long you can control the water-mark size with:
+%% \setwatermarkfontsize{dimension}
+%% where dimension is any recognized LaTeX dimension, e.g. pt, in, etc.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Use this command to indicate a subdirectory where figures are located.
+%%\graphicspath{{./}{figures/}}
+%% This is the end of the preamble.  Indicate the beginning of the
+%% manuscript itself with \begin{document}.
+
+\begin{document}
+
+\title{BIND (Baryonic INpainting with Deep learning): A Field level emulator for galaxy groups and clusters}
+
+%% A significant change from AASTeX v6+ is in the author blocks. Now an email
+%% address is required for each author. This means that each author requires
+%% at least one of the following:
+%%
+%% \author
+%% \affiliation
+%% \email
+%%
+%% If these three commands are not available for each author, the latex
+%% compiler will issue an error and if you force the latex compiler to continue,
+%% it will generate an incomplete pdf.
+%%
+%% Multiple \affiliation commands are allowed and authors can also include
+%% an optional \altaffiliation to indicate a status, i.e. Hubble Fellow. 
+%% while affiliations are indexed as footnotes, altaffiliations are noted with
+%% with a non-numeric footnote that is set away from the numeric \affiliation 
+%% footnotes. NOTE that if an \altaffiliation command is used it must 
+%% come BEFORE the \affiliation call, right after the \author command, in 
+%% order to place the footnotes in the proper location. Because non-numeric
+%% symbols are used, \altaffiliation should be used sparingly.
+%%
+%% In v7+ the \author command takes an optional argument which provides 
+%% additional metadata about the author. Authors can provide the 16 digit 
+%% ORCID, the surname (family or last) name, the given (first or fore-) name, 
+%% and a name suffix, e.g. "Jr.". The syntax is:
+%%
+%% \author[orcid=0000-0002-9072-1121,gname=Gregory,sname=Schwarz]{Greg Schwarz}
+%%
+%% This name metadata in not shown, it is only for parsing by the peer review
+%% system so authors can be more easily identified. This name information will
+%% also be sent to the publisher so they can include it in the CROSSREF 
+%% metadata. Including an orcid will hyperlink the author name to the 
+%% author's ORCID page. Note that  during compilation, LaTeX will do some 
+%% limited checking of the format of the ID to make sure it is valid. If 
+%% the "orcid-ID.png" image file is  present or in the LaTeX pathway, the 
+%% ORCID icon will appear next to the authors name.
+%%
+%% Even though emails are now required for each author, the \email does not
+%% produce output in the compiled manuscript unless the optional "show" command
+%% is used. For example,
+%%
+%% \email[show]{greg.schwarz@aas.org}
+%%
+%% All "shown" emails are show in the bottom left of the first page. Due to
+%% space constraints, only a few emails should be shown. 
+%%
+%% To identify a corresponding author, use the \correspondingauthor command.
+%% The command appends "Corresponding Author: " to the argument it appears at
+%% the bottom left of the first page like the output from \email. 
+
+\author[orcid=0000-0002-2318-3087,sname='M.E. Lee']{Max E. Lee}
+\affiliation{Department of Astronomy, Columbia University, MC 5246, 538 West 120th Street, New York, NY 10027, USA}
+\email[show]{max.e.lee@columbia.edu}  
+
+\author[0000-0002-3185-1540]{Shy Genel}
+\affiliation{Center for Computational Astrophysics, Flatiron Institute, 162 Fifth Ave, New York, NY, 10010, USA}
+\affiliation{Columbia Astrophysics Laboratory, Columbia University, 550 West 120th Street, New York, NY 10027, USA}
+\email{sgenel@flatironinstitute.org}
+
+
+\author[0000-0003-3633-5403]{Zolt\'an Haiman}
+\affiliation{Department of Astronomy, Columbia University, MC 5246, 538 West 120th Street, New York, NY 10027, USA}
+\affiliation{Department of Physics, Columbia University, MC 5255, 538 West 120th Street, New York, NY 10027, USA}
+\affiliation{Institute of Science and Technology Austria, Am Campus 1, Klosterneuburg 3400 Austria}
+\email{Zoltan.Haiman@ista.ac.at}
+
+\author[0000-0003-2630-9228]{Greg L. Bryan}
+\affiliation{Department of Astronomy, Columbia University, MC 5246, 538 West 120th Street, New York, NY 10027, USA}
+\affiliation{Center for Computational Astrophysics, Flatiron Institute, 162 Fifth Ave, New York, NY, 10010, USA}
+\email{gbryan@columbia.edu}
+
+
+%% Use the \collaboration command to identify collaborations. This command
+%% takes an optional argument that is either a number or the word "all"
+%% which tells the compiler how many of the authors above the command to
+%% show. For example "\collaboration[all]{(DELVE Collaboration)}" wil include
+%% all the authors above this command.
+%%
+%% Mark off the abstract in the ``abstract'' environment. 
+\begin{abstract}
+Modeling the baryonic content of dark-matter halos is a leading systematic for upcoming Stage IV cosmological surveys, and existing baryonic correction methods are deterministic, isotropic, or calibrated at a single fiducial set of subgrid parameters. We introduce \textsc{BIND} (Baryonic INpainting with Deep learning), a conditional flow-matching generative model that learns the field-level mapping from dark-matter-only halo patches to their hydrodynamical counterparts in the IllustrisTNG model, conditioned on the full 35-dimensional CAMELS cosmological-plus-astrophysical parameter space. For every halo with $M_{200c}\geq 10^{13}\,M_\odot\,h^{-1}$ in a paired $N$-body simulation, \textsc{BIND} generates three projected mass channels (dark matter, gas, stars) on a $128\times 128$ pixel patch at $48.8\,h^{-1}\,{\rm kpc}$ resolution.
+
+On three independent test suites we show that the model recovers (i) integrated masses with median errors below $1\%$ for the dark matter, $\sim\!1\%$ for the gas, and $\sim\!5\%$ for the stars; (ii) azimuthally averaged radial profiles to $\lesssim 10\%$ at all radii; (iii) the canonical scaling relations (SHMR, gas fraction, baryon fraction, $M_{\rm gas}$--$M_\star$) with slope errors $|\Delta\alpha|\lesssim 0.02$ and per-halo residual rank correlations $\rho_{\rm res}\geq 0.93$; and (iv) the halo-to-halo scatter of 12 projected observables measured across 27 cosmic-variance simulations at the $\lesssim\!10\%$ level. The 35-parameter Jacobian computed on \textsc{BIND}-generated halos satisfies the chain rule across components ($R^2=1.00$) and its leading singular modes recover the cosmological, supernova, and AGN feedback axes. Applied to a full $L=50\,h^{-1}{\rm Mpc}$ N-body box, \textsc{BIND} matches the methodological ceiling of pasting in the true hydrodynamical halo patches in $P(k)/P_{\rm truth}$ across all $k$, and tracks the parameter-induced fractional response of $P(k)$ with Pearson $\rho\geq 0.9$ for every IllustrisTNG parameter that produces an appreciable signal.
+
+\textsc{BIND} is simultaneously field-level, halo-centric, parameter-conditioned, and generative, a combination that no existing baryonic correction tool occupies. This makes it suitable for forward-modeling pipelines that require fast baryonification of large cosmological volumes across the full subgrid parameter space, and for downstream non-Gaussian analyses such as weak-lensing peak counts, Minkowski functionals, and field-level likelihoods.
+\end{abstract}
+
+%% Keywords should appear after the \end{abstract} command. 
+%% The AAS Journals now uses Unified Astronomy Thesaurus (UAT) concepts:
+%% https://astrothesaurus.org
+%% You will be asked to selected these concepts during the submission process
+%% but this old "keyword" functionality is maintained in case authors want
+%% to include these concepts in their preprints.
+%%
+%% You can use the \uat command to link your UAT concepts back its source.
+\keywords{\uat{Galaxies}{573} --- \uat{Cosmology}{343}}
+
+%% From the front matter, we move on to the body of the paper.
+%% Sections are demarcated by \section and \subsection, respectively.
+%% Observe the use of the LaTeX \label
+%% command after the \subsection to give a symbolic KEY to the
+%% subsection for cross-referencing in a \ref command.
+%% You can use LaTeX's \ref and \label commands to keep track of
+%% cross-references to sections, equations, tables, and figures.
+%% That way, if you change the order of any elements, LaTeX will
+%% automatically renumber them.
+
+\section{Introduction} 
+Exploiting the full statistical power of future surveys requires accurate modeling of the matter distribution on small, highly non-linear scales. These small-scale systematics, where baryonic processes, including feedback from active galactic nuclei (AGN) and supernovae, radiative cooling, and star formation, have previously been a subdominant effect in cosmological analyses, but for upcoming surveys, they will become a prevalent source of uncertainty, and it is necessary to develop methods to model them \citep[e.g.][]{Jing2006,Chisari2019, Schneider2019}. In response to this demand, an industry of methods for including or accounting for baryons in cosmological analyses has emerged. 
+
+The most straightforward and arguably cost-efficient treatment of baryonic effects is to remove small-scale data directly, a strategy adopted in several recent weak-lensing analyses, including DES, KiDS, and HSC \citep[e.g.][]{Secco2022,Li2023a,Li2023b}. Such cuts discard precisely the non-linear scales that have been shown to contain a wealth of cosmological information, leading to a non-negligible loss in constraining power \citep[e.g.][]{Horowitz2017, VillaescusaNavarro2021a}. 
+
+The alternative extreme is to model baryonic effects directly with cosmological hydrodynamical simulations that self-consistently evolve dark matter and baryons, and, when appropriately calibrated, serve as ideal testing grounds for baryonic effects and cosmological analyses. However, these simulations, such as IllustrisTNG, EAGLE, SIMBA, BAHAMAS, or FLAMINGO \citep[e.g.][]{Vogelsberger2014,Schaye2015,Pillepich2018,Dave2019,Schaye2023}, are computationally expensive, and the galaxy-formation physics below the resolution scale is implemented through uncertain subgrid prescriptions that differ from code to code \citep{vanDaalen2014,Vogelsberger2020, villaescusa}. The high computational cost severely limits their use in forward-modeling pipelines that require sampling over cosmological and galaxy-formation parameters.
+
+To both reduce the computational cost of hydrodynamical simulations while avoiding small-scale data cuts, semi-analytic baryonic correction models (BCMs) have been proposed (and used). BCMs modify dark-matter-only (DMO) simulations by applying physically motivated empirical prescriptions to halo density profiles \citep{SchneiderBridle2010,SchneiderTeyssier2015,Schneider2019,Arico2020}. In these models, a DMO halo profile is decomposed into components such as cold bound gas, ejected gas, and relaxed dark matter, each with an analytic form. The A20--BCM introduced by \citet{Arico2020} has been shown to reproduce the 3D matter power spectrum suppression due to baryons at the percent level across several state-of-the-art hydrodynamical simulations. Building on this, the BACCO project constructed a neural-network-based emulator over a multi-dimensional baryonic and cosmological parameter space, enabling fast evaluation of BCM predictions for $P(k)$ \citep{Arico2021b}. Similar to the BCM models are halo-model approaches, such as HMcode--2020. In this work, \cite{} introduce a few baryonic feedback parameters into an augmented halo model to match the matter power spectrum to percent-level accuracy \citep{Mead2021}. Like BCMs, these models provide an efficient description of power-spectrum-level baryonic effects, but they do not directly specify the underlying field-level redistribution of mass within and around halos. As a result, their impact on higher-order and non-Gaussian statistics must be calibrated a posteriori and may not faithfully represent the true spatial structure induced by baryons. 
+
+In parallel to BCMs and halo-based approaches, the more recent component-wise baryonification (BFC) framework of \citet{Schneider2025a} extended previous BCMs by assigning each DMO particle from an nbody simulation, an associated dark matter, gas, and stellar components, which are displaced individually and assigned thermodynamic properties with hydrostatic and ideal gas equations. The BFC model was validated against the FLAMINGO and IllustrisTNG simulation suites, achieving $\lesssim 2\%$ agreement in the matter power spectrum suppression up to $k = 5~h\,\mathrm{Mpc}^{-1}$ across a range of feedback prescriptions. In a companion paper, \citet{Kovac2025} applied the BFC framework to jointly fit kinematic Sunyaev-Zel'dovich (kSZ) observations from the Atacama Cosmology Telescope (ACT) and X-ray gas fractions from eROSITA, finding that current multiwavelength data prefer a stronger feedback model than assumed in most hydrodynamical simulations, with a resulting power spectrum suppression of $20$--$25\%$ at $k = 5~h\,\mathrm{Mpc}^{-1}$. This is indeed a similar result to recent findings such as in \cite{hadizikya} and \cite{bigwood} who also see that feedback models appear to underpredict feedback. These results demonstrate that modern BCMs can self-consistently describe feedback across mass scales and multiple cosmological observables, though they remain anchored to analytic profile prescriptions and have been primarily validated on two-point statistics.
+
+However, BCMs, halo-model approaches, and BFCs have been calibrated and tested almost exclusively on two-point statistics. The first steps beyond this regime, such as joint fits to the power spectrum and bispectrum, have shown that while BCMs can reach $\lesssim 3\%$ agreement for the bispectrum, residual discrepancies remain on small scales and for specific triangle configurations \citep{Arico2021a}. Moreover, when tested on non-Gaussian statistics such as peak counts, BCMs can fail more dramatically: for example, \citet{Lee2023} found that while the A20--BCM reproduces weak-lensing peak counts at the percent level for peaks with signal-to-noise $S/N> 4$, it systematically underpredicts the number of the highest peaks, particularly for deep, wide-area surveys such as LSST and \textit{Euclid}. 
+
+More recently, several field-level and map-level approaches have been developed to go beyond analytic halo profiles. \citet{Sharma2024} proposed a model for baryonic effects where DMO simulation modes are multiplied by an isotropic fourier space transfer function, $\sqrt{P_{\rm hydro}(k)/P_{\rm DMO}(k)}$. \cite{} claim this can work because the cross-correlation coefficient between matched hydrodynamical and N-body simulations remains close to $1$ down to small $k$. This method has been shown to be accurate for two-point statistics across thousands of simulations; however, this approach is intrinsically isotropic and cannot capture anisotropic, halo-centric mass redistribution.
+
+With advances in machine learning methods, several recent approaches have been explored. For example, \citet{Chadayammuri2023} used a U-Net to map DMO cluster fields to gas density, temperature, and X-ray observables, and reproduced observed mass-observable scaling relations for massive clusters. Similar halo-based approaches have used machine learning to infer baryonic properties such as gas mass and temperature from dark-matter halo properties in simulations such as EAGLE \citep[e.g.][]{Truong2021}. Diffusion models have also been explored for cosmological fields. Cosmo-FOLD, introduced by \citet{Mishra2026}, uses a latent diffusion model to generate 3D dark-matter and gas-density fields conditioned on lower-resolution or partial information, achieving $\lesssim 10\%$ accuracy in power spectra up to $k \lesssim 5~h\,\mathrm{Mpc}^{-1}$. These methods represent an important step toward generative, field-level emulation of baryonic effects, but operate on full volumes without explicit halo-level conditioning, making it non-trivial to connect to a parameterized galaxy-formation model. 
+
+Despite this progress, several important gaps for baryonic correction approaches remain. First, there is currently no method that simultaneously (i) operates at the field level, (ii) is explicitly halo-centric, and (iii) is conditioned on the full galaxy-formation parameter space of a state-of-the-art hydrodynamical model. Transfer-function approaches are field-level but isotropic in $k$-space; BCMs and HMcode are halo-centric but rely on fixed analytic profiles calibrated to limited statistics; map-level ML approaches are typically trained at a single fiducial galaxy-formation model and do not expose subgrid parameters as inputs. Second, higher-order and non-Gaussian weak-lensing statistics---such as peak and minimum counts, Minkowski functionals, and field-level summaries---have been shown to add substantial cosmological information beyond the power spectrum, but existing baryonic correction tools have not been systematically validated for these observables \citep{Lee2023,Lee2026}. Third, the interplay between galaxy-formation model parameters and field-level matter redistribution is poorly understood: the 20–30-dimensional IllustrisTNG parameter space exhibits complex, nonlinear degeneracies (for example, between supernova and AGN feedback), which analytic prescriptions are ill-equipped to capture \citep{Lee2024}.
+
+In this work, we introduce \emph{BIND} (Baryonic INpainting with Diffusion), a variational diffusion model that learns the mapping from dark-matter-only halo environments to their hydrodynamical counterparts at the field level. BIND is trained on matched halo patches from IllustrisTNG and its dark-matter-only counterpart across the CAMELS parameter grid, and is conditioned on the full set of IllustrisTNG cosmological and astrophysical parameters. For each halo, BIND takes as input a local patch of the DMO density field centered on a halo and outputs multi-channel predictions for the dark matter, gas, and stellar mass distributions, without imposing analytic functional forms on any component. Because the model is generative, it naturally provides samples from the posterior distribution of baryonic fields given a DMO realization and parameter vector.
+
+By construction, BIND is halo-centric, field-level, and parameter-conditioned. This allows it to (i) capture anisotropic mass redistribution in and around halos, (ii) generalize across the galaxy-formation parameter space, and (iii) preserve all higher-order information in the output fields, enabling direct application to any downstream statistic, including weak-lensing power spectra, peak counts, minima, Minkowski functionals, and field-level likelihoods. Furthermore, by applying BIND patch-by-patch to the halos in an arbitrary N-body simulation, one can efficiently baryonify large cosmological volumes, making the method suitable for forward-modeling pipelines for Stage~IV surveys. 
+
+In this paper, we address the following questions:
+\begin{enumerate}
+    \item Can a conditional flow matching model learn the mapping from dark-matter-only to hydrodynamical fields at the halo level, conditioned on the IllustrisTNG galaxy-formation parameter space?
+    \item How accurately do generated halos capture the correct baryonic and dark matter mass distributions?
+    \item Does BIND generalize across astrophysical parameter space, providing accurate baryonic corrections at parameter locations not used in training?
+    \item Is BIND able to learn the correlations between field level observables, and how they change as a function of astrophysical parameters?
+\end{enumerate}
+
+
+\section{Simulations}
+\label{sec:simulations}
+
+All training and evaluation data are drawn from the
+Cosmology and Astrophysics with Machine-learning Simulations
+\citep[CAMELS;][]{villaescusa2021camels} project.
+CAMELS is a suite of hydrodynamical and $N$-body simulations designed
+explicitly to train and test machine-learning models on cosmological
+data. Each simulation follows \(256^3\) dark-matter particles and,
+in the hydrodynamical runs, an equal number of gas resolution elements
+in a periodic comoving box of side length $L = 25\,h^{-1}\,{\rm Mpc}$.
+The hydrodynamical runs employ the IllustrisTNG galaxy-formation model
+\citep{weinberger2017supermassive,pillepich2018simulating}, implemented
+in the \textsc{arepo} moving-mesh code \citep{springel2010arepo}.
+
+\subsection{The SB35 Latin-Hypercube Suite}
+\label{subsec:sb35}
+
+We train \textsc{BIND} on the SB35 suite \citep{camels_parameters},
+which consists of 1{,}024 paired IllustrisTNG hydrodynamical and
+$N$-body simulations spanning a 35-dimensional parameter space sampled
+with a Latin hypercube design. The parameter space includes two
+cosmological parameters ($\Omega_m$, $\sigma_8$), the baryon density
+$\Omega_b$, the Hubble constant $h$, the primordial spectral index
+$n_s$, and 30 subgrid astrophysical parameters governing stellar
+feedback, AGN feedback, and related processes in the IllustrisTNG model.
+The Latin hypercube design ensures space-filling coverage of this
+high-dimensional parameter space, with each simulation occupying a
+unique combination of parameter values.
+
+Each hydrodynamical simulation is paired with a gravity-only $N$-body
+run evolved from identical initial conditions and the same random seed.
+This pairing is essential for our field-level supervision strategy:
+by holding the initial conditions fixed, differences between the
+$N$-body and hydrodynamical outputs arise solely from baryonic physics,
+providing a clean training signal for the mapping
+$\bm{M}_{\rm DMO} \rightarrow \bm{M}_{\rm hydro}$.
+
+\subsection{Evaluation Suites}
+\label{subsec:eval_suites}
+
+We use three independent simulation suites for evaluation, each
+probing a different aspect of model performance.
+
+The \textbf{SB35 test set} consists of the ${\sim}100$ SB35 simulations
+withheld from training. These provide an in-distribution test of
+interpolation accuracy across the full 35-dimensional parameter space.
+
+The \textbf{1P suite} contains simulations in which a single parameter
+is varied at a time while all others are held at their fiducial values,
+and all runs share the same initial conditions. This controlled design
+isolates the sensitivity of the predicted fields to individual
+cosmological and astrophysical parameters.
+
+The \textbf{Cosmic Variance (CV) suite} consists of simulations run at
+the fiducial IllustrisTNG parameter values but with different random
+initial conditions. This suite tests whether the model captures field
+statistics that are robust to cosmic variance rather than overfitting
+to a particular realization of large-scale structure.
+
+
+%=============================================================
+\section{Model and Training}
+\label{sec:model}
+%=============================================================
+
+Our goal is to learn the conditional distribution
+\begin{equation}
+    p(\bm{M}_{\rm hydro} \mid \bm{M}_{\rm Nbody},\,
+    \boldsymbol{\theta}_{\rm TNG}),
+    \label{eq:target_distribution}
+\end{equation}
+where $\bm{M}_{\rm hydro} \in \mathbb{R}^{3 \times H \times W}$
+represents the three target projected mass fields of halos in the
+hydrodynamical simulation (dark matter, gas, and stellar mass), and
+$\bm{M}_{\rm Nbody} = \{\bm{M}_{\rm DMO},\,\bm{M}_{\rm ls}\}$ is
+the conditioning input consisting of the dark-matter-only central patch
+$\bm{M}_{\rm DMO} \in \mathbb{R}^{1 \times H \times W}$ and a
+multi-scale large-scale environment tensor
+$\bm{M}_{\rm ls} \in \mathbb{R}^{N_{\rm ls} \times H \times W}$. The
+parameter vector $\boldsymbol{\theta}_{\rm TNG} \in \mathbb{R}^{35}$
+encodes the full set of cosmological and astrophysical parameters of
+the simulation (Section~\ref{subsec:sb35}).
+
+All fields are defined on a regular $H \times W = 128 \times 128$ grid.
+The central patch spans $6.25\,h^{-1}\,{\rm Mpc}$ at a resolution of
+$48.8\,h^{-1}\,{\rm kpc\,pixel}^{-1}$. The large-scale context
+tensor comprises three nested maps at increasing physical extent
+and decreasing resolution: $12.5\,h^{-1}\,{\rm Mpc}$ at
+$97.6\,h^{-1}\,{\rm kpc\,pixel}^{-1}$,
+$25.0\,h^{-1}\,{\rm Mpc}$ at $195.2\,h^{-1}\,{\rm kpc\,pixel}^{-1}$,
+and $50.0\,h^{-1}\,{\rm Mpc}$ at $390.4\,h^{-1}\,{\rm kpc\,pixel}^{-1}$.
+
+The \textsc{BIND} framework is built on a conditional flow matching
+network that learns the mapping from dark-matter-only halo fields and
+IllustrisTNG model parameters to the baryonic mass fields of the paired
+hydrodynamical simulation. In the following subsections we review the
+flow matching formalism, describe the network architecture, detail the
+data processing pipeline, and specify the training procedure.
+
+%-------------------------------------------------------------
+\subsection{Flow Matching}
+\label{subsec:fm}
+%-------------------------------------------------------------
+
+The overall goal in our conditional flow matching is to learn a velocity
+field $\bm{v}_{\phi}$ that transports samples from an isotropic Gaussian
+prior, $\bm{M}_0 \sim \mathcal{N}(\bm{0},\bm{I})$, to the target baryonic
+field $\bm{M}_{\rm hydro}$, conditioned on the paired dark-matter-only map
+$\bm{M}_{\rm DMO}$, the large-scale field $\bm{M}_{\rm ls}$, and the
+cosmological and IllustrisTNG model parameter vector
+$\boldsymbol{\theta}_{\rm TNG}$.
+
+For a uniformly drawn interpolation time $t \sim \mathcal{U}(0,1)$, the
+intermediate state is the linear interpolation
+\begin{equation}
+\begin{split}
+    \bm{M}_t &= (1-t)\,\bm{M}_0 + t\,\bm{M}_{\rm hydro}, \\
+    \bm{M}_0 &\sim \mathcal{N}(\bm{0},\bm{I}),
+\end{split}
+    \label{eq:fm_path}
+\end{equation}
+which defines a straight-line probability path from noise at $t=0$ to
+data at $t=1$ \citep{lipman2023flowmatching}. The target velocity along
+this path is the difference between the target and noise fields,
+\begin{equation}
+    \bm{v}^{\ast} = \bm{M}_{\rm hydro} - \bm{M}_0.
+    \label{eq:fm_target}
+\end{equation}
+We parameterize the velocity field with a neural network
+$\bm{v}_{\phi}(\bm{M}_t, t, \bm{M}_{\rm DMO}, \bm{M}_{\rm ls},
+\boldsymbol{\theta}_{\rm TNG})$, which we write as $\bm{v}_{\phi}$ for
+brevity. The network is trained to minimize the conditional flow matching
+objective
+\begin{equation}
+    \mathcal{L}_{\rm FM}(\phi)
+    =
+    \mathbb{E}_{t,\,\bm{M}_0,\,\bm{M}_{\rm hydro}}
+    \!\left[\,
+    \left\|
+        \bm{v}_{\phi}
+        -
+        \left(\bm{M}_{\rm hydro} - \bm{M}_0\right)
+    \right\|_2^2
+    \right],
+    \label{eq:fm_loss}
+\end{equation}
+where the conditioning inputs $(\bm{M}_{\rm DMO}, \bm{M}_{\rm ls},
+\boldsymbol{\theta}_{\rm TNG})$ are held fixed for each training sample.
+
+At inference, we generate baryonic fields by integrating the learned
+probability-flow ODE from $t=0$ to $t=1$,
+\begin{equation}
+    \frac{d\bm{M}}{dt}
+    =
+    \bm{v}_{\phi}\!\left(
+        \bm{M},\,t,\,
+        \bm{M}_{\rm DMO},\,\bm{M}_{\rm ls},\,\boldsymbol{\theta}_{\rm TNG}
+    \right),
+    \label{eq:ode}
+\end{equation}
+starting from $\bm{M}(0) \sim \mathcal{N}(\bm{0},\bm{I})$. We
+integrate Eq.~(\ref{eq:ode}) with a first-order Euler scheme using
+$N_{\rm steps}=20$ uniform time steps $\Delta t = 1/N_{\rm steps}$,
+\begin{equation}
+    \bm{M}_{k+1}
+    =
+    \bm{M}_{k}
+    +
+    \Delta t\;
+    \bm{v}_{\phi}\!\left(
+        \bm{M}_k,\,t_k,\,
+        \bm{M}_{\rm DMO},\,\bm{M}_{\rm ls},\,\boldsymbol{\theta}_{\rm TNG}
+    \right).
+    \label{eq:euler}
+\end{equation}
+Because the probability path in Eq.~(\ref{eq:fm_path}) is a straight
+line, the learned velocity field is nearly constant along each
+trajectory, and the Euler integrator remains accurate with this modest
+number of function evaluations \citep{lipman2023flowmatching}.
+
+
+%-------------------------------------------------------------
+\subsection{Data Processing}
+\label{subsec:data_processing}
+%-------------------------------------------------------------
+
+Converting raw simulation particle data into training samples for
+\textsc{BIND} involves four main steps: halo identification and
+centering, random rotation, line-of-sight projection, and field
+normalization.
+
+We treat the $N$-body L50 simulations as the base set from which halos
+with $M_{200} \geq 10^{13}\,M_{\odot}\,h^{-1}$ are identified. For
+each halo, we exploit the periodic boundary conditions of the
+simulation box and re-center the volume on the particle with the
+deepest gravitational potential, placing the halo at
+$(x,y,z) = (25,25,25)\,{\rm Mpc}\,h^{-1}$.
+
+We place a stationary observer at $(x,y,z) = (25,25,0)\,{\rm
+Mpc}\,h^{-1}$ and apply a random rotation about the halo center. The
+periodic boundary conditions ensure the $50\,{\rm Mpc}\,h^{-1}$ cube
+remains volume-filling after the rotation. The three Euler angles
+defining each rotation are stored and subsequently applied to the
+paired hydrodynamical simulation to guarantee exact spatial
+correspondence between the $N$-body and baryonic projections. We
+perform this procedure 10 times per halo, drawing independent rotation
+matrices each time to augment the training set.
+
+Each rotated volume is projected onto a $1024\times1024$ grid along
+the $z$-axis using cloud-in-cell (CIC) interpolation
+\citep{hockney1988cic}. We retain the central $128\times128$ pixel
+patch as the primary $N$-body conditioning field $\bm{M}_{\rm DMO}$.
+Downsampled projections of progressively larger regions centred on the
+halo are saved as the multi-scale large-scale context $\bm{M}_{\rm
+ls}$, allowing the network to access information about the surrounding
+large-scale structure beyond the central patch. For the hydrodynamical
+simulations, the identical rotation matrices and $N$-body halo centers
+are used when projecting the dark-matter, gas, and stellar density
+fields, ensuring that the network learns the true DMO-to-baryonic
+mapping rather than a trivial spatial correspondence arising from
+hydro-identified centers.
+
+Because projected density fields span several orders of magnitude and
+contain many near-zero pixels, all map channels are compressed with
+\begin{equation}
+    \bm{M}' = \log_{10}(1 + \bm{M}),
+    \label{eq:logtransform}
+\end{equation}
+which maps zero-density pixels to zero while suppressing the extreme
+dynamic range. Each transformed channel $c$ is then standardized to
+zero mean and unit variance,
+\begin{equation}
+    \tilde{M}_c
+    = \frac{\bm{M}'_c - \mu_c}{\sigma_c + \epsilon},
+    \label{eq:zscore}
+\end{equation}
+where $\mu_c$ and $\sigma_c$ are estimated from a random subsample of
+10{,}000 training maps and $\epsilon = 10^{-8}$ prevents division by
+zero. This normalization is applied identically to the target baryonic
+fields, $\bm{M}_{\rm DMO}$, and $\bm{M}_{\rm ls}$.
+
+The parameter vector $\boldsymbol{\theta}_{\rm TNG}$ is normalized
+component-wise. Parameters spanning many orders of magnitude are first
+log-transformed before linear rescaling to $[0,1]$:
+\begin{equation}
+    \tilde{\theta}_j
+    =
+    \frac{\theta_j^{(\log)} - \theta_{j,\min}^{(\log)}}
+         {\theta_{j,\max}^{(\log)} - \theta_{j,\min}^{(\log)} + \epsilon},
+    \label{eq:paramnorm}
+\end{equation}
+where
+\begin{equation}
+    \theta_j^{(\log)}
+    =
+    \begin{cases}
+        \log_{10}(\theta_j), & \text{if parameter } j \text{ is log-scaled},\\
+        \theta_j,            & \text{otherwise.}
+    \end{cases}
+\end{equation}
+The bounds $\theta_{j,\min}$ and $\theta_{j,\max}$ are taken from the
+SB35 parameter tables \citep{camels_parameters}, so the normalization
+range is well-defined for any simulation in the suite, not only those
+in the training subset.
+
+We split the 1{,}024 SB35 simulations into $90\%$ for training and
+$10\%$ for testing. Within the training set, $80\%$ of halos are used
+for optimization and $20\%$ for validation. After applying 10 random
+rotations per halo, the training set contains approximately
+360{,}000 projected halo maps spanning the full 35-dimensional
+parameter space.
+
+%-------------------------------------------------------------
+\subsection{Architecture}
+\label{subsec:architecture}
+%-------------------------------------------------------------
+
+We parameterize the velocity field $\bm{v}_\phi$ with a conditional
+U-Net \citep{ronneberger2015unet} that receives the concatenated input
+tensor
+\begin{equation}
+    \bm{X}^{\rm in}_t
+    = \left[\bm{M}_t \;\middle|\; \bm{M}_{\rm DMO}
+             \;\middle|\; \bm{M}_{\rm ls}\right]
+    \in \mathbb{R}^{(3+1+N_{\rm ls}) \times H \times W},
+    \label{eq:model_input}
+\end{equation}
+at each integration time $t$, together with the scalar time $t$ and
+the parameter vector $\boldsymbol{\theta}_{\rm TNG}$. For more details about the architecture see Appendix~\ref{appendix:architecture}
+
+
+%-------------------------------------------------------------
+\subsection{Training}
+\label{subsec:training}
+%-------------------------------------------------------------
+
+The model is trained using the AdamW optimizer
+\citep{loshchilov2019decoupled} with learning rate $\eta_0 = 10^{-4}$
+and weight decay $\lambda = 10^{-4}$. Gradients are clipped to a
+maximum $\ell_2$ norm of 1.0. We train for up to 200 epochs with a
+batch size of 64 maps per GPU, using PyTorch Lightning's Distributed
+Data Parallel (DDP) strategy across multiple A100 GPUs in mixed
+\texttt{bfloat16} precision.
+
+The learning rate follows a two-phase schedule: a linear warm-up from
+zero to $\eta_0$ over the first $N_{\rm warm}=1{,}000$ gradient steps,
+followed by cosine annealing to zero over the remainder of training,
+\begin{equation}
+    \eta(k) =
+    \begin{cases}
+        \eta_0\,\dfrac{k}{N_{\rm warm}},
+            & k < N_{\rm warm}, \\[8pt]
+        \dfrac{\eta_0}{2}
+        \!\left[1 + \cos\!\left(
+            \pi\,\dfrac{k - N_{\rm warm}}{K_{\rm tot} - N_{\rm warm}}
+        \right)\right],
+            & k \geq N_{\rm warm},
+    \end{cases}
+    \label{eq:lrsched}
+\end{equation}
+where $k$ is the current gradient step and $K_{\rm tot}$ is the total
+number of steps \citep{loshchilov2017sgdr}.
+
+An exponential moving average (EMA) of the network weights is
+maintained throughout training with decay $\rho = 0.9999$,
+\begin{equation}
+    \bar{\phi}_k = \rho\,\bar{\phi}_{k-1} + (1-\rho)\,\phi_k,
+    \label{eq:ema}
+\end{equation}
+and the EMA weights $\bar{\phi}$ are used exclusively at inference
+\citep{karras2022edm}. Model checkpoints are saved based on validation
+loss, retaining the three best-performing epochs.
+
+The complete set of training hyperparameters is listed in
+Table~\ref{tab:training}.
+
+\begin{table}
+\centering
+\caption{Training hyperparameters.}
+\label{tab:training}
+\begin{tabular}{lc}
+\hline
+Hyperparameter & Value \\
+\hline
+Learning rate $\eta_0$      & $10^{-4}$ \\
+Weight decay                & $10^{-4}$ \\
+Gradient clip norm          & 1.0 \\
+Warm-up steps               & 1{,}000 \\
+Max epochs                  & 200 \\
+Batch size (per GPU)        & 64 \\
+EMA decay $\rho$            & 0.9999 \\
+CFG dropout probability     & 0.1 \\
+Euler steps at inference    & 20 \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Validation}
+After training the model, we perform a variety of tests to ensure that the model is working and generating realistic baryonified halos. We first outline the metrics used to validate this, we then show the results from these tests.
+
+\subsection{Validation metrics}
+\label{subsec:validation_metrics}
+
+We organize the validation around two questions. First, does \textsc{BIND} reproduce the marginal statistics of the hydrodynamical fields halo-by-halo? Second, does it reproduce the joint structure across observables, across halos in a sample, and across the IllustrisTNG parameter space?
+
+The first question is addressed in the remainder of \S\ref{sec:model}. We compare integrated masses within $R_{200}$ and within the full $128\times128$ patch (\S\ref{subsec:integrated_mass}), azimuthally averaged surface density profiles (\S\ref{subsec:radial_profiles}), and projected axis ratios (\S\ref{subsec:shapes}), in each case decomposing the generated and true fields into their dark-matter, gas, and stellar components and comparing in three independent test suites that probe in-distribution accuracy (SB35 test), generalization across cosmic variance (CV), and controlled parameter sensitivity (1P). Throughout this section we report the median and 16th--84th percentile error per observable, and the Spearman rank correlation between each integrated quantity and each of the 35 IllustrisTNG parameters.
+
+The second question is the subject of \S\ref{sec:results}. There we look at the multivariate distribution of halo observables (\S\ref{subsec:relations}), the inter- and intra-halo scatter at fixed parameters (\S\ref{subsec:scatter}), the parameter response of the observable medians on the 1P and SB35 test sets (\S\ref{subsec:extrapolations}), the finite-difference Jacobian of all observables with respect to all 35 parameters (\S\ref{subsec:jacobian}), and the sensitivity of these conclusions to the line-of-sight projection depth (\S\ref{subsec:projection}). The final test, in \S\ref{sec:wild}, asks whether the per-halo accuracy translates into a faithful baryonification of an entire N-body box at the level of the projected matter power spectrum.
+%-------------------------------------------------------------
+\subsection{Qualitative Field-Level Comparisons}
+\label{subsec:qualitative}
+%-------------------------------------------------------------
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=\linewidth]{imgs/flow_matching_diagram.pdf}
+    \caption{Flow matching trajectory and field-level comparison for a
+             representative cluster-mass halo ($M_{200} \sim
+             10^{14}\,M_{\odot}\,h^{-1}$) drawn from the CV test set,
+             conditioned on the fiducial IllustrisTNG parameter vector
+             $\boldsymbol{\theta}_{\rm fid}$.
+             \textit{Columns 1--3:} Snapshots of the generative trajectory
+             at $t=0$ (Gaussian noise), $t=0.5$ (intermediate state), and
+             $t=1$ (final generated field).
+             \textit{Column 4:} Ground-truth hydrodynamical fields from the
+             paired IllustrisTNG simulation.
+             \textit{Column 5:} Signed residual $(M_{\rm gen} - M_{\rm
+             hydro})/M_{\rm hydro}$.
+             \textit{Rows:} Projected dark-matter, gas, and stellar surface
+             density, respectively.
+             The generated fields reproduce the large-scale morphology of
+             all three components. Residuals in the dark-matter channel are
+             approximately noise-like, while the gas channel retains coherent
+             structure in the residuals, and the stellar channel shows
+             significant pixel-level scatter owing to its sparsity.}
+    \label{fig:flow_matching}
+\end{figure*}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=\linewidth]{imgs/fig_mass_error.pdf}
+    \caption{Relative error in integrated mass, $M_{\rm gen}/M_{\rm hydro}-1$, for each matter component (columns: hydro dark matter, gas, stars, and total) and two apertures (rows: within $R_{200}$ and within the full $128\times128$ patch). Results are shown independently for the CV (green), 1P (blue), and SB35 test (red) suites. Box edges mark the 25th and 75th percentiles; the central line marks the median. Dashed horizontal lines indicate the zero-bias reference. \textsc{BIND} recovers unbiased integrated masses across all components and test suites, with median errors below $1\%$ for dark matter and total mass, ${\sim}1\%$ for gas, and ${\sim}5\%$ for stars.}
+    \label{fig:mass_comp}
+\end{figure*}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=\linewidth]{imgs/fig3_spearman_param_mass.pdf}
+    \caption{Spearman rank correlation between integrated mass per component and each of the 15 astrophysical parameters (out of 30) that exhibit the largest correlation with at least one field, evaluated on the SB35 test set. Filled symbols show correlations computed from the true hydrodynamical halos; open symbols show the same quantity computed from \textsc{BIND}-generated fields at identical masses and parameter-space locations. The strong agreement between filled and open symbols demonstrates that the model has correctly internalized the dependence of baryonic mass on the IllustrisTNG subgrid parameters. The stellar channel (stars) exhibits the strongest parameter sensitivity, followed by gas, while the dark-matter channel shows little response to astrophysical parameter variations.}
+    \label{fig:mass_corr}
+\end{figure*}
+
+We begin with a qualitative examination of \textsc{BIND}'s outputs for a representative cluster-mass halo ($M_{200} \sim 10^{14}\,M_{\odot}\, h^{-1}$) drawn from the CV test set. The $N$-body dark-matter field, centered on the halo as described in Section~\ref{subsec:data_processing}, is provided as the conditioning input alongside the fiducial IllustrisTNG parameter vector $\boldsymbol{\theta}_{\rm fid}$.
+
+Figure~\ref{fig:flow_matching} illustrates both the generative trajectory and the final field-level comparison. Reading left to right, the first three columns show snapshots of the flow at $t=0$ (isotropic Gaussian noise), $t=0.5$ (an intermediate state in which the large-scale morphology is already visible), and $t=1$ (the fully denoised output). The fourth and fifth columns show the ground-truth hydrodynamical fields and the signed residuals, respectively. By $t=0.5$, the network has already established the large-scale mass distribution; the remaining integration steps primarily sharpen the morphology and populate small-scale features.
+
+Examining the final output, all three baryonic components are reproduced to good visual agreement. The generated dark-matter field closely traces the $N$-body input, and the residuals are approximately noise-like, with no coherent large-scale structure — consistent with the sub-percent integrated mass errors reported in Section~\ref{subsec:integrated_mass}. The gas channel residuals retain more coherent spatial structure, reflecting the sensitivity of the intracluster gas to AGN and stellar feedback processes that are not fully encoded in the dark-matter morphology alone. The stellar channel, being highly sparse and concentrated in a small number of bright central pixels, shows the largest pixel-level scatter between the generated and true fields. This is expected: the precise location and amplitude of individual stellar clumps are stochastic at fixed halo mass and parameters, and a generative model is not expected to reproduce a particular realization exactly, but rather the correct statistical ensemble.
+
+These qualitative observations motivate the quantitative analyses that follow. The next sections systematically characterize \textsc{BIND}'s accuracy through integrated mass comparisons (Section~\ref{subsec:integrated_mass}), radially resolved surface density profiles (Section~\ref{subsec:radial_profiles}), and the learned dependence on cosmological and astrophysical parameters (Section~\ref{sec:learned_physics}).
+
+%-------------------------------------------------------------
+\subsection{Integrated Mass}
+\label{subsec:integrated_mass}
+%-------------------------------------------------------------
+
+
+ We now turn to quantitative comparisons of the predicted and true baryonic fields, beginning with the simplest global statistic: the total integrated mass. For every halo with $M_{200} \geq 10^{13}\,M_{\odot}\,h^{-1}$ in the full test suite, we sum the projected pixel values within $R_{200}$ of the halo center and within the full $128\times128$ patch for each matter component, and compute the relative error
+\begin{equation}
+    \Delta M = \frac{M_{\rm gen}}{M_{\rm hydro}} - 1.
+    \label{eq:mass_err}
+\end{equation}
+
+Figure~\ref{fig:mass_comp} shows this relative difference for each matter component (columns) and aperture (rows), computed independently for each test suite. Across all three suites, the predicted integrated masses are unbiased with small scatter. The median relative error for the hydro dark-matter and total-mass channels is sub-percent, while gas and stellar masses are recovered at the ${\sim}1\%$ and ${\sim}5\%$ level, respectively. Enlarging the aperture from $R_{200}$ to the full patch produces little change in the median but noticeably reduces the scatter, consistent with pixel-level noise averaging down over larger areas.
+
+This serves as the most fundamental test of \textsc{BIND}: for virtually all halos across a parameter space entirely unseen during training, the model has learned that total mass is conserved between the $N$-body halo and its hydrodynamical counterpart, and has correctly partitioned that mass among the dark-matter, gas, and stellar components. This implies that the network has internalized the baryon fraction and stellar-to-halo mass relation in some implicit sense, which we investigate further in Section~\ref{sec:learned_physics}.
+
+A natural follow-up question is whether the model has also learned the \textit{correlation} between integrated mass and individual simulation parameters. We probe this directly in Figure~\ref{fig:mass_corr} by computing the Spearman rank correlation coefficient between the integrated mass in each component and each element of $\boldsymbol{\theta}_{\rm TNG}$, for both the true and generated halos at identical parameter-space locations. We show the 15 astrophysical parameters (out of 30) that exhibit the largest correlations with any single channel.
+
+The agreement between the true and generated correlations is remarkably close across all fields and parameters. Several physically intuitive trends are also apparent. The stellar mass shows the strongest sensitivity to astrophysical parameters, as it is dominated by a small number of central high-density pixels and is largely decoupled from the gravitational skeleton traced by the $N$-body field. The gas channel shows intermediate sensitivity: it is correlated with the dark-matter structure but remains responsive to stellar and AGN feedback variations. The dark-matter channel, by contrast, shows virtually no response to the astrophysical parameters, as it is dominated by gravitational forces and directly constrained by the $N$-body input.
+
+%-------------------------------------------------------------
+\subsection{Radial Profiles}
+\label{subsec:radial_profiles}
+%-------------------------------------------------------------
+
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=\linewidth]{imgs/fig4_radial_pct_diff.pdf}
+    \caption{Mean fractional error in the azimuthally averaged projected surface density profile, $\langle\Sigma_{\rm gen}/ \Sigma_{\rm hydro} - 1\rangle$, as a function of projected radius for each matter component (columns) and test suite (CV: green; 1P: blue; SB35 test: red). Profiles are computed in 15 logarithmically spaced annuli out to $r = 3.125\,h^{-1} \,{\rm Mpc}$. Shaded bands indicate the halo-to-halo scatter (16th--84th percentile). \textsc{BIND} achieves $\lesssim\!10\%$ accuracy at all radii across all three test suites, with the largest deviations confined to the innermost bins where AGN feedback and steep stellar cusps are hardest to reproduce.}
+    \label{fig:total_density}
+\end{figure*}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=\linewidth]{imgs/fig3_spearman_profile.pdf}
+    \caption{Spearman rank correlation between the azimuthally averaged surface density profile at each radial bin and the 15 astrophysical parameters with the largest correlations, for the true (filled) and \textsc{BIND}-generated (open) halos. The strong agreement between filled and open symbols at all radii demonstrates that the model correctly captures the radially resolved dependence of baryonic structure on subgrid physics. The stellar channel shows the strongest parameter sensitivity in the central regions, and a marked anticorrelation between stellar and gas densities is visible for several feedback parameters.}
+    \label{fig:dens_corr}
+\end{figure*}
+
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=\linewidth]{imgs/shape_1_axisratio.pdf}
+    \caption{Distributions of the projected axis ratio $q =
+             \sqrt{\lambda_{\min}/\lambda_{\max}}$ measured within $R_{200}$ for halos in the CV (green), 1P (blue), and SB35 test (red) suites. Solid histograms show measurements from the true hydrodynamical fields; outlined histograms show the same quantity measured from \textsc{bind}-generated fields. Columns show the dark-matter, gas, and stellar channels, respectively. The generated distributions match the true medians and widths remarkably well across all channels and test suites. The dark-matter channel peaks near $q\sim 0.8$, the gas channel is more strongly concentrated toward circular shapes, and the stellar channel exhibits the broadest distribution and largest ellipticities.}
+    \label{fig:axes_ratios}
+\end{figure*}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=\linewidth]{imgs/shape_4_spearman.pdf}
+    \caption{Spearman rank correlation between the projected axis ratio $q$ and ellipticity $\varepsilon$ in each channel and the 15 astrophysical parameters (out of 30) showing the largest correlations with any shape statistic, evaluated on the SB35 test set. Filled symbols show correlations from the true hydrodynamical halos; open symbols show correlations from \textsc{bind}-generated fields. Agreement between filled and open symbols is strong, confirming that the model has reproduced the parameter dependence of halo shapes. Overall correlations between shape and astrophysical parameters are weak, indicating that halo morphology is driven primarily by the large-scale dark-matter structure rather than subgrid physics.}
+    \label{fig:axes_ratios_correlations}
+\end{figure*}
+
+Rather than integrating within a fixed aperture, we now examine \textsc{BIND}'s accuracy as a function of projected radius. For each halo we compute the azimuthally averaged projected surface density profile in 15 logarithmically spaced annuli extending to the edge of the patch ($r = 3.125\,h^{-1}\,{\rm Mpc}$), and evaluate the mean fractional error
+\begin{equation}
+    \langle \Delta\Sigma(r) \rangle
+    = \left\langle
+        \frac{\Sigma_{\rm gen}(r)}{\Sigma_{\rm hydro}(r)} - 1
+      \right\rangle,
+    \label{eq:profile_err}
+\end{equation}
+averaged over all halos in each test suite.
+
+Figure~\ref{fig:total_density} shows this fractional error for each matter component and test suite. \textsc{BIND} achieves $\lesssim\!10\%$ accuracy across all radii and all three evaluation sets, with consistent performance between the in-distribution SB35 test halos and the out-of-distribution CV and 1P suites. The largest deviations are confined to the innermost radial bins, where AGN-driven gas evacuation produces sharp central features and the stellar surface density profile is steepest — both effects that are challenging to reproduce from a projected line-of-sight input.
+
+Figure~\ref{fig:dens_corr} extends the Spearman correlation analysis of Section~\ref{subsec:integrated_mass} to the radially resolved profiles. For each annular bin and each matter component, we compute the Spearman correlation between the surface density and each element of $\boldsymbol{\theta}_{\rm TNG}$, for both the true and generated halos. The agreement between the two is strong at virtually all radii and in all fields, indicating that \textsc{BIND} has correctly learned the spatially resolved dependence of baryonic structure on the IllustrisTNG subgrid parameters.
+
+Two physically interesting features emerge from this comparison. First, the stellar channel shows the strongest parameter sensitivity in the central regions of the halo, where the stellar surface density is highest and AGN feedback most directly regulates the star formation rate. Second, there is a clear anticorrelation between the stellar and gas density responses for several feedback parameters: parameters that drive higher stellar densities tend to suppress the gas density at similar radii, and vice versa. This reflects the competition between gas cooling and star formation on the one hand, and stellar and AGN feedback-driven outflows on the other — a balance that \textsc{BIND} appears to have internalized from the training data.
+
+
+
+
+%-------------------------------------------------------------
+\subsection{Projected Halo Shapes}
+\label{subsec:shapes}
+%-------------------------------------------------------------
+
+
+
+The comparisons in the preceding sections focus exclusively on isotropic statistics — integrated masses and azimuthally averaged profiles — which by construction discard all information about halo morphology. We now ask whether \textsc{bind} also reproduces the \textit{shapes} of the baryonic fields, which are directly relevant to weak-lensing intrinsic alignment studies \citep[e.g.,][]{troxel2015intrinsic, joachimi2015intrinsic}.
+
+For each halo in the test and generated catalogs, we measure the projected 2D shape by computing the intensity-weighted inertia tensor within $R_{200}$,
+\begin{equation}
+    Q_{ij} = \frac{\displaystyle\sum_{\rm pix}
+                   (r_i - \bar{r}_i)(r_j - \bar{r}_j)\,I}
+                  {\displaystyle\sum_{\rm pix} I},
+    \label{eq:inertia}
+\end{equation}
+where $I$ is the projected surface density (mass per pixel) and the sum runs over all pixels within $R_{200}$, with $R_{200}$ taken from the $N$-body friends-of-friends catalog. The eigenvalues $\lambda_{\max} \geq \lambda_{\min}$ of $Q_{ij}$ define the projected axis ratio and ellipticity,
+\begin{equation}
+    q = \sqrt{\frac{\lambda_{\min}}{\lambda_{\max}}}, \qquad
+    \varepsilon = \frac{1-q}{1+q},
+    \label{eq:shapes}
+\end{equation}
+where $q=1$ corresponds to a perfectly circular projected profile and $q \to 0$ to a maximally elongated one.
+
+Figure~\ref{fig:axes_ratios} shows the resulting $q$ distributions for each channel and test suite. The agreement between the true (solid) and generated (outlined) histograms is excellent across all three channels and all three evaluation sets, with the model correctly reproducing both the median and the width of each distribution. A clear ordering emerges among the channels: the dark-matter maps peak near $q \sim 0.8$, reflecting the mildly elliptical projected shapes of cluster-mass halos; the gas channel is more strongly concentrated toward circular configurations, consistent with the tendency of the intracluster medium to thermalize and fill the halo potential isotropically; and the stellar channel shows the broadest distribution with the largest ellipticities, driven by the compact, asymmetric morphologies of brightest cluster galaxies. Notably, the SB35 test set — which spans the full 35-dimensional parameter space — shows no appreciable shift in median or spread relative to the CV halos at the fiducial parameters, suggesting that halo shape is determined primarily by the dark-matter structure and is largely insensitive to the subgrid physics parameters over the ranges explored here.
+
+Figure~\ref{fig:axes_ratios_correlations} confirms this picture quantitatively. The Spearman correlations between $q$ and $\varepsilon$ and the astrophysical parameter vector $\boldsymbol{\theta}_{\rm TNG}$ are uniformly small across all channels, consistent with the visual impression from Figure~\ref{fig:axes_ratios}. Nevertheless, \textsc{bind} reproduces even these weak correlations faithfully, with close agreement between the true (filled) and generated (open) symbols across all parameters.
+
+We close this subsection with three caveats that should be borne in mind when interpreting these results. First, we measure shapes from projected mass maps, whereas observational shape measurements are made in flux. Because mass and flux are only approximately proportional, a rigorous comparison with observational intrinsic alignment measurements would require modeling the halo spectral energy distribution and computing shapes from mock photometric images. Second, our pixel scale of ${\sim}50\,h^{-1}\,{\rm kpc}$ is comparable to the effective radius of the brightest cluster galaxy at these halo masses, so the central stellar component is effectively unresolved and occupies roughly a single pixel. Third, the projections are performed along the full $50\,h^{-1}\,{\rm Mpc}$ line of sight, so foreground and background mass contributes to both the true and generated images, diluting the intrinsic halo ellipticity signal. Despite these limitations, the excellent agreement between generated and true shape distributions demonstrates that \textsc{bind} has learned the morphological mapping from dark-matter-only halos to their baryonic counterparts — a non-trivial result that opens the door to large-scale intrinsic alignment emulation.
+
+%-------------------------------------------------------------
+\section{Does BIND learn physics?}
+\label{sec:results}
+%-------------------------------------------------------------
+
+The tests in Section~\ref{sec:model} establish that \textsc{BIND} reproduces the correct \emph{marginal} properties of each baryonic component halo by halo. A complementary set of questions remains: does it reproduce the joint distribution of observables across halos, the halo-to-halo scatter at fixed parameters, the parameter-driven response of the field statistics, and the gradient structure that would be required to use \textsc{BIND} inside an inference pipeline? These tests probe whether the model has learned correlations that were never explicitly supervised, beyond reproducing marginals.
+
+%-------------------------------------------------------------
+\subsection{Relationships between measured quantities}
+\label{subsec:relations}
+%-------------------------------------------------------------
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=\linewidth]{imgs/fig_scaling_relations.pdf}
+    \caption{Truth (grey) and \textsc{BIND} (red) on four canonical halo scaling relations, evaluated on the held-out SB35 Test set ($N_{\rm halos}=4{,}272$). Solid and dashed lines are pivoted OLS fits in $\log_{10}$; each panel reports the slope difference $\Delta\alpha$, the median offset $\Delta\beta$ at the pivot mass, the scatter difference $\Delta\sigma$, and the per-halo residual Spearman correlation $\rho_{\rm res}$ between truth and \textsc{BIND} residuals after subtracting the mean relation. Across all four relations, \textsc{BIND} recovers the truth slopes to $|\Delta\alpha|\lesssim 0.02$, the median offsets to $|\Delta\beta|\lesssim 0.05$~dex, the intrinsic scatter to $|\Delta\sigma|\lesssim 0.03$~dex, and the per-halo residual ordering at $\rho_{\rm res}\geq 0.93$.}
+    \label{fig:scaling_relations}
+\end{figure*}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{imgs/paper_obs_corner.pdf}
+    \caption{Joint distribution of five projected observables on the held-out SB35 Test set: $f_b/f_{b,{\rm cos}}$, $q_{\rm DM}$, $\Delta q_{\rm DM}$, $\log_{10}\Sigma_{{\rm gas},c}$, and $R_{\rm closure}/R_{200}$. Diagonals show 1D kernel density estimates; off-diagonals show the 1$\sigma$ and 2$\sigma$ contours. Filled grey: truth. Red lines: \textsc{BIND}. The joint distribution is recovered to good accuracy in both the marginals and the cross-correlations.}
+    \label{fig:obs_corner}
+\end{figure}
+
+Many of the most informative tests of a baryon model are not the marginal accuracy of individual observables but the relationships \emph{between} them: the stellar-to-halo mass relation, the gas fraction at fixed halo mass, and the $M_{\rm gas}$--$M_\star$ co-evolution. These relations encode the regulation of star formation and gas content by feedback, and a model that hits each marginal but distorts their pairwise correlations would be of limited use.
+
+Figure~\ref{fig:scaling_relations} shows four such relations measured on the held-out SB35 Test set, with truth in grey and \textsc{BIND} in red. We fit each relation with a pivoted OLS in $\log_{10}$, $\log_{10} Y = \alpha\,(\log_{10} X - \log_{10} X_{\rm piv}) + \beta$, where $X_{\rm piv}$ is the median of $\log_{10}X$ so that $\beta$ corresponds to the median fit value at the pivot mass and is not rotation-confounded with $\alpha$. The four relations are tightly recovered: $|\Delta\alpha|\lesssim 0.02$ across all four, $|\Delta\beta|\lesssim 0.05$~dex at the pivot, and $|\Delta\sigma|\lesssim 0.03$~dex. The slight under-scatter ($\Delta\sigma<0$) of \textsc{BIND} relative to truth in the SHMR is an expected behavior of generative models trained to fit the conditional mean from finite data, and is sub-dominant to the intrinsic scatter at this level. A modest residual bias in the SHMR normalization ($\Delta\beta=-0.03$~dex at the pivot mass) reflects a small mean offset in $\log M_\star$ already visible in the integrated-mass test of Section~\ref{subsec:integrated_mass}.
+
+The fourth column of each panel is the per-halo residual Spearman correlation $\rho_{\rm res}$, defined as the Spearman rank correlation between the truth residual $\log_{10} Y_{\rm truth} - \langle\log_{10} Y\rangle$ and the \textsc{BIND} residual at the same halo. This is a stricter test than agreement of slopes and scatter: it asks whether the \emph{same} halos sit above or below the mean relation in truth and in \textsc{BIND}. The model achieves $\rho_{\rm res}\in[0.93, 0.98]$ for all four relations, indicating that the dark-matter conditioning encodes enough information about each halo's assembly history that \textsc{BIND} can identify which halos are gas-rich, gas-poor, or stellar-overdense at fixed mass. We note that the strongest per-halo signal is for the $M_{\rm gas}$--$M_\star$ relation ($\rho_{\rm res}=0.98$), where two correlated baryonic quantities are conditioned on a common DM environment; the weakest is the SHMR ($\rho_{\rm res}=0.93$), where stellar mass at fixed halo mass is partly stochastic.
+
+Figure~\ref{fig:obs_corner} extends this comparison to the joint multivariate structure of five observables that span baryon content, halo morphology, baryonic back-reaction on the DM, central gas concentration, and gas closure radius. The grey filled contours (truth) and red outlines (\textsc{BIND}) overlap closely both in their marginals (diagonals) and in their pairwise 1- and 2-$\sigma$ contours (off-diagonals). In particular, the model reproduces the negative correlation between $f_b/f_{b,{\rm cos}}$ and $R_{\rm closure}/R_{200}$ (left column, bottom) and the broad zero-centered distribution of $\Delta q_{\rm DM}$ at any value of $q_{\rm DM}$. The fact that the joint structure is recovered across this five-dimensional observable space, and not just the marginals separately, is the strongest evidence that \textsc{BIND} has learned correlated baryonic physics rather than five independent univariate maps.
+
+%-------------------------------------------------------------
+\subsection{Capturing the scatter at the fiducial}
+\label{subsec:scatter}
+%-------------------------------------------------------------
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\linewidth]{imgs/scatter/fig1_calibration.pdf}
+    \caption{Halo-to-halo scatter of 12 projected observables in three halo-mass bins, on the 27-simulation CV suite. For each observable, the blue bar is the empirical scatter across the CV simulations of the true hydrodynamical observable ($\sigma_{\rm truth}$); the red bar is \textsc{BIND}'s inter-halo scatter ($\sigma_{\rm inter}$), obtained as the std across halos of the per-halo mean of $K=10$ independent \textsc{BIND} posterior samples; and the orange bar is the total \textsc{BIND} scatter $\sigma_{\rm total} = (\sigma_{\rm inter}^2 + \sigma_{\rm intra}^2)^{1/2}$ which adds the within-halo posterior spread $\sigma_{\rm intra}$ in quadrature. Mass observables are in $\log_{10}$ dex; shapes are dimensionless. The model reproduces the empirical CV scatter to $\lesssim 10\%$ for the mass observables and to within the bar widths for most shape observables; the exception is $\Delta q_{\rm DM}$, where the model intrinsic noise is comparable to the physical halo-to-halo scatter (Figure~\ref{fig:inter_intra}).}
+    \label{fig:scatter_calib}
+\end{figure*}
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\linewidth]{imgs/scatter/fig4_inter_vs_intra.pdf}
+    \caption{Inter-halo physical scatter ($\sigma_{\rm inter}$, blue) and within-halo model stochasticity ($\sigma_{\rm intra}$, red) at the fiducial IllustrisTNG parameters, for the 12 headline observables. For the mass observables and for the gas-profile radii, $\sigma_{\rm inter}\gg\sigma_{\rm intra}$ (the largest ratio is $\sim\!50\!\times$ for $M_{\rm dm}$), confirming that the posterior spread of \textsc{BIND} is dominated by real halo-to-halo diversity rather than model noise. For the axis ratios and especially for $\Delta q_{\rm DM}$, the two terms are comparable, indicating that shape-related observables are sample-noise-limited at the current model capacity.}
+    \label{fig:inter_intra}
+\end{figure*}
+
+Because \textsc{BIND} is generative, it predicts not a point estimate but a posterior over baryonic fields given a DMO conditioning. The most basic question about that posterior is whether its spread is calibrated. A correctly calibrated generative model should, at the fiducial parameters, reproduce the halo-to-halo scatter that we measure across the 27 cosmic-variance simulations of CAMELS--IllustrisTNG.
+
+For each halo $h$ in the CV catalog with $M_{200}\geq 10^{13}\,M_\odot\,h^{-1}$ we draw $K=10$ independent \textsc{BIND} samples. For each observable $Y$ we form three scatter estimators:
+\begin{align}
+\sigma_{\rm inter} &= \mathrm{std}_h\!\left(\langle Y_{h,k}\rangle_k\right), \\
+\sigma_{\rm intra} &= \langle \mathrm{std}_k(Y_{h,k})\rangle_h, \\
+\sigma_{\rm truth} &= \mathrm{std}_h\!\left(Y_h^{\rm hydro}\right).
+\end{align}
+$\sigma_{\rm inter}$ is the halo-to-halo std of the per-halo posterior mean, $\sigma_{\rm intra}$ is the typical within-halo posterior std, and $\sigma_{\rm truth}$ is measured directly from the 27 hydrodynamical CV simulations. We work in $\log_{10}$ for mass-like observables and in linear units for shapes.
+
+Figure~\ref{fig:scatter_calib} shows that \textsc{BIND}'s total scatter $\sigma_{\rm total}=(\sigma_{\rm inter}^2+\sigma_{\rm intra}^2)^{1/2}$ agrees with $\sigma_{\rm truth}$ to better than $\sim\!10\%$ across the three halo-mass bins for the mass observables ($M_{\rm dm}$, $M_{\rm gas}$, $M_\star$) and the five gas profile bins, and to within the bar widths for the axis ratios ($q_{\rm DM}$, $q_{\rm gas}$, $q_\star$). The exception is $\Delta q_{\rm DM}$: the true scatter is a few times larger than \textsc{BIND}'s $\sigma_{\rm inter}$, because $\Delta q_{\rm DM}$ has very little physical variance at fixed halo mass (the median is consistent with zero) and is dominated by stochastic features that the dark-matter conditioning does not encode. We return to this observable as a caveat in Section~\ref{sec:wild}.
+
+The relative weight of $\sigma_{\rm inter}$ and $\sigma_{\rm intra}$ is a useful diagnostic of where \textsc{BIND}'s posterior spread is well-determined and where it is sample-noise-limited. Figure~\ref{fig:inter_intra} reports both at the fiducial. For $M_{\rm dm}$ the ratio is $\sim\!50\!\times$, for $M_{\rm gas}$ and the gas profile bins it is $5\!\times\!-\!15\!\times$, and for the stellar mass and the axis ratios it is $\sim\!1.5\!\times\!-\!5\!\times$. Only for $\Delta q_{\rm DM}$ does the ratio fall below unity ($0.78$), again indicating that the model is exploring a posterior whose intrinsic noise is comparable to the physical signal. For the observables where $\sigma_{\rm inter}\gg\sigma_{\rm intra}$, the spread of repeated \textsc{BIND} samples is reading a real physical degree of freedom (e.g., the diversity of feedback histories at fixed DMO morphology), not artifacts of the flow-matching ODE.
+
+%-------------------------------------------------------------
+\subsection{Validating extrapolations to SB35 and 1P sets}
+\label{subsec:extrapolations}
+%-------------------------------------------------------------
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\linewidth]{imgs/paper_obs_1p_response.pdf}
+    \caption{1P parameter response curves: median observable as a function of swept parameter for the four primary feedback amplitudes ($A_{\rm SN1}$, $A_{\rm AGN1}$, $A_{\rm SN2}$, $A_{\rm AGN2}$). Rows are observables ($f_b/f_{b,{\rm cos}}$, $\Delta q_{\rm DM}$, $\log_{10}\Sigma_{{\rm gas},c}$); columns are parameters. Solid blue: truth median with $\pm$IQR. Dashed red: \textsc{BIND} median with $\pm$IQR. Halos restricted to $\log M_{200} \in [13.0, 13.5]$ to remove mass-driven variation. The response curves agree on both the sign and the amplitude of every parameter trend.}
+    \label{fig:1p_response}
+\end{figure*}
+
+A model trained with a Latin-hypercube design over 35 parameters can fail in two qualitatively different ways at off-fiducial parameter values: it can interpolate the parameter response correctly along the diagonal directions sampled by the Latin hypercube but fail along the axis-aligned 1P directions; or it can match the SB35 Test marginals but fail on the controlled, single-parameter sweeps where the response is unambiguous. Figure~\ref{fig:1p_response} addresses the latter directly.
+
+For each of the four primary IllustrisTNG feedback amplitudes ($A_{\rm SN1}$, $A_{\rm AGN1}$, $A_{\rm SN2}$, $A_{\rm AGN2}$) we restrict to halos with $\log M_{200} \in [13.0, 13.5]$ to suppress the mass dependence and plot the median and inter-quartile range of three observables that respond strongly to feedback: $f_b/f_{b,{\rm cos}}$, $\Delta q_{\rm DM}$, and $\log_{10}\Sigma_{{\rm gas},c}$. The truth and \textsc{BIND} curves agree in sign for every trend and in amplitude to within the IQR. The expected trends are recovered: increasing $A_{\rm SN1}$ raises $f_b/f_{b,{\rm cos}}$ at this mass scale (stronger early winds preheat gas that subsequently re-cools rather than escaping the halo) and modestly raises $\Sigma_{{\rm gas},c}$; increasing $A_{\rm AGN1}$ depresses $\Sigma_{{\rm gas},c}$ as expected for thermal-mode quasar feedback; $A_{\rm SN2}$ leaves $\Sigma_{{\rm gas},c}$ nearly flat at this mass; and $A_{\rm AGN2}$ depresses both $f_b$ and $\Sigma_{{\rm gas},c}$, consistent with the kinetic black-hole mode evacuating gas from the central regions.
+
+The SB35 Test halos sampled by Figure~\ref{fig:obs_corner} span the full 35-dimensional parameter space, and the close agreement between truth and \textsc{BIND} contours on that set provides the in-distribution counterpart to the 1P validation here. Together they establish that the model interpolates the IllustrisTNG response surface in both directions: along the Latin-hypercube diagonals (SB35) and along the controlled axis-aligned 1P sweeps. We return to the few parameters where \textsc{BIND} fails this test in Section~\ref{sec:wild}.
+
+%-------------------------------------------------------------
+\subsection{The Jacobian of measured quantities with respect to parameters}
+\label{subsec:jacobian}
+%-------------------------------------------------------------
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\linewidth]{imgs/proj6_fig2_svd_modes.pdf}
+    \caption{Singular-value decomposition of the response operator $G_{aj} = \partial \log_{10} F_a / \partial \tilde\theta_j$ measured by central finite differences on \textsc{BIND}-generated halos at the fiducial parameter point, where $\tilde\theta_j$ is the normalized parameter $j$ and $F_a$ is observable $a$. \emph{Top row}: singular spectrum and the leading two mode loadings on the observable side, plus the top-15 active parameters by total response weight. \emph{Bottom row}: parameter loadings of modes 1--5, colored by parameter group (cosmology blue, SN orange, AGN red, other grey). Mode 1 captures $72\%$ of the response variance and is essentially $\Omega_m$, $\Omega_b$, and the IMF slope; mode 2 (22\%) is the SN and AGN amplitude direction $(A_{\rm SN1}, A_{\rm SN2}, h)$. The first three modes account for $99\%$ of the cumulative variance and recognize the canonical cosmology + SN + AGN axes.}
+    \label{fig:svd_modes}
+\end{figure*}
+
+The natural quantitative summary of how an observable responds to a parameter is the Jacobian $G_{aj} = \partial F_a / \partial \theta_j$. We compute $G$ by central finite differences on \textsc{BIND} at the SB35 fiducial point, sampling $K\geq 5$ noise realizations per halo with fixed seeds across $\pm$ perturbations to minimize variance. We work in normalized parameter space and report log-elasticities $\partial\log_{10} F_a / \partial\tilde\theta_j$ for positive-definite observables (masses, profile densities) and raw derivatives for signed observables (axis ratios, $\Delta q_{\rm DM}$).
+
+Two consistency checks support the use of $G$ as a meaningful derivative rather than a finite-difference artifact. First, the chain rule across components closes: at the per-parameter level the model's derivative of the integrated baryonic mass matches the sum of the derivatives of $M_{\rm gas}$ and $M_\star$ to $R^2=1.00$ for the six primary parameters. Second, the signs of the derivatives match first-principles expectations: $\Omega_m$ raises $M_{\rm DM}$ and $M_{\rm gas}$ at fixed normalized parameters; $A_{\rm SN1}$ suppresses $M_\star$ via wind-driven mass loss; $A_{\rm AGN1}$ suppresses $\Sigma_{{\rm gas},c}$ via central thermal feedback.
+
+Figure~\ref{fig:svd_modes} reports the SVD of $G$. The leading mode captures $72\%$ of the total response variance and loads strongest on $\Omega_m$, $\Omega_b$, and $\alpha_{\rm IMF}$ on the parameter side, and on the mass observables on the observable side --- this is the cosmology + stellar-budget direction. The second mode ($22\%$) loads strongest on $\Omega_b$, $A_{\rm SN2}$, $h$, $\Omega_m$, and $M_{\rm SNII}$, with negative loadings on the gas/baryon fraction observables --- this is the feedback regulation of the baryon budget at fixed cosmology. The third mode ($5\%$) picks up $\alpha_{\rm IMF}$, $\sigma_8$, $n_s$, and a smaller cosmology contribution; modes 4 and 5 jointly contribute $\sim\!1\%$ and isolate the various AGN amplitudes and the UV background. The first three modes together account for $99\%$ of the response variance and recognize the canonical $(\mathrm{cosmology},\mathrm{SN\ feedback},\mathrm{AGN\ feedback})$ axes that physical reasoning identifies as the dominant baryonic regulators.
+
+That the SVD recovers these axes from \textsc{BIND}-generated data alone, without any physical input beyond the network's training signal, is a non-trivial test that the model has internalized the structure of the IllustrisTNG response surface rather than merely interpolating individual one-parameter sweeps.
+
+%-------------------------------------------------------------
+\subsection{Projection effects}
+\label{subsec:projection}
+%-------------------------------------------------------------
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\linewidth]{imgs/fig_projection_2d_vs_cube.pdf}
+    \caption{Marginal distributions of four projected observables on the CV suite for two \textsc{BIND} models trained at different line-of-sight depths: ``2D'' projections through the full $L=50\,h^{-1}{\rm Mpc}$ box (red/grey) and ``cube'' projections through only the $6.25\,h^{-1}{\rm Mpc}$ patch depth (orange/blue). Solid: truth. Dashed: \textsc{BIND}. The same 1{,}073 halos are evaluated under both projections. The 2D and cube truths differ substantially for $f_b/f_{b,{\rm cos}}$, $q_{\rm DM}$, and $\Sigma_{{\rm gas},c}$ --- the line-of-sight integration adds uncorrelated IGM/halo material that inflates the apparent baryon fraction, isotropizes the projected shape, and dilutes the central density contrast. $\Delta q_{\rm DM}$, defined as a difference between hydro and DMO projected shapes, is largely projection-independent. In all four cases each \textsc{BIND} model tracks its own projected truth to better than $\sim\!0.06$~dex in the median.}
+    \label{fig:projection}
+\end{figure*}
+
+All comparisons in Sections~\ref{sec:model} and \ref{sec:results} are made on $6.25\,h^{-1}{\rm Mpc}$ patches projected through the full $L=50\,h^{-1}{\rm Mpc}$ simulation box. This is the relevant geometry for an emulator that will be applied to N-body boxes of the same size, but it embeds a known systematic: any projected observable contains contributions from line-of-sight material that is not part of the halo. The natural question is whether the conclusions of Sections~\ref{sec:model} and \ref{sec:results} depend on this projection.
+
+To answer it we have trained a second \textsc{BIND} model (the ``cube'' model) on patches projected through only the $6.25\,h^{-1}{\rm Mpc}$ patch depth, equal to the patch width. This is a much purer halo signal, free of foreground and background contamination. Figure~\ref{fig:projection} compares the two models on the matched CV halos, showing for each observable the truth distribution at both projection depths together with each model's reconstruction of its own truth.
+
+Three of the four observables exhibit large projection effects. $f_b/f_{b,{\rm cos}}$ shifts from a peak near unity in the cube projection to a broader distribution centered near $0.77$ in the 2D projection, because the line-of-sight integration mixes a baryon-poor IGM background with the baryon-saturated halo and pulls the ratio away from unity. $q_{\rm DM}$ shifts from peak at $0.33$ (truly triaxial halos) in the cube to peak at $0.70$ (rounder) in the 2D projection, because uncorrelated foreground/background mass isotropizes the projected ellipticity. The central gas surface density $\log_{10}\Sigma_{{\rm gas},c}$ is higher by $\sim\!0.27$~dex in the 2D projection due to the same line-of-sight contamination. In each case the projection effect is much larger than \textsc{BIND}'s residual model bias.
+
+The single observable that is projection-insensitive is $\Delta q_{\rm DM} = q_{\rm DM}^{\rm hydro} - q_{\rm DM}^{\rm DMO}$, the baryonic back-reaction on the DM shape. Because both terms are measured under the same projection, the line-of-sight contamination cancels in the difference and the distribution is essentially unchanged between projection depths. This is the diagnostic argument for using $\Delta q_{\rm DM}$ as a probe of baryonic physics in projected data, even though the absolute shapes themselves are projection-contaminated.
+
+Most importantly, the figure shows that each \textsc{BIND} model is faithful to its own projection depth. The median offsets $|\Delta\log_{10}F^{\rm BIND} - \Delta\log_{10}F^{\rm truth}|$ are $\leq 0.06$~dex for all four observables and both models. We therefore interpret the LOS-sensitive observables in the rest of this paper as ``what an observer with a $50\,h^{-1}{\rm Mpc}$ LOS depth would measure,'' and recommend the cube model for analyses where the 3D physical observable is the target. A full discussion of where this matters for the conclusions of Section~\ref{sec:wild} is deferred to Section~\ref{subsec:caveats}.
+
+\section{Using BIND in the wild}
+\label{sec:wild}
+
+The tests in Sections~\ref{sec:model} and \ref{sec:results} validate \textsc{BIND} on individual halo patches: integrated masses, profiles, shapes, scaling relations, scatter, and the parameter response of these per-halo summaries. None of those tests asks whether the model is useful for the task that motivates it, which is the baryonification of a cosmological N-body simulation. In this section we close that loop, sketch the downstream applications that follow, and document the limitations the model brings with it.
+
+%-------------------------------------------------------------
+\subsection{BINDing an N-body simulation}
+\label{subsec:binding}
+%-------------------------------------------------------------
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\linewidth]{imgs/fig5b_total_field_pk.pdf}
+    \caption{(\textit{Left}) Mean ratio of the projected matter power spectrum to the true hydrodynamical $P(k)$ on the 27 CV simulations, for the \textsc{BIND}-composited field (red), the hydro-replace ceiling (green, in which true hydrodynamical halo patches are pasted in at the same halo positions), and the unmodified N-body DMO field (grey dashed). The vertical dotted line and shaded gold band mark $k_{R_{200c}}(M_{\rm thr})\simeq 18\,h\,{\rm Mpc}^{-1}$, the characteristic wavenumber of the $M_{200c}=10^{13}\,M_\odot\,h^{-1}$ mass threshold. (\textit{Right}) Cross-correlation coefficient of the \emph{baryonic correction} field $\Delta_X = X - \Sigma_{\rm DMO}$ between \textsc{BIND} and truth (red) and between hydro-replace and truth (green), with $\pm 1\sigma$ bands. The right-panel statistic isolates the mode alignment of the painted baryonic mass, free of the large DMO-vs-truth background correlation that distorts the raw $r(k)$.}
+    \label{fig:full_box_pk}
+\end{figure*}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{imgs/fig7b_1p_response_pk_summary.pdf}
+    \caption{For each of the 35 SB35 parameters, the Pearson correlation between the \textsc{BIND}-generated power spectrum response $\mathcal{R}_{\rm BIND}\equiv P_{\rm BIND}/P_{\rm BIND}^{\rm fid}-1$ and the true response $\mathcal{R}_{\rm truth}$, evaluated on the 1P suite at $k\leq k_{R_{200c}}(M_{\rm thr})$. Red bars: \textsc{BIND}. Green bars: hydro-replace ceiling. Blue diamonds (right axis): truth-response RMS amplitude per parameter, so correlations for parameters with RMS$\lesssim 0.01$ on the right side of the panel are dominated by noise. For every parameter with an appreciable truth response, \textsc{BIND} achieves $\rho\geq 0.9$, indistinguishable from the hydro-replace ceiling.}
+    \label{fig:pk_1p_response}
+\end{figure}
+
+For every CAMELS simulation in our test suites we construct four projected total surface-density maps of the same $L=50\,h^{-1}{\rm Mpc}$ box, on a $1024\times 1024$ grid:
+\begin{enumerate}
+\item \emph{truth}: $\Sigma_{\rm DM}+\Sigma_{\rm gas}+\Sigma_\star$ summed from the true hydrodynamical run.
+\item \emph{bind}: the N-body DMO field with \textsc{BIND}-generated halo patches alpha-blended in at every halo above the mass threshold $M_{200c}\geq 10^{13}\,M_\odot\,h^{-1}$.
+\item \emph{hydro-replace}: identical to \emph{bind} but using the true hydrodynamical halo patches at the same positions. This is the methodological ceiling for any halo-paste scheme at this mass threshold --- the residual is set entirely by the sub-threshold halos that remain DMO.
+\item \emph{dmo}: the unmodified N-body field, the baseline.
+\end{enumerate}
+2D power spectra are computed with the Pylians \texttt{Pk\_plane} routine. The mass threshold imposes a hard scale: halos below the threshold have $R_{200c} < R_{200c}(M_{\rm thr})\simeq 0.35\,h^{-1}\,{\rm Mpc}$, so any baryonic redistribution they would have done shows up at $k\gtrsim k_{R_{200c}}(M_{\rm thr}) = 2\pi/R_{200c}(M_{\rm thr})\simeq 18\,h\,{\rm Mpc}^{-1}$. We mark this scale in every panel so the reader can separate \textsc{BIND}-attributable error from mass-floor deficit.
+
+Figure~\ref{fig:full_box_pk}a shows the mean of $P(k)/P_{\rm truth}(k)$ over the 27 CV simulations. \textsc{BIND} and hydro-replace are essentially coincident at all scales; the residual departure from unity is present in \emph{both}, with the same shape and amplitude, and grows toward the mass-threshold wavenumber. The interpretation is direct: any deviation of $P_{\rm BIND}/P_{\rm truth}$ from unity that is also present in $P_{\rm hydro\_replace}/P_{\rm truth}$ is not a \textsc{BIND} error --- it is the unavoidable consequence of leaving sub-threshold halos as DMO. The remaining gap between BIND and the hydro-replace ceiling is at the percent level for $k\lesssim 18\,h\,{\rm Mpc}^{-1}$, and is the genuine model error.
+
+The right panel of Figure~\ref{fig:full_box_pk} sharpens this by cross-correlating the baryonic-correction field $\Delta_X \equiv X - \Sigma_{\rm DMO}$ between \textsc{BIND} and truth, and between hydro-replace and truth. The raw cross-correlation $r(X,X_{\rm truth})$ is dominated by the agreement between DMO and truth outside halos and is therefore close to unity even for DMO itself, making it a poor metric of baryonic accuracy. The $\Delta$-cross-correlation isolates the painted baryonic mass and is the right test of whether \textsc{BIND}'s baryonic correction lives on the same Fourier modes as the truth's. The \textsc{BIND} and hydro-replace curves overlap at $r\gtrsim 0.5$--$0.9$ across the inertial range below the mass-floor wavenumber, again showing that the model achieves the methodological ceiling.
+
+Figure~\ref{fig:pk_1p_response} extends this test to the parameter-induced \emph{response} of $P(k)$. For each of the 35 SB35 parameters we compute the truth and \textsc{BIND} fractional responses $\mathcal{R}_X(k\,|\,p,\ell) = P_X(k\,|\,p,\ell)/P_X(k\,|\,p,0)-1$ on the 1P suite, pool over all non-fiducial sweep levels $\ell$ and over $k\leq k_{R_{200c}}(M_{\rm thr})$, and report the Pearson correlation between $\mathcal{R}_{\rm BIND}$ and $\mathcal{R}_{\rm truth}$. The diamonds give the truth-response RMS amplitude per parameter, so correlations for parameters with RMS$\lesssim 10^{-2}$ are sample-noise-dominated. For every parameter with an appreciable truth response --- the two cosmological amplitudes $\Omega_m$ and $\sigma_8$, the four feedback amplitudes $A_{\rm SN1/2}$ and $A_{\rm AGN1/2}$, $\Omega_b$, and a number of secondary subgrid parameters --- \textsc{BIND} achieves $\rho\geq 0.9$ with truth, and is indistinguishable from the hydro-replace ceiling. The model preserves the parameter-driven modulation of large-scale structure with sufficient fidelity to be used inside a forward-modeling pipeline for two-point statistics at $k\lesssim 18\,h\,{\rm Mpc}^{-1}$.
+
+%-------------------------------------------------------------
+\subsection{Implications for the future}
+\label{subsec:implications}
+%-------------------------------------------------------------
+
+The results in \S\ref{subsec:binding} make \textsc{BIND} a usable surrogate for a hydrodynamical simulation under a small number of caveats discussed in \S\ref{subsec:caveats} below. Three classes of downstream application follow directly.
+
+First, \textsc{BIND} is the natural ingredient of a forward-modeling pipeline for upcoming Stage IV cosmological surveys. A baryonified $L=50\,h^{-1}{\rm Mpc}$ box at the CAMELS resolution can be produced in the time required to run a few hundred \textsc{BIND} forward passes --- many orders of magnitude faster than a corresponding hydrodynamical simulation. Because the parameter conditioning exposes the full IllustrisTNG subgrid space, the baryonification can be re-evaluated at arbitrary points along the cosmological--astrophysical likelihood without re-running the underlying hydrodynamics. This opens the door to fully baryonified field-level inference at a cost dominated by the underlying gravity-only simulation rather than by the baryon model.
+
+Second, because \textsc{BIND} preserves the full pixel-level information --- not just the radially averaged profile or the integrated mass --- it can be applied to any downstream statistic that is computable from the projected mass field. Weak-lensing peak and minimum counts, Minkowski functionals, and field-level summaries have been shown to add information beyond the power spectrum \citep{Lee2023,Lee2026}, and no existing baryonic correction model has been systematically validated against them. The combination of \textsc{BIND} with a survey-realistic noise and shear pipeline is a straightforward construction.
+
+Third, on small scales below the $M_{200c}\geq 10^{13}\,M_\odot\,h^{-1}$ mass threshold of this work, the deficit visible in Figure~\ref{fig:full_box_pk}a can be closed in two complementary directions. Lowering the mass threshold in training would push baryonic redistribution into smaller halos and shift the deficit to larger $k$, at modest additional cost; combining \textsc{BIND} at the current threshold with an isotropic transfer-function approach such as \citet{Sharma2024} for sub-threshold scales offers a hybrid that retains \textsc{BIND}'s halo-centric, anisotropic structure where halos exist and falls back to a calibrated isotropic correction where they do not.
+
+%-------------------------------------------------------------
+\subsection{Caveats with the BIND approach}
+\label{subsec:caveats}
+%-------------------------------------------------------------
+
+We close with the limitations of the present implementation. None of them is fatal to the use cases of \S\ref{subsec:implications}, but they should bound any application.
+
+\emph{Mass floor.} \textsc{BIND} only paints halos above $M_{200c}=10^{13}\,M_\odot\,h^{-1}$. Sub-threshold halos remain DMO and contribute the deficit visible at $k\gtrsim 18\,h\,{\rm Mpc}^{-1}$ in Figure~\ref{fig:full_box_pk}a. For any analysis that depends on these scales, the hybrid construction proposed in \S\ref{subsec:implications} is required.
+
+\emph{IllustrisTNG-specific subgrid physics.} The model is trained exclusively on IllustrisTNG and is conditioned on the IllustrisTNG parameter vector. It should not be extrapolated outside the SB35 prior bounds or to other galaxy-formation models without retraining. Cross-code validation against SIMBA, EAGLE, BAHAMAS, or FLAMINGO is an obvious next step, and would require either retraining or a new transfer-learning protocol.
+
+\emph{Line-of-sight projection.} As shown in \S\ref{subsec:projection}, several useful observables --- the projected baryon fraction $f_b$, the central gas surface density $\Sigma_{{\rm gas},c}$, and the projected axis ratios of individual components --- are sensitive to the $50\,h^{-1}{\rm Mpc}$ LOS depth of the training maps. The trained model is faithful to that projection geometry but not to a 3D measurement; observables that are computed under a different projection geometry should use the cube model (\S\ref{subsec:projection}) or a forthcoming 3D \textsc{BIND}.
+
+\emph{Per-realization Fourier phases inside halos.} Because \textsc{BIND} samples from a posterior rather than producing a deterministic field, the Fourier phases inside any one halo are sample-specific even when the statistics of the painted mass are correct. This produces a small reduction of the raw $r(X,X_{\rm truth})$ relative to the DMO baseline at scales dominated by halo interiors, even though $P_{\rm BIND}(k)/P_{\rm truth}(k)\to 1$ and $r(\Delta_{\rm BIND},\Delta_{\rm truth})\to r(\Delta_{\rm hydro\_replace},\Delta_{\rm truth})$. For any application that requires phase-matched halos (such as halo-by-halo cross-correlation with an external catalog), the appropriate strategy is to take the per-halo posterior mean across $K\gtrsim 10$ samples rather than a single draw.
+
+\emph{Cosmological response on baryonic observables.} The 1P parameter-response tests show that \textsc{BIND} faithfully reproduces feedback-driven trends but exhibits residual biases in the response of a subset of baryonic observables to the cosmological parameter $\Omega_m$. We interpret this as a residual mis-calibration of the cosmology-dependence of the DMO conditioning rather than of the baryonic mapping itself, and a more thorough investigation of this regime is left for future work. None of the conclusions of \S\ref{subsec:binding} depend on this regime; the full-box $P(k)$ response to $\Omega_m$ is reproduced correctly.
+
+\emph{Shape-related observables are sample-noise-limited.} The $\Delta q_{\rm DM}$ observable carries little physical scatter at the cluster scale and \textsc{BIND}'s posterior is dominated by intrinsic model noise (\S\ref{subsec:scatter}). For analyses that require accurate per-halo shape misalignment or baryonic spherization, either the noise floor should be reduced by averaging over multiple \textsc{BIND} draws or a model trained at finer pixel resolution should be used.
+
+
+%-------------------------------------------------------------
+\section{Discussion and Conclusion}
+\label{sec:discussion}
+%-------------------------------------------------------------
+
+We have introduced \textsc{BIND}, a conditional flow-matching generative model that maps the dark-matter-only halo environment to its hydrodynamical counterpart at the field level, conditioned on the full 35-dimensional IllustrisTNG parameter space. The model produces multi-channel projected fields for the dark matter, gas, and stars on $128\times128$ pixel patches at $48.8\,h^{-1}\,{\rm kpc}\,{\rm pixel}^{-1}$, and was trained on $\sim\!360{,}000$ halo maps from the SB35 simulation suite of CAMELS--IllustrisTNG.
+
+The four questions posed in the introduction can now be answered.
+
+\emph{(i) Can a conditional flow-matching model learn the DMO-to-hydro mapping on the IllustrisTNG parameter space?} Yes. \textsc{BIND} reproduces the projected dark-matter, gas, and stellar mass distributions on individual halo patches with median integrated-mass errors below $1\%$ for the dark matter and total mass, $\sim\!1\%$ for the gas, and $\sim\!5\%$ for the stars; radial profile errors $\lesssim 10\%$ at all radii; and shape distributions that match the truth within the bar widths of the histograms (Section~\ref{sec:model}).
+
+\emph{(ii) How accurately do the generated halos capture the baryonic mass distributions?} Section~\ref{subsec:relations} shows that the four canonical scaling relations (SHMR, gas fraction, baryon fraction, $M_{\rm gas}$--$M_\star$) are recovered with slope errors $|\Delta\alpha|\lesssim 0.02$, intercept biases $|\Delta\beta|\lesssim 0.05$~dex, scatter biases $|\Delta\sigma|\lesssim 0.03$~dex, and per-halo residual rank correlations $\rho_{\rm res}\geq 0.93$. The joint five-dimensional distribution of feedback-sensitive observables is recovered both in its marginals and in its pairwise contours (Figure~\ref{fig:obs_corner}).
+
+\emph{(iii) Does BIND generalize across astrophysical parameter space?} The Latin-hypercube SB35 Test set (held out from training) is reproduced as accurately as the in-distribution training data, and the 1P controlled sweeps reproduce both the sign and the amplitude of the observable trends with the four primary feedback amplitudes (Figure~\ref{fig:1p_response}). The SVD of the response operator recovers the canonical cosmology, SN-feedback, and AGN-feedback axes from \textsc{BIND}-generated data alone (Figure~\ref{fig:svd_modes}), and the parameter response of the full-box $P(k)$ is reproduced with Pearson $\rho\geq 0.9$ for every parameter that produces an appreciable truth response (Figure~\ref{fig:pk_1p_response}).
+
+\emph{(iv) Does BIND learn the correlations between field-level observables and their parameter dependence?} Section~\ref{subsec:scatter} shows that the model's posterior spread reproduces the empirical halo-to-halo scatter measured across the 27 CV simulations to better than $\sim\!10\%$ for the mass observables, and Section~\ref{subsec:jacobian} shows that the resulting Jacobian closes the chain rule across the gas-plus-stars decomposition and recovers the physically expected response directions in its leading SVD modes.
+
+These tests place \textsc{BIND} in a position no existing baryonic correction tool occupies. Deterministic baryonification models reproduce the mean two-point statistics to percent accuracy but have zero scatter by construction, do not expose the joint distribution of higher-order observables, and are not validated against non-Gaussian summaries. Field-level transfer-function methods are isotropic in $k$-space and cannot capture anisotropic halo-centric redistribution. Existing map-level machine-learning approaches are typically trained at a single fiducial parameter point. \textsc{BIND} is simultaneously field-level, halo-centric, parameter-conditioned, and generative, and the validation in Sections~\ref{sec:model}--\ref{sec:wild} demonstrates that this combination is achievable at the accuracy required for current cosmological forward-modeling.
+
+The most immediate scientific use of the model is the rapid construction of baryonified cosmological volumes for Stage IV survey forecasting and inference. A baryonified $L=50\,h^{-1}{\rm Mpc}$ box at CAMELS resolution can be evaluated in the time required for a few hundred forward passes through the network, orders of magnitude faster than a full hydrodynamical simulation, and the parameter conditioning makes it usable inside an inference pipeline that samples the cosmological--astrophysical likelihood. Beyond the power spectrum, the field-level output enables applications to weak-lensing peak counts, Minkowski functionals, and field-level likelihood analyses where no existing analytic baryon model has been systematically validated.
+
+Several extensions to the present work are natural follow-ups. Lowering the halo mass threshold below $10^{13}\,M_\odot\,h^{-1}$, or combining \textsc{BIND} with a calibrated isotropic transfer-function correction such as \citet{Sharma2024} for sub-threshold scales, would close the small-scale deficit visible in Figure~\ref{fig:full_box_pk}a. Training on the 3D field rather than on the projected map, a direction we already explore with the cube model of Section~\ref{subsec:projection}, would remove the line-of-sight contamination that affects $f_b$, $\Sigma_{{\rm gas},c}$, and per-component shapes; a fully 3D version of \textsc{BIND} is in preparation. Cross-code training and validation against SIMBA, EAGLE, BAHAMAS, or FLAMINGO --- ideally using a transfer-learning protocol that exploits the \textsc{BIND}-IllustrisTNG model as initialization --- is the most direct route to making the model useful for cross-survey, cross-suite analyses where the choice of subgrid physics is itself a marginalized nuisance. Finally, the dependence of the cluster-scale baryonic scatter on the IllustrisTNG feedback parameters, which the calibration test of Section~\ref{subsec:scatter} makes accessible, is the subject of a companion paper.
+
+
+%% Please use the acknowledgment and contribution environments. This will 
+%% be anonomyized when the "anonymous" style option is used. 
+\begin{acknowledgments}
+
+\end{acknowledgments}
+
+\begin{contribution}
+%%This section gives authors the space to recognize author contributions. The text inside this environment is NOT counted towards the total word quanta. At a minimum, manuscripts are expected to include this text:
+
+
+%% But authors are expected to provide more specific details, e.g. 
+%%
+%%SC was responsible for writing and submitting the manuscript.
+%%WWM came up with the initial research concept and edited the manuscript.
+%%OTS obtained the funding and edited the manuscript.
+%%EBF provided the formal analysis and validation. He also edited the manuscript.
+%%GEH Supervised the undergraduates, wrote the software and administers the project github and Zenodo repositories.
+%%
+%% Authors can use the Contributor Role Taxonomy (CRediT) at
+%% https://credit.niso.org
+%% for ideas on how write a good statement tailored to their needs.
+
+\end{contribution}
+
+%% To help institutions obtain information on the effectiveness of their 
+%% telescopes the AAS Journals has created a group of keywords for telescope 
+%% facilities.
+%
+%% Following the acknowledgments section, use the following syntax and the
+%% \facility{} or \facilities{} macros to list the keywords of facilities used 
+%% in the research for the paper.  Each keyword is check against the master 
+%% list during copy editing.  Individual instruments can be provided in 
+%% parentheses, after the keyword, but they are not verified.
+\facilities{HST(STIS), Swift(XRT and UVOT), AAVSO, CTIO:1.3m, CTIO:1.5m, CXO}
+
+%% Similar to \facility{}, there is the optional \software command to allow 
+%% authors a place to specify which programs were used during the creation of 
+%% the manuscript. Authors should list each code and include either a
+%% citation or url to the code inside ()s when available.
+\software{astropy \citep{2013A&A...558A..33A,2018AJ....156..123A,2022ApJ...935..167A},  
+          Cloudy \citep{2013RMxAA..49..137F}, 
+          Source Extractor \citep{1996A&AS..117..393B}
+          }
+
+%% Appendix material should be preceded with a single \appendix command.
+%% There should be a \section command for each appendix. Mark appendix
+%% subsections with the same markup you use in the main body of the paper.
+%%
+%% Each Appendix (indicated with \section) will be lettered A, B, C, etc.
+%% The equation counter will reset when it encounters the \appendix
+%% command and will number appendix equations (A1), (A2), etc. The
+%% Figure and Table counter will not reset.
+
+\appendix
+
+\section{Architecture}\label{appendix:architecture}
+\subsubsection{Conditioning Embeddings}
+
+The flow time $t$ is encoded with sinusoidal positional embeddings
+\citep{dhariwal2021diffusion} of dimension 128, then projected to a
+512-dimensional embedding $\bm{e}_t$ via a two-layer MLP with SiLU
+activations. The parameter vector $\boldsymbol{\theta}_{\rm TNG}$ is
+independently processed by a second two-layer MLP ($35 \to 512 \to
+512$, SiLU activations) to yield $\bm{e}_\theta$. The two embeddings
+are summed to form a single conditioning vector
+\begin{equation}
+    \bm{e} = \bm{e}_t + \bm{e}_\theta,
+    \label{eq:embedding}
+\end{equation}
+which is broadcast into every residual block of the U-Net.
+
+\subsubsection{Encoder--Decoder with Adaptive Group Normalization}
+
+The encoder consists of four resolution stages with channel
+multipliers $(1,2,4,8)$ relative to a base width of 128, giving
+feature-map widths of 128, 256, 512, and 1024. Each stage contains
+two residual blocks, and multi-head self-attention layers (4 heads) are
+inserted at resolutions $32^2$ and $16^2$. Spatial downsampling uses
+strided convolutions; upsampling uses nearest-neighbor interpolation
+followed by convolution. Encoder activations are passed to the decoder
+via skip connections by channel-wise concatenation.
+
+Each residual block conditions on $\bm{e}$ through Adaptive Group
+Normalization \citep{dhariwal2021diffusion},
+\begin{equation}
+    {\rm AdaGN}(\bm{h},\bm{e})
+    =
+    \bigl(1 + \boldsymbol{\gamma}(\bm{e})\bigr)
+    \odot {\rm GN}(\bm{h})
+    + \boldsymbol{\beta}(\bm{e}),
+    \label{eq:adagn}
+\end{equation}
+where ${\rm GN}$ denotes Group Normalization with 32 groups
+\citep{wu2018groupnorm}, and $\boldsymbol{\gamma}$,
+$\boldsymbol{\beta}$ are learned linear projections of $\bm{e}$.
+This allows the network to modulate its internal representations as a
+joint function of flow time and cosmological parameters. The output
+projection layer is zero-initialized to stabilize early training.
+
+The full architecture is summarized in Table~\ref{tab:architecture}.
+
+\begin{table}
+\centering
+\caption{U-Net architecture hyperparameters.}
+\label{tab:architecture}
+\begin{tabular}{lc}
+\hline
+Parameter & Value \\
+\hline
+Base channels              & 128 \\
+Channel multipliers        & $(1, 2, 4, 8)$ \\
+Residual blocks per stage  & 2 \\
+Attention heads            & 4 \\
+Attention resolutions      & $32^2,\;16^2$ \\
+Embedding dimension        & 512 \\
+Dropout                    & 0.1 \\
+Output initialization      & Zero \\
+\hline
+\end{tabular}
+\end{table}
+
+
+
+
+%% For this sample we use BibTeX plus aasjournalv7.bst to generate the
+%% the bibliography. The sample7.bib file was populated from ADS. To
+%% get the citations to show in the compiled file do the following:
+%%
+%% pdflatex sample7.tex
+%% bibtext sample7
+%% pdflatex sample7.tex
+%% pdflatex sample7.tex
+
+\bibliography{biblio}{}
+\bibliographystyle{aasjournalv7}
+
+%% This command is needed to show the entire author+affiliation list when
+%% the collaboration and author truncation commands are used.  It has to
+%% go at the end of the manuscript.
+%\allauthors
+
+%% Include this line if you are using the \added, \replaced, \deleted
+%% commands to see a summary list of all changes at the end of the article.
+%\listofchanges
+
+\end{document}
+
+% End of file `sample7.tex'.

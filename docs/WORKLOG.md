@@ -28,4 +28,8 @@ Notebooks are committed with outputs (per preference). No git remote — local-o
 
 **Agent instructions.** Added `CLAUDE.md` (architecture + commands + conventions
 + data caveats), this `docs/WORKLOG.md`, and `.github/copilot-instructions.md`
-mirroring the project context for GitHub Copilot.
+mirroring the project context for GitHub Copilot. Then merged `main` into each
+topic branch so they all carry the shared docs, and appended a tailored
+`## This branch: …` section to `CLAUDE.md` + the Copilot file on each
+(`feature/3d-cube`, `analysis/2d`, `wip`) describing that branch's projects.
+`main`'s copy stays generic.

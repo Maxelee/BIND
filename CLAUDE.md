@@ -77,3 +77,14 @@ Two complementary records, both worth consulting at the start of a task and upda
 
 - **`docs/WORKLOG.md`** (in-repo, shared with the human and Copilot) — a reverse-chronological log of notable sessions: what changed, why, and decisions. **At the end of a session that made a meaningful change** (a reorg, a new analysis branch, a non-trivial fix, an abandoned approach worth recording), prepend a short dated entry. Keep it terse; link files/commits rather than restating diffs. Don't log trivial edits.
 - **Claude Code file-based memory** at `/mnt/home/mlee1/.claude/projects/-mnt-home-mlee1-vdm-bind2/memory/` (indexed by `MEMORY.md`) — durable, non-obvious facts not derivable from code/git (project overview, the data caveats above, the branch convention, analysis findings). Add to it when you learn something that should persist across sessions but doesn't belong in the repo.
+
+---
+
+## This branch: `wip`
+
+A **staging area** for scratch experiments, ablations, and planning notes — not polished. When something here matures, promote it to a dedicated topic branch (or fold it into `analysis/2d`) rather than leaving it on `wip`.
+
+- **Parameter-injection / sensitivity experiments** — `cv_dmo_sb35_params_injection.py` runs BIND on each CV halo with *every SB35 parameter vector* (instead of the CV fiducial) and measures the gas P(k) response; `cv_sim0_sb35_injection_fast.py` is the batched-tiling fast variant; `inject_conditional_params_test.py` writes the looked-up 35 SB35 params into the `conditional_params` key of test `.npz` files (atomic `os.replace`). Launchers: `run_cv_*injection*.sh`.
+- **Ablations** — `analysis_2d_no_cosmo.ipynb` + `run_*_no_cosmo*.sh` / `run_validate_cosmo.sh` exercise the `--exclude_cosmo_params` path; `run_test_suite_parallel_no_pmm.sh` (no patch-mass-match) and `run_repaste_r200.sh` (circular R200 paste) are eval variants.
+- **Exploratory notebooks** — `c2st_discriminator`, `flow_matching_visualization`, `full_map_power_spectrum`, `misalignment`, `analysis_physics`, `training_data`.
+- **Planning notes & draft** — `PLAN_NOTES.md` (scatter-paper execution log), `REPO_MAP.md` (artifact inventory), `PLAN_power_spectrum_section.md`, `BIND convincingness.md`, and `draft.tex` — the planning docs behind the now-matured `analysis/2d` work. `*_blank.{params,txt}` are MUSIC/AREPO sim-config templates.

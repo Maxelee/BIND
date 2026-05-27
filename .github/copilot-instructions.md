@@ -47,3 +47,10 @@ Output: hydro fields `[DM_hydro, Gas, Stars]` as 128×128 maps.
   CV param files list 2000 — override before normalizing CV data.
 - **1P truth maps** vary with astro params (only the DMO input is shared); an
   "all identical" check on 1P truth is a false alarm, not a bug.
+
+## This branch: wip
+Staging area for scratch experiments and notes; promote matured work to a proper
+topic branch. Contents: parameter-injection sensitivity experiments
+(`cv_*injection*.py` — CV halos × SB35 param vectors, gas P(k) response),
+`--exclude_cosmo_params` ablations (`*_no_cosmo*`), exploratory notebooks, and
+planning docs (`PLAN_*.md`, `REPO_MAP.md`, `draft.tex`).

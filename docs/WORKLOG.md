@@ -6,6 +6,122 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-05-28 — `feature/thermo`: Sobol calibration reframed as an observable-conditioned suppression prior
+
+Added **Section 7** to `tsz_ss_calibration_sobol.ipynb`, pivoting the analysis
+from the weak *per-halo* money-plot slope (median Spearman ρ≈0.24 — not what a
+survey measures) to the **population statistic** WL actually constrains. Per
+design, collapse the 1111 halos to median `f_gas`(<R200) and the Y–M amplitude
+(`log c0`), then regress design-mean suppression on them: ρ≈0.52 (k≈10.4 Fourier)
+to ρ≈0.85 (profile ratio) — **3–4× more predictive** than the per-halo law. BIND's
+design-mean suppression **brackets van Daalen+20** TNG/EAGLE/BAHAMAS at k=10.
+Deliverable `suppression_prior(obs)` → `P_hydro/P_DMO ± σ_pred≈0.10`
+(`S ≈ 2.5·f_gas + 0.55`). New figs `ss_population_prior`, `ss_literature_bracket`.
+Motivation: turn tSZ/X-ray observables into a prior on the dominant baryonic
+systematic for Stage-IV WL. Caveats: IllustrisTNG-conditional; per-patch supp ≠
+full-box P(k). Executed clean with the `torch3` kernel (nbconvert default
+`python3` kernel lacks pandas — force `--kernel_name=torch3`).
+
+## 2026-05-28 — `feature/thermo`: expanded Sobol calibration visual diagnostics
+
+Extended `tsz_ss_calibration_sobol.ipynb` with alternative views of the same
+Sobol design fit outputs to make interpretation faster and more robust:
+
+- Added a **calibration phase diagram** (`alpha` vs `beta`, colored by
+  `sigma_int`, marker size by `|Spearman|`) with extreme-design annotations.
+- Added **tornado-style SRC plots** (top signed drivers + 16-84% CI whiskers)
+  for each target (`alpha`, `beta`, `sigma_int`, `median_S`).
+- Added a **PCA landscape map** of the 30-D feedback cube (PC1/PC2) colored by
+  each calibration target to diagnose response smoothness/structure.
+- Added a concise “what is the point” interpretation section plus a compact
+  summary table (`median`, p16-p84, linear `R2`, significant-driver fraction).
+
+All newly added code cells executed successfully and wrote:
+`tsz_ss_sobol_figs/ss_phase_diagram.png`,
+`tsz_ss_sobol_figs/ss_tornado_drivers.png`,
+`tsz_ss_sobol_figs/ss_pca_landscape.png`.
+
+## 2026-05-28 — `feature/thermo`: Sobol map of the SS-residual→suppression law
+
+New experiment built on the `tsz_wl_calibration.ipynb` "money plot" (CV halos:
+deviation from self-similar `Y200 = c0·M200^(5/3)`, `Δ_SS = log10(Y/Y_ss)`,
+predicts matter-power suppression `P_hydro/P_DMO(k≈10.4)`; BIND α≈+0.17,
+σ_int≈0.086). Exploits BIND's generate-anywhere capability: regenerate the **same
+~1111 CV halos across a 256-pt Sobol grid in the 30 astro params** (cosmology
+fixed at CV fiducial), refit the relation per grid point, and map which feedback
+knobs tune the slope α / zero-point β / scatter σ_int.
+
+- `sobol_ss_generation.py` — deterministic Sobol design (inverted through the
+  model's normalized box via `norm_stats`, log-flag aware; cosmo idx {0,1,6,7,8}
+  held at fiducial) + chunked GPU campaign reusing `test_suite` generation
+  (`load_model_bundle`, `generate_halo_patches`). **Common random numbers**
+  (`torch.manual_seed` before each design) isolate the param response. Reduces
+  each generation to per-halo obs `[Y200,T,S,P,f_gas,m_gen,supp_k10,supp_prof]`
+  (R200 aperture + Pylians `Pk_plane` at k≈10.4, matching the notebook). Saves
+  sharded maps+obs to **ceph** (`/mnt/home/mlee1/ceph/sobol_ss_cv/`), resumable;
+  `--reduce` → `cube.npz`. Flags: `--n_chunks/--chunk_id --fp16 --no_maps`.
+- `run_sobol_ss.sh` — H100 array wrapper (`N_CHUNKS=16 sbatch --array=0-15`),
+  user-submitted; design recomputed per task from `--seed` so no manifest/lock.
+- `tsz_ss_calibration_sobol.ipynb` — reads `cube.npz`: per-design MLE fit
+  (α,β,σ_int), "moving money-plot" panels at α/β extremes, and SRC + distance-
+  correlation sensitivity (30 knobs × fit params) with bootstrap CIs.
+
+Validation: applying the reduction+fit to the **existing** `fm_thermo_ema` CV run
+**exactly reproduces the figure** (α=+0.174, σ_int=0.086). Smoke-tested 2 designs
+end-to-end (k bin 10.432, sim_17 skipped for missing radii). Full 256-pt run is
+the user's H100 array; a 32-pt obs-only preview (`…/sobol_ss_cv_dev/`, seed 12345)
+exercises the notebook (SRC R² only meaningful at the full design size).
+
+## 2026-05-28 — `feature/thermo`: three tSZ/ICM science notebooks
+
+Built three single-notebook science projects exploiting the self-consistent
+mass+thermo emulator (all read `fm_thermo_ema` suite outputs; same per-halo
+machinery as `paper_figures_thermo.ipynb`):
+
+- `tsz_wl_calibration.ipynb` — **tSZ as a calibrator of baryonic feedback for
+  weak lensing.** Per-halo matter-power suppression `P_hydro/P_DMO` and profile
+  ratio `rho_hydro/rho_DMO` (total matter = DM+Gas+Stars; DMO from `dmo_fullbox`;
+  total mass conserved to ~0.1-1%, so the ratio isolates redistribution) vs the
+  R200-aperture observables (Y/T/P/f_gas), + full-box composite cross-check.
+  Preliminary: **pressure is the best single predictor** of suppression
+  (partial rho≈+0.43 at fixed M); f_gas weak (≈0.08); individual-halo
+  predictability modest (Y+T+M R²≈0.16) — signal is population-level; BIND gives
+  slightly *tighter* relations than truth (smoothing).
+- `tsz_ym_mass_bias.ipynb` — **Y-M relation & cluster mass bias.** Y-M slope
+  ~1.77-1.94 (CV/SB35), above self-similar 5/3. A CV-calibrated Y-M applied
+  across SB35 implies a **~22.6% (1σ) mass bias** (range -36..+71%), driven by
+  A_AGN1; **BIND predicts the per-sim bias with rho=0.94** (forward-model use).
+- `icm_entropy_pressure_feedback.ipynb` — **ICM entropy/pressure thermometer.**
+  Central entropy K0 recovered well by BIND (bias +0.02, scatter 0.10 dex,
+  rho=0.90 — better than the pixel-level entropy-smoothing caveat implied);
+  Pnorm noisier (0.26 dex, rho=0.80). A_AGN1/A_AGN2 push K0 in *opposite*
+  directions (rho -0.50 / +0.54); BIND captures it.
+
+All three are build-only (helpers + data contract smoke-tested on subsets; not
+run end-to-end over the full suite, and findings above are preliminary). Aperture
+= circular R200 (catalog `radii` in kpc/h). Robustness fixes: skip catalogs with
+0 halos (SB35_665) or missing `radii` (CV/sim_17).
+
+## 2026-05-28 — `feature/thermo`: thermo paper-figures notebook
+
+Added `paper_figures_thermo.ipynb`, the thermo analogue of
+`paper_figures.ipynb`. Consumes the `fm_thermo_ema` test-suite outputs (the
+EMA epoch-64 eval ran across all suites: CV 25/27, 1P 141, SB35 102), reading
+per-halo truth thermo from `truth_thermo_patches.npz` and the 7-channel
+`generated_halos.npz` (`[DM,Gas,Stars,Y,T,S,P]`, physical units on disk).
+
+- Per-halo reduction uses a circular **R200 aperture** (`halo_catalog['radii']`
+  is in **kpc/h**; R200 ≈ 7–21 px in the 128-px / 6.25 Mpc/h patch). Integrated
+  Compton-Y sums `y·A_pix`; T/S/P are gas-mass-weighted means.
+- Figures: T1 field showcase, T2 per-pixel dex bias/scatter, T3 pixel PDF/KS,
+  T4 radial profiles by mass bin, **T5 scaling relations Y/T/S/P–M** + Y–T &
+  recovery, **T6 Spearman correlation matrices + ideal-gas P∝nT proxy**,
+  **T7 35-D parameter response (truth vs BIND)**, **T8 1P butterfly maps** +
+  response-amplitude bars, and a dex-metric scorecard from `summary.json`.
+- CV p14 override (CAMELS bug) applied to CV rows of the master halo table only.
+- Built but not executed this session; data-contract + helpers smoke-tested
+  against real CV/1P outputs.
+
 ## 2026-05-27 — `feature/thermo`: emulate the 4 gas thermo fields
 
 New branch `feature/thermo`. The training files (no-lowmass) now carry four

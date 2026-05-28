@@ -185,6 +185,39 @@ purpose at the τ observable; stop.
   is the scope-constraint check — flag any mass bin where BIND is
   extrapolating.
 
+### 4.H Information-content gate (pre-SBI go/no-go, 2026-05-27)
+
+Run *before* building any NPE/NLE pipeline: `analysis/ksz/sensitivity_1p.py`
+(Gate 1) and `analysis/ksz/information_content.py` (Gates 2+3). Result on the
+cube model (`fm_cube_two_head`, cluster-depth τ):
+
+- **Gate 1 — sensitivity (1P, isolated variation): strong GO.** Sweeping each
+  parameter across its full CAMELS range, τ responds strongly to *feedback*,
+  not just cosmology: A_SN1 |Δτ/τ|≈0.81, IMF_slope 0.62, A_SN2 0.47, A_AGN2
+  0.39, BH_radeff 0.33. 23/34 probed params responsive (18 feedback), and BIND
+  reproduces the **sign** of the truth response on every top responder
+  (magnitudes within ~30 %, except a few BIND under-responds to badly, e.g.
+  QuasarThresholdPower 0.41→0.09).
+- **Gates 2+3 — inverse recoverability (SB35, simultaneous variation):
+  degenerate.** Held-out R²(θ_j | x) from the stacked observable. **Zero
+  feedback params reach R² ≥ 0.1** in any variant; the best is IMF_slope at
+  0.098 — and its *truth ceiling* is also 0.097, so the limit is the
+  observable, not BIND. Nonlinearity (RandomForest) does **not** beat the linear
+  inverse (data-starved at ~100 sims); the rich observable (+ annular profiles
+  + per-halo scatter, dim 3→18) adds only ~1 recoverable param. Only the two
+  cosmological axes (Ω_m, Ω_b) clear the bar.
+- **Reconciliation + verdict.** τ is *sensitive* to feedback (Gate 1) but the
+  stacked observable is *degenerate* across feedback axes (Gates 2+3) — the
+  classic "sensitive but not individually invertible" regime. SBI is therefore
+  worth running, **but the deliverable is a constrained low-dim feedback
+  *direction* (§3.5.12 SVD / Fig 4), not per-parameter identification** —
+  exactly §2 outcome 1. Practical consequences: (i) the kSZ-only corner plot
+  (Fig 2) will show degeneracy bananas, not sharp marginals; (ii) breaking the
+  degeneracy needs the multi-probe channels (X-ray f_gas, tSZ Y; §3.4) — rerun
+  this gate on the *joint* observable to confirm before promising per-param
+  constraints; (iii) ~100 SB35 sims are too few for high-dim NPE — train the
+  inference on the LH (1000-sim) suite.
+
 
 ## 5. Results figures — what we'll find
 

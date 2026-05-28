@@ -5,6 +5,28 @@ worth remembering. Newest entries on top. Keep entries short — link commits an
 files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
+## 2026-05-27 — `ksz_project`: pre-SBI information-content gate (1/2/3)
+
+Before committing to NPE/NLE, ran the three information-content gates on the
+cube model (`fm_cube_two_head`, cluster-depth τ). New: `param_meta.py` (SB35
+names/bounds/aliases), `sensitivity_1p.py` (Gate 1), `information_content.py`
+(Gates 2+3). Verdict written to `docs/paper2_ksz_plan.md` §4.H.
+
+- **Gate 1 (1P, isolated variation): GO.** τ responds strongly to *feedback*:
+  A_SN1 |Δτ/τ|≈0.81, IMF 0.62, A_SN2 0.47, A_AGN2 0.39, BH_radeff 0.33; 18/34
+  responsive params are feedback; BIND reproduces the truth response *sign* on
+  every top responder. ⇒ validation_e's "only Ω_m/Ω_b informed" was a
+  linear-surrogate + SB35 simultaneous-variation artifact, not insensitivity.
+- **Gates 2+3 (SB35 inverse): degenerate.** Held-out R²(θ_j|x): **0 feedback
+  params reach 0.1** (best IMF 0.098, truth ceiling 0.097 → observable-limited,
+  not BIND). RF doesn't beat linear (~100 sims, data-starved); rich observable
+  (annular+scatter, dim 3→18) adds ~1 param. Only Ω_m, Ω_b clear the bar.
+- **Verdict:** τ is sensitive-but-degenerate → SBI worth it, but deliverable is
+  a low-dim feedback *direction* (SVD/Fig 4), not per-param IDs (= §2 outcome 1).
+  Break degeneracy with multi-probe (X-ray/tSZ); train inference on LH (1000)
+  not SB35 (~100).
+
+---
 ## 2026-05-27 — `ksz_project`: validation A–G correctness pass (3 fixes)
 
 Audited A–G for the kSZ τ observable and fixed three real problems (least →

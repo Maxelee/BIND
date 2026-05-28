@@ -5,6 +5,30 @@ worth remembering. Newest entries on top. Keep entries short — link commits an
 files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
+## 2026-05-27 — `ksz_project`: SBI generation + NPE scaffold (ready to submit)
+
+Built the fixed-halo Sobol → NPE pipeline the information-content gate pointed
+to. All wiring smoke-tested end-to-end on the cube model (gen→reduce→NPE, GPU).
+
+- `analysis/ksz/gen_sobol_taucube.py` — Sobol design over the 30 ASTRO params
+  (cosmo fixed at SB35 fiducial, log-aware bounds); loads the cached CV cube
+  cutouts once; paints all ~1154 halos at each design (K stochastic draws) with
+  `fm_cube_two_head`; reduces to the canonical CAP τ(M) observable. Sharded over
+  designs for a SLURM array; `--reduce` concatenates. Faithful projected
+  aperture τ (not the 3D M_gas proxy of the pilot).
+- `analysis/ksz/npe_tau.py` — sbi NPE for P(θ_astro | τ(M)); θ in normalized
+  [0,1] (BoxUniform prior), persists the x-standardization so `--x_obs` (real
+  ACT stack) transforms identically; held-out constraint / 68% coverage / SBC
+  ranks (honest, on a real nonlinear posterior).
+- `run_ksz_sobol.sh` — GPU array driver (`generate` default; `reduce`/`npe`
+  convenience modes). Defaults N_DESIGN=4096, 32 shards, K=8.
+
+To run the science cube (GPU array — user submits; I can't):
+`sbatch --array=0-31 run_ksz_sobol.sh`; then `bash run_ksz_sobol.sh reduce`
+and `bash run_ksz_sobol.sh npe`. Open choices flagged in §4.H: use the SAME
+checkpoint as `fm_testsuite_cube`; marginalize Ω_b; add X-ray/tSZ for AGN-kin.
+
+---
 ## 2026-05-27 — `ksz_project`: pre-SBI information-content gate (1/2/3)
 
 Before committing to NPE/NLE, ran the three information-content gates on the

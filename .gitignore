@@ -55,3 +55,6 @@ aa53256-24.txt
 # OS / editor
 # ---------------------------------------------------------------------------
 .DS_Store
+
+# sbi NPE training logs (generated)
+sbi-logs/

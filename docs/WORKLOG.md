@@ -21,10 +21,17 @@ names/bounds/aliases), `sensitivity_1p.py` (Gate 1), `information_content.py`
   params reach 0.1** (best IMF 0.098, truth ceiling 0.097 → observable-limited,
   not BIND). RF doesn't beat linear (~100 sims, data-starved); rich observable
   (annular+scatter, dim 3→18) adds ~1 param. Only Ω_m, Ω_b clear the bar.
-- **Verdict:** τ is sensitive-but-degenerate → SBI worth it, but deliverable is
-  a low-dim feedback *direction* (SVD/Fig 4), not per-param IDs (= §2 outcome 1).
-  Break degeneracy with multi-probe (X-ray/tSZ); train inference on LH (1000)
-  not SB35 (~100).
+- **Verdict (SB35):** looked sensitive-but-degenerate. BUT SB35 inverse is
+  confounded (varying halos + cosmo + ~100 sims).
+- **Decisive follow-up — fixed-halo Sobol** (`information_content_sobol.py`,
+  reuses the scatter project's 128-design joint cube: same 1154 CV halos, 30
+  astro params, cosmo fixed; M_gas = τ proxy). **4–7 astro params clear R²≥0.1
+  vs 0 on SB35**: A_SN2 0.33, IMF 0.28→0.33(+stars), A_SN1 0.20→0.23, BH_radeff
+  0.20. gas_rich (scatter) and gas+stars (multi-probe) both help; linear≈/>RF.
+  ⇒ **Revised verdict: SBI gives per-param constraints on SN/IMF/BH-radeff
+  feedback, not just a direction.** AGN-kinetic genuinely degenerate at group
+  scale. Build path: large fixed-CV-halo Sobol (thousands, cosmo fixed) for NPE
+  training (BIND's killer advantage); marginalize Ω_b; add X-ray/tSZ for AGN.
 
 ---
 ## 2026-05-27 — `ksz_project`: validation A–G correctness pass (3 fixes)

@@ -206,17 +206,38 @@ cube model (`fm_cube_two_head`, cluster-depth τ):
   inverse (data-starved at ~100 sims); the rich observable (+ annular profiles
   + per-halo scatter, dim 3→18) adds only ~1 recoverable param. Only the two
   cosmological axes (Ω_m, Ω_b) clear the bar.
-- **Reconciliation + verdict.** τ is *sensitive* to feedback (Gate 1) but the
-  stacked observable is *degenerate* across feedback axes (Gates 2+3) — the
-  classic "sensitive but not individually invertible" regime. SBI is therefore
-  worth running, **but the deliverable is a constrained low-dim feedback
-  *direction* (§3.5.12 SVD / Fig 4), not per-parameter identification** —
-  exactly §2 outcome 1. Practical consequences: (i) the kSZ-only corner plot
-  (Fig 2) will show degeneracy bananas, not sharp marginals; (ii) breaking the
-  degeneracy needs the multi-probe channels (X-ray f_gas, tSZ Y; §3.4) — rerun
-  this gate on the *joint* observable to confirm before promising per-param
-  constraints; (iii) ~100 SB35 sims are too few for high-dim NPE — train the
-  inference on the LH (1000-sim) suite.
+- **Reconciliation (SB35).** τ is *sensitive* to feedback (Gate 1) but the SB35
+  stacked observable looked *degenerate* (Gates 2+3). BUT the SB35 inverse is
+  triple-confounded: ~100 sims, *different halos per sim*, and *cosmology
+  varying* — so the R²≈0 nulls conflate intrinsic degeneracy with sample noise +
+  cosmic variance + cosmology contamination (only Ω_m/Ω_b survived, the two
+  things SB35 varies cleanly).
+
+- **Decisive test — fixed-halo Sobol (`information_content_sobol.py`).** BIND's
+  real advantage is painting the *same* CV halos at many astro-parameter points
+  with cosmology fixed. Reusing the scatter project's 128-design joint cube
+  (1154 CV halos, 30 astro params, cosmo fixed; M_gas = τ proxy): **4–7 astro
+  params clear held-out R² ≥ 0.1**, vs **0** on SB35. Recoverable, individually:
+  A_SN2 (R²≈0.33), IMF_slope (0.28→0.33 with stars), A_SN1 (0.20→0.23),
+  BH_radeff (0.20); marginal: VariableWindSpecMomentum, WindFreeTravelDens,
+  QuasarThreshold. Adding the per-halo scatter (gas_rich) and the stellar
+  channel (gas+stars) both lift recoverability — the rich/multi-probe observable
+  helps once the design is clean. Linear ≈/> RF (smooth map; 128 pts modest for
+  trees). Cross-validates the scatter project's SRC drivers.
+
+- **Revised verdict (supersedes the SB35 read).** SBI is worth it, and the
+  deliverable is **per-parameter constraints on the leading SN/IMF/BH-radeff
+  feedback axes**, not merely a low-dim direction. The genuinely degenerate axis
+  is **AGN-kinetic (A_AGN1/A_AGN2)** — weakly imprinted on group-scale gas (a
+  real physical result, consistent with the scatter project). Build path:
+  (i) generate a *large* fixed-CV-halo Sobol design (thousands of θ_astro,
+  cosmo fixed) — BIND turns ~100 confounded sims into thousands of clean ones,
+  the 128-design cube is the pilot that proves it pays off; (ii) train NPE/NLE
+  on that with a smooth surrogate (GP/MLP/NPE, not trees); (iii) handle the
+  Ω_b↔gas-amplitude degeneracy by marginalizing cosmology with a prior (or
+  adding a thin cosmo design) — the posterior is
+  P(θ_astro | data, cosmo≈fid); (iv) fold in X-ray f_gas / tSZ Y to break the
+  AGN-kinetic degeneracy (§3.4).
 
 
 ## 5. Results figures — what we'll find

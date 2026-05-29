@@ -6,6 +6,35 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-05-28 — `feature/thermo`: connect the SS-calibration Sobol notebook to the `scatter` framework
+
+Wired `tsz_ss_calibration_sobol.ipynb` to the BIND **scatter** analysis machinery
+(`analysis/2d`). Ported the pure-numpy modules `scatter/{__init__,sensitivity,
+residual,obs_common}.py` onto this branch (no transitive deps). Three changes:
+
+- **§3 plumbing** — replaced the notebook's inline `src_bootstrap`/`dcor` with the
+  shared `scatter.sensitivity` estimators (SRC R² reproduces exactly: 0.557/0.697/
+  0.644/0.696) and added `cv_r2_compare`. Decisive check is **linear vs GBM** (gap
+  ≲0.05 ⇒ near-linear, SRC faithful); the GP underperforms only because a default
+  30-D RBF is starved at n=256 — not evidence of nonlinearity.
+- **§6.5 (new)** — diagnoses *why* the per-halo money plot is weak. Per-halo, the
+  gas fraction is the best suppression predictor (ρ≈0.63 vs profile metric) and
+  Δ_SS (ρ≈0.45) is largely subsumed: partial ρ(Δ_SS,S|f_gas) collapses 0.24→0.10
+  while ρ(f_gas,S|Δ_SS) holds at 0.15. Δ_SS is a noisy shadow of gas content.
+- **§6.6 (new)** — tests the scatter paper's "concentration is the master predictor"
+  on thermo suppression and **falsifies it**: all DMO structural features (`c_core`,
+  `r_half`, `q_DMO`, `q_DMO_in`, from new `extract_dmo_structure.py` → ceph
+  `sobol_ss_cv/dmo_structure.npz`, aligned 1:1 with the cube) predict suppression
+  weakly (|ρ|≲0.23); conditioning the money plot on `c_core` changes nothing
+  (0.46≈0.45) and `c_core`⊥`f_gas` (ρ≈0.02). **Key result: two scatter regimes —
+  mass-relation scatter is structure-inherited (scatter paper), thermo/suppression
+  scatter is feedback-driven (this notebook).** This gives §7's pivot to a baryonic
+  observable a mechanism, not just an assertion.
+
+New figs: `ss_perhalo_predictors`, `ss_dmo_structure`. Each new/changed cell
+verified against the real cube with the `torch3` venv; full-notebook re-exec
+(to repopulate outputs) still TODO.
+
 ## 2026-05-28 — `feature/thermo`: Sobol calibration reframed as an observable-conditioned suppression prior
 
 Added **Section 7** to `tsz_ss_calibration_sobol.ipynb`, pivoting the analysis

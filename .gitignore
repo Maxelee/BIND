@@ -54,8 +54,7 @@ aa53256-24.txt
 # ---------------------------------------------------------------------------
 # Stale / scratch large artifacts (kept on disk, never versioned)
 # ---------------------------------------------------------------------------
-stale/halo_explorer.html
-stale/suite_analysis_artifacts/
+stale/
 
 # ---------------------------------------------------------------------------
 # OS / editor

@@ -1,6 +1,7 @@
 """Multi-GPU training script for conditional flow matching with PyTorch Lightning."""
 
 import argparse
+import os
 import torch
 import lightning as L
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
@@ -8,9 +9,9 @@ from torch_ema import ExponentialMovingAverage
 from torch.utils.data import DataLoader
 from pathlib import Path
 
-from data import (load_file_list, compute_norm_stats, AstroDataset, NormStats,
+from bind.data import (load_file_list, compute_norm_stats, AstroDataset, NormStats,
                   load_file_list_cube, compute_norm_stats_cube, CubeAstroDataset)
-from model import UNet, FlowMatching, StochasticInterpolant
+from bind.model import UNet, FlowMatching, StochasticInterpolant
 
 
 class FlowMatchingLit(L.LightningModule):
@@ -183,7 +184,9 @@ def main():
     parser = argparse.ArgumentParser()
     # Data
     parser.add_argument('--data_root', type=str,
-                        default='/mnt/home/mlee1/ceph/train_data_rotated2_128_cpu')
+                        default=os.environ.get('BIND_DATA_ROOT'),
+                        help='Root directory containing train/ and test/ shards '
+                             '(or set $BIND_DATA_ROOT).')
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--num_workers', type=int, default=8)
     # Model
@@ -218,10 +221,13 @@ def main():
     parser.add_argument('--warmup_steps', type=int, default=1000)
     parser.add_argument('--gradient_clip', type=float, default=1.0)
     # Output
-    parser.add_argument('--output_dir', type=str,
-                        default='/mnt/home/mlee1/ceph/fm_runs')
+    parser.add_argument('--output_dir', type=str, default='runs',
+                        help='Where to write checkpoints/<run_name>/ (default: ./runs).')
     parser.add_argument('--run_name', type=str, default='fm_base')
     args = parser.parse_args()
+
+    if not args.data_root:
+        parser.error("--data_root is required (or set $BIND_DATA_ROOT)")
 
     # Cosmological parameter indices to exclude when --exclude_cosmo_params is set.
     COSMO_INDICES = [0, 1, 7, 8]

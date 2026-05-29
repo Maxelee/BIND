@@ -1,0 +1,7 @@
+torch>=2.0
+lightning>=2.0
+torch-ema
+numpy
+pandas
+h5py
+huggingface_hub

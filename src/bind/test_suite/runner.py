@@ -9,8 +9,8 @@ from dataclasses import asdict
 import numpy as np
 import torch
 
-from data import NormStats
-from train import FlowMatchingLit
+from bind.data import NormStats
+from bind.train import FlowMatchingLit
 
 from .artifacts import (
     ensure_dirs,

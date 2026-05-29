@@ -18,6 +18,9 @@ outputs/
 # ---------------------------------------------------------------------------
 *.npz
 *.npy
+# Allow the bundled demo input + bundled package assets.
+!examples/data/dmo_sample.npz
+!src/bind/assets/*
 
 # ---------------------------------------------------------------------------
 # Run logs

@@ -1,5 +1,6 @@
 """Dataset and normalization for cosmological baryonic field painting."""
 
+import os
 import numpy as np
 import pandas as pd
 import re
@@ -9,8 +10,14 @@ from pathlib import Path
 from dataclasses import dataclass, field
 
 
-SB35_CSV = '/mnt/home/mlee1/Sims/IllustrisTNG_extras/L50n512/SB35/SB35_param_minmax.csv'
-SB35_PARAMS_TXT = '/mnt/home/mlee1/Sims/IllustrisTNG_extras/L50n512/SB35/CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt'
+_ASSETS_DIR = Path(__file__).parent / "assets"
+# Bundled SB35 metadata (param min/max + log flags) and the per-sim parameter
+# table. Override either via environment variable for a custom suite.
+SB35_CSV = os.environ.get("BIND_SB35_CSV", str(_ASSETS_DIR / "SB35_param_minmax.csv"))
+SB35_PARAMS_TXT = os.environ.get(
+    "BIND_SB35_PARAMS_TXT",
+    str(_ASSETS_DIR / "CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt"),
+)
 _sb_meta = pd.read_csv(SB35_CSV)
 PARAM_LOG_FLAG = _sb_meta['LogFlag'].to_numpy().astype(np.int32)        # (35,)
 PARAM_MIN_RAW  = _sb_meta['MinVal'].to_numpy().astype(np.float64)        # (35,)

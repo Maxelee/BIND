@@ -7,12 +7,25 @@ from contextlib import nullcontext
 from pathlib import Path
 
 import h5py
-import MAS_library as MASL
 import numpy as np
 import torch
 from tqdm import tqdm
 
-from data import NormStats, log_transform
+try:                                # Optional: required for CAMELS evaluation only.
+    import MAS_library as MASL
+except ImportError:                 # noqa: BLE001
+    MASL = None                     # type: ignore[assignment]
+
+
+def _require_masl() -> None:
+    if MASL is None:
+        raise ImportError(
+            "MAS_library is required for the test_suite pipeline. "
+            "Install with `pip install MAS_library` (CAMELS users only)."
+        )
+
+
+from bind.data import NormStats, log_transform
 from .schemas import SimulationSpec
 
 
@@ -23,6 +36,7 @@ def pixelize_z_projection(
     npix: int,
 ) -> np.ndarray:
     """Project particle masses onto a 2D grid with CIC assignment."""
+    _require_masl()
     pos_ = np.ascontiguousarray(positions.astype(np.float32))[:, [0, 1]]
     mass_ = np.ascontiguousarray(masses.astype(np.float32))
     field = np.zeros((npix, npix), dtype=np.float32)

@@ -16,7 +16,7 @@ cd /mnt/home/mlee1/vdm_bind2
 
 mkdir -p /mnt/home/mlee1/ceph/logs
 
-srun python train.py \
+srun python -m bind.train \
     --data_root /mnt/home/mlee1/ceph/train_data_rotated2_128_cpu \
     --batch_size 64 \
     --num_workers 8 \

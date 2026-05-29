@@ -8,10 +8,10 @@ from pathlib import Path
 
 import numpy as np
 
-from test_suite.artifacts import to_jsonable
-from test_suite.config import build_suite_specs, parse_sim_ids
-from test_suite.runner import run_suite
-from test_suite.schemas import RunConfig
+from bind.test_suite.artifacts import to_jsonable
+from bind.test_suite.config import build_suite_specs, parse_sim_ids
+from bind.test_suite.runner import run_suite
+from bind.test_suite.schemas import RunConfig
 
 
 def parse_args() -> argparse.Namespace:
@@ -34,10 +34,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--proj_frac", type=float, default=1.0)
     parser.add_argument("--halo_mass_min", type=float, default=1e13)
 
-    parser.add_argument("--run_dir", type=Path, default=Path("/mnt/home/mlee1/ceph/fm_runs/fm_base"))
+    parser.add_argument("--run_dir", type=Path, required=True,
+                        help="Run directory containing norm_stats.npz (and checkpoints/last.ckpt unless --checkpoint_path is given)")
     parser.add_argument("--checkpoint_path", type=Path, default=None)
-    parser.add_argument("--output_root", type=Path, default=Path("/mnt/home/mlee1/ceph/fm_eval"))
-    parser.add_argument("--model_name", type=str, default="fm_base")
+    parser.add_argument("--output_root", type=Path, required=True,
+                        help="Where evaluation outputs are written")
+    parser.add_argument("--model_name", type=str, required=True,
+                        help="Subfolder name under output_root for this run's outputs")
 
     parser.add_argument("--n_steps", type=int, default=50)
     parser.add_argument("--batch_size", type=int, default=16)
@@ -72,49 +75,19 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--max_workers", type=int, default=1)
 
-    parser.add_argument(
-        "--cv_param_file",
-        type=Path,
-        default=Path("/mnt/home/mlee1/Sims/IllustrisTNG/L50n512/CV/CosmoAstroSeed_IllustrisTNG_L50n512_CV.txt"),
-    )
-    parser.add_argument(
-        "--cv_nbody_root",
-        type=Path,
-        default=Path("/mnt/ceph/users/camels/Sims/IllustrisTNG_DM/L50n512/CV"),
-    )
-    parser.add_argument(
-        "--cv_hydro_root",
-        type=Path,
-        default=Path("/mnt/ceph/users/camels/Sims/IllustrisTNG/L50n512/CV"),
-    )
+    parser.add_argument("--cv_param_file", type=Path, default=None,
+                        help="CAMELS CV parameter file (CosmoAstroSeed_*_CV.txt)")
+    parser.add_argument("--cv_nbody_root", type=Path, default=None,
+                        help="CAMELS CV DM-only sims root")
+    parser.add_argument("--cv_hydro_root", type=Path, default=None,
+                        help="CAMELS CV hydro sims root")
+    parser.add_argument("--cv_fof_root", type=Path, default=None,
+                        help="CAMELS CV FOF/Subfind root")
 
-    parser.add_argument(
-        "--cv_fof_root",
-        type=Path,
-        default=Path("/mnt/ceph/users/camels/FOF_Subfind/IllustrisTNG_DM/L50n512/CV"),
-    )
-
-    parser.add_argument(
-        "--onep_param_file",
-        type=Path,
-        default=Path("/mnt/home/mlee1/Sims/IllustrisTNG/L50n512/1P/CosmoAstroSeed_IllustrisTNG_L50n512_1P.txt"),
-    )
-    parser.add_argument(
-        "--onep_nbody_root",
-        type=Path,
-        default=Path("/mnt/ceph/users/camels/Sims/IllustrisTNG_DM/L50n512/1P"),
-    )
-    parser.add_argument(
-        "--onep_hydro_root",
-        type=Path,
-        default=Path("/mnt/home/mlee1/Sims/IllustrisTNG/L50n512/1P"),
-    )
-
-    parser.add_argument(
-        "--onep_fof_root",
-        type=Path,
-        default=Path("/mnt/ceph/users/camels/FOF_Subfind/IllustrisTNG_DM/L50n512/1P"),
-    )
+    parser.add_argument("--onep_param_file", type=Path, default=None)
+    parser.add_argument("--onep_nbody_root", type=Path, default=None)
+    parser.add_argument("--onep_hydro_root", type=Path, default=None)
+    parser.add_argument("--onep_fof_root", type=Path, default=None)
 
     parser.add_argument(
         "--test_manifest",
@@ -123,26 +96,10 @@ def parse_args() -> argparse.Namespace:
         help="JSON manifest path for suite=test entries",
     )
 
-    parser.add_argument(
-        "--sb35_param_file",
-        type=Path,
-        default=Path("/mnt/home/mlee1/Sims/IllustrisTNG_DM/L50n512/SB35/CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt"),
-    )
-    parser.add_argument(
-        "--sb35_nbody_root",
-        type=Path,
-        default=Path("/mnt/home/mlee1/Sims/IllustrisTNG_DM/L50n512/SB35"),
-    )
-    parser.add_argument(
-        "--sb35_hydro_root",
-        type=Path,
-        default=Path("/mnt/ceph/users/camels/Sims/IllustrisTNG_extras/L50n512/SB35"),
-    )
-    parser.add_argument(
-        "--sb35_fof_root",
-        type=Path,
-        default=Path("/mnt/ceph/users/camels/FOF_Subfind/IllustrisTNG_DM/L50n512/SB35"),
-    )
+    parser.add_argument("--sb35_param_file", type=Path, default=None)
+    parser.add_argument("--sb35_nbody_root", type=Path, default=None)
+    parser.add_argument("--sb35_hydro_root", type=Path, default=None)
+    parser.add_argument("--sb35_fof_root", type=Path, default=None)
 
     return parser.parse_args()
 

@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bind"
+version = "0.1.0"
+description = "BIND2: conditional flow-matching emulator that paints baryonic fields onto dark-matter-only maps (CAMELS IllustrisTNG)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Max E. Lee" }]
+keywords = ["cosmology", "flow-matching", "diffusion", "CAMELS", "IllustrisTNG", "emulator"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+
+dependencies = [
+    "torch>=2.0",
+    "lightning>=2.0",
+    "torch-ema",
+    "numpy",
+    "pandas",
+    "h5py",
+    "huggingface_hub",
+]
+
+[project.optional-dependencies]
+# Required for the CAMELS evaluation pipeline (test_suite). MAS_library is a
+# CAMELS-specific package and may not pip-install cleanly on every system.
+camels = ["MAS_library"]
+dev = ["ruff"]
+
+[project.urls]
+Repository = "https://github.com/Maxelee/BIND"
+Weights = "https://huggingface.co/Maxelee/BIND2"
+
+[project.scripts]
+bind-test-suite = "bind.cli.run_test_suite:main"
+bind-download-weights = "bind.tools.download_weights:main"
+bind-slim-checkpoint = "bind.tools.slim_checkpoint:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+bind = ["assets/*.csv", "assets/*.txt"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]

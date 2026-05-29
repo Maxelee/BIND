@@ -132,7 +132,7 @@ EXTRA_FLAGS=(--regenerate_all)
 
 echo "=== [chunk $CHUNK_ID/$N_CHUNKS] Running generation ==="
 
-/mnt/home/mlee1/venvs/torch3/bin/python -m bind.cli.run_test_suite \
+/mnt/home/mlee1/venvs/torch3/bin/python -m bind.cli.paint \
     --suite all \
     --snapshot "$SNAPSHOT" \
     --npix "$NPIX" \

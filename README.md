@@ -16,8 +16,6 @@ vector.
 git clone https://github.com/Maxelee/BIND.git
 cd BIND
 pip install -e .
-# Optional, only needed for the CAMELS evaluation pipeline (test_suite):
-pip install MAS_library
 ```
 
 The package installs as `bind` and exposes three console scripts:

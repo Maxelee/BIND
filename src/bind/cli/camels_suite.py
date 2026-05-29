@@ -8,10 +8,10 @@ from pathlib import Path
 
 import numpy as np
 
-from bind.test_suite.artifacts import to_jsonable
-from bind.test_suite.config import build_suite_specs, parse_sim_ids
-from bind.test_suite.runner import run_suite
-from bind.test_suite.schemas import RunConfig
+from bind.inference.artifacts import to_jsonable
+from bind.inference.config import build_suite_specs, parse_sim_ids
+from bind.inference.runner import run_suite
+from bind.inference.schemas import RunConfig
 
 
 def parse_args() -> argparse.Namespace:

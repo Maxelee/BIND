@@ -29,8 +29,9 @@ jobs:
         run: |
           python -c "
           import bind
-          from bind import data, model, train, metrics
-          from bind.test_suite import runner, pipeline, config, schemas, artifacts
+          from bind import data, model, train, metrics, paint
+          from bind.inference import runner, pipeline, config, schemas, artifacts, io_gadget
+          from bind.inference.paint import PaintConfig, PaintResult
           from bind.tools import slim_checkpoint, download_weights
           print('bind', bind.__version__, 'imports OK')
           "

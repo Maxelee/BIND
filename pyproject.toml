@@ -28,12 +28,12 @@ dependencies = [
     "pandas",
     "h5py",
     "huggingface_hub",
+    # Pylians3 provides the MAS_library module used for CIC particle-to-grid
+    # projection. It is the canonical pixelizer for BIND inputs.
+    "Pylians",
 ]
 
 [project.optional-dependencies]
-# Required for the CAMELS evaluation pipeline (test_suite). MAS_library is a
-# CAMELS-specific package and may not pip-install cleanly on every system.
-camels = ["MAS_library"]
 dev = ["ruff"]
 
 [project.urls]
@@ -41,7 +41,8 @@ Repository = "https://github.com/Maxelee/BIND"
 Weights = "https://huggingface.co/Maxelee/BIND2"
 
 [project.scripts]
-bind-test-suite = "bind.cli.run_test_suite:main"
+bind-paint = "bind.cli.paint:main"
+bind-camels-suite = "bind.cli.camels_suite:main"
 bind-download-weights = "bind.tools.download_weights:main"
 bind-slim-checkpoint = "bind.tools.slim_checkpoint:main"
 

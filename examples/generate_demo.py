@@ -27,7 +27,7 @@ import torch
 
 from bind.data import NormStats, log_transform
 from bind.train import FlowMatchingLit
-from bind.test_suite.pipeline import _denormalize_to_physical
+from bind.inference.pipeline import _denormalize_to_physical
 
 
 def parse_args() -> argparse.Namespace:

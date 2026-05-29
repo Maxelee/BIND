@@ -12,7 +12,6 @@ The package is installed editable into a Python venv (Python â‰¥3.10, PyTorch â‰
 
 ```bash
 pip install -e .            # imports as `bind`
-pip install MAS_library     # only needed for the CAMELS evaluation pipeline
 ```
 
 **Train** (multi-GPU via Lightning DDP, bf16, EMA):

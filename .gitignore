@@ -10,6 +10,7 @@ __pycache__/
 # Large caches & run outputs (regenerable; kept on disk, never versioned)
 # ---------------------------------------------------------------------------
 analysis_physics_cache/
+analysis_physics_cache
 *_cache/
 outputs/
 
@@ -35,7 +36,13 @@ outputs/
 *.png
 *.gif
 figures/
+figures
 paper_figures/
+paper_figures
+paper_figures_thermo/
+paper_figures_thermo
+*_figs/
+*_figs
 imgs
 
 # ---------------------------------------------------------------------------

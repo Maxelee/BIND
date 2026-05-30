@@ -46,7 +46,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from bind.data import NormStats
+from bind.data import NormStats, N_THERMO, THERMO_KEYS
 
 from . import io_gadget
 from .pipeline import (
@@ -285,10 +285,16 @@ class Model:
         d = Path(run_dir)
         return cls.from_files(d / checkpoint_name, d / norm_stats_name, device=device)
 
+    @property
+    def predict_thermo(self) -> bool:
+        """True when this model emits the 4 gas-thermo channels."""
+        return bool(getattr(self.norm_stats, "predict_thermo", False))
+
     # ---- inference -----------------------------------------------------
     def __repr__(self) -> str:
         return (f"Model(n_params={self.n_params}, "
-                f"no_large_scale={self.no_large_scale}, device={self.device})")
+                f"no_large_scale={self.no_large_scale}, "
+                f"predict_thermo={self.predict_thermo}, device={self.device})")
 
     @torch.no_grad()
     def generate(
@@ -323,7 +329,8 @@ class Model:
         """
         params = _validate_params(params)
         if not cutouts:
-            return np.zeros((0, 3, PATCH_PIX, PATCH_PIX), dtype=np.float32)
+            n_out = 3 + (N_THERMO if self.norm_stats.predict_thermo else 0)
+            return np.zeros((0, n_out, PATCH_PIX, PATCH_PIX), dtype=np.float32)
 
         outputs: list[np.ndarray] = []
         rng = range(0, len(cutouts), batch_size)
@@ -463,6 +470,8 @@ class PaintResult:
     summary_path: Path
     composite_paths: list[Path] = field(default_factory=list)
     per_slab: list[dict] = field(default_factory=list)
+    predict_thermo: bool = False
+    thermo_keys: tuple[str, ...] = ()
 
 
 def paint(
@@ -555,14 +564,17 @@ def paint(
             progress=progress,
         )
 
-        # 4. Composite.  build_bind_composite expects per-halo dicts.
+        # 4. Composite.  build_bind_composite expects per-halo dicts and works
+        #    on the 3 mass channels only — thermo channels (if present) are
+        #    intensive/extensive physical quantities, not mass densities, and
+        #    are saved per-halo instead of pasted into a full-box mosaic.
         halos_dicts = [
             {"halo_center": halo_xy[i], "halo_mass": float(halo_m[i]),
              "r200": float(halo_r[i]), "params": params.astype(np.float32)}
             for i in range(len(in_slab))
         ]
         bundle = build_bind_composite(
-            slab_map, halos_dicts, gen, cutouts,
+            slab_map, halos_dicts, gen[:, :3], cutouts,
             box_size=sim.box_size, npix=npix, patch_pix=patch_pix,
             patch_mass_match=patch_mass_match, taper_frac=taper_frac,
             r200_factor=r200_factor,
@@ -585,7 +597,13 @@ def paint(
             halo_r200=halo_r.astype(np.float32),
         )
         if save_per_halo_patches:
-            save_kwargs["generated_patches"] = gen
+            save_kwargs["generated_patches"] = gen[:, :3]
+            if model.predict_thermo and gen.shape[1] >= 3 + N_THERMO:
+                # Per-halo thermo patches in THERMO_KEYS order
+                # (compton_y, temperature, entropy, pressure). Stored as a
+                # single (N_halos, N_THERMO, H, W) array; channel j corresponds
+                # to THERMO_KEYS[j], which is also written to summary.json.
+                save_kwargs["thermo_patches"] = gen[:, 3:3 + N_THERMO]
         np.savez_compressed(slab_path, **save_kwargs)
 
         composite_paths.append(slab_path)
@@ -611,6 +629,8 @@ def paint(
         "patch_mass_match": patch_mass_match,
         "taper_frac": taper_frac,
         "r200_factor": r200_factor,
+        "predict_thermo": model.predict_thermo,
+        "thermo_keys": list(THERMO_KEYS) if model.predict_thermo else [],
         "per_slab": per_slab,
     }, indent=2))
 
@@ -623,6 +643,8 @@ def paint(
         summary_path=summary_path,
         composite_paths=composite_paths,
         per_slab=per_slab,
+        predict_thermo=model.predict_thermo,
+        thermo_keys=THERMO_KEYS if model.predict_thermo else (),
     )
 
 

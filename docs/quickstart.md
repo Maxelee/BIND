@@ -46,6 +46,13 @@ containing the DMO input, the BIND composite `[DM_hydro, Gas, Stars]`, the
 per-halo cutouts, and bookkeeping. A `summary.json` records the geometry and
 the parameter vector used.
 
+```{tip}
+**Choosing a checkpoint.** `fm_two_head` paints mass only. Swap it for
+`bind.Model.from_local("weights/fm_thermo")` to additionally paint
+`compton_y`, `temperature`, `entropy`, and `pressure` per halo. See
+[Gas thermodynamics](thermo.md).
+```
+
 ## Same thing from the shell
 
 ```{code-block} bash

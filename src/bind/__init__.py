@@ -2,6 +2,7 @@
 
 __version__ = "0.1.0"
 
+from bind.data import N_THERMO, THERMO_KEYS  # noqa: E402
 from bind.inference.paint import (  # noqa: E402
     NATIVE_PIXEL_SIZE_MPCH,
     NATIVE_SLAB_DEPTH_MPCH,
@@ -31,6 +32,8 @@ __all__ = [
     "NATIVE_PIXEL_SIZE_MPCH",
     "NATIVE_SLAB_DEPTH_MPCH",
     "PATCH_PIX",
+    "N_THERMO",
+    "THERMO_KEYS",
     "PARAM_NAMES",
     "N_PARAMS",
     "fiducial_params",

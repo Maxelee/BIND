@@ -59,6 +59,8 @@ hard dependency (used for mass-conserving CIC pixelization).
 
 ```bash
 bind-download-weights fm_two_head      # ~950 MB into weights/fm_two_head/
+# Optional: fm_thermo adds 4 gas-thermo channels (compton_y, T, entropy, P_e)
+bind-download-weights fm_thermo
 ```
 
 ---

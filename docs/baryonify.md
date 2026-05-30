@@ -22,6 +22,16 @@ $L \in [50, 500]\,\mathrm{Mpc}/h$ at $\gtrsim$ TNG resolution.
    bind-download-weights fm_two_head
    ```
 
+   For tSZ / kSZ / X-ray applications, swap or also fetch the thermo variant:
+
+   ```bash
+   bind-download-weights fm_thermo   # adds compton_y, T, entropy, P_e
+   ```
+
+   See [Gas thermodynamics](thermo.md) for the field definitions and
+   normalization. Both checkpoints share the same `Simulation` interface
+   and parameter vector.
+
 4. A **35-dim parameter vector** that describes the cosmology and astrophysics
    you'd like to paint. For a generic external sim you can simply use the
    CAMELS-IllustrisTNG fiducial; see {doc}`parameters` for full details.

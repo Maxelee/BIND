@@ -75,6 +75,18 @@ exported at the top level of `bind`.
 .. autodata:: bind.PATCH_PIX
 .. autodata:: bind.N_PARAMS
 .. autodata:: bind.PARAM_NAMES
+.. autodata:: bind.N_THERMO
+.. autodata:: bind.THERMO_KEYS
+```
+
+## Gas thermodynamics
+
+Helpers powering the optional `fm_thermo` checkpoint. See
+[Gas thermodynamics](thermo.md) for the field definitions.
+
+```{eval-rst}
+.. autofunction:: bind.data.thermo_forward
+.. autofunction:: bind.data.thermo_inverse
 ```
 
 ## Lower-level primitives

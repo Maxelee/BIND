@@ -102,6 +102,7 @@ parameters
 :caption: Reference
 method
 training
+thermo
 api
 cli
 ```

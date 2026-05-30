@@ -340,7 +340,7 @@ class FlowMatching:
     """
 
     def __init__(self, model, cfg_dropout=0.0, star_occ_weight=5.0,
-                 star_zero_norm=None, out_channels=3):
+                 star_zero_norm=None, out_channels=3, stars_two_head=False):
         self.model = model
         self.cfg_dropout = cfg_dropout
         self.star_occ_weight = star_occ_weight
@@ -350,6 +350,12 @@ class FlowMatching:
         # not stars density) — keep star_occ_weight=1.0 in that case.
         self.star_zero_norm = star_zero_norm
         self.out_channels = out_channels
+        # Channel layout is [DM_hydro, Gas, Stars(/occ,+dens if two-head), thermo...].
+        # stars_two_head distinguishes the stellar layout independently of
+        # out_channels, since appending thermo channels changes the channel
+        # count without changing the stellar head. Thermo channels are always
+        # last and are left at loss weight 1.
+        self.stars_two_head = stars_two_head
 
     def loss(self, x1, condition, large_scale, params):
         """Compute flow matching loss.
@@ -383,7 +389,7 @@ class FlowMatching:
 
         if self.star_occ_weight != 1.0:
             w = torch.ones_like(per_pixel)
-            if self.out_channels == 4:
+            if self.stars_two_head:
                 # Two-head Stars mode: ch2=occupancy, ch3=conditional density.
                 # Upweight both stellar channels on pixels that are truly occupied
                 # (occupancy target > 0.5, i.e. the binary label is 1).

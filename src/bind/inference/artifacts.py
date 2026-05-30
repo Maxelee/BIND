@@ -24,6 +24,7 @@ class ArtifactPaths:
     halo_cutouts_npz: Path
     halo_cutouts_cube_npz: Path   # DMO condition patches (3D voxel method, cube model)
     truth_halos_cube_npz: Path    # hydro truth patches   (3D voxel method, cube model)
+    truth_thermo_patches_npz: Path  # per-halo truth thermo patches (snapshot reprojection)
     generated_halos_npz: Path
     composite_npz: Path
     summary_json: Path
@@ -60,6 +61,7 @@ def resolve_artifact_paths(output_root: Path, spec: SimulationSpec, model_name: 
         halo_cutouts_npz=mass_dir / "halo_cutouts.npz",
         halo_cutouts_cube_npz=mass_dir / "halo_cutouts_cube.npz",
         truth_halos_cube_npz=mass_dir / "truth_halos_cube.npz",
+        truth_thermo_patches_npz=mass_dir / "truth_thermo_patches.npz",
         generated_halos_npz=model_dir / "generated_halos.npz",
         composite_npz=model_dir / "composite.npz",
         summary_json=model_dir / "summary.json",
@@ -239,3 +241,18 @@ def load_truth_halos_cube(path: Path) -> np.ndarray:
     Returns (N_halos, 3, patch_pix, patch_pix) float32 array.
     """
     return np.load(path)["truth_halos"]
+
+
+def save_truth_thermo_patches(path: Path, truth_thermo: np.ndarray) -> None:
+    """Save per-halo truth thermo patches.
+
+    Args:
+        truth_thermo: (N_halos, N_THERMO, patch_pix, patch_pix) float32 array,
+            channels in THERMO_KEYS order (compton_y, temperature, entropy, pressure).
+    """
+    np.savez(path, truth_thermo=truth_thermo.astype(np.float32))
+
+
+def load_truth_thermo_patches(path: Path) -> np.ndarray:
+    """Load per-halo truth thermo patches saved by save_truth_thermo_patches."""
+    return np.load(path)["truth_thermo"]

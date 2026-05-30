@@ -13,6 +13,8 @@ analysis_physics_cache/
 analysis_physics_cache
 *_cache/
 outputs/
+docs/_build/
+examples/bind_output/
 
 # ---------------------------------------------------------------------------
 # Generated numerical data products (numpy dumps, etc.)
@@ -44,6 +46,8 @@ paper_figures_thermo
 *_figs/
 *_figs
 imgs
+# Allow figures/gifs that live under the documentation static directory.
+!docs/_static/**
 
 # ---------------------------------------------------------------------------
 # Downloaded papers / extracted scratch
@@ -75,3 +79,4 @@ weights/
 # OS / editor
 # ---------------------------------------------------------------------------
 .DS_Store
+docs/_build/

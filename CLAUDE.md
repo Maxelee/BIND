@@ -21,7 +21,7 @@ python -m bind.train --data_root /path/to/train_data_rotated2_128_cpu \
 # Or, equivalently, set $BIND_DATA_ROOT once and omit --data_root.
 sbatch run_train.sh            # SLURM, 8× H100 (mass model); THERMO=1 sbatch run_train.sh for +thermo
 ```
-Key flags that change the architecture/data path: `--stars_two_head` (out_ch 3→4), `--predict_thermo` (appends 4 gas-thermo channels; requires the large-scale data path — rejected with `--no_large_scale`), `--interpolant {fm,si}`, `--no_large_scale` (cube data, in_ch −3), `--exclude_cosmo_params` (35→31 params, drops indices 0,1,7,8 but keeps Ω_b). `--output_dir` defaults to `./runs`.
+Key flags that change the architecture/data path: `--stars_two_head` (out_ch 3→4), `--predict_thermo` (appends 4 gas-thermo channels; requires the large-scale data path — rejected with `--no_large_scale`), `--condition_redshift` (multi-redshift dataset; conditions on scale factor a=1/(1+z) — see the `feature/redshift` note below), `--interpolant {fm,si}`, `--no_large_scale` (cube data, in_ch −3), `--exclude_cosmo_params` (35→31 params, drops indices 0,1,7,8 but keeps Ω_b). `--output_dir` defaults to `./runs`.
 
 **Generate / evaluate** (DMO→hydro over a CAMELS simulation suite — the `bind-camels-suite` CLI):
 ```bash
@@ -49,7 +49,7 @@ This reads any Gadget/Arepo HDF5 DMO snapshot via `bind.inference.io_gadget`, ti
 
 The trainable engine lives on `main`. Understanding it requires reading `src/bind/model.py` + `src/bind/data.py` + `src/bind/train.py` together:
 
-- **`model.py`** — `UNet` predicts a flow-matching velocity. Conditioning is injected two ways: the 35 params go through `ParamEncoder` and the diffusion time through a sinusoidal embedding; their **sum** drives `AdaGroupNorm` (adaptive scale/shift) inside every `ResBlock`. The UNet input is a channel concat `[noisy_state, DMO condition, large_scale]`. Two formulations share the model:
+- **`model.py`** — `UNet` predicts a flow-matching velocity. Conditioning is injected via summed embeddings: the 35 params go through `ParamEncoder`, the diffusion time through a sinusoidal embedding, and (optionally, `condition_redshift=True`) the scale factor a=1/(1+z) through its own sinusoidal→MLP `redshift_emb`; their **sum** drives `AdaGroupNorm` (adaptive scale/shift) inside every `ResBlock`. `forward(x, t, params, scale_factor=None)`; a redshift model defaults a missing `scale_factor` to a=1 (z=0). The UNet input is a channel concat `[noisy_state, DMO condition, large_scale]`. Two formulations share the model:
   - `FlowMatching` — OT flow matching, **noise → hydro** (`x_t = (1-t)·noise + t·x1`), the production path.
   - `StochasticInterpolant` — a **DMO → hydro** bridge; present but not used in current analyses (and not wired for two-head).
 - **`data.py`** — `NormStats` is the contract between training and inference: per-channel `log10(1+x)` standardization, plus param min/max bounds read from the **SB35 CSV** with per-param `LogFlag` (so normalization is well-defined for any sim, not just the training subset). It is **versioned/back-compatible**: old `norm_stats.npz` files load with new fields defaulting safely. Two dataset classes: `AstroDataset` (2D maps *with* `large_scale`) and `CubeAstroDataset` (6.25 Mpc/h cube projections, *no* `large_scale`, params looked up from the SB35 table by `sim_NNNN` in the path).
@@ -69,6 +69,7 @@ The trainable engine lives on `main`. Understanding it requires reading `src/bin
 
 - **Branch organization** — `main` is the clean trunk: the core engine (`bind.data`/`bind.model`/`bind.train`/`bind.metrics`, `bind.inference/`) plus `examples/paper_figures.ipynb`. Distinct projects/analyses are **parked on topic branches**, not accumulated on `main`:
   - `feature/3d-cube` — 3D / cube-projection extension (`*_3d.py`, cube notebooks).
+  - `feature/redshift` — redshift conditioning: multi-redshift training data (8 snapshots z=0–4, 1 rotation/halo, mass+thermo in one pass, nested `train/sim_i/snap_j/`) + scale-factor (a=1/(1+z)) conditioning in the UNet via a summed `redshift_emb`. `bind.train --condition_redshift`; `bind.paint(..., redshift=/scale_factor=)`. ⚠ z>0 thermo physics (a-factors) needs validation. Not yet merged to main.
   - `analysis/2d` — matured 2D analyses (`scatter/` package, observables, `project1-7`, CV derivatives).
   - `analysis/tsz-icm` — tSZ / ICM thermo science: Y–M mass bias, WL calibration, entropy/pressure, Sobol assembly (`scatter/assembly_*`, `*_sobol` notebooks). Notebooks/scripts still on flat (`from data`) imports — fix per-file before reuse.
   - `analysis/ksz_project` — kSZ science analyses (renamed from `ksz_project`).

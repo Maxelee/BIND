@@ -59,7 +59,7 @@ bind-camels-suite \
 ```
 
 `--suite` ∈ `{cv, 1p, test, sb35, all}`. `--n_chunks/--chunk_id` allow SLURM
-array parallelism (see `run_test_suite_parallel.sh`).
+array parallelism (see `run_test_suite.sh`).
 
 ## `bind-download-weights`
 

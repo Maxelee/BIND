@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=fmthermo_eval
-#SBATCH --output=/mnt/home/mlee1/ceph/logs/fmthermo_eval_%A_%a.out
-#SBATCH --error=/mnt/home/mlee1/ceph/logs/fmthermo_eval_%A_%a.err
+#SBATCH --job-name=fm_eval
+#SBATCH --output=/mnt/home/mlee1/ceph/logs/fm_eval_%A_%a.out
+#SBATCH --error=/mnt/home/mlee1/ceph/logs/fm_eval_%A_%a.err
 #SBATCH --time=24:00:00
 #SBATCH --partition=gpu
 #SBATCH --constraint=a100
@@ -12,21 +12,22 @@
 #SBATCH --mem=128G
 #SBATCH --array=0-9   # set to 0-(N_CHUNKS-1); override with --array at sbatch time
 
-# Test-suite eval for the joint mass+thermo emulator (fm_thermo), deploying the
-# EMA-baked epoch-64 checkpoint. Adapted from run_test_suite_parallel.sh with two
-# changes: it passes --checkpoint_path (so the EMA weights are used, not last.ckpt)
-# and it is parametrized by SUITE so you can target 1P, the SB35 test-split
-# manifest, or everything.
+# Unified DMO->hydro test-suite eval (bind.cli.camels_suite). Model-agnostic:
+# the channels produced (mass-only vs mass+thermo) come from the checkpoint +
+# its norm_stats, not from this script. Parametrized by SUITE and the model
+# location, so the same script evaluates either emulator.
 #
-# Submit examples (this script cannot sbatch itself):
-#   1P (small, one task):
-#     SUITE=1p   N_CHUNKS=1  sbatch --array=0     run_test_suite_thermo.sh
-#   SB35 held-out test split (chunked array; chunk 0 builds the manifest):
-#     SUITE=test N_CHUNKS=10 sbatch --array=0-9   run_test_suite_thermo.sh
-#   Everything (CV + 1P + SB35-test) in one array:
-#     SUITE=all  N_CHUNKS=10 sbatch --array=0-9   run_test_suite_thermo.sh
-# Useful overrides: N_STEPS, BATCH_SIZE, REGEN=1 (force --regenerate_all),
-#   PREP_ONLY=1, SKIP_TRUTH=1, CHECKPOINT_PATH=...
+#   Mass model (fm_two_head, last.ckpt in RUN_DIR), everything:
+#     SUITE=all N_CHUNKS=10 sbatch --array=0-9 run_test_suite.sh
+#   Thermo model (fm_thermo), specific EMA checkpoint, 1P only:
+#     RUN_DIR=/mnt/home/mlee1/ceph/fm_runs/fm_thermo MODEL_NAME=fm_thermo_ema \
+#     CHECKPOINT_PATH=$RUN_DIR/checkpoints/kept/keep_epoch064_ema.ckpt N_STEPS=20 \
+#     SUITE=1p N_CHUNKS=1 sbatch --array=0 run_test_suite.sh
+#
+# SUITE in {all, cv, 1p, test, sb35}; for {all, test} chunk 0 builds the SB35
+# test manifest and the others wait on a lock. Useful overrides: N_STEPS,
+# BATCH_SIZE, CHECKPOINT_PATH (else last.ckpt in RUN_DIR), REGEN=1
+# (--regenerate_all), PREP_ONLY=1, SKIP_TRUTH=1, NO_AMP=1.
 
 set -euo pipefail
 
@@ -38,9 +39,9 @@ SUITE=${SUITE:-all}                       # all | cv | 1p | test | sb35
 N_CHUNKS=${N_CHUNKS:-10}                   # must match --array upper bound + 1
 CHUNK_ID=${SLURM_ARRAY_TASK_ID:-0}
 
-RUN_DIR=${RUN_DIR:-/mnt/home/mlee1/ceph/fm_runs/fm_thermo}
-MODEL_NAME=${MODEL_NAME:-fm_thermo_ema}
-CHECKPOINT_PATH=${CHECKPOINT_PATH:-$RUN_DIR/checkpoints/kept/keep_epoch064_ema.ckpt}
+RUN_DIR=${RUN_DIR:-/mnt/home/mlee1/ceph/fm_runs/fm_two_head}
+MODEL_NAME=${MODEL_NAME:-fm_two_head}
+CHECKPOINT_PATH=${CHECKPOINT_PATH:-}       # empty -> camels_suite uses last.ckpt in RUN_DIR
 OUTPUT_ROOT=${OUTPUT_ROOT:-/mnt/home/mlee1/ceph/fm_testsuite}
 MANIFEST_DIR="$OUTPUT_ROOT/manifests"
 TEST_MANIFEST="$MANIFEST_DIR/sb35_test_manifest.json"
@@ -49,7 +50,7 @@ SNAPSHOT=${SNAPSHOT:-90}
 NPIX=${NPIX:-1024}
 PATCH_PIX=${PATCH_PIX:-128}
 HALO_MASS_MIN=${HALO_MASS_MIN:-1e13}
-N_STEPS=${N_STEPS:-20}                     # 20 matched truth to <0.03 dex in validation
+N_STEPS=${N_STEPS:-50}                     # thermo validation matched truth to <0.03 dex at 20
 BATCH_SIZE=${BATCH_SIZE:-16}
 DEVICE=${DEVICE:-auto}
 
@@ -63,7 +64,7 @@ TEST_DATA_ROOT=${TEST_DATA_ROOT:-/mnt/home/mlee1/ceph/train_data_rotated2_128_cp
 
 mkdir -p "$OUTPUT_ROOT" "$MANIFEST_DIR" /mnt/home/mlee1/ceph/logs
 
-if [[ ! -f "$CHECKPOINT_PATH" ]]; then
+if [[ -n "$CHECKPOINT_PATH" && ! -f "$CHECKPOINT_PATH" ]]; then
     echo "ERROR: checkpoint not found: $CHECKPOINT_PATH" >&2
     exit 1
 fi
@@ -147,13 +148,14 @@ fi
 
 # ── Build flags ───────────────────────────────────────────────────────────────
 EXTRA_FLAGS=()
+[[ -n "$CHECKPOINT_PATH" ]]      && EXTRA_FLAGS+=(--checkpoint_path "$CHECKPOINT_PATH")
 [[ "${REGEN:-0}" == "1" ]]      && EXTRA_FLAGS+=(--regenerate_all)
 [[ "${PREP_ONLY:-0}" == "1" ]]  && EXTRA_FLAGS+=(--prep_only)
 [[ "${SKIP_TRUTH:-0}" == "1" ]] && EXTRA_FLAGS+=(--skip_truth)
 [[ "${NO_AMP:-0}" == "1" ]]     && EXTRA_FLAGS+=(--no_amp)
 [[ "$NEED_MANIFEST" == "1" ]]   && EXTRA_FLAGS+=(--test_manifest "$TEST_MANIFEST")
 
-echo "=== [chunk $CHUNK_ID/$N_CHUNKS] suite=$SUITE model=$MODEL_NAME ckpt=$CHECKPOINT_PATH ==="
+echo "=== [chunk $CHUNK_ID/$N_CHUNKS] suite=$SUITE model=$MODEL_NAME ckpt=${CHECKPOINT_PATH:-<last.ckpt>} ==="
 
 /mnt/home/mlee1/venvs/torch3/bin/python -m bind.cli.camels_suite \
     --suite "$SUITE" \
@@ -163,7 +165,6 @@ echo "=== [chunk $CHUNK_ID/$N_CHUNKS] suite=$SUITE model=$MODEL_NAME ckpt=$CHECK
     --halo_mass_min "$HALO_MASS_MIN" \
     --run_dir "$RUN_DIR" \
     --model_name "$MODEL_NAME" \
-    --checkpoint_path "$CHECKPOINT_PATH" \
     --output_root "$OUTPUT_ROOT" \
     --n_steps "$N_STEPS" \
     --batch_size "$BATCH_SIZE" \

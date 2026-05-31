@@ -19,7 +19,7 @@ pip install -e .            # imports as `bind`
 python -m bind.train --data_root /path/to/train_data_rotated2_128_cpu \
     --run_name fm_two_head --stars_two_head --interpolant fm --max_epochs 200
 # Or, equivalently, set $BIND_DATA_ROOT once and omit --data_root.
-sbatch run_train_two_head.sh   # SLURM, 8× H100
+sbatch run_train.sh            # SLURM, 8× H100 (mass model); THERMO=1 sbatch run_train.sh for +thermo
 ```
 Key flags that change the architecture/data path: `--stars_two_head` (out_ch 3→4), `--predict_thermo` (appends 4 gas-thermo channels; requires the large-scale data path — rejected with `--no_large_scale`), `--interpolant {fm,si}`, `--no_large_scale` (cube data, in_ch −3), `--exclude_cosmo_params` (35→31 params, drops indices 0,1,7,8 but keeps Ω_b). `--output_dir` defaults to `./runs`.
 
@@ -29,9 +29,9 @@ bind-camels-suite --suite cv --run_dir weights/fm_two_head \
     --checkpoint_path weights/fm_two_head/last.ckpt \
     --model_name fm_two_head --output_root /path/to/eval_outputs \
     --cv_param_file ... --cv_nbody_root ... --cv_hydro_root ... --cv_fof_root ...
-sbatch --array=0-9 run_test_suite_parallel.sh   # SLURM array
+sbatch --array=0-9 run_test_suite.sh   # SLURM array
 ```
-`--suite` ∈ `{cv, 1p, test, sb35, all}`. All CAMELS data roots are required flags — no hardcoded defaults. The parallel script builds the SB35 manifest in chunk 0 and gates the others on a lock file.
+`--suite` ∈ `{cv, 1p, test, sb35, all}`. All CAMELS data roots are required flags — no hardcoded defaults. `run_test_suite.sh` is model-agnostic (mass vs mass+thermo is selected by `RUN_DIR`/`MODEL_NAME`/`CHECKPOINT_PATH` env overrides) and builds the SB35 manifest in chunk 0, gating the others on a lock file.
 
 **Paint onto an arbitrary N-body sim** (the general, deploy-facing path — `bind.paint()` / `bind-paint`):
 ```bash
@@ -75,7 +75,7 @@ The trainable engine lives on `main`. Understanding it requires reading `src/bin
   - `feature/thermo` — **archival**: original thermo dev history + `stale/` graveyard. Its engine support is on `main`, the model notebooks were promoted to `examples/`, and the science notebooks moved to `analysis/tsz-icm`. Kept for history; don't add new work here.
   - `wip` — scratch notebooks, parameter-injection experiments, planning notes.
   - `3D` — legacy, superseded by `feature/3d-cube`.
-  The two thermo model notebooks live on `main` at `examples/{paper_figures_thermo,analysis_thermo}.ipynb` (imports already rewritten to `bind.*`); the thermo run scripts are `run_train_thermo.sh` / `run_test_suite_thermo.sh`.
+  The two thermo model notebooks live on `main` at `examples/{paper_figures_thermo,analysis_thermo}.ipynb` (imports already rewritten to `bind.*`). Training and eval each use a single unified SLURM script — `run_train.sh` (`THERMO=1` toggles `--predict_thermo`) and `run_test_suite.sh` (model selected by env overrides) — there are no longer separate `*_two_head`/`*_thermo`/`*_parallel` variants. `feature/thermo` was deleted; its `stale/` graveyard + a full-tree tarball are archived at `/mnt/ceph/users/mlee1/bind_archive/feature_thermo/`.
   When starting new analysis, put it on the appropriate topic branch (or a new one) rather than on `main`. The remote is **`origin` → https://github.com/Maxelee/BIND.git**; topic branches are pushed there too.
 - **`main` is both the trunk and the release.** It is the installable `bind` package (`src/bind/` layout) used for training (`bind.train`), evaluation (`bind.inference`), and the `bind.paint()` inference API — there is no separate flat "training" layout. Releases are cut as **git tags + GitHub Releases** (e.g. `v0.1.0`), not long-lived `release/*` branches, so the released package is always identical to validated `main`.
 - **Generated artifacts are not versioned.** `.gitignore` excludes caches, `outputs/`, figures (`*.pdf/*.png/*.gif`, `figures/`, `paper_figures/`), `*.npz`/`*.npy`, `*.log`, `weights/`, and `__pycache__`. The bundled demo input (`examples/data/dmo_sample.npz`) and packaged assets (`src/bind/assets/`) are explicit allow-list exceptions.

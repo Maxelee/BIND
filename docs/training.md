@@ -121,11 +121,12 @@ state are stripped by `bind-slim-checkpoint`).
 ## SLURM recipe
 
 ```{code-block} bash
-:caption: run_train_two_head.sh
-sbatch run_train_two_head.sh
+:caption: run_train.sh
+sbatch run_train.sh             # mass model (fm_two_head)
+THERMO=1 sbatch run_train.sh    # + 4 gas-thermo fields (fm_thermo)
 ```
 
-equivalent to
+the mass-model case is equivalent to
 
 ```{code-block} bash
 python -m bind.train \
@@ -136,4 +137,4 @@ python -m bind.train \
     --max_epochs 200
 ```
 
-See [`run_train_two_head.sh`](https://github.com/Maxelee/BIND/blob/release/v0.1/run_train_two_head.sh) for the full SLURM submission script.
+See [`run_train.sh`](https://github.com/Maxelee/BIND/blob/main/run_train.sh) for the full SLURM submission script.

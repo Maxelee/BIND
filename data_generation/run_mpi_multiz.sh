@@ -5,8 +5,8 @@
 #SBATCH -N 8
 #SBATCH -n 128
 #SBATCH --exclusive
-#SBATCH -o OUTPUT_MULTIZ.o%j
-#SBATCH -e OUTPUT_MULTIZ.e%j
+#SBATCH -o /mnt/home/mlee1/ceph/OUTPUT_MULTIZ.o%j
+#SBATCH -e /mnt/home/mlee1/ceph/OUTPUT_MULTIZ.e%j
 #SBATCH --mail-user=mel2260@columbia.edu
 #SBATCH --mail-type=ALL
 #SBATCH -t 6-23:15:00

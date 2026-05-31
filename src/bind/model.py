@@ -112,7 +112,8 @@ class UNet(nn.Module):
 
     def __init__(self, in_ch=7, out_ch=3, base_ch=128,
                  ch_mult=(1, 2, 4, 8), n_blocks=2, emb_dim=256,
-                 attn_resolutions=(32, 16), dropout=0.0, n_params=35):
+                 attn_resolutions=(32, 16), dropout=0.0, n_params=35,
+                 condition_redshift=False):
         super().__init__()
 
         # Time + param embeddings
@@ -122,6 +123,18 @@ class UNet(nn.Module):
             nn.Linear(emb_dim, emb_dim),
         )
         self.param_emb = ParamEncoder(n_params, emb_dim)
+
+        # Optional redshift conditioning. The model conditions on the scale
+        # factor a = 1/(1+z) via its own sinusoidal→MLP embedding (mirroring the
+        # diffusion-time embedding) which is summed into the AdaGroupNorm
+        # conditioning. None → behaves exactly like the non-redshift model, so
+        # existing checkpoints load and run unchanged.
+        self.condition_redshift = condition_redshift
+        self.redshift_emb = nn.Sequential(
+            SinusoidalEmbedding(base_ch),
+            nn.Linear(base_ch, emb_dim), nn.SiLU(),
+            nn.Linear(emb_dim, emb_dim),
+        ) if condition_redshift else None
 
         # Input projection
         self.input_conv = nn.Conv2d(in_ch, base_ch, 3, padding=1)
@@ -180,13 +193,17 @@ class UNet(nn.Module):
         nn.init.zeros_(self.out_conv.weight)
         nn.init.zeros_(self.out_conv.bias)
 
-    def forward(self, x, t, params):
+    def forward(self, x, t, params, scale_factor=None):
         """
         x: (B, 7, 128, 128) — concat of [noisy_target, condition, large_scale]
         t: (B,) — timestep in [0, 1]
         params: (B, 35) — normalized cosmological parameters
+        scale_factor: (B,) — scale factor a = 1/(1+z); used iff the model was
+            built with condition_redshift=True. Ignored otherwise.
         """
         emb = self.time_emb(t) + self.param_emb(params)
+        if self.redshift_emb is not None and scale_factor is not None:
+            emb = emb + self.redshift_emb(scale_factor)
 
         h = self.input_conv(x)
 
@@ -357,7 +374,7 @@ class FlowMatching:
         # last and are left at loss weight 1.
         self.stars_two_head = stars_two_head
 
-    def loss(self, x1, condition, large_scale, params):
+    def loss(self, x1, condition, large_scale, params, scale_factor=None):
         """Compute flow matching loss.
 
         Args:
@@ -365,6 +382,8 @@ class FlowMatching:
             condition: (B, 1, H, W) — normalized DMO condition
             large_scale: (B, 3, H, W) — normalized large-scale context
             params: (B, 35) — normalized parameters
+            scale_factor: (B,) — scale factor a=1/(1+z) for redshift-conditioned
+                models; None for the z=0 / non-redshift model.
         """
         B = x1.shape[0]
         t = torch.rand(B, device=x1.device)
@@ -383,7 +402,7 @@ class FlowMatching:
             model_input = torch.cat([x_t, condition, large_scale], dim=1)
         else:
             model_input = torch.cat([x_t, condition], dim=1)
-        v_pred = self.model(model_input, t, params)
+        v_pred = self.model(model_input, t, params, scale_factor)
 
         per_pixel = (v_pred - velocity_target) ** 2
 
@@ -404,7 +423,8 @@ class FlowMatching:
 
         return per_pixel.mean()
 
-    def sample(self, condition, large_scale=None, params=None, n_steps=50, cfg_scale=1.0, grad=False):
+    def sample(self, condition, large_scale=None, params=None, n_steps=50,
+               cfg_scale=1.0, grad=False, scale_factor=None):
         """Generate samples via Euler ODE integration.
 
         Args:
@@ -414,6 +434,9 @@ class FlowMatching:
             n_steps: number of Euler steps
             cfg_scale: classifier-free guidance scale (1.0 = no guidance)
             grad: if True, enable gradients so d(output)/d(params) can be computed
+            scale_factor: (B,) scale factor a=1/(1+z) for redshift-conditioned
+                models; None for the z=0 / non-redshift model. Redshift is held
+                fixed under classifier-free guidance (it is not the guided var).
         Returns:
             (B, self.out_channels, H, W) generated fields
         """
@@ -435,11 +458,11 @@ class FlowMatching:
                     inp = torch.cat([x, condition], dim=1)
 
                 if cfg_scale != 1.0:
-                    v_cond = self.model(inp, t, params)
-                    v_uncond = self.model(inp, t, torch.zeros_like(params))
+                    v_cond = self.model(inp, t, params, scale_factor)
+                    v_uncond = self.model(inp, t, torch.zeros_like(params), scale_factor)
                     v = v_uncond + cfg_scale * (v_cond - v_uncond)
                 else:
-                    v = self.model(inp, t, params)
+                    v = self.model(inp, t, params, scale_factor)
 
                 x = x + v * dt
 

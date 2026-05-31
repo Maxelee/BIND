@@ -54,6 +54,27 @@ THERMO_KEYS = ('compton_y', 'temperature', 'entropy', 'pressure')
 N_THERMO = len(THERMO_KEYS)
 
 
+# Snapshot number -> redshift for the CAMELS IllustrisTNG L50n512 suite (read
+# from each snapshot's Header/Redshift). The multi-redshift training data spans
+# these 8 snapshots; the model conditions on the scale factor a = 1/(1+z).
+# Used as a fallback when a sample .npz lacks an explicit 'redshift' key, and by
+# the data-generation script.
+SNAPSHOT_REDSHIFTS = {
+    90: 0.0000, 82: 0.2087, 74: 0.4679, 60: 1.0452,
+    52: 1.4837, 44: 2.0020, 32: 3.0081, 24: 4.0079,
+}
+
+
+def z_to_a(z):
+    """Redshift -> scale factor a = 1/(1+z) (the model's conditioning var)."""
+    return 1.0 / (1.0 + np.asarray(z, dtype=np.float64))
+
+
+def a_to_z(a):
+    """Scale factor a -> redshift z = 1/a - 1."""
+    return 1.0 / np.asarray(a, dtype=np.float64) - 1.0
+
+
 def thermo_forward(x, mean, std, floor):
     """Standardized zero-safe log10 transform for thermo fields.
 
@@ -254,9 +275,31 @@ def compute_norm_stats(file_list, n_samples=5000, seed=42, stars_two_head=False,
     )
 
 
-def load_file_list(data_root, split='train'):
-    """Load file paths from the precomputed no-lowmass cache."""
-    cache = Path(data_root) / split / 'file_list_cache_no_lowmass.txt'
+def load_file_list(data_root, split='train', recursive=False):
+    """Load training file paths.
+
+    Flat (single-redshift) layout reads the precomputed
+    ``file_list_cache_no_lowmass.txt``. The multi-redshift layout nests an extra
+    ``snap_<NNN>/`` level (``train/sim_i/snap_j/sim_i_halo_k_rot_0.npz``); pass
+    ``recursive=True`` to enumerate it with a recursive scan, cached in
+    ``file_list_cache_multiz.txt`` (rglob is expensive on ceph).
+    """
+    split_dir = Path(data_root) / split
+    if recursive:
+        cache = split_dir / 'file_list_cache_multiz.txt'
+        if cache.exists():
+            with open(cache) as f:
+                files = [line.strip() for line in f if line.strip()]
+            if files:
+                return files
+        files = sorted(str(p) for p in split_dir.rglob('*.npz'))
+        if not files:
+            raise FileNotFoundError(f'No .npz files found under {split_dir}')
+        with open(cache, 'w') as f:
+            f.write('\n'.join(files) + '\n')
+        print(f'[load_file_list:{split}] cached {len(files)} paths → {cache}')
+        return files
+    cache = split_dir / 'file_list_cache_no_lowmass.txt'
     with open(cache) as f:
         return [line.strip() for line in f if line.strip()]
 
@@ -273,13 +316,18 @@ class AstroDataset(Dataset):
     ``norm_stats`` does not need to change.
     """
 
-    def __init__(self, file_list, norm_stats, param_indices=None):
+    def __init__(self, file_list, norm_stats, param_indices=None,
+                 condition_redshift=False):
         self.file_list = file_list
         self.ns = norm_stats
         self.param_indices = (
             np.asarray(param_indices, dtype=np.int64)
             if param_indices is not None else None
         )
+        # When True, emit a per-sample 'scale_factor' a=1/(1+z) for the
+        # redshift-conditioned model (multi-redshift dataset). z is read from the
+        # npz 'redshift' key, falling back to the snapshot number in the path.
+        self.condition_redshift = condition_redshift
 
     def __len__(self):
         return len(self.file_list)
@@ -341,7 +389,21 @@ class AstroDataset(Dataset):
         ]
         return np.stack(chans).astype(np.float32)
 
-    def _build_item(self, d):
+    def _scale_factor(self, d, path):
+        """Scale factor a=1/(1+z) for a sample: npz 'redshift'/'scale_factor'
+        key if present, else the snapshot number parsed from the path."""
+        if 'scale_factor' in d.files:
+            return float(d['scale_factor'])
+        if 'redshift' in d.files:
+            return 1.0 / (1.0 + float(d['redshift']))
+        m = re.search(r'snap_?(\d+)', str(path))
+        if m is None or int(m.group(1)) not in SNAPSHOT_REDSHIFTS:
+            raise KeyError(
+                f'condition_redshift=True but no redshift in {path} and the '
+                f'snapshot number is not in SNAPSHOT_REDSHIFTS')
+        return 1.0 / (1.0 + SNAPSHOT_REDSHIFTS[int(m.group(1))])
+
+    def _build_item(self, d, path=None):
         target = self._build_target(d['target'])
         if self.ns.predict_thermo:
             target = np.concatenate([target, self._build_thermo(d)], axis=0)
@@ -357,25 +419,31 @@ class AstroDataset(Dataset):
         if self.param_indices is not None:
             params = params[self.param_indices]
 
-        return {
+        item = {
             'target': torch.from_numpy(target.astype(np.float32)),
             'condition': torch.from_numpy(cond.astype(np.float32)),
             'large_scale': torch.from_numpy(ls.astype(np.float32)),
             'params': torch.from_numpy(params),
         }
+        if self.condition_redshift:
+            item['scale_factor'] = torch.tensor(
+                self._scale_factor(d, path), dtype=torch.float32)
+        return item
 
     def __getitem__(self, idx):
+        path = self.file_list[idx]
         if not self.ns.predict_thermo:
-            return self._build_item(np.load(self.file_list[idx]))
+            return self._build_item(np.load(path), path)
         # Most — but not all — no-lowmass sims have thermo maps appended. A file
         # lacking them can't provide a thermo target, so resample a random index.
         # Missing files cluster by sim (consecutive in the list), so a random
         # jump escapes immediately where linear probing could get stuck.
         for _ in range(100):
-            d = np.load(self.file_list[idx])
+            d = np.load(path)
             if all(k in d.files for k in THERMO_KEYS):
-                return self._build_item(d)
+                return self._build_item(d, path)
             idx = np.random.randint(len(self.file_list))
+            path = self.file_list[idx]
         raise RuntimeError('No file with all THERMO_KEYS found in 100 tries')
 
 

@@ -24,7 +24,8 @@ class FlowMatchingLit(L.LightningModule):
                  cfg_dropout=0.1, warmup_steps=1000, n_sampling_steps=50,
                  star_occ_weight=1.0, star_zero_norm=None,
                  interpolant='fm', sigma=0.5, stars_two_head=False,
-                 no_large_scale=False, predict_thermo=False):
+                 no_large_scale=False, predict_thermo=False,
+                 condition_redshift=False):
         super().__init__()
         self.save_hyperparameters()
 
@@ -45,7 +46,7 @@ class FlowMatchingLit(L.LightningModule):
             in_ch=in_ch, out_ch=out_ch, base_ch=base_ch, ch_mult=ch_mult,
             n_blocks=n_blocks, emb_dim=emb_dim,
             attn_resolutions=attn_resolutions, dropout=dropout,
-            n_params=n_params,
+            n_params=n_params, condition_redshift=condition_redshift,
         )
         if interpolant == 'si':
             # Stars two-head / thermo not wired into the SI branch; SI is unused
@@ -74,6 +75,7 @@ class FlowMatchingLit(L.LightningModule):
         loss = self.fm.loss(
             batch['target'], batch['condition'],
             batch.get('large_scale'), batch['params'],
+            scale_factor=batch.get('scale_factor'),
         )
         self.log('train/loss', loss, prog_bar=True, sync_dist=True)
         return loss
@@ -82,6 +84,7 @@ class FlowMatchingLit(L.LightningModule):
         loss = self.fm.loss(
             batch['target'], batch['condition'],
             batch.get('large_scale'), batch['params'],
+            scale_factor=batch.get('scale_factor'),
         )
         self.log('val/loss', loss, prog_bar=True, sync_dist=True)
 
@@ -125,7 +128,8 @@ class AstroDataModule(L.LightningDataModule):
 
     def __init__(self, data_root, norm_stats_path=None, batch_size=64,
                  num_workers=8, n_stats_samples=10000, stars_two_head=False,
-                 param_indices=None, no_large_scale=False, predict_thermo=False):
+                 param_indices=None, no_large_scale=False, predict_thermo=False,
+                 condition_redshift=False):
         super().__init__()
         self.data_root = data_root
         self.norm_stats_path = norm_stats_path
@@ -136,14 +140,19 @@ class AstroDataModule(L.LightningDataModule):
         self.param_indices = param_indices
         self.no_large_scale = no_large_scale
         self.predict_thermo = predict_thermo
+        self.condition_redshift = condition_redshift
 
     def setup(self, stage=None):
         if self.no_large_scale:
             train_files = load_file_list_cube(self.data_root, 'train')
             test_files = load_file_list_cube(self.data_root, 'test')
         else:
-            train_files = load_file_list(self.data_root, 'train')
-            test_files = load_file_list(self.data_root, 'test')
+            # The multi-redshift dataset nests sim_i/snap_j/...; enumerate it
+            # recursively. The flat single-redshift dataset uses its cache file.
+            train_files = load_file_list(self.data_root, 'train',
+                                         recursive=self.condition_redshift)
+            test_files = load_file_list(self.data_root, 'test',
+                                        recursive=self.condition_redshift)
 
         # Compute or load normalization stats
         stats_path = Path(self.norm_stats_path or
@@ -186,11 +195,18 @@ class AstroDataModule(L.LightningDataModule):
             self.norm_stats.save(stats_path)
             print(f'Saved norm stats to {stats_path}')
 
-        DatasetCls = CubeAstroDataset if self.no_large_scale else AstroDataset
-        self.train_ds = DatasetCls(train_files, self.norm_stats,
-                                   param_indices=self.param_indices)
-        self.val_ds = DatasetCls(test_files, self.norm_stats,
-                                 param_indices=self.param_indices)
+        if self.no_large_scale:
+            self.train_ds = CubeAstroDataset(train_files, self.norm_stats,
+                                             param_indices=self.param_indices)
+            self.val_ds = CubeAstroDataset(test_files, self.norm_stats,
+                                           param_indices=self.param_indices)
+        else:
+            self.train_ds = AstroDataset(train_files, self.norm_stats,
+                                         param_indices=self.param_indices,
+                                         condition_redshift=self.condition_redshift)
+            self.val_ds = AstroDataset(test_files, self.norm_stats,
+                                       param_indices=self.param_indices,
+                                       condition_redshift=self.condition_redshift)
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True,
@@ -241,6 +257,12 @@ def main():
                              '(compton_y, temperature, entropy, pressure) as extra output '
                              'channels appended after the mass target. Requires the '
                              'large-scale (rotated2_128) data path and --interpolant fm.')
+    parser.add_argument('--condition_redshift', action='store_true',
+                        help='Condition on redshift (scale factor a=1/(1+z)) via a '
+                             'dedicated summed embedding, for the multi-redshift dataset '
+                             '(train/sim_i/snap_j/...). Expects a per-sample redshift in '
+                             'each .npz. Requires the large-scale data path and '
+                             '--interpolant fm.')
     # Training
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
@@ -262,6 +284,11 @@ def main():
                      '(--no_large_scale) files have no thermo fields.')
     if args.predict_thermo and args.interpolant != 'fm':
         parser.error('--predict_thermo is only implemented for --interpolant fm.')
+    if args.condition_redshift and args.no_large_scale:
+        parser.error('--condition_redshift uses the large-scale (multi-redshift) '
+                     'data path; it is incompatible with --no_large_scale.')
+    if args.condition_redshift and args.interpolant != 'fm':
+        parser.error('--condition_redshift is only implemented for --interpolant fm.')
 
     # Cosmological parameter indices to exclude when --exclude_cosmo_params is set.
     COSMO_INDICES = [0, 1, 7, 8]
@@ -285,6 +312,7 @@ def main():
         param_indices=param_indices,
         no_large_scale=args.no_large_scale,
         predict_thermo=args.predict_thermo,
+        condition_redshift=args.condition_redshift,
     )
 
     # Compute/load norm stats up-front so we can derive star_zero_norm before
@@ -310,6 +338,7 @@ def main():
         stars_two_head=args.stars_two_head,
         no_large_scale=args.no_large_scale,
         predict_thermo=args.predict_thermo,
+        condition_redshift=args.condition_redshift,
         n_params=n_params,
     )
 

@@ -70,10 +70,12 @@ The trainable engine lives on `main`. Understanding it requires reading `src/bin
 - **Branch organization** — `main` is the clean trunk: the core engine (`bind.data`/`bind.model`/`bind.train`/`bind.metrics`, `bind.inference/`) plus `examples/paper_figures.ipynb`. Distinct projects/analyses are **parked on topic branches**, not accumulated on `main`:
   - `feature/3d-cube` — 3D / cube-projection extension (`*_3d.py`, cube notebooks).
   - `analysis/2d` — matured 2D analyses (`scatter/` package, observables, `project1-7`, CV derivatives).
-  - `ksz_project` — kSZ / thermo science analyses.
-  - `feature/thermo` — gas-thermo research notebooks (Sobol Compton-Y, etc.); the engine support is now on `main`, so its remaining value is the notebooks (still on old flat import paths — rebase onto `main` before reuse).
+  - `analysis/tsz-icm` — tSZ / ICM thermo science: Y–M mass bias, WL calibration, entropy/pressure, Sobol assembly (`scatter/assembly_*`, `*_sobol` notebooks). Notebooks/scripts still on flat (`from data`) imports — fix per-file before reuse.
+  - `analysis/ksz_project` — kSZ science analyses (renamed from `ksz_project`).
+  - `feature/thermo` — **archival**: original thermo dev history + `stale/` graveyard. Its engine support is on `main`, the model notebooks were promoted to `examples/`, and the science notebooks moved to `analysis/tsz-icm`. Kept for history; don't add new work here.
   - `wip` — scratch notebooks, parameter-injection experiments, planning notes.
   - `3D` — legacy, superseded by `feature/3d-cube`.
+  The two thermo model notebooks live on `main` at `examples/{paper_figures_thermo,analysis_thermo}.ipynb` (imports already rewritten to `bind.*`); the thermo run scripts are `run_train_thermo.sh` / `run_test_suite_thermo.sh`.
   When starting new analysis, put it on the appropriate topic branch (or a new one) rather than on `main`. The remote is **`origin` → https://github.com/Maxelee/BIND.git**; topic branches are pushed there too.
 - **`main` is both the trunk and the release.** It is the installable `bind` package (`src/bind/` layout) used for training (`bind.train`), evaluation (`bind.inference`), and the `bind.paint()` inference API — there is no separate flat "training" layout. Releases are cut as **git tags + GitHub Releases** (e.g. `v0.1.0`), not long-lived `release/*` branches, so the released package is always identical to validated `main`.
 - **Generated artifacts are not versioned.** `.gitignore` excludes caches, `outputs/`, figures (`*.pdf/*.png/*.gif`, `figures/`, `paper_figures/`), `*.npz`/`*.npy`, `*.log`, `weights/`, and `__pycache__`. The bundled demo input (`examples/data/dmo_sample.npz`) and packaged assets (`src/bind/assets/`) are explicit allow-list exceptions.

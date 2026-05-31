@@ -467,7 +467,14 @@ def process_sim_snap(sim_id, snap):
 if __name__ == '__main__':
     if rank == 0:
         work = [(sid, snap) for sid in range(start_sim, end_sim) for snap in SNAPSHOTS]
-        print(f'[rank 0] {len(work)} (sim,snap) items over {size} ranks; '
+        # Shuffle so each rank (work[rank::size]) gets a representative MIX of
+        # snapshots/redshifts rather than being pinned to one. Without this, when
+        # size is a multiple of len(SNAPSHOTS) every rank lands on a single
+        # snapshot, so the high-z (≈no-halo) ranks finish in minutes and idle
+        # while the z≈0 ranks carry all the work. A dedicated RNG keeps the
+        # train/test split (global RNG, already drawn) untouched and reproducible.
+        random.Random(args.seed).shuffle(work)
+        print(f'[rank 0] {len(work)} (sim,snap) items over {size} ranks (shuffled); '
               f'snapshots={SNAPSHOTS}; rotations={num_rotations}', flush=True)
         out_root = os.path.join(args.output_base_root, args.output_name)
         os.makedirs(os.path.join(out_root, 'train'), exist_ok=True)

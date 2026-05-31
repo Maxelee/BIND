@@ -202,7 +202,12 @@ class UNet(nn.Module):
             built with condition_redshift=True. Ignored otherwise.
         """
         emb = self.time_emb(t) + self.param_emb(params)
-        if self.redshift_emb is not None and scale_factor is not None:
+        if self.redshift_emb is not None:
+            # A redshift-conditioned model always saw a scale-factor embedding in
+            # training, so default a missing scale_factor to a=1 (z=0) — a trained
+            # regime — rather than dropping the term entirely.
+            if scale_factor is None:
+                scale_factor = torch.ones(x.shape[0], device=x.device)
             emb = emb + self.redshift_emb(scale_factor)
 
         h = self.input_conv(x)

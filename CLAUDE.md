@@ -41,7 +41,7 @@ bind-paint --snapshot snap_090.hdf5 --group_catalog fof_subhalo_tab_090.hdf5 \
 This reads any Gadget/Arepo HDF5 DMO snapshot via `bind.inference.io_gadget`, tiles the box, and composites per-halo patches. Released weights come from HF `Maxelee/BIND2` via `bind-download-weights {fm_two_head,fm_thermo}`.
 
 **Filesystem layout** (large data lives on ceph, never in git):
-- Training data: `<DATA_ROOT>/{train,test}/` (file lists are cached in `file_list_cache*.txt`).
+- Training data: `<DATA_ROOT>/{train,test}/` (file lists are cached in `file_list_cache*.txt`). The pipeline that *produces* `<DATA_ROOT>` from the CAMELS SB35 suite lives in `data_generation/` (the exact MPI scripts used for the released data: `run_mpi_cpu.sh`→mass maps, `run_thermo_maps.sh`→gas-thermo channels, `run_mpi_cpu_lowmass.sh`→optional 1e12–1e13 halos; documented in `docs/data_generation.md`). They are Flatiron-rusty-specific (SLURM/MPI, hardcoded CAMELS paths as argparse defaults).
 - Run outputs: `<output_dir>/<run_name>/` → `checkpoints/`, `norm_stats.npz`.
 - Released weights: `weights/<run>/{last.ckpt,norm_stats.npz}` (gitignored, populated by `bind-download-weights`).
 

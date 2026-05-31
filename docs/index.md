@@ -56,6 +56,14 @@ fiducial / random / one-at-a-time variants.
 Training data, network architecture, conditioning, loss, and the SLURM recipe.
 :::
 
+:::{grid-item-card} 🗂️  Training data generation
+:link: data_generation
+:link-type: doc
+
+The CAMELS projection pipeline behind the training set — projection, rotations,
+gas-thermo maps, and the `.npz` format.
+:::
+
 :::{grid-item-card} 🔬  Method details
 :link: method
 :link-type: doc
@@ -101,6 +109,7 @@ parameters
 :hidden:
 :caption: Reference
 method
+data_generation
 training
 thermo
 api

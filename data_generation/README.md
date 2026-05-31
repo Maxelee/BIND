@@ -25,6 +25,27 @@ pipeline. Full prose walkthrough is in the docs:
 Steps 1 and 2 share `--total_sims 1024 --test_frac 0.1 --seed 1993` so the
 train/test split stays consistent when thermo channels are appended.
 
+## Multi-redshift variant (`feature/redshift`)
+
+`run_mpi_multiz.sh` → `process_simulations_multiz.py` is a **merged** generator
+that does steps 1 and 2 in a single pass over **8 snapshots** (z = 0, 0.21,
+0.47, 1.05, 1.48, 2.00, 3.01, 4.01) with **1 rotation per halo**. It writes a
+nested layout with an extra `snap_<NNN>/` level and stores `redshift` +
+`scale_factor` in each file:
+
+```
+train_data_multiz_128_cpu/train/sim_<i>/snap_<NNN>/sim_<i>_halo_<k>_rot_0.npz
+```
+
+This feeds the redshift-conditioned model (`bind.train --condition_redshift`).
+The train/test split is by sim (same seed) across all snapshots — no leakage.
+
+⚠ **The z>0 thermo physics carries scale-factor (a) comoving→physical factors
+that have not been validated against an independent reference** — see the
+docstring warning in `process_simulations_multiz.py` and check a couple of
+snapshots before trusting the z>0 thermo maps. Mass maps and temperature are
+a-independent and follow the validated z=0 path.
+
 ## Output format
 
 Each halo → `sim_<id>/halo_<h>_rot_<r>.npz`. See the docs page for the full

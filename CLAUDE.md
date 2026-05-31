@@ -56,11 +56,12 @@ The trainable engine lives on `main`. Understanding it requires reading `bind/mo
 
 ## Working conventions in this repo
 
-- **Branch organization** — `main` is the clean trunk: the core engine (`data/model/train/metrics`, `test_suite/`) plus `paper_figures.ipynb`. Distinct projects/analyses are **parked on topic branches**, not accumulated on `main`:
+- **Branch organization** — `main` is the clean trunk: the core engine (`bind.data`/`bind.model`/`bind.train`/`bind.metrics`, `bind.inference/`) plus `examples/paper_figures.ipynb`. Distinct projects/analyses are **parked on topic branches**, not accumulated on `main`:
   - `feature/3d-cube` — 3D / cube-projection extension (`*_3d.py`, cube notebooks).
   - `analysis/2d` — matured 2D analyses (`scatter/` package, observables, `project1-7`, CV derivatives).
   - `wip` — scratch notebooks, parameter-injection experiments, planning notes.
-  When starting new analysis, put it on the appropriate topic branch (or a new one) rather than on `main`. There is **no git remote** — this is a local-only repo.
+  When starting new analysis, put it on the appropriate topic branch (or a new one) rather than on `main`. The remote is **`origin` → https://github.com/Maxelee/BIND.git**; topic branches are pushed there too.
+- **`main` is both the trunk and the release.** It is the installable `bind` package (`src/bind/` layout) used for training (`bind.train`), evaluation (`bind.inference`), and the `bind.paint()` inference API — there is no separate flat "training" layout. Releases are cut as **git tags + GitHub Releases** (e.g. `v0.1.0`), not long-lived `release/*` branches, so the released package is always identical to validated `main`.
 - **Generated artifacts are not versioned.** `.gitignore` excludes caches, `outputs/`, figures (`*.pdf/*.png/*.gif`, `figures/`, `paper_figures/`), `*.npz`/`*.npy`, `*.log`, `weights/`, and `__pycache__`. The bundled demo input (`examples/data/dmo_sample.npz`) and packaged assets (`src/bind/assets/`) are explicit allow-list exceptions.
 
 ## Known data caveats (cost real time if forgotten)

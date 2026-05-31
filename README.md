@@ -226,9 +226,10 @@ docs/                    Sphinx / ReadTheDocs source
 weights/                 pretrained checkpoints (gitignored; populated by bind-download-weights)
 ```
 
-Distinct analyses live on topic branches (`analysis/2d`, `feature/3d-cube`,
-`feature/thermo`, `wip`). `main` is the clean trunk; `release/v0.1` is the
-packaged release line.
+`main` is the clean trunk **and** the installable release — there is no separate
+release branch. Tagged releases (e.g. [`v0.1.0`](https://github.com/Maxelee/BIND/releases))
+are cut directly from `main`. Distinct analyses live on topic branches
+(`analysis/2d`, `feature/3d-cube`, `ksz_project`, `feature/thermo`, `wip`).
 
 ---
 

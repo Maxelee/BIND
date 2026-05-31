@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this project is
 
-BIND2 is a conditional **flow-matching emulator that paints baryonic fields onto dark-matter-only (DMO) maps** for the CAMELS IllustrisTNG suite. Given a DMO density projection and a 35-dim cosmological+astrophysical parameter vector, it generates the corresponding hydro fields — `[DM_hydro, Gas, Stars]` — as 128×128 maps. The downstream science (in the topic branches, see below) uses the trained emulator to study how baryonic physics responds to feedback parameters.
+BIND2 is a conditional **flow-matching emulator that paints baryonic fields onto dark-matter-only (DMO) maps** for the CAMELS IllustrisTNG suite. Given a DMO density projection and a 35-dim cosmological+astrophysical parameter vector, it generates the corresponding hydro fields — `[DM_hydro, Gas, Stars]` — as 128×128 maps. With `--predict_thermo` it additionally emits 4 gas-thermodynamic fields (`compton_y, T, entropy, P_e`). The downstream science (in the topic branches, see below) uses the trained emulator to study how baryonic physics responds to feedback parameters.
 
 ## Environment & commands
 
-The package is installed editable into a Python venv (Python ≥3.10, PyTorch ≥2.0). "Test suite" here means the *physics evaluation pipeline* (`bind.test_suite`), not unit tests. CI runs `ruff check src` plus an import smoke test.
+The package is installed editable into a Python venv (Python ≥3.10, PyTorch ≥2.0); it imports as `bind` from the `src/bind/` layout. The *physics evaluation pipeline* lives in `bind.inference` (driven by the `bind-camels-suite` CLI over CAMELS suites); "test suite" here means that pipeline, not unit tests. CI runs `ruff check src` plus an import smoke test.
 
 ```bash
 pip install -e .            # imports as `bind`
@@ -21,17 +21,24 @@ python -m bind.train --data_root /path/to/train_data_rotated2_128_cpu \
 # Or, equivalently, set $BIND_DATA_ROOT once and omit --data_root.
 sbatch run_train_two_head.sh   # SLURM, 8× H100
 ```
-Key flags that change the architecture/data path: `--stars_two_head` (out_ch 3→4), `--interpolant {fm,si}`, `--no_large_scale` (cube data, in_ch −3), `--exclude_cosmo_params` (35→31 params, drops indices 0,1,7,8 but keeps Ω_b). `--output_dir` defaults to `./runs`.
+Key flags that change the architecture/data path: `--stars_two_head` (out_ch 3→4), `--predict_thermo` (appends 4 gas-thermo channels; requires the large-scale data path — rejected with `--no_large_scale`), `--interpolant {fm,si}`, `--no_large_scale` (cube data, in_ch −3), `--exclude_cosmo_params` (35→31 params, drops indices 0,1,7,8 but keeps Ω_b). `--output_dir` defaults to `./runs`.
 
-**Generate / evaluate** (DMO→hydro over a simulation suite):
+**Generate / evaluate** (DMO→hydro over a CAMELS simulation suite — the `bind-camels-suite` CLI):
 ```bash
-bind-test-suite --suite cv --run_dir weights/fm_two_head \
+bind-camels-suite --suite cv --run_dir weights/fm_two_head \
     --checkpoint_path weights/fm_two_head/last.ckpt \
     --model_name fm_two_head --output_root /path/to/eval_outputs \
     --cv_param_file ... --cv_nbody_root ... --cv_hydro_root ... --cv_fof_root ...
 sbatch --array=0-9 run_test_suite_parallel.sh   # SLURM array
 ```
 `--suite` ∈ `{cv, 1p, test, sb35, all}`. All CAMELS data roots are required flags — no hardcoded defaults. The parallel script builds the SB35 manifest in chunk 0 and gates the others on a lock file.
+
+**Paint onto an arbitrary N-body sim** (the general, deploy-facing path — `bind.paint()` / `bind-paint`):
+```bash
+bind-paint --snapshot snap_090.hdf5 --group_catalog fof_subhalo_tab_090.hdf5 \
+    --params my_params.npy --run_dir weights/fm_two_head --output_dir bind_output/run1
+```
+This reads any Gadget/Arepo HDF5 DMO snapshot via `bind.inference.io_gadget`, tiles the box, and composites per-halo patches. Released weights come from HF `Maxelee/BIND2` via `bind-download-weights {fm_two_head,fm_thermo}`.
 
 **Filesystem layout** (large data lives on ceph, never in git):
 - Training data: `<DATA_ROOT>/{train,test}/` (file lists are cached in `file_list_cache*.txt`).
@@ -40,26 +47,33 @@ sbatch --array=0-9 run_test_suite_parallel.sh   # SLURM array
 
 ## Architecture (the big picture)
 
-The trainable engine lives on `main`. Understanding it requires reading `bind/model.py` + `bind/data.py` + `bind/train.py` together:
+The trainable engine lives on `main`. Understanding it requires reading `src/bind/model.py` + `src/bind/data.py` + `src/bind/train.py` together:
 
 - **`model.py`** — `UNet` predicts a flow-matching velocity. Conditioning is injected two ways: the 35 params go through `ParamEncoder` and the diffusion time through a sinusoidal embedding; their **sum** drives `AdaGroupNorm` (adaptive scale/shift) inside every `ResBlock`. The UNet input is a channel concat `[noisy_state, DMO condition, large_scale]`. Two formulations share the model:
   - `FlowMatching` — OT flow matching, **noise → hydro** (`x_t = (1-t)·noise + t·x1`), the production path.
   - `StochasticInterpolant` — a **DMO → hydro** bridge; present but not used in current analyses (and not wired for two-head).
 - **`data.py`** — `NormStats` is the contract between training and inference: per-channel `log10(1+x)` standardization, plus param min/max bounds read from the **SB35 CSV** with per-param `LogFlag` (so normalization is well-defined for any sim, not just the training subset). It is **versioned/back-compatible**: old `norm_stats.npz` files load with new fields defaulting safely. Two dataset classes: `AstroDataset` (2D maps *with* `large_scale`) and `CubeAstroDataset` (6.25 Mpc/h cube projections, *no* `large_scale`, params looked up from the SB35 table by `sim_NNNN` in the path).
-- **Stars two-head mode** (`--stars_two_head`) is the subtle part that threads through all three files. The Stars channel is split into **(occupancy mask, conditional log-density)** so the model emits 4 channels; `compute_norm_stats` computes occupancy/conditional stats over *occupied pixels only* (avoids zero-pixel domination); inference in `bind.test_suite.pipeline._denormalize_to_physical` **recombines them via a hard 0.5 occupancy gate × density** back to the standard 3-channel artifact.
+- **Stars two-head mode** (`--stars_two_head`) is the subtle part that threads through all three files. The Stars channel is split into **(occupancy mask, conditional log-density)** so the model emits 4 channels; `compute_norm_stats` computes occupancy/conditional stats over *occupied pixels only* (avoids zero-pixel domination); inference in `bind.inference.pipeline._denormalize_to_physical` **recombines them via a hard 0.5 occupancy gate × density** back to the standard 3-channel artifact.
+- **Thermo mode** (`--predict_thermo`) appends `N_THERMO` gas-thermodynamic channels (`bind.data.THERMO_KEYS`: `compton_y, T, entropy, P_e`) to the output. Unlike the mass channels these use a plain `log10` (not `log10(1+x)`) normalization, and `norm_stats.npz` records whether it was computed with thermo stats (`NormStats.predict_thermo`) — training asserts the flag matches the stats file. Not wired into the `StochasticInterpolant` branch or the cube dataset.
 - **`train.py`** — `FlowMatchingLit` (Lightning) + `AstroDataModule`. Computes/loads `norm_stats.npz` up front, derives `star_zero_norm` from it, then builds the model. AdamW + linear-warmup→cosine LR, gradient clipping, EMA weights saved into the checkpoint.
-- **`bind.test_suite/`** — orchestration for evaluation, intentionally mirroring the original analysis notebooks ("notebook-equivalent"):
-  - `runner.py` (`run_suite`) loads a `FlowMatchingLit` checkpoint and fans simulations out over a thread pool.
-  - `pipeline.py` holds the physics primitives: particle→grid projection (`MAS_library` CIC, optional dependency), halo-cutout extraction, truth-map projection, and the "BIND composite" that pastes generated halo patches back into a full-box map (square taper or `r200_factor` circular paste).
+- **`bind.inference/`** — orchestration for evaluation + the general paint engine, intentionally mirroring the original analysis notebooks ("notebook-equivalent"):
+  - `paint.py` is the deploy-facing API: `bind.paint(sim, model, params, output_dir, ...)` plus the `bind.Simulation` / `bind.Model` / `bind.PaintResult` classes re-exported at top level (see `src/bind/__init__.py`).
+  - `io_gadget.py` reads arbitrary Gadget/Arepo HDF5 DMO snapshots + FoF/Subfind catalogs (so painting isn't limited to the CAMELS file layout).
+  - `runner.py` (`run_suite`) loads a `FlowMatchingLit` checkpoint and fans CAMELS simulations out over a thread pool.
+  - `pipeline.py` holds the physics primitives: particle→grid projection (`MAS_library` CIC, optional dependency), halo-cutout extraction, truth-map projection, and the "BIND composite" that pastes generated halo patches back into a full-box map (square taper or `r200_factor` circular paste). `_denormalize_to_physical` lives here.
   - `config.py` builds per-suite `SimulationSpec`s; `schemas.py` defines `RunConfig`/`SimulationSpec`; `artifacts.py` handles save/load + JSON serialization (`to_jsonable`).
-  - `bind.cli.run_test_suite` (`bind-test-suite`) is the CLI that wires these together (supports `--n_chunks/--chunk_id` for SLURM arrays).
+  - `bind.cli.camels_suite` (`bind-camels-suite`) is the CAMELS-suite CLI; `bind.cli.paint` (`bind-paint`) the single-snapshot CLI (both support `--help`; `camels_suite` supports `--n_chunks/--chunk_id` for SLURM arrays).
+- **`params.py`** — parameter helpers exported at top level: `bind.fiducial_params()`, `random_params()`, `vary_param()`/`vary_params()`, `param_dataframe()`, backed by the bundled SB35 metadata in `assets/`.
 
 ## Working conventions in this repo
 
 - **Branch organization** — `main` is the clean trunk: the core engine (`bind.data`/`bind.model`/`bind.train`/`bind.metrics`, `bind.inference/`) plus `examples/paper_figures.ipynb`. Distinct projects/analyses are **parked on topic branches**, not accumulated on `main`:
   - `feature/3d-cube` — 3D / cube-projection extension (`*_3d.py`, cube notebooks).
   - `analysis/2d` — matured 2D analyses (`scatter/` package, observables, `project1-7`, CV derivatives).
+  - `ksz_project` — kSZ / thermo science analyses.
+  - `feature/thermo` — gas-thermo research notebooks (Sobol Compton-Y, etc.); the engine support is now on `main`, so its remaining value is the notebooks (still on old flat import paths — rebase onto `main` before reuse).
   - `wip` — scratch notebooks, parameter-injection experiments, planning notes.
+  - `3D` — legacy, superseded by `feature/3d-cube`.
   When starting new analysis, put it on the appropriate topic branch (or a new one) rather than on `main`. The remote is **`origin` → https://github.com/Maxelee/BIND.git**; topic branches are pushed there too.
 - **`main` is both the trunk and the release.** It is the installable `bind` package (`src/bind/` layout) used for training (`bind.train`), evaluation (`bind.inference`), and the `bind.paint()` inference API — there is no separate flat "training" layout. Releases are cut as **git tags + GitHub Releases** (e.g. `v0.1.0`), not long-lived `release/*` branches, so the released package is always identical to validated `main`.
 - **Generated artifacts are not versioned.** `.gitignore` excludes caches, `outputs/`, figures (`*.pdf/*.png/*.gif`, `figures/`, `paper_figures/`), `*.npz`/`*.npy`, `*.log`, `weights/`, and `__pycache__`. The bundled demo input (`examples/data/dmo_sample.npz`) and packaged assets (`src/bind/assets/`) are explicit allow-list exceptions.

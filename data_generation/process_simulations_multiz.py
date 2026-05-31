@@ -430,7 +430,10 @@ def process_sim_snap(sim_id, snap):
         # Mass maps (DM condition+large_scale, hydro DM, Gas[all], Stars).
         nbody_full, = project_weighted(dm_pos, [dm_mass], halo_center, seed)
         hdm_full, = project_weighted(hdm_pos, [hdm_mass], halo_center, seed)
-        gas_full, = project_weighted(gas['pos'], [gas['mass']], halo_center, seed)
+        # gas['mass'] is in code units (1e10 Msun/h); the mass TARGET map must be
+        # physical Msun like DM_hydro/Stars/condition (load_gas_fields keeps code
+        # units because the thermo weights/mass_code_to_kg need them).
+        gas_full, = project_weighted(gas['pos'], [gas['mass'] * 1e10], halo_center, seed)
         star_full, = project_weighted(star_pos, [star_mass], halo_center, seed)
 
         nbody = extract_multiscale(nbody_full, resolution)

@@ -6,6 +6,72 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-06-03 — Observable → f_b PoC (`analysis/observable-fb-map`)
+
+Tested whether BIND observables predict the unmeasurable baryon fraction f_b
+*without estimating feedback θ*, on the existing 256-design × 1111-halo Sobol
+factorial (`ceph/sobol_ss_cv/cube.npz`). Held-out-θ via `GroupKFold(design)`.
+
+- `tools/observable_fb_reduce.py` — derives SX (X-ray ∝ Σ Gas²√T), τ (kSZ gas-mass
+  proxy), f_star, **f_b** from the 7-channel maps in the *same* R200 aperture as
+  `sobol_ss_generation.reduce_design` (self-check: Y200/f_gas reproduce the cube
+  to 0). → `ceph/sobol_ss_cv/obs_fb_extra.npz`.
+- `tools/build_observable_fb_nb.py` → `observable_fb_map.ipynb`; plan in
+  `docs/observable_fb_poc.md`, results in `docs/observable_fb_results_2026-06-03.md`.
+- **Finding (⚠️ provisional):** map is well-posed as a *vector*, not from Y alone.
+  σ(f_b|Y,SX) is ~half σ_marginal at logM 13–14 (−57/43/22%); full Y,SX,T,S,P
+  reaches −64/56/49%. **Y alone is weak (−26/16/9%)** and degenerate — SX (n_e²√T)
+  is the degeneracy-breaker, beating the τ gas-mass proxy (so not circular).
+  Untested: off-grid model, BIND-vs-CAMELS-truth f_b, observational systematics,
+  cosmology marginalisation.
+- **Profile edition.** `tools/stack_profiles_reduce.py` → field-level per-(design,
+  bin) stacked profiles Y(r), SX(r) (= Gas²√T per-halo *then* stacked), gas-weighted
+  T/S/P(r), projected f_b(r)=Σ_b/Σ_tot, 12 pixel-based radial bins (57–1595 kpc/h) →
+  `stacked_profiles.npz`. `tools/build_profile_fb_nb.py` → `profile_fb_map.ipynb`
+  (reviewer-mode docs: Sobol design, emulator provenance, stacking, Ridge method).
+  Predict f_b(r) profile from observable profiles, multi-output Ridge, KFold over
+  256 designs. Results `docs/observable_fb_profile_results_2026-06-03.md`.
+  **Finding:** at the population/profile level Y is a STRONG predictor (69/73/67%
+  reduction) — opposite of the per-halo scalar where Y was weak — because stacking +
+  shape disambiguate feedback. Profile beats integrated scalar (54%→79%, low bin).
+  Full Y,SX,T,S,P → 75–80%; reduction peaks ~90% at 100–200 kpc (feedback core),
+  fades to f_cosmic outskirts. α-robust. §3.5 joint-distribution view
+  (`prof_joint_*`): 256 designs at fixed (r,mass) = sample of p(f_b,Y); Ridge =
+  conditional mean; ρ(Y,f_b)=0.94 @141 kpc, loosens core/outskirts.
+- **Real-data validation** (the key test). `tools/stack_profiles_truth.py` stacks
+  the 27-sim CV **hydro truth** (`full_maps.truth_maps`=[DM,Gas,Stars] cut at halo
+  centres — crop validated to reproduce stored DMO `condition` to corr=1;
+  `truth_thermo_patches`=[y,T,S,P]) into truth Y/SX/f_b(r) →
+  `truth_stacked_profiles.npz`. `tools/build_realdata_nb.py` →
+  `profile_fb_realdata.ipynb`: train Ridge on 256 BIND designs, predict CAMELS-truth
+  f_b(r) from truth observables + realistic log-normal obs noise. Results
+  `docs/observable_fb_realdata_results_2026-06-03.md`.
+  **PASSES:** truth (Y,f_b) lands on the BIND conditional mean (`real_truth_on_joint`);
+  Y+SX predicts truth f_b(r) to RMS ~0.004 (≈4% of range), recovers the truth
+  evacuated core (not the BIND mean); robust to 20% obs noise. **Honest finding:**
+  the full Y,SX,T,S,P (best in-distribution) transfers WORSE to truth (overfits the
+  BIND→truth gap, esp. sparse top bin) → Y+SX is the robust real-data set. Caveats:
+  single feedback point (interpolation), shared DMO halos, projected f_b, proxy SX.
+- **Projection/LOS sanity check** (`projection_fb_check.ipynb`,
+  `docs/observable_fb_projection_2026-06-03.md`, `proj_*.png`): the stacked f_b(r)>cosmic
+  at ~400 kpc is NOT a projection artifact — `fm_testsuite_cube` 6.25 Mpc/h truth
+  (`truth_halos_cube.npz`, same halos) gives ~identical differential f_b (LOS effect
+  <0.02, only r≳600 kpc, dilutes toward cosmic). It's the DIFFERENTIAL profile
+  overshooting (gas pushed out of core); ENCLOSED f_b(<R200)=0.11/0.15/0.16 stays below
+  cosmic (missing baryons, deficit largest at low mass). tSZ Y IS LOS-sensitive (flattens
+  to uniform bg at large r) unlike mass-f_b; observers use CAP (disk−annulus)/matched
+  filter/deprojection — demo'd. Next data-gen: 6.25 Mpc/h THERMO cubes to quantify Y's LOS.
+- **CAP-filtered validation** (`profile_fb_cap_validation.ipynb`,
+  `docs/observable_fb_cap_2026-06-03.md`, `cap_*.png`): re-ran BIND→truth with
+  Compensated-Aperture-Photometry observables (CAP(θ)=disk−√2-annulus, nulls uniform LOS
+  bg; computed exactly from profiles+pixel counts, no re-reduction). **Validation holds**:
+  CAP predicts truth f_b(r) to ~0.005–0.007 (vs raw 0.004), modestly worse because CAP
+  discards the absolute zero-point an observation can't measure anyway → result no longer
+  depends on unmeasurable Y normalisation (more credible for real data). **Hypothesis
+  overturned:** CAP is NOT more noise-robust — per-measurement error grows ~linearly for
+  both raw & CAP (CAP slightly worse); CAP buys robustness vs background, not per-bin
+  noise. Used honest median-per-measurement metric (RMS-of-mean was a regression artifact).
+
 ## 2026-06-03 — Two-stage paint (CPU/MPI project → GPU generate); fixes TNG-box OOM
 
 `run_paint_tng.sh` (one-shot `bind.paint` on one A100 node) OOMed: the box load

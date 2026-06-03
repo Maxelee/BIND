@@ -67,7 +67,7 @@ consistent, cutouts centered on density peaks (98–99%), multiscale context at 
 correct [6.25,12.5,25,50] Mpc/h. Stage 2 (fm_two_head, 50 steps, ~5 s/16-halo
 batch on one A100): composite mass-conserved per slab, DM_hydro reproduces the
 DMO web, Gas/Stars painted only in halos, f_b≈0.10 (feedback-depleted, below
-cosmic 0.157). Notebook `paint_tng_results.ipynb` (repo root) does these checks +
+cosmic 0.157). Notebook `examples/paint_tng_results.ipynb` does these checks +
 figures; stage-2 cells are race-safe (`safe_load`) so they populate as slabs land.
 §7 computes the **matter-power suppression**: sum the z-slabs (masses additive) →
 full-box DMO + painted (DM+Gas+Stars) grids → 2D `Pk_plane` ratio (capped at

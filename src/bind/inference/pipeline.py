@@ -347,20 +347,69 @@ def extract_periodic_cutout(field: np.ndarray, cx: int, cy: int, size: int) -> n
     return field[np.ix_(ix, iy)]
 
 
-def extract_multiscale(dmo_map: np.ndarray, cx_pix: int, cy_pix: int, target_res: int) -> tuple[np.ndarray, np.ndarray]:
-    """Extract condition patch and three large-scale context patches."""
-    full_res = dmo_map.shape[0]
-    scales_pix = [target_res, target_res * 2, target_res * 4, full_res]
-    result = np.zeros((4, target_res, target_res), dtype=np.float32)
+def _downsample_square(cutout: np.ndarray, target_res: int) -> np.ndarray:
+    """Downsample a square cutout to ``target_res × target_res``.
 
+    Uses exact block-mean when the size is an integer multiple of ``target_res``
+    (the training / CAMELS-suite case — kept bit-for-bit). Falls back to
+    area-averaging interpolation when it is not, which happens for the full-box
+    context scale of a box whose ``npix`` is not a multiple of ``target_res``
+    (e.g. TNG300: ``npix = round(205 / 0.0488) = 4198``, ``target_res = 128``).
+    ``mode="area"`` is exactly average pooling, so it matches block-mean for
+    integer factors and stays mass-preserving for fractional ones.
+    """
+    spx = cutout.shape[0]
+    if spx == target_res:
+        return cutout.astype(np.float32)
+    if spx % target_res == 0:
+        factor = spx // target_res
+        return (cutout.reshape(target_res, factor, target_res, factor)
+                .mean(axis=(1, 3)).astype(np.float32))
+    # Non-divisible size: area-average to downsample, bilinear to upsample
+    # (matches the training generator's scipy-zoom order=1 upsample branch).
+    t = torch.from_numpy(np.ascontiguousarray(cutout, dtype=np.float32))[None, None]
+    if spx > target_res:
+        out = torch.nn.functional.interpolate(t, size=(target_res, target_res), mode="area")
+    else:
+        out = torch.nn.functional.interpolate(
+            t, size=(target_res, target_res), mode="bilinear", align_corners=False)
+    return out[0, 0].numpy().astype(np.float32)
+
+
+# Fixed physical scales (Mpc/h) of the condition + 3 large-scale context channels,
+# matching the training data generator (data_generation/process_simulations2_cpu.py,
+# extract_multiscale_cutouts: scales_mpc = [6.25, 12.5, 25.0, 50.0]). The model was
+# trained with the largest context channel = a 50 Mpc/h window, so inference MUST use
+# the same physical scales regardless of the full-box size — not [128,256,512,full_res]
+# pixels, which makes the 4th channel span the whole box (e.g. 205 Mpc/h for TNG300)
+# and feeds the network out-of-distribution context.
+MULTISCALE_MPC = (6.25, 12.5, 25.0, 50.0)
+
+
+def extract_multiscale(
+    dmo_map: np.ndarray, cx_pix: int, cy_pix: int, target_res: int,
+    mpc_per_pix: float | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Extract the condition patch and three large-scale context patches.
+
+    With ``mpc_per_pix`` (Mpc/h per pixel of ``dmo_map``) the four channels are
+    taken at the fixed *physical* scales :data:`MULTISCALE_MPC` =
+    (6.25, 12.5, 25, 50) Mpc/h — matching the training data — each capped at the
+    box and resampled to ``target_res``. For a native 50 Mpc/h / 1024-pixel
+    projection (training + CAMELS suites) this gives exactly [128,256,512,1024]
+    px, identical to the legacy behaviour. When ``mpc_per_pix is None`` the
+    legacy pixel-doubling scales ``[target_res, 2x, 4x, full_res]`` are used.
+    """
+    full_res = dmo_map.shape[0]
+    if mpc_per_pix is None:
+        scales_pix = [target_res, target_res * 2, target_res * 4, full_res]
+    else:
+        scales_pix = [min(int(round(s / mpc_per_pix)), full_res) for s in MULTISCALE_MPC]
+
+    result = np.zeros((4, target_res, target_res), dtype=np.float32)
     for i, spx in enumerate(scales_pix):
         cutout = extract_periodic_cutout(dmo_map, cx_pix, cy_pix, spx)
-        if spx == target_res:
-            result[i] = cutout
-            continue
-
-        factor = spx // target_res
-        result[i] = cutout.reshape(target_res, factor, target_res, factor).mean(axis=(1, 3))
+        result[i] = _downsample_square(cutout, target_res)
 
     return result[0], result[1:]
 
@@ -374,11 +423,13 @@ def extract_halo_cutouts(
 ) -> list[dict]:
     """Extract all multiscale DMO cutouts at halo centers."""
     pixels_per_mpc = npix / box_size
+    mpc_per_pix = box_size / npix
     halo_cutouts: list[dict] = []
     for halo in tqdm(halos, desc="Extracting DMO cutouts"):
         cx = int(halo["halo_center"][0] * pixels_per_mpc) % npix
         cy = int(halo["halo_center"][1] * pixels_per_mpc) % npix
-        cond_cut, ls_cut = extract_multiscale(dmo_fullbox, cx, cy, target_res=patch_pix)
+        cond_cut, ls_cut = extract_multiscale(
+            dmo_fullbox, cx, cy, target_res=patch_pix, mpc_per_pix=mpc_per_pix)
         halo_cutouts.append({"condition": cond_cut, "large_scale": ls_cut})
     return halo_cutouts
 

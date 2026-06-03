@@ -13,6 +13,12 @@ from bind.inference.paint import (  # noqa: E402
     extract_halo_cutouts,
     paint,
 )
+from bind.inference.paint_stages import (  # noqa: E402
+    generate_from_stage1,
+    project_and_extract,
+    recomposite_from_saved,
+    recomposite_slab,
+)
 from bind.params import (  # noqa: E402
     PARAM_NAMES,
     N_PARAMS,
@@ -29,6 +35,10 @@ __all__ = [
     "paint",
     "PaintResult",
     "extract_halo_cutouts",
+    "project_and_extract",
+    "generate_from_stage1",
+    "recomposite_slab",
+    "recomposite_from_saved",
     "NATIVE_PIXEL_SIZE_MPCH",
     "NATIVE_SLAB_DEPTH_MPCH",
     "PATCH_PIX",

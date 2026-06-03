@@ -445,11 +445,13 @@ def extract_halo_cutouts(
     """
     npix = slab_map.shape[0]
     pixels_per_mpc = npix / box_size
+    mpc_per_pix = box_size / npix
     out: list[dict] = []
     for hx, hy in halo_positions_xy:
         cx = int(hx * pixels_per_mpc) % npix
         cy = int(hy * pixels_per_mpc) % npix
-        cond, ls = extract_multiscale(slab_map, cx, cy, target_res=patch_pix)
+        cond, ls = extract_multiscale(
+            slab_map, cx, cy, target_res=patch_pix, mpc_per_pix=mpc_per_pix)
         out.append({"condition": cond, "large_scale": ls})
     return out
 

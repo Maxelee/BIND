@@ -1,0 +1,455 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\graphicspath{{figs/}}
+\newcommand{\fb}{f_{\mathrm{b}}}
+\newcommand{\Msun}{M_\odot}
+\newcommand{\hMpc}{h^{-1}\mathrm{Mpc}}
+\newcommand{\hkpc}{h^{-1}\mathrm{kpc}}
+\newcommand{\Ysz}{Y}
+\newcommand{\Sx}{S_X}
+\newcommand{\Rtwo}{R_{200\mathrm{c}}}
+\newcommand{\Mtwo}{M_{200\mathrm{c}}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\thetav}{\bm{\theta}}
+
+\title{\bf Reading the baryon fraction off cluster observables:\\
+a field-level proof-of-concept with the BIND emulator}
+\author{Max Lee\\[2pt]
+\small Columbia University \&\ Center for Computational Astrophysics, Flatiron Institute}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+The baryon fraction of a halo, $\fb=M_{\mathrm{b}}/M_{\mathrm{tot}}$, encodes the
+integrated history of feedback but is not directly observable: a survey measures
+projected thermodynamic fields (thermal Sunyaev--Zel'dovich $\Ysz$, X-ray surface
+brightness $\Sx$, gas temperature/entropy/pressure), not masses. We ask whether
+these observables are a near-sufficient statistic for $\fb$ at fixed halo mass,
+\emph{without} ever inferring the sub-grid feedback parameters $\thetav$. Using the
+conditional flow-matching emulator BIND, we paint hydrodynamic fields onto $1111$
+fixed dark-matter halos at $256$ Sobol locations in the $30$-dimensional CAMELS
+feedback space (cosmology held fixed), forming a clean feedback factorial. We
+quantify the residual scatter $\sigma(\fb\mid\mathcal{O})$ on \emph{held-out}
+feedback settings, first for integrated scalars and then for stacked radial
+profiles. We find that a stacked tSZ$+$X-ray \emph{profile} predicts the
+baryon-fraction profile to $69\text{--}80\%$ scatter reduction at fixed mass, a
+regime in which the profile shape is decisive (a single integrated $\Ysz$ achieves
+only $25\text{--}54\%$). Crucially, applying the map to genuine CAMELS
+\emph{hydrodynamic truth} recovers $\fb(r)$ to $\mathrm{RMS}\simeq0.004$, including
+the feedback-evacuated core. We show that the super-cosmic differential $\fb(r)$ at
+intermediate radii is a real consequence of baryon redistribution rather than a
+projection artefact, while the enclosed $\fb(<\Rtwo)$ remains sub-cosmic, and that
+the result survives the background-nulled (compensated-aperture) estimator a real
+survey must use. All findings are provisional and pertain to one sub-grid model at
+fixed cosmology; we delineate the validations required before any astrophysical
+claim.
+\end{abstract}
+
+\section{Introduction and objective}
+\label{sec:intro}
+Baryonic feedback is the dominant astrophysical systematic for weak lensing and a
+prime science target for tSZ/X-ray surveys, yet the quantity that most directly
+summarises it---the halo baryon fraction $\fb$---is not an observable. Observers
+measure line-of-sight integrals of the gas thermodynamics; the partition of mass
+into dark matter, gas, and stars is inferred only through modelling. The sub-grid
+feedback parameters $\thetav$ of any one simulation suite are nuisance labels of a
+particular model, not measurable quantities.
+
+This motivates a sharper, falsifiable question. \emph{At fixed halo mass, do the
+observables $\mathcal{O}=\{\Ysz,\Sx,\dots\}$ determine $\fb$, on feedback settings
+never seen in training---i.e.\ in a parameter-free regime?} If so, a field-level
+emulator trained across feedback space becomes a tool to read an unmeasurable
+physical state off real data. The scientific deliverable is therefore not a point
+prediction but the \emph{conditional scatter} $\sigma(\fb\mid\mathcal{O})$ and how it
+shrinks as observables are added: a tight mean relation with large scatter is not a
+usable inverse map. The test \emph{fails} (a publishable null) if
+$\sigma(\fb\mid\Ysz)\approx\sigma(\fb)$ within a mass bin, and \emph{succeeds} if
+observables substantially reduce the scatter.
+
+\section{Data: emulator and feedback design}
+\label{sec:data}
+
+\subsection{The BIND emulator}
+BIND is a conditional flow-matching generative model that paints baryonic fields
+onto a dark-matter-only (DMO) projection for the CAMELS IllustrisTNG suite. For a
+halo with DMO condition $c$ and parameter vector $\thetav\in\mathbb{R}^{35}$
+(cosmological $+$ astrophysical), it draws the hydrodynamic state
+$x_1=[\,\mathrm{DM},\mathrm{Gas},\mathrm{Stars},y,T,K,P_e\,]$ as $128\times128$ maps.
+Training uses optimal-transport flow matching: with $x_0\sim\mathcal{N}(0,\mathbb{1})$
+and interpolant $x_t=(1-t)\,x_0+t\,x_1$, a UNet $v_\phi(x_t,t\mid c,\thetav)$
+regresses the velocity $\dot{x}_t=x_1-x_0$, and sampling integrates
+$\dot{x}=v_\phi$ from $t{=}0$ to $1$ (here $20$ Euler steps). Parameters enter through
+an encoder summed with the diffusion-time embedding to drive adaptive group
+normalisation; fields are standardised channel-wise as $\log_{10}(1+x)$ (mass) or
+$\log_{10}x$ (thermo). We use the released \texttt{fm\_thermo} exponential-moving-%
+average weights.
+
+\subsection{The Sobol feedback factorial}
+\label{sec:sobol}
+We hold cosmology fixed at the CAMELS fiducial
+($\Omega_m=0.3$, $\sigma_8=0.8$, $\Omega_b=0.049$, $h=0.671$, $n_s=0.962$, so the
+cosmic baryon fraction $f_{\mathrm{cos}}\equiv\Omega_b/\Omega_m=0.163$) and vary the
+$30$ astrophysical parameters. A scrambled Sobol sequence
+$\{\bm{u}_d\}_{d=1}^{256}\subset[0,1]^{30}$ (a low-discrepancy quasi-random set;
+$256=2^8$ preserves its balance) is mapped into physical parameters through the
+emulator's normalised box,
+\begin{equation}
+\theta^{(j)}_{d}=
+\begin{cases}
+\theta^{j}_{\min}+u^{j}_{d}\,(\theta^{j}_{\max}-\theta^{j}_{\min}), & \text{linear } j,\\[2pt]
+10^{\,\theta^{j}_{\min}+u^{j}_{d}\,(\theta^{j}_{\max}-\theta^{j}_{\min})}, & \text{log-flagged } j,
+\end{cases}
+\end{equation}
+so log-flagged parameters are sampled log-uniformly within the training domain. For
+each design $d$ we paint the \emph{same} $1111$ CV halos (drawn from $26$ CV
+realisations, $\log_{10}\Mtwo\in[13.0,14.8]$), resetting the sampling noise seed
+before every design so that per-halo initial noise is shared across $d$
+(common random numbers). Differences across $d$ are thus the pure response to
+feedback. The result is a true factorial: halo identity $\times$ feedback. The design
+matrix $\thetav$ is used \emph{only} as the cross-validation grouping label
+(\S\ref{sec:methods})---never as a model input.
+
+\section{Methods}
+\label{sec:methods}
+
+\subsection{Apertures, observables, and field-level stacks}
+\label{sec:stacks}
+Each $128\times128$ patch spans a $6.25\,\hMpc$ cutout, giving a pixel scale
+$\Delta=48.83\,\hkpc$ with the halo at the centre. For per-halo scalars we use a
+circular $\Rtwo$ aperture $\mathcal{A}_i=\{|\bm{x}-\bm{x}_c|\le \Rtwo^{(i)}\}$ and
+define, with pixel area $A_{\rm pix}=\Delta^2$,
+\begin{align}
+\Ysz^{(i)} &= A_{\rm pix}\!\!\sum_{p\in\mathcal{A}_i}\! y_p, &
+\fb^{(i)} &= \frac{\sum_{p\in\mathcal{A}_i}(\mathrm{Gas}+\mathrm{Stars})_p}
+{\sum_{p\in\mathcal{A}_i}(\mathrm{DM}+\mathrm{Gas}+\mathrm{Stars})_p}, \\
+\Sx^{(i)} &= \sum_{p\in\mathcal{A}_i}\!\mathrm{Gas}_p^{2}\,\sqrt{T_p}, &
+\{T,K,P_e\}^{(i)} &= \frac{\sum_{p\in\mathcal{A}_i}\{T,K,P_e\}_p\,\mathrm{Gas}_p}
+{\sum_{p\in\mathcal{A}_i}\mathrm{Gas}_p}.
+\end{align}
+$\Sx\propto n_e^2\sqrt{T}$ is a bremsstrahlung emission-measure proxy (no
+instrument response or cooling-function normalisation); thermodynamics are
+gas-mass weighted to suppress empty pixels.
+
+For the profile analysis we stack at the field level. Within mass bin $m$ and design
+$d$ the in-bin halos are co-registered (all centred) and averaged per channel; the
+nonlinear $\Sx$ is formed per halo then averaged (one stacks images, not derived
+scalars). Azimuthal averaging into $N_r{=}12$ pixel-defined annuli $\{r_k\}$
+(geometric centres $57\text{--}1595\,\hkpc$; pixel-defined to avoid empty sub-pixel
+bins) gives the stacked profiles
+\begin{equation}
+\Ysz(r_k)=\big\langle y_i\big\rangle_{i\in m},\quad
+\Sx(r_k)=\big\langle \mathrm{Gas}_i^2\sqrt{T_i}\big\rangle_{i\in m},\quad
+\fb(r_k)=\frac{\big\langle \mathrm{Gas}_i{+}\mathrm{Stars}_i\big\rangle_{i\in m}}
+{\big\langle \mathrm{DM}_i{+}\mathrm{Gas}_i{+}\mathrm{Stars}_i\big\rangle_{i\in m}} ,
+\end{equation}
+each azimuthally averaged at radius $r_k$ over mass bin $m$ and design $d$.
+$\fb(r)$ is thus a \emph{projected, differential} (annular) baryon fraction; we
+contrast it with the enclosed $\fb(<r)$ in \S\ref{sec:proj}. Bin populations are
+$\{828,232,51\}$ halos. Figure~\ref{fig:profiles} shows the resulting stacked
+profiles and their feedback-driven scatter across the $256$ designs---the signal the
+map must explain.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig_profiles.pdf}
+\caption{Stacked profiles in the mass bin $[13.5,14.0)$: the tSZ $\Ysz(r)$, the
+X-ray $\Sx(r)$, and the target baryon fraction $\fb(r)$. The line is the median and
+the band the $16\text{--}84\%$ spread across the $256$ feedback designs; the dotted
+line marks $f_{\mathrm{cos}}$. The design-to-design variation at fixed mass is the
+conditional signal to be predicted.}
+\label{fig:profiles}
+\end{figure}
+
+\subsection{The predictive map and the conditional scatter}
+\label{sec:map}
+The deliverable is the conditional scatter of $\fb$ given a feature set
+$\mathcal{O}$, estimated out-of-sample on held-out feedback. Let $\hat g$ be a
+regressor trained on a subset of designs. On held-out designs we measure
+\begin{equation}
+\sigma(\fb\mid\mathcal{O}) = \sqrt{\E\big[(\fb-\hat g(\mathcal{O}))^2\big]},\qquad
+\rho_{\rm red}=1-\frac{\sigma(\fb\mid\mathcal{O})}{\sigma_{\rm marg}(\fb)},
+\end{equation}
+with $\sigma_{\rm marg}$ the in-bin standard deviation (the no-information baseline)
+and $\rho_{\rm red}\in(-\infty,1]$ the fractional reduction. The held-out split is by
+\emph{design}: \texttt{GroupKFold}$(\thetav)$ for per-halo scalars,
+\texttt{KFold} over the $256$ designs for profiles (each design is one stacked
+sample). This is the parameter-free test---the map must generalise to feedback it
+never saw. The resampling/independent unit is always the design, not the halo
+(halos are not independent across designs); uncertainties use a design-level
+bootstrap. For scalars (per-halo, $\sim10^5$ rows/bin) we use gradient-boosted trees;
+for profiles ($256$ design-level samples, highly collinear) we use multi-output ridge
+regression,
+\begin{equation}
+\hat{\bm{\beta}}=\arg\min_{\bm{\beta}}\;\|\bm{F}-\bm{X}\bm{\beta}\|_F^2+\alpha\|\bm{\beta}\|_F^2,
+\qquad \alpha=10\ \text{(fixed, to avoid tuning leakage)},
+\end{equation}
+with $\bm{F}$ the matrix of $\fb(r_k)$ targets, $\bm{X}$ the standardised
+(log-)profile features, and per-radius reduction
+$\rho_{\rm red}(r_k)=1-\sigma(r_k)/\sigma_{\rm marg}(r_k)$. As an information
+summary we report $R^2_{\rm info}=1-e^{-2I(\fb;\mathcal{O}\mid m)}$ via
+$I=-\tfrac12\ln(1-\rho^2_{R})$ from the held-out skill. Conclusions are insensitive
+to $\alpha\in[1,100]$.
+
+\paragraph{Compensated aperture photometry.}
+A real stacked measurement cannot access the raw profile: the line-of-sight (LOS)
+background is unknown. The standard estimator is compensated aperture photometry
+(CAP),
+\begin{equation}
+\mathrm{CAP}_\mathcal{O}(\theta)=\big\langle \mathcal{O}\big\rangle_{r<\theta}
+-\big\langle \mathcal{O}\big\rangle_{\theta<r<\sqrt{2}\,\theta},
+\label{eq:cap}
+\end{equation}
+which annihilates any spatially uniform background exactly. Because (\ref{eq:cap}) is
+a linear, radius-only functional, we evaluate it exactly from the stored azimuthal
+profiles and per-annulus pixel counts---no re-reduction---and use it in
+\S\ref{sec:cap}.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Integrated scalars: $\Ysz$ alone is degenerate; $\Sx$ breaks it}
+\label{sec:scalar}
+Table~\ref{tab:scalar} gives the held-out-$\thetav$ scatter reduction for per-halo
+integrated quantities. Within a mass bin, $\Ysz$ alone is a \emph{weak} predictor of
+$\fb$ ($9\text{--}26\%$): tSZ measures pressure $\propto n_eT$ and trades gas content
+against temperature, so many $(\fb,T)$ pairs share a $\Ysz$. Adding the X-ray $\Sx$
+($\propto n_e^2\sqrt{T}$), which weights density differently, roughly doubles the
+reduction; the full thermodynamic vector reaches $49\text{--}64\%$. The map is
+therefore well-posed as a \emph{vector}, not from $\Ysz$ alone. (The kSZ optical-depth
+proxy $\tau\propto$ gas mass is near-degenerate with the $\fb$ numerator and is
+excluded as circular.)
+
+\begin{table}[t]
+\centering
+\caption{Held-out-$\thetav$ scatter reduction $\rho_{\rm red}$ of the per-halo,
+integrated baryon fraction. $\sigma_{\rm marg}$ is the in-bin standard deviation.}
+\label{tab:scalar}
+\sisetup{detect-weight=true}
+\begin{tabular}{lccc}
+\toprule
+& $[13.0,13.5)$ & $[13.5,14.0)$ & $[14.0,\infty)$ \\
+\midrule
+$\sigma_{\rm marg}(\fb)$ & 0.0227 & 0.0131 & 0.0069 \\
+\midrule
+$\Ysz$               & $26\%$ & $16\%$ & $9\%$ \\
+$\Ysz,\Sx$           & $57\%$ & $43\%$ & $22\%$ \\
+$\Ysz,\Sx,T,K,P_e$   & $64\%$ & $56\%$ & $49\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The observable--$\fb$ joint distribution and profile prediction}
+\label{sec:profile}
+The $256$ designs at fixed $(r,m)$ are a sample of the joint $p(\fb(r),\Ysz(r))$
+(Fig.~\ref{fig:joint}). The regressor learns its conditional mean
+$\E[\fb\mid\Ysz]$; the residual scatter we report is the conditional width; and
+because the points are indexed by feedback, the locus is a feedback sequence.
+Moving from integrated scalars to \emph{profiles} produces a qualitative change.
+At the population/profile level $\Ysz$ alone becomes a \emph{strong} predictor
+(mean-over-radius reduction $\{69,73,67\}\%$ across mass bins), because stacking
+removes per-halo scatter and the profile \emph{shape} disambiguates feedback states
+that a single integrated $\Ysz$ conflates. Adding $\Sx$ and the thermodynamics
+raises this to $\{73,77,70\}\%$ and $\{80,80,75\}\%$ respectively
+(Fig.~\ref{fig:skill}). The reduction peaks ($\sim90\%$) at $r\simeq100\text{--}200
+\,\hkpc$---the feedback-active region---and falls in the outskirts where
+$\fb\!\to\!f_{\mathrm{cos}}$ and the design-to-design variation collapses. That shape
+carries the information is shown directly by predicting the design-mean $\fb$: a
+single integrated $\Ysz$ yields $\{54,49,25\}\%$, whereas the $\Ysz(r)$ \emph{profile}
+yields $\{79,73,60\}\%$.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\linewidth]{fig_joint.pdf}
+\caption{The joint distribution $p(\fb(r),\Ysz(r))$ at $r=141\,\hkpc$ in the mass bin
+$[13.5,14.0)$: each point is one of the $256$ feedback designs, coloured by the
+supernova wind energy $E_{\rm SN}$. The solid curve is the conditional mean
+$\E[\fb\mid\Ysz]$ learned by the regressor; the residual vertical width is the
+conditional scatter we report. Marginals are shown on the axes. A single feedback
+parameter does not cleanly order the locus---it is a $30$-dimensional space, and
+$\Ysz$ captures the net effect.}
+\label{fig:joint}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig_profile_skill.pdf}
+\caption{Held-out-$\thetav$ scatter reduction of the baryon-fraction profile
+$\fb(r)$ as a function of radius, for three nested observable sets, in three mass
+bins (shared vertical axis). The observable \emph{profile} predicts $\fb(r)$ to
+$60\text{--}90\%$ reduction, peaking in the feedback-active region and declining in
+the outskirts as $\fb\to f_{\mathrm{cos}}$.}
+\label{fig:skill}
+\end{figure}
+
+\subsection{Validation against hydrodynamic truth}
+\label{sec:truth}
+The decisive test maps observables to $\fb$ on genuine hydrodynamic fields. We train
+the map on the $256$ BIND designs and apply it to the $27$-realisation CV set at
+\emph{fiducial} feedback, stacking the CAMELS \emph{hydro-truth} mass and thermo
+fields with the identical geometry (the truth mass patches are cut from the full box
+with a convention validated to reproduce the stored DMO condition to correlation
+unity). The truth observables fall entirely within the BIND design cloud, so this is
+an interpolation. Figure~\ref{fig:realdata} shows the outcome: feeding the
+\emph{truth} $\{\Ysz,\Sx\}$ profiles recovers the \emph{truth} $\fb(r)$ to
+$\mathrm{RMS}\simeq0.004$ (Table~\ref{tab:truth}), $\sim4\%$ of the $\fb$ range and
+$\sim\!\tfrac15\sigma_{\rm marg}$, including the feedback-evacuated core
+($\fb\!\simeq\!0.08$ at $\sim100\,\hkpc$) that differs from the BIND design mean---so
+the map genuinely uses the observations. Two honest features stand out. First,
+$\Ysz$ alone again underperforms $\Ysz{+}\Sx$ on truth. Second, the \emph{full}
+thermodynamic vector, best \emph{in-distribution}, transfers \emph{worse} (e.g.\
+$16\times10^{-3}$ in the sparse top bin): the richer feature set overfits the
+emulator$\to$truth domain gap. We therefore identify $\{\Ysz,\Sx\}$ as the robust
+real-data feature set.
+
+\begin{table}[t]
+\centering
+\caption{Noise-free $\mathrm{RMS}\,|\hat\fb-\fb|$ ($\times10^{3}$) for predicting
+CAMELS hydrodynamic-truth $\fb(r)$, by feature set and mass bin. For scale, the truth
+$\fb$ spans $0.08\text{--}0.18$ and $\sigma_{\rm marg}(r)\simeq0.02\text{--}0.03$.}
+\label{tab:truth}
+\begin{tabular}{lccc}
+\toprule
+& $[13.0,13.5)$ & $[13.5,14.0)$ & $[14.0,\infty)$ \\
+\midrule
+$\Ysz$               & 10.8 & 4.3 & 5.7 \\
+$\Ysz,\Sx$           & \bf 4.0 & \bf 2.4 & \bf 5.0 \\
+$\Ysz,\Sx,T,K,P_e$   & 5.2 & 2.8 & 16.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig_realdata.pdf}
+\caption{Validation on CAMELS hydrodynamic truth. Red: the stacked truth $\fb(r)$
+with its cosmic-variance band (bootstrap over $26$ realisations). Black: the
+prediction from the truth $\Ysz$ (dashed) and $\Ysz{+}\Sx$ (solid) profiles, using a
+map trained only on the BIND feedback designs. The map recovers the truth profile,
+including the evacuated core, to $\mathrm{RMS}\simeq0.004$.}
+\label{fig:realdata}
+\end{figure}
+
+\subsection{Projection: the super-cosmic $\fb(r)$ is physical, not an artefact}
+\label{sec:proj}
+The differential $\fb(r)$ exceeds $f_{\mathrm{cos}}$ at $r\gtrsim400\,\hkpc$, which is
+impossible for an \emph{enclosed} baryon fraction and prompts a projection check. We
+re-stack the same halos from the $6.25\,\hMpc$ cluster-depth cube products
+(an $8\times$ shorter LOS). Figure~\ref{fig:proj} shows that (i) the $6.25$ and
+$50\,\hMpc$ differential profiles are nearly identical (LOS effect $<0.02$, only at
+$r\gtrsim600\,\hkpc$, and the longer LOS pulls the profile \emph{towards}
+$f_{\mathrm{cos}}$, never inflating it); (ii) the super-cosmic differential is
+\emph{real}---feedback evacuates the core and deposits gas at intermediate radii, so
+the annular $\fb$ locally overshoots; and (iii) the \emph{enclosed}
+$\fb(<\Rtwo)=\{0.11,0.15,0.16\}$ stays below $f_{\mathrm{cos}}=0.163$, the genuine
+``missing baryon'' signal, with the deepest deficit at low mass. Differential and
+enclosed fractions were simply being conflated; no baryon-conservation problem
+exists.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig_projection.pdf}
+\caption{Differential vs.\ enclosed projected baryon fraction. The differential
+$\fb(r)$ at two LOS depths ($6.25$ and $50\,\hMpc$) nearly coincide and overshoot the
+cosmic value (dotted) at intermediate radii---a real consequence of feedback gas
+redistribution. The enclosed $\fb(<r)$ (triangles) stays below cosmic; the vertical
+line marks the median $\Rtwo$. Shared vertical axis.}
+\label{fig:proj}
+\end{figure}
+
+\subsection{The result survives the background-nulled (CAP) estimator}
+\label{sec:cap}
+The mass-based $\fb$ target is LOS-robust, but $\Ysz\propto\!\int\!P\,d\ell$ is not:
+it integrates diffuse, extended pressure plus the two-halo and uncorrelated terms (a
+real stacked $\Ysz$ flattens to a uniform background at large $r$; $\Sx\propto n_e^2$
+is far more concentrated). We therefore re-run the truth validation with CAP-filtered
+observables (\ref{eq:cap}), the estimator a survey is forced to use. The map still
+recovers the truth $\fb(r)$, to $\mathrm{RMS}\simeq0.005\text{--}0.007$
+(Fig.~\ref{fig:cap}, left), modestly worse than the raw profile because CAP discards
+the absolute zero-point---information the raw run had but a measurement could not. The
+meaningful statement is that the result no longer depends on an unmeasurable $\Ysz$
+normalisation, which strengthens its real-data relevance. Contrary to our initial
+expectation, CAP is \emph{not} more robust to per-bin measurement noise
+(Fig.~\ref{fig:cap}, right): the per-measurement error grows roughly linearly for
+both raw and CAP and approaches $\sigma_{\rm marg}$ by $\sim20\%$ noise. CAP buys
+robustness against the \emph{background}, not against per-bin noise; the LOS-robust,
+whole-profile fit already averages the latter.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig_cap_pred.pdf}\\[4pt]
+\includegraphics[width=\linewidth]{fig_cap_noise.pdf}
+\caption{Validation with CAP-filtered observables. \emph{Top:} predicted vs.\ truth
+$\fb(r)$ using raw (dashed) and CAP (solid) $\{\Ysz,\Sx\}$ profiles; CAP still
+recovers the truth at a modest accuracy cost. \emph{Bottom:} median per-measurement
+error vs.\ injected observational noise; raw and CAP degrade similarly, so CAP does
+not add per-bin-noise robustness. Shared vertical axes within each row.}
+\label{fig:cap}
+\end{figure}
+
+\section{Discussion and threats to validity}
+\label{sec:disc}
+The proof-of-concept succeeds within its scope: a stacked tSZ$+$X-ray profile
+predicts the baryon-fraction profile of a halo population to $\sim70\text{--}80\%$
+scatter reduction on unseen feedback, recovers genuine CAMELS hydrodynamic $\fb(r)$
+to $\mathrm{RMS}\simeq0.004$, and survives the background-nulled estimator. The
+information lives in the profile shape and in the core/feedback-active region; a
+single tSZ amplitude is insufficient. We stress the boundaries.
+\begin{itemize}\setlength\itemsep{1pt}
+\item \textbf{One sub-grid model, fixed cosmology.} All results are CAMELS-TNG at a
+single cosmology. ``Parameter-free'' is demonstrated only within one feedback family;
+off-grid generalisation (SIMBA/Astrid, and ultimately real data) is the eventual
+point and is untested here. Marginalising cosmology will add scatter and may reopen
+degeneracies, as $\Ysz$ and $\fb$ both respond to $\Omega_m$.
+\item \textbf{Interpolation, not extrapolation.} The CV truth is a single
+(fiducial) feedback point lying inside the design cloud. Behaviour at the feedback
+extremes is not validated.
+\item \textbf{Shared halos.} The truth halos share DMO structure with training; the
+truth observables and $\fb$ are independent of any fit, and stacking is at the
+population level, but a held-out-halo test remains desirable.
+\item \textbf{Observable realism.} $\Sx$ is an uncalibrated $n_e^2\sqrt{T}$ proxy;
+$\fb(r)$ is a $2$D projected ratio, not a $3$D enclosed mass fraction; the injected
+noise is a uniform-in-radius toy. The CAP background is computed from the
+$50\,\hMpc$ projection's profile---a fully realistic $\Ysz$ LOS treatment requires
+$6.25\,\hMpc$ \emph{thermo} cubes, which the current cube products lack.
+\end{itemize}
+
+\paragraph{Next steps.} In priority order: (i) generate $6.25\,\hMpc$ thermo cubes to
+quantify the $\Ysz$ LOS background that CAP removes and re-validate with CAP-filtered
+inputs end to end; (ii) an off-grid test on a distinct sub-grid model; (iii) a
+held-out-halo split; (iv) propagation to a forward weak-lensing/$\fb$ systematic.
+
+\section{Conclusions}
+\label{sec:conc}
+Treating the problem as the conditional density $p(\fb\mid\mathcal{O})$ rather than a
+mean relation, we have shown---within CAMELS-TNG at fixed cosmology---that measurable
+tSZ$+$X-ray \emph{profiles} determine the unmeasurable baryon-fraction profile of a
+halo population at fixed mass, on feedback settings never seen in training, and that
+the map transfers to genuine hydrodynamic truth and to the background-nulled
+estimator a real survey must use. The deliverable is the scatter and its reduction,
+and it is substantial ($\sim70\text{--}80\%$). The remaining work is generalisation:
+LOS-correct thermo cubes, off-grid sub-grid models, and cosmology marginalisation,
+before any astrophysical claim.
+
+\begin{thebibliography}{9}
+\small
+\bibitem{camels} F.~Villaescusa-Navarro et al., \emph{The CAMELS Project}, ApJ
+\textbf{915}, 71 (2021).
+\bibitem{fm} Y.~Lipman, R.~Chen, H.~Ben-Hamu, M.~Nickel, M.~Le, \emph{Flow Matching
+for Generative Modeling}, ICLR (2023).
+\bibitem{cap} E.~Schaan et al. (ACT), \emph{Atacama Cosmology Telescope: Combined
+kSZ and tSZ measurements}, Phys.\ Rev.\ D \textbf{103}, 063513 (2021).
+\bibitem{vd} M.~van Daalen, I.~McCarthy, J.~Schaye, \emph{Exploring the effects of
+galaxy formation on matter clustering}, MNRAS \textbf{491}, 2424 (2020).
+\end{thebibliography}
+
+\end{document}

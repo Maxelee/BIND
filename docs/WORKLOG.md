@@ -6,6 +6,31 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-06-04 — `feature/redshift`: stage + launch the multi-z conditioned training
+
+The multi-z dataset (`/mnt/home/mlee1/ceph/train_data_multiz_128_cpu`,
+`process_simulations_multiz.py` output) is on disk: 922 train / 101 test sims,
+**7** snapshots each (snap 024/z=4 has no halos >1e13, so it dropped out;
+nominal z = 0, 0.21, 0.47, 1.05, 1.48, 2.00, 3.01). Verified sample npz carry
+`redshift`/`scale_factor` + 4 thermo maps across z.
+
+- **Prep** (`data_generation/prep_redshift_training.py`, new): one-time
+  single-process build of the two recursive file caches
+  (`file_list_cache_multiz.txt`: **151,685** train / **15,789** test) +
+  `fm_redshift/norm_stats.npz` (stars_two_head + predict_thermo). Rationale:
+  on a fresh run all 8 DDP ranks would each rglob ceph + compute stats and race
+  on both writes. Gotcha: the interactive Slurm job has a **17.5 GB** cgroup cap;
+  the default 10k-sample float64 stack OOM-killed (~12 GB) — prep now defaults to
+  `n_stats_samples=4000` (~65M px/channel; the 1 TB training node keeps 10k).
+- **Launch**: `REDSHIFT=1 sbatch run_train.sh` → `--condition_redshift
+  --predict_thermo --stars_two_head`, out_ch=8, writes `fm_runs/fm_redshift/`.
+  (Run by the user; sbatch isn't run from here.)
+- **Notebook** (`examples/analysis_redshift.ipynb`, new): mirrors
+  `analysis_thermo.ipynb` + a redshift-dependence section — per-z fidelity
+  scorecard, amplitude evolution truth-vs-BIND, Y–M evolution, and a
+  conditioning-response test (fix structure+params, sweep only the conditioning
+  a). Same z>0-thermo-physics caveat applies to absolute high-z amplitudes.
+
 ## 2026-05-31 — `feature/redshift`: multi-redshift data + redshift conditioning
 
 New branch off `main` to make redshift a continuous conditioning variable.

@@ -6,6 +6,28 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-06-04 — Outpainting the inter-halo background (branch `feature/outpainting`)
+
+New investigation: BIND's composite is patchy (baryons only inside pasted halos). Added
+`examples/outpaint_walkthrough.ipynb` exploring how to fill the inter-halo background, validated
+against truth on CV + held-out SB35.
+
+- **Recipe (train-free):** fill background with `f_b·smooth(DMO)` for Gas, `(1-f_b)·DMO` for DM,
+  ~0 for Stars. `f_b=Ω_b/Ω_m` is a params input (mass identity, not a fit); σ≈2.5 px is the physical
+  IGM gas-filtering scale (broad plateau — no calibration needed). Gas background `logRMSE 8.8→0.11`.
+- **Generalizes off CV:** on 18 held-out SB35 sims, `corr(f_b, true bg gas/DMO)≈1.0`; M2 holds
+  `logRMSE≈0.11` blind. Only residual: weak σ–feedback dependence (`MaxSfrTimescale`/wind, |r|~0.5).
+- **Total-field P(k) (paper fig5b style + outpaint):** outpaint is a *wash* on the total field
+  (DM-dominated, already DMO-filled); its real value is the gas field. Beats gas-extrapolation (3a)
+  and kriging (3c), which ignore the DMO map.
+- **Small-scale (high-k) deficit diagnosed:** the >1 truth upturn is **stellar condensation** in
+  central galaxies, which BIND under-delivers. Per-halo stellar *mass* is right (1.01×); 24% of
+  stellar mass is in **sub-threshold (<1e13) halos BIND never paints** (training threshold is 1e13).
+  Sampler ruled out (`run_sampler_diag.sh`/`sampler_diag.py`, A100): n_steps converged by ~50, model
+  is properly stochastic (single sample 0.82 vs mean-of-8 0.45 at k>40 ⇒ use single realizations).
+  High-k power lever = **stellar concentration in painted halos** (per-patch stars ~0.79), *not*
+  coverage. **Next time:** test post-hoc stellar sharpening (cheap) before a spectral-loss retrain.
+
 ## 2026-06-03 — Two-stage paint (CPU/MPI project → GPU generate); fixes TNG-box OOM
 
 `run_paint_tng.sh` (one-shot `bind.paint` on one A100 node) OOMed: the box load

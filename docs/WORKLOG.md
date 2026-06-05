@@ -6,7 +6,117 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
-## 2026-06-03 — Observable → f_b PoC (`analysis/observable-fb-map`)
+## 2026-06-04 — paper.ipynb full paper build-out (`analysis/observable-fb-map`)
+
+Expanded `paper.ipynb` from the Intro+demonstrations note into a complete paper
+with six top-level sections: **§1 Introduction → §2 Methods → §3 The case for
+field-level emulation → §4 Results → §5 Discussion → §6 Conclusion**. All edits
+in `tools/build_paper_nb.py` (paper.ipynb is generated); rebuilt + executed
+clean (42 cells, 16 figures, **zero** errors).
+
+- **§2 Methods (new):** 2.1 the BIND field emulator (flow-matching $p_\theta(x|c)$,
+  7 channels, AdaGroupNorm, common random numbers), 2.2 the controlled Sobol
+  feedback suite (1111 fixed halos × 256 designs, feedback-vs-intrinsic split),
+  2.3 observables + instrument forward model (azimuthal average, aperture scalars,
+  beam $\star$ field + miscentering), 2.4 the old §0 setup retitled + a new
+  **Figure M** (Sobol design coverage + ACT/Planck beam kernels).
+- **§3 (reframe):** moved the old top "Overview" block down to lead §3 and
+  renumbered the existing demonstrations §1–§8 → §3.1–§3.8 (with all in-body
+  cross-refs updated).
+- **§4 Results (new):** Fig10 baryon-fraction scaling fidelity vs hydro truth
+  (~5.4% median error, from `obs_fm_two_head.npz`); Fig11 painted gas → box
+  $S(k)$ suppression (Spearman ρ≈0.53, `box_supp_sobol.npz`+cube); Fig12 Shapley
+  variance decomposition (group decade ~57% of Var[S]; per-halo leverage
+  [0.069, 0.151, 0.407] %/halo, `partial_supp_sobol.npz`).
+- **§5 Discussion (new):** Fig13 $f_b(r)$ recovery from mock (Y,SX) vs CAMELS
+  truth (`realdata_results.json`); Fig14 feature-ladder robustness (Y vs Y+SX vs
+  full thermo — full set over-fits the domain gap by orders of magnitude); 5.3
+  caveats (one sub-grid family, proxies, projection, domain gap).
+- **§6 Conclusion (new):** replaces old §9, wrapping Methods/§3/§4/§5.
+- All headline numbers verified against on-disk data products before writing the
+  narrative; figures saved to `figures/paper/` (gitignored).
+
+---
+
+## 2026-06-04 — paper.ipynb science Introduction (`analysis/observable-fb-map`)
+
+Reframed `paper.ipynb` from a pure "why field-level" validation note into a
+science paper by adding a result-focused **Introduction** (§1) following the
+problem → standard-approach-limits → field-updates → novel-direction → results
+arc. The problem is baryonic suppression of $S(k)$ as the leading Stage-IV
+weak-lensing systematic and the unobservable/uncomputable baryon budget $f_b$;
+the novel direction is BIND's field-level + common-random-numbers repainting,
+enabling controlled feedback experiments and a parameter-free observable$\to f_b$
+inverse. The results paragraph threads the companion notebooks
+(`scaling_relations` validation → this notebook's necessity proof →
+`profile_fb_realdata` reading $f_b(r)$ at RMS≈0.004 on held-out feedback →
+`pk_suppression_decomposition` cosmology payoff), framing the sky-data step as
+"one of data, not of method."
+
+- Inserted intro as the new top cell; demoted the old opening to an unnumbered
+  `## Overview` so there is a single H1/abstract and no clash with the §0–§9 body.
+- Mirrored both edits into `tools/build_paper_nb.py` (first two `md(...)` blocks)
+  so a rebuild is reproducible — verified by building into a temp dir and diffing:
+  25 cells, **zero** source mismatches vs the executed live notebook. Live
+  notebook's embedded figures were left intact (builder not run in place).
+
+## 2026-06-04 — paper.ipynb §7 rigor fix: transparent gas asymmetry (`analysis/observable-fb-map`)
+
+Reviewer (human) distrusted §7 of `paper.ipynb`: (i) the same-halo claim was
+illustrated with **two different halos** sorted by the opaque shard `morph`
+scalar (circular), and (ii) the "important parameters" came from a marginal
+Pearson corr of the *design-mean* of that black-box scalar — weak (0.2–0.37) and
+including implausible drivers (`WindFreeTravelDensFac`, `VariableWindVelFactor`).
+Both complaints were correct. Rebuilt the section from scratch:
+
+- New `tools/compute_gas_asymmetry.py` → `ceph/sobol_ss_cv/gas_asymmetry.npz`:
+  transparent CAS 180° rotational asymmetry of the Gas channel within R200,
+  centroid-centered (`A=0` for any axisymmetric field, so exactly orthogonal to
+  `A_r`). Caches `A (256,1111)` + the demo halo's gas under all 256 designs.
+  Note: this transparent `A` correlates only **0.47** with the old `morph` shard
+  scalar — confirming the black box was a poor "asymmetry".
+- **Same-halo figure** (`fig8_feedback_same_halo.png`): halo 870 (logM 13.47),
+  weak vs strong feedback (32 lowest/highest composite-score designs), identical
+  DMO input; A rises 0.299→0.440, ratio panel localizes change inside R200.
+- **Controlled sensitivity** (`fig8b_morphology_sensitivity.png`): per-halo OLS
+  of standardized `A(θ)` on standardized θ, averaged over 1111 halos with
+  halo-bootstrap 95% CIs (`β_p = ⟨(ΘᵀΘ)⁻¹ΘᵀA_h⟩_h`). New ranking is physical —
+  **WindEnergyIn1e51erg (+0.33), BlackHoleRadiativeEfficiency (+0.24)**, IMFslope,
+  wind momentum, quasar threshold; the spurious wind-travel knobs drop out.
+  Variance split: feedback = **34%** of main-effect variance (intrinsic assembly
+  dominates). Suite **varies 30 astro params at fixed cosmology**, so the 5
+  cosmology params are *placebo* regressors (guarded standardization → exactly
+  `β=0`, max |β|=0.000), framed as placebo not a varied null.
+- Lesson: marginal corr of a design-mean over 256 noisy points is confounded by
+  inter-parameter collinearity and can promote spurious drivers; the
+  same-halo-across-designs estimator controls for it and beats noise by √N_h.
+
+## 2026-06-04 — Field-vs-profile paper notebook (`analysis/observable-fb-map`)
+
+Synthesized the observable→f_b work into `paper.ipynb` (built by
+`tools/build_paper_nb.py`, executed with the `torch3` kernel): a paper-style,
+rigorously-argued case for why BIND must be a **field-level** generative emulator
+rather than a profile→f_b regression. Academic style throughout (scienceplots
+`['science','no-latex']`, no titles, no hand-set fontsizes); figures → `figures/paper/`.
+
+- Framing: any summary is a functional `O[x]`; a profile is the azimuthal-average
+  operator `A_r`; the regression emulator learns one object, `E[f_b | A_r x]` — the
+  first moment of a single marginal of `p_θ(x|c)`. Six live-computed demos
+  (`ceph/sobol_ss_cv/`): (A) the foil works — stacked Y→f_b OOF `R`≈0.82/0.81/0.66
+  (Y), 0.90/0.87/0.79 (+kSZ); (B) intrinsic `σ(f_b)` only 20/16/2% reduced by Y →
+  irreducible stack covariance; (C) **beam/instrument** is a 2D operator — isotropic
+  beam commutes with `A_r` only for centered/axisymmetric halos, so per-halo
+  axisymmetry error reaches 43% (vs small stack mean) and the aperture-Y shift
+  spread is 16.6/7.7/3.8% by mass; beam-aware field forward model holds `f_b` RMS
+  ≈5×10⁻³ where naive degrades to ≈40 (reuses `beam_aware_results.json`); (E)
+  flux selection biases stacked f_b +2.8/+1.4% (Eddington); (F) corr(Y,τ)≈0.96 →
+  probes near-redundant, joint covariance required; morphology corr +0.37 with
+  BlackHoleRadiativeEfficiency — feedback info `A_r` discards.
+- Honest reframings baked in: kSZ τ is a gas-mass anchor (not independent);
+  morphology is a feedback-sensitive observable, not a strong f_b predictor;
+  multi-probe message is redundancy, not added independent power.
+
+
 
 Tested whether BIND observables predict the unmeasurable baryon fraction f_b
 *without estimating feedback θ*, on the existing 256-design × 1111-halo Sobol

@@ -6,6 +6,23 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-06-07 — `feature/redshift`: publish the redshift+thermo model to Hugging Face
+
+Released the trained multi-z model (`/mnt/home/mlee1/ceph/fm_runs/fm_redshift`,
+`last.ckpt` = epoch 199; `stars_two_head` + `predict_thermo` + `condition_redshift`)
+as run **`fm_redshift_thermo`** on the HF weights repo. Slimmed the checkpoint
+3988→1994 MB via `bind.tools.slim_checkpoint` (drops optimizer state, keeps
+`state_dict`+`ema_state_dict`+hparams; verified it reloads through
+`FlowMatchingLit`), then uploaded `last.ckpt`+`norm_stats.npz` to
+`mel2260/BIND/fm_redshift_thermo/`.
+
+Corrected a stale repo pointer: the real HF weights repo is **`mel2260/BIND`**
+(already hosting `fm_two_head`/`fm_thermo`), not `Maxelee/BIND2`. Updated
+`download_weights.py` (`DEFAULT_REPO`, registered the new run in `KNOWN_RUNS`),
+`pyproject.toml`, `README.md`, `docs/index.md`, `docs/baryonify.md`. GitHub URLs
+(`Maxelee/BIND`) left unchanged. ⚠ z>0 thermo physics still unvalidated — model
+card warning not yet added.
+
 ## 2026-06-04 — `feature/redshift`: stage + launch the multi-z conditioned training
 
 The multi-z dataset (`/mnt/home/mlee1/ceph/train_data_multiz_128_cpu`,

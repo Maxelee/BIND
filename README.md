@@ -21,7 +21,7 @@ e.g. a 205 Mpc/h N-body simulation is just 64 tiles).
 </p>
 
 📖 **Documentation:** [bind.readthedocs.io](https://bind.readthedocs.io)
-🤗 **Pretrained weights:** [`Maxelee/BIND2`](https://huggingface.co/Maxelee/BIND2)
+🤗 **Pretrained weights:** [`mel2260/BIND`](https://huggingface.co/mel2260/BIND)
 📝 **Paper:** Lee et al., in prep.
 
 ---

@@ -6,6 +6,186 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-06-07 (pm-4) — S(k) local-FD box driver (`analysis/observable-fb-map`)
+
+The WL-target side of the chain on local-FD footing. S(k) is full-box, so it reuses
+`box_supp_sobol` paste+Pk (NOT the per-halo FD script). Discovery: `box_supp_sobol.npz`
+already exists — `S_true (256,724)` = per-design BOX suppression (the real WL systematic,
+better than the per-halo supp_k10) + `k_box`, `S_truth`. `tools/fd_sk_box.py`:
+- `--validate` (NO GPU): recompute box S(k) from existing cube maps via composite_pk →
+  **reproduces cached S_true EXACTLY (max|dS|=0.00e+00)** for designs 0,1,128 → box reuse
+  verified. (design 128 S(k~10)=0.85.)
+- compute (GPU): generate fm_thermo mass-channel patches at θ_fid±Δ (fixed noise, reuses
+  fd_jacobian_thermo machinery) → central-diff dS(k)/dθ (35 params), saves S_fid + J_Sk(k).
+  `run_fd_sk_box.sh` (array 0-6, n_steps=20). User submits + merges.
+**Synthesis J_S upgraded to box S_true + §E added:** J_S now = ∂(box S(k=10))/∂θ from
+`box_supp_sobol.S_true` (the real WL systematic; prior σ(S)=0.094) instead of the per-halo
+supp_k10 mean. Headline shifted (more correct): σ(S(k)) reduction Y 1% / Y+SX 9% / all-gas
+**46%** (was 41%); top S(k) drivers IMFslope, BlackHoleRadiativeEfficiency, WindEnergy,
+QuasarThreshold (AGN still poorly constrained: detect 0.41/0.08, gas 8/3%). §D Y+SX now
+Sobol 9% / local-FD 4% (still r=0.93). New §E: when `fd_sk_box_fm_thermo.npz` lands, overplots
+local-FD vs box-Sobol J_S per param (same normalized-θ space) — graceful fallback tested.
+§C mass-decade decomposition still uses per-halo supp_k10 (separate attribution, kept).
+
+## 2026-06-07 (pm-3) — found pre-existing FD Jacobian + synthesis (`analysis/observable-fb-map`)
+
+User had ALREADY computed the rigorous local FD Jacobian (the refinement I flagged):
+`fd_jacobian_cv.py` on **analysis/2d** (fixed-noise central differences at CV fiducial,
+35 params, mass+scaling-relation obs, fm_two_head). Artifacts in working tree
+`analysis_physics_cache/`: `proj6_cv_fd_fm_two_head*.npz` (per-halo J, 1154×35) +
+`jacobian_inference_artifacts/cv_scatter_jacobian_inference_latest.npz` (Fisher summary:
+detectability_all, f_theta_all, c_theta_all, k90=14). **Param order: FD columns = cube
+param_names (SB35/NormStats) order — VERIFIED (CV fiducial inside every Sobol column range
+except p14 col14 + the two Δz fiducials=0); the artifact CSV's w0/wa/Mν labels are a WRONG
+template — ignore.**
+
+**(a) Synthesis** (`tools/build_synthesis_nb.py` → `synthesis_feedback_constraints.ipynb`,
+no new compute): unifies the rigorous FD mass-obs Fisher + the Sobol gas→S(k) chain.
+- **Cross-validation:** FD |∂f_b/∂θ| vs logM astro-only r=−0.73 ≡ Sobol Var_d[f_b] r=−0.73
+  → cheap Sobol Jacobian CERTIFIED. Cosmo/feedback dichotomy: cosmo r=+0.73 (massive
+  clusters cosmology-standard), feedback r=−0.73 (groups feedback-dominated).
+- **Money plot:** S(k) sensitivity vs constrainability per param. SN winds (WindEnergy,
+  IMFslope) drive S(k) AND well-constrained (mass detect 0.88, gas 15%); AGN
+  (BlackHoleRadiativeEfficiency=top S(k) driver, QuasarThreshold) drive S(k) but poorly
+  constrained → residual WL systematic is AGN. k90=14 effective feedback dim.
+- σ(S(k)) reduction: Y 1% / +SX 6% / all-gas 41% (carried over from fisher_chain).
+
+**(b) SCOPED + observables validated; GPU campaign remains (user submits).** Extending
+the rigorous local FD to the WL chain splits into two pieces:
+- **Thermo Y/SX FD: BUILT + CPU-validated.** Thermo weights ARE available at
+  `/mnt/home/mlee1/ceph/fm_runs/fm_thermo/checkpoints/last.ckpt` (predict_thermo=True,
+  out_channels=8 → 7 physical via pipeline._denormalize_to_physical). `tools/fd_jacobian_thermo.py`
+  = port of analysis/2d `fd_jacobian_cv.py` to bind.* imports + adds `thermo_observables`
+  (Y200, SX aperture) into PER_HALO_KEYS; observable functions VALIDATED vs cube
+  (`tools/fd_thermo_observables.py`: Y200/SX corr=1.0000). CPU smoke test (2 halos,
+  param 0, n_steps=4) ran end-to-end → finite J_Y200/J_SX. `run_fd_jacobian_thermo.sh`
+  (sbatch array 0-6, fm_thermo, n_steps=20). NO GPU on this workstation (cuda False) → user
+  submits the SLURM array, then merges. Script ALSO saves fiducial observables (`Ffid_*`,
+  one extra fixed-noise pass) so the output is self-contained for the log-Jacobian
+  dlnY/dθ = J/Ffid (CPU smoke: dlnY/dθ ≈ −0.85/−0.33, sensible O(1)). **Synthesis notebook
+  WIRED** (`build_synthesis_nb.py` §D): if `analysis_physics_cache/thermo_cv_fd_fm_thermo.npz`
+  exists it recomputes the Y+SX σ(S(k)) reduction with the local-FD Jacobian and compares to
+  Sobol; else prints the run instruction (graceful fallback, tested). Convert raw dO/dθ→log
+  via Ffid (now saved). **User ran the 7-shard array** → `thermo_cv_fd_fm_thermo.npz` merged
+  (35/35 params, J_Y200/J_SX finite 1154×35) — but those shards PREDATE the Ffid feature, so
+  Ffid is absent. Fix: added `--fiducial_only` mode (one fast pass, saves Ffid_*) →
+  `thermo_cv_fd_fiducial.npz`; §D now reads Ffid from merged-or-fiducial file (graceful skip
+  if neither). Merge gotcha: quote `--shard_glob "...*.npz"` (shell-glob expansion bug).
+  **Ffid obtained with NO GPU:** the CV fiducial EMA generation already exists at
+  `CV/sim_i/snap_090/.../fm_thermo_ema/generated_halos.npz` ('generated' (n,7,128,128)).
+  `tools/build_thermo_fiducial.py` reads it across the FD-loader sim order (radii fallback
+  r200c_mpc_h when 'radii' absent, matching the FD), computes Y200/SX apertures →
+  `thermo_cv_fd_fiducial.npz` (1154 halos, masses VERIFIED == FD masses_use). Caveat: EMA
+  fiducial vs non-EMA FD J → small per-obs normalisation offset, negligible for the relative
+  reduction. **§D RESULT: local-FD Y+SX σ(S(k)) reduction = 4% ≈ Sobol 6%** → the cheap
+  Sobol gas Jacobian is validated against the rigorous local FD on the WL-relevant quantity.
+  (Headline 41% needs all thermo Y+SX+T+S+P; FD covered only Y,SX.) Gas side now on local-FD
+  footing; only J_S (=dS(k)/dθ) remains Sobol-based (needs the box ±Δ driver).
+  **§D visualized + base bug fixed:** the FD log-Jacobian was natural-log while halo_cov/Sobol
+  jac are log10 → fixed (÷ln10). New figD (2 panels): (left) per-param gas Jacobian Sobol vs
+  local-FD scatter on 1:1, **r=0.93** — the real validation (same response per param); (right)
+  σ(S(k)) reduction bars Y+SX Sobol 6% / local-FD 2% / all-gas Sobol 41%. Honest framing: Y+SX
+  is a WEAK constraint so the 6-vs-2 gap is small-Jacobian amplification (+ linear-vs-local,
+  EMA-vs-nonEMA), NOT a response disagreement; the 41% is the full thermo set (T,S,P), still
+  Sobol, now backed by the r=0.93 Y,SX Jacobian validation.
+- **S(k) local FD:** S(k) is a FULL-BOX quantity (box_supp_sobol pastes patches into the
+  50 Mpc/h box → P_hydro/P_DMO), NOT per-halo — so it does NOT go in fd_jacobian_cv.py.
+  Rigorous dS(k)/dθ = generate fm_two_head patches (fixed noise) at θ_fid±Δ for the 35
+  params (70 points) → box_supp_sobol paste+Pk → central difference. No new weights;
+  reuses tested box_supp machinery + fd_jacobian's fixed-noise generation. GPU+CPU SLURM.
+Both are GPU campaigns the user launches; Sobol J_S (R²~0.7) already substitutes in the
+synthesis until the local-FD versions land.
+
+## 2026-06-07 (pm-2) — Fisher chain: gas obs → σ(S(k)) via BIND Jacobian (`analysis/observable-fb-map`)
+
+The headline *use* of capability #1 (per the reframe below). BIND's clean parameter
+Jacobian (finite-difference at fixed DMO+noise — the derivative regime, BIND-only;
+backprop-through-ODE is the wrong tool for a flow model) links what surveys observe
+(gas) to what limits cosmology (S(k)). `tools/build_fisher_chain_nb.py` →
+`fisher_chain.ipynb` (fast, cube.npz + obs_fb_extra.npz; linear-response Jacobian over
+the Sobol prior, R²~0.68–0.78):
+- J_O = ∂log(stacked gas obs)/∂θ, J_S = ∂S(k=10)/∂θ; Fisher F=J_Oᵀ Σ_O⁻¹ J_O (Σ_O =
+  halo stacking cov /N_cl + noise); posterior C_θ=(F+12·I)⁻¹; propagate to σ(S(k)).
+- **Result (N_cl=1000, 10% noise):** reduces σ(S(k=10)) by **tSZ alone 1%, +X-ray 6%,
+  +kSZ 7%, all-gas (Y,SX,τ,T,S,P) 41%** (noiseless ceiling 78%). Saturates by N_cl~100s
+  (intrinsic-scatter limited, not noise). → the constraining power is in the JOINT
+  multi-probe thermodynamic field, not any single observable — the honest, correct form
+  of "field-level matters" (about constraining feedback that drives WL, not a regression).
+- Alignment fig: top S(k) drivers = WindEnergy, IMFslope, BlackHoleRadiativeEfficiency,
+  QuasarThreshold. SN-wind params both drive S(k) AND are well-constrained by gas (~14%);
+  AGN radiative efficiency is the TOP S(k) driver but only ~8% constrained → residual WL
+  systematic is AGN-dominated (interpretable result).
+- Honest scope: linear/Gaussian, single subgrid family, fixed cosmo, projected S(k),
+  representative covariance; connect at P(k) (projection-invariant sensitivities), no
+  shear forecast. Local finite-difference Jacobian would refine the linearisation.
+
+## 2026-06-07 (pm) — thesis reframe + controlled-experiment proof (`analysis/observable-fb-map`)
+
+**Key reframe (user-driven).** The "field beats profile [at the f_b inverse]" claim is a
+strawman: if the target is a stacked summary, you can forward-model the CAMELS training
+sims and regress — no generative emulator needed. The field-vs-profile experiments
+(below, am session) demonstrate the value of *forward-modeling*, which CAMELS gives for
+free, NOT of a generative field emulator. So most of `paper.ipynb` §3 (six-functionals)
+is vulnerable.
+
+**New thesis.** BIND is a fast, faithful generative baryon forward model; its irreducible
+value is (i) **controlled same-halo feedback experiments** no hydro suite can run →
+attribute the WL baryon systematic to halo populations; (ii) **transport** CAMELS feedback
+onto arbitrary N-body volumes; (iii) the **joint field** for field-level statistics. The
+f_b inverse is demoted to a fidelity application (with the explicit concession). Plan:
+gut §3, promote §4.2/§4.3 (S(k) attribution) to headline, keep §4.1 fidelity.
+
+**Point-1 experiment built** (`tools/build_controlled_experiment_nb.py` →
+`controlled_experiment.ipynb`, fast, from cube.npz + pk_supp_extra.npz; supp_k10 is
+per-halo S(k=10) with exact cross-design correspondence):
+- **A. Variance efficiency** (paired same-halo vs unpaired varying-IC): gain G=1/(1−ρ),
+  median G=3 (f_b)/6 (S(k)), rising to **100–400× for small feedback steps** (the
+  derivative/sensitivity regime). Answers "control cosmic variance efficiently": yes,
+  quantified — modest for large feedback diffs, enormous for sensitivities; plus exact
+  (no back-reaction) + joint-space, beyond CAMELS 1P.
+- **B. Attribution** (needs correspondence): f_b per-halo response Var_d[f_b] strongly
+  mass-dependent (r=−0.73; low-mass halos respond ~100× more — evacuation); shuffle
+  control destroys it (r=0, inflates quiet halos to pooled scatter). Honest finding:
+  S(k) per-halo response is mass-INDEPENDENT (r=0.06) → S(k) attribution is POPULATION
+  level: group decade [13,13.5) carries **55.7%** of Var[S(k=10)] (≈ the §4.3 result).
+- **WL connection (honest):** connect at P(k) (van Daalen 2020 interface); which halos
+  source Var[S(k)] is projection-invariant → no shear lightcone needed for attribution;
+  a survey shear-bias forecast is explicitly NOT claimed.
+
+## 2026-06-07 — simple field-vs-profile demonstration (`analysis/observable-fb-map`)
+
+The §3 "six-functionals" case in `paper.ipynb` is correct but diffuse — a taxonomy,
+not a single observer-relevant number. Built a **standalone** one-experiment
+demonstration that a *field*-level emulator beats a *profile*-level one for reading
+$f_b$ off a realistic stacked observation.
+
+The trap (the user's instinct, corrected): a straight stacked-$Y(r)\to f_b$ regression
+IS the paper's existing "foil" and it *works* (69–80% reduction) → would prove the
+profile *sufficient*. The distinction is not the regressor; it is that **only a field
+emulator can forward-model the actual measurement** so training and data are processed
+identically. Cast as one controlled inverse problem (leave-one-design-out over the
+256-design × 1111-halo CV Sobol cube; each design = a held-out mock observation):
+
+- `tools/forward_model_reduce.py` → `ceph/sobol_ss_cv/forward_model_stacks.npz`:
+  streams per-halo 2D fields; per design builds a **clean** stack (profile-emulator
+  output) and a **processed** stack run through a real pipeline — steep mass function +
+  flux-limited **Eddington selection** + **beam** (1.6′ ACT-equiv, σ≈53 kpc/h) +
+  **miscentering** (150 kpc/h) + **core mask** (0.15 R₂₀₀). Target = parent
+  (unselected) mass-weighted $f_b$. ~30 min streaming; resumable (--start/--end).
+- `tools/build_fieldvsprofile_nb.py` → `field_vs_profile.ipynb` (12 cells): three
+  estimators differing ONLY in the training observable — profile/vacuum (clean→clean),
+  profile/real-obs (clean→**processed**), field/real-obs (processed→processed).
+
+**Result.** Pipeline reshapes the stack by a large radius-dependent factor (core
+0.59×, intermediate ~1.9× — non-commuting beam/miscenter, Fig 1). Headline (Fig 2):
+profile-on-real-obs is biased **−10%** in $f_b$ (RMS 0.0176); field path **unbiased**
+(RMS 0.0108); profile-in-vacuum unbiased (RMS 0.0081) → the failure is the
+forward-model mismatch, not the profile→$f_b$ link. Per-bin (fixed composition) the
+shape bias is −0.3/−5.5/−1.3%; the larger aggregate −10% includes the
+selection-driven mass-mix shift (also a field-level effect). Caveat: mock obs is BIND's
+own field (isolates the *forward-model* bias, not BIND-vs-CAMELS fidelity); CAMELS-truth
+obs is the natural follow-up. Not yet committed.
+
 ## 2026-06-04 — paper.ipynb full paper build-out (`analysis/observable-fb-map`)
 
 Expanded `paper.ipynb` from the Intro+demonstrations note into a complete paper

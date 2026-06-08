@@ -6,6 +6,48 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-06-08 — BCM-with-flow-amplitudes outpainting (branch `feature/outpainting`)
+
+Second outpainting idea: model the *total-matter* baryonic correction δ_b = ρ_hydro − ρ_DMO as a
+sum of per-halo radial kernels (Schneider-Teyssier-style BCM, but the flow supplies per-halo
+amplitudes). Complementary to the 2026-06-04 M2 background fill: M2 nails the gas *background*; the
+kernel supplies the AGN *suppression* (negative δ_b at 1–10 Mpc/h) — the total-matter S(k) piece M2
+was a wash on. Two new CPU-only scripts run entirely from cached `full_maps.npz` + `halo_catalog.npz`
+(no sim reruns, no flow inference); figures in `ceph/fm_diag/`.
+
+- **Phase 0 — feasibility gate (`kernel_bcm_feasibility.py`), PASSED.** 3381 halos / 26 CV + 50 SB35.
+  (1) For *total matter* the kernel is **central suppression + compensating positive overshoot** at
+  intermediate R (mass-conserving; verified ρ_hydro/ρ_DMO = 1.0000) — NOT the stars-centric
+  "+center, −intermediate" the original pitch assumed (stars are 0.4% of mass). Trough radius grows
+  with mass; overshoot is a massive-halo (>1e13.7) phenomenon. (2) **Crux passed:** in-aperture
+  scalar (∫δ_b, R<2·r200) predicts far-field amplitude with **partial Spearman = −0.54 | logM**
+  (p~1e-257), robust in every mass bin; mass is not the confounder (logM↔far-field = −0.02). Negative
+  sign = ejection/mass-conservation. So "amplitudes come from the flow" is a real, learnable signal.
+- **Phase 1 — fit + S(k) validation (`kernel_bcm_build.py`).** Mass-conserving difference-of-Gaussians
+  (3 free params: a_w, σ_w, σ_n; a_n pinned by 2D conservation a_n σ_n² = a_w σ_w²), area-weighted,
+  fit per mass bin → smooth params(logM). Suppression amplitude a_n grows monotonically 2.7e10→3.6e11
+  over logM 13.1→14.3. FFT halo-stacking (one periodic conv per mass bin) reconstructs δ_b on held-out
+  SB35; validate total-matter S(k)=P(DMO+δ_b)/P(DMO) vs truth. **Result:** large-scale closure ~1%
+  (`|S_model−S_truth|`: k<5 = 0.011, ratio≈1 to k~30); high-k (>30, the stellar-condensation excess) NOT
+  captured by a smooth mean kernel — lives in the actual flow patches. `--amplitude patch` (per-halo
+  scalar, deployable) beats `--amplitude mass` (ceiling) on both S(k) and smoothed field corr (+0.31
+  vs +0.24), confirming the flow signal adds field-level info.
+- **Phase 2 — composite + the negative result (`kernel_bcm_phase2.py`).** Composite = patches inside +
+  kernel outside, δ_b = α·δ_b_patch + (1−α)·δ_b_kernel. CPU `--mode truth_ceiling` (true total patches,
+  isolates architecture from BIND fidelity): patch-only closure 0.0019/0.013/0.058 (k<5 / 5-20 / >20),
+  and **Phase 2 ≡ patch-only exactly — the kernel adds nothing.** BIND's 6.25 Mpc/h patches (15-57% area)
+  already contain the whole δ_b (suppression + overshoot within ~1 Mpc/h of halo); the inter-halo far
+  field carries negligible total-matter suppression. So the GPU flow version is a likely null for the
+  kernel. `--mode flow` (GPU/Slurm, mirrors runner) written but unrun.
+- **Gas pivot — same conclusion (`kernel_bcm_gas.py`).** Tested a kernel fit to the M2 residual
+  Δgas = gas − f_b·smooth(DMO) (f_b = params[6]/params[0]). The residual is a sharp negative dip confined
+  to R<0.5 Mpc/h (central AGN gas depletion) — inside r200/the patch; flat-zero in the inter-halo region.
+  So M2+kernel is *worse* than M2 (logRMSE 0.113→0.165). **Unified result:** the baryonic signal not
+  already in DMO (total) / M2 (gas) is confined to ≲1·r200, inside BIND's patches — there's no inter-halo
+  signal to outpaint. The BCM-kernel validates at the profile level (Phase 0/1) but is redundant in
+  deployment; patches + M2/DMO background is complete. Useful negative result; investigation closed.
+  Scripts `kernel_bcm_{feasibility,build,phase2,gas}.py` on `feature/outpainting`.
+
 ## 2026-06-04 — Outpainting the inter-halo background (branch `feature/outpainting`)
 
 New investigation: BIND's composite is patchy (baryons only inside pasted halos). Added

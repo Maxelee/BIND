@@ -659,15 +659,16 @@ def build_bind_composite(
     patch_pix: int,
     patch_mass_match: bool,
     taper_frac: float,
-    r200_factor: float = 0.0,
+    r200_factor: float = 4.0,
 ) -> dict:
     """Construct BIND composite map using notebook-consistent blending logic.
 
-    When ``r200_factor > 0`` each halo patch is blended with a circular
-    Hann-tapered weight of radius ``r200_factor * R200c`` (pixels), confining
-    the generated baryonic content to a physically motivated aperture.  The
-    square taper is used when ``r200_factor == 0`` (default, legacy behaviour)
-    or when R200c data is unavailable for a halo.
+    When ``r200_factor > 0`` (the standard, default 4.0) each halo patch is
+    blended with a circular Hann-tapered weight of radius ``r200_factor * R200c``
+    (pixels), confining the generated baryonic content to a physically motivated
+    aperture.  This recovers the small-scale total-matter power that the legacy
+    square taper (``r200_factor == 0``) smears away — see docs/circular_aperture.md.
+    The square taper is also used as a per-halo fallback when R200c is unavailable.
     """
     patches = []
     patch_scales = []

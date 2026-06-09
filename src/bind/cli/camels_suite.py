@@ -65,10 +65,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--r200_factor",
         type=float,
-        default=0.0,
+        default=4.0,
         help=(
             "Radius of circular paste region as a multiple of R200c. "
-            "0 (default) uses the legacy square taper; 2.0 pastes within 2×R200c."
+            "4.0 (default, standard) pastes within 4×R200c; 0 reverts to the "
+            "legacy square taper. See docs/circular_aperture.md."
         ),
     )
     parser.add_argument("--skip_truth", action="store_true", help="Skip hydro truth map projection")

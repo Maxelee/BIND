@@ -348,12 +348,9 @@ def extract_periodic_cutout(field: np.ndarray, cx: int, cy: int, size: int) -> n
 
 
 def extract_multiscale(dmo_map: np.ndarray, cx_pix: int, cy_pix: int, target_res: int) -> tuple[np.ndarray, np.ndarray]:
-    """Extract condition patch and three large-scale context patches.
-
-    Physical scales are fixed to match training data regardless of box size:
-      6.25, 12.5, 25, 50 Mpc/h  →  target_res × {1, 2, 4, 8} pixels.
-    """
-    scales_pix = [target_res, target_res * 2, target_res * 4, target_res * 8]
+    """Extract condition patch and three large-scale context patches."""
+    full_res = dmo_map.shape[0]
+    scales_pix = [target_res, target_res * 2, target_res * 4, full_res]
     result = np.zeros((4, target_res, target_res), dtype=np.float32)
 
     for i, spx in enumerate(scales_pix):

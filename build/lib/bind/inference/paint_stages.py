@@ -44,7 +44,6 @@ from tqdm import tqdm
 from bind.data import N_THERMO, THERMO_KEYS
 
 from . import io_gadget
-from .lightcone_transforms import LightconeTransforms
 from .paint import (
     Model,
     PaintResult,
@@ -109,8 +108,6 @@ def project_and_extract(
     pixel_size: float = NATIVE_PIXEL_SIZE_MPCH,
     slab_depth: float = NATIVE_SLAB_DEPTH_MPCH,
     patch_pix: int = PATCH_PIX,
-    transforms: LightconeTransforms | None = None,
-    transforms_snap_idx: int | None = None,
     comm: Any | None = None,
     progress: bool = True,
 ) -> Path | None:
@@ -125,15 +122,6 @@ def project_and_extract(
     output_dir
         Intermediate directory.  Rank 0 writes ``stage1_slab{NN}.npz`` per slab,
         ``params.npy``, and ``stage1_manifest.json``.
-    transforms : LightconeTransforms, optional
-        Lightcone geometric transforms (rotation/translation/flip).  When provided,
-        each chunk's particle positions are transformed with
-        ``transforms.apply(pos, transforms_snap_idx, box_size)`` **before**
-        projection.  The transform parameters are stored in the manifest so the
-        lensplane step can reproduce the geometry.
-    transforms_snap_idx : int, optional
-        Index into *transforms* for this snapshot (0 = lowest-z snapshot).
-        Required when *transforms* is provided.
     comm
         An ``mpi4py`` communicator, or ``None`` for a single-process run.  Each
         rank reads ``files[rank::size]``; partial slab maps are reduced to rank 0.
@@ -150,15 +138,11 @@ def project_and_extract(
     if snapshot_index is None:
         snapshot_index = io_gadget._infer_snapshot_index(snap_files)
 
-    if transforms is not None and transforms_snap_idx is None:
-        raise ValueError("transforms_snap_idx is required when transforms is provided")
-
-    # Box size, cosmology, scale factor, and DM particle mass from the first chunk header.
+    # Box size, scale factor, and uniform DM particle mass from the first chunk header.
     with h5py.File(snap_files[0], "r") as h:
         box_size = float(h["Header"].attrs["BoxSize"]) / 1000.0
         particle_mass = float(h["Header"].attrs["MassTable"][1]) * 1e10
         scale_factor = float(h["Header"].attrs.get("Time", 1.0))
-        Omega_m = float(h["Header"].attrs.get("Omega0", float("nan")))
 
     npix = _round_npix(box_size, pixel_size)
     n_slabs = _round_n_slabs(box_size, slab_depth)
@@ -167,13 +151,9 @@ def project_and_extract(
 
     if rank == 0:
         print(f"[stage1] box={box_size:.3f} Mpc/h  npix={npix}  n_slabs={n_slabs}")
-        print(f"[stage1] scale_factor={scale_factor:.4f}  z={redshift:.4f}  Omega_m={Omega_m:.4f}")
+        print(f"[stage1] scale_factor={scale_factor:.4f}  z={redshift:.4f}")
         print(f"[stage1] {len(snap_files)} snapshot chunk(s) across {size} rank(s)")
         print(f"[stage1] particle_mass={particle_mass:.3e} Msun/h")
-        if transforms is not None:
-            pd = int(transforms.proj_dirs[transforms_snap_idx])
-            print(f"[stage1] lightcone transform: snap_idx={transforms_snap_idx}  "
-                  f"proj_dir={pd}  disp={transforms.disp[transforms_snap_idx].tolist()}")
 
     # --- project this rank's chunks into local slab maps -------------------
     local_slabs = np.zeros((n_slabs, npix, npix), dtype=np.float32)
@@ -183,8 +163,6 @@ def project_and_extract(
     for fname in iterator:
         with h5py.File(fname, "r") as h:
             pos = h["PartType1/Coordinates"][:].astype(np.float32) / 1000.0
-        if transforms is not None:
-            pos = transforms.apply(pos, transforms_snap_idx, box_size)
         _accumulate_chunk_into_slabs(local_slabs, pos, particle_mass, box_size, n_slabs)
         del pos
 
@@ -210,14 +188,9 @@ def project_and_extract(
         group_catalog, snapshot=snapshot_index,
         halo_mass_min=halo_mass_min, mass_field=halo_mass_field,
     )
-    halo_pos = cat["positions"]        # (M, 3) in original frame [Mpc/h]
+    halo_pos = cat["positions"]
     halo_mass = cat["mass"]
     halo_r200 = cat["r200"]
-
-    # Apply the same transform to halo centres so they align with the projected slabs.
-    if transforms is not None:
-        halo_pos = transforms.apply(halo_pos, transforms_snap_idx, box_size)
-
     halo_slab_idx = _assign_halos_to_slabs(halo_pos[:, 2], box_size, n_slabs)
 
     output_dir = Path(output_dir)
@@ -289,16 +262,10 @@ def project_and_extract(
         "particle_mass": particle_mass,
         "scale_factor": scale_factor,
         "redshift": redshift,
-        "Omega_m": Omega_m,
         "params_file": "params.npy",
         "per_slab": per_slab_meta,
         "created": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }
-    if transforms is not None:
-        manifest["transforms_snap_idx"] = transforms_snap_idx
-        manifest["proj_dir"] = int(transforms.proj_dirs[transforms_snap_idx])
-        manifest["disp"] = transforms.disp[transforms_snap_idx].tolist()
-        manifest["flip"] = transforms.flip[transforms_snap_idx].tolist()
     (output_dir / MANIFEST_NAME).write_text(json.dumps(manifest, indent=2))
     print(f"[stage1] wrote manifest -> {output_dir / MANIFEST_NAME}")
     return output_dir

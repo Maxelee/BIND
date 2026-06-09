@@ -26,7 +26,6 @@ import numpy as np
 
 import bind
 from bind.cli.paint import _load_params
-from bind.inference.lightcone_transforms import LightconeTransforms
 from bind.inference.paint_stages import project_and_extract
 
 
@@ -50,15 +49,6 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--slab_depth", type=float, default=bind.NATIVE_SLAB_DEPTH_MPCH)
     p.add_argument("--patch_pix", type=int, default=bind.PATCH_PIX)
     p.add_argument("--no_progress", action="store_true")
-
-    # Lightcone transform support
-    p.add_argument("--transforms", type=Path, default=None,
-                   help="Path to lightcone_transforms.json written by "
-                        "bind-lightcone-transforms.  When provided, particles "
-                        "are rotated/translated before projection.")
-    p.add_argument("--transforms_snap_idx", type=int, default=None,
-                   help="Index into the transforms file for this snapshot "
-                        "(0 = lowest-z snapshot).  Required with --transforms.")
     return p.parse_args()
 
 
@@ -90,12 +80,6 @@ def main() -> None:
 
     params = _load_params(args.params)
 
-    transforms = None
-    if args.transforms is not None:
-        if args.transforms_snap_idx is None:
-            raise SystemExit("--transforms_snap_idx is required with --transforms")
-        transforms = LightconeTransforms.load(args.transforms)
-
     if rank == 0:
         size = comm.size if comm is not None else 1
         print(f"[bind-paint-project] {size} rank(s); output -> {args.output_dir}")
@@ -111,8 +95,6 @@ def main() -> None:
         pixel_size=args.pixel_size,
         slab_depth=args.slab_depth,
         patch_pix=args.patch_pix,
-        transforms=transforms,
-        transforms_snap_idx=args.transforms_snap_idx,
         comm=comm,
         progress=not args.no_progress,
     )

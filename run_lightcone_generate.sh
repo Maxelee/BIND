@@ -69,7 +69,9 @@ python -u -m bind.cli.paint_generate \
     --output_dir "$OUTPUT_DIR" \
     --n_steps "$N_STEPS" \
     --batch_size "$BATCH_SIZE" \
-    --device auto \
-    "$@"
+    --device auto
+# NOTE: per-halo generated patches (and thermo patches) ARE saved into each
+# composite_slab*.npz.  Do NOT add --no_save_patches here — those arrays are
+# needed for lightcone assembly and re-compositing.
 
 echo "=== Done for snap ${SNAP3}. Output in $OUTPUT_DIR ==="

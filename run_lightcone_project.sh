@@ -3,7 +3,7 @@
 #SBATCH --output=/mnt/home/mlee1/ceph/logs/bind_lc_project_%A_%a.out
 #SBATCH --error=/mnt/home/mlee1/ceph/logs/bind_lc_project_%A_%a.err
 #SBATCH --partition=cca
-#SBATCH --constraint=rome
+#SBATCH --constraint=icelake
 #SBATCH --nodes=4
 #SBATCH --ntasks=64
 #SBATCH --exclusive
@@ -58,6 +58,37 @@ fi
 
 mkdir -p "$STAGE1_DIR"
 
+# ── Lightcone transforms (rotation/translation/flip per snapshot) ──────────────
+# Generated once by task 0; all other tasks wait for the JSON to appear.
+LC_SEED=${LC_SEED:-2020}
+BOX_SIZE=205.0   # IllustrisTNG L205 in Mpc/h
+N_SNAPS=20
+TRANSFORMS_FILE="$OUTPUT_ROOT/lightcone_transforms.json"
+
+if [[ "${SLURM_ARRAY_TASK_ID}" -eq 0 ]]; then
+    python - "$TRANSFORMS_FILE" "$LC_SEED" "$BOX_SIZE" "$N_SNAPS" <<'PY'
+import sys
+from bind.inference.lightcone_transforms import LightconeTransforms
+
+out_path, seed, box_size, n_snaps = sys.argv[1], int(sys.argv[2]), float(sys.argv[3]), int(sys.argv[4])
+t = LightconeTransforms.from_seed(n_snaps, seed, box_size, random_proj_dir=True)
+t.save(out_path)
+print(f"[transforms] seed={seed} n_snaps={n_snaps} box={box_size} Mpc/h -> {out_path}")
+print(f"[transforms] proj_dirs={t.proj_dirs.tolist()}")
+PY
+else
+    # Wait for task 0 to write the transforms file (up to 5 min)
+    echo "[transforms] waiting for $TRANSFORMS_FILE ..."
+    for i in $(seq 1 60); do
+        [[ -f "$TRANSFORMS_FILE" ]] && break
+        sleep 5
+    done
+    if [[ ! -f "$TRANSFORMS_FILE" ]]; then
+        echo "ERROR: transforms file never appeared: $TRANSFORMS_FILE" >&2
+        exit 1
+    fi
+fi
+
 # ── 35-dim fiducial IllustrisTNG parameter vector ─────────────────────────────
 PARAMS_FILE="$STAGE1_DIR/fiducial_params.npy"
 python - "$PARAMS_FILE" <<'PY'
@@ -75,6 +106,7 @@ echo "    snapshot=$SNAPDIR"
 echo "    groups=$GROUPDIR"
 echo "    halo_mass_min=$HALO_MASS_MIN  ntasks=${SLURM_NTASKS:-?}"
 echo "    stage1_out=$STAGE1_DIR"
+echo "    transforms=$TRANSFORMS_FILE  snap_idx=${SLURM_ARRAY_TASK_ID}"
 
 srun python -u -m bind.cli.paint_project \
     --snapshot "$SNAPDIR" \
@@ -83,6 +115,7 @@ srun python -u -m bind.cli.paint_project \
     --params "$PARAMS_FILE" \
     --output_dir "$STAGE1_DIR" \
     --halo_mass_min "$HALO_MASS_MIN" \
-    "$@"
+    --transforms "$TRANSFORMS_FILE" \
+    --transforms_snap_idx "${SLURM_ARRAY_TASK_ID}"
 
 echo "=== Stage 1 done for snap ${SNAP3}. Intermediate in $STAGE1_DIR ==="

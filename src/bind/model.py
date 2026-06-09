@@ -538,8 +538,13 @@ class VariationalDiffusion:
                 else:
                     eps = self.model(inp, tb, params)
 
-                # predicted clean field (clamp alpha away from 0 at the t=1 start)
-                x1_hat = (x - sigma * eps) / alpha.clamp(min=1e-3)
+                # predicted clean field. At t->1, alpha->0 so the division explodes
+                # error (huge with an under-trained model -> inf after denorm); clamp
+                # alpha and static-clip x1_hat to the normalized data range (standard
+                # "static thresholding"). Normalized log10(1+x) targets sit well within
+                # +/-15, so this never bites a trained model but keeps sampling finite.
+                x1_hat = (x - sigma * eps) / alpha.clamp(min=1e-2)
+                x1_hat = x1_hat.clamp(-10.0, 10.0)  # +/-10 keeps denorm finite (stars std~3 -> 10^~31)
                 x = alpha_n * x1_hat + sigma_n * eps
 
         return x

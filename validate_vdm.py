@@ -88,6 +88,7 @@ def main():
     ap.add_argument("--batch", type=int, default=64)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--n_show", type=int, default=4, help="example halos to render (truth/FM/VDM)")
     ap.add_argument("--out", default="ceph/fm_diag/vdm_vs_fm.png")
     args = ap.parse_args()
 
@@ -161,6 +162,30 @@ def main():
     out = Path(args.out); out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=120)
     print(f"\n[vdm-vs-fm] wrote {out}")
+
+    # ---- example halos: generated channels, truth / FM / VDM ----
+    show = np.argsort(-truth[:, 2].sum((1, 2)))[:args.n_show]   # most massive stellar
+    nrow = args.n_show
+    fig2, ax2 = plt.subplots(nrow, 9, figsize=(18, 2.1 * nrow))
+    ax2 = np.atleast_2d(ax2)
+    for r, i in enumerate(show):
+        col = 0
+        for ci in range(3):
+            vmax = float(np.log10(1 + truth[i, ci]).max())
+            for tag, arr in [("truth", truth), ("FM", gens["FM"]), ("VDM", gens["VDM"])]:
+                a = ax2[r, col]
+                a.imshow(np.log10(1 + np.clip(arr[i, ci], 0, None)), vmin=0, vmax=vmax, cmap="magma")
+                a.set_xticks([]); a.set_yticks([])
+                if r == 0:
+                    a.set_title(f"{CHANNEL_NAMES[ci][:4]}\n{tag}", fontsize=8)
+                if col == 0:
+                    a.set_ylabel(f"halo {i}", fontsize=8)
+                col += 1
+    fig2.suptitle("Generated channels per halo — log10(1+x), shared vmax per (halo, channel)", fontsize=12)
+    fig2.tight_layout()
+    out2 = out.with_name(out.stem + "_patches.png")
+    fig2.savefig(out2, dpi=120)
+    print(f"[vdm-vs-fm] wrote {out2}")
 
 
 if __name__ == "__main__":

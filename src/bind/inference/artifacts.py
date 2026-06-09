@@ -120,15 +120,27 @@ def save_halo_catalog(
 def load_halo_catalog(path: Path) -> tuple[list[dict], np.ndarray, np.ndarray, np.ndarray]:
     """Load halo list and source arrays from cache.
 
-    Returns (halos, halo_masses, halo_r200s, halo_positions).  Old cache files
-    without R200 data return zeros for halo_r200s and r200=0.0 per halo.
+    Returns (halos, halo_masses, halo_r200s, halo_positions).  R200c (Mpc/h) is
+    read from ``r200s`` (current format) or, for back-compatibility, from the
+    legacy ``radii`` key (stored in kpc/h, converted here).  Cache files with
+    neither return zeros, so circular pasting falls back to the FOF reload.
     """
     loaded = np.load(path)
     centers = loaded["centers"]
     params = loaded["params"]
     masses = loaded["masses"]
-    r200s = loaded["r200s"] if "r200s" in loaded else np.zeros(len(centers), dtype=np.float32)
-    halo_r200s = loaded["halo_r200s"] if "halo_r200s" in loaded else np.zeros(len(loaded["halo_masses"]), dtype=np.float32)
+    if "r200s" in loaded:
+        r200s = loaded["r200s"]
+    elif "radii" in loaded:  # legacy catalogs stored R200c in kpc/h
+        r200s = loaded["radii"].astype(np.float32) / 1e3
+    else:
+        r200s = np.zeros(len(centers), dtype=np.float32)
+    if "halo_r200s" in loaded:
+        halo_r200s = loaded["halo_r200s"]
+    elif "radii" in loaded:
+        halo_r200s = loaded["radii"].astype(np.float32) / 1e3
+    else:
+        halo_r200s = np.zeros(len(loaded["halo_masses"]), dtype=np.float32)
 
     halos = [
         {"halo_center": centers[i], "halo_mass": float(masses[i]), "r200": float(r200s[i]), "params": params[i]}

@@ -6,6 +6,24 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-06-09 — Circular paste aperture is now the standard (`r200_factor=4.0`)
+
+The BIND composite now defaults to a **circular `4×R200c` paste aperture** instead
+of the legacy square Hann taper. Over 26 CV sims (`fm_two_head`), circular removes
+the small-scale total-matter `P(k)` deficit: BIND/Truth at `k` 40–70 h/Mpc goes
+−10.6% (square) → −0.8% (circular), at the cost of mild +7–11% over-production at
+`k` 10–40. The hydro-replaced control shows the square-aperture high-`k` deficit is
+an over-smooth-core *model* issue that the tight aperture compensates geometrically.
+
+- Engine: default `r200_factor` 0.0→4.0 in `RunConfig` (`schemas.py`), both CLIs
+  (`camels_suite`, `paint`), and `build_bind_composite`. `load_halo_catalog` now reads
+  R200c from cached catalogs (legacy `radii` kpc/h as well as `r200s` Mpc/h), so a
+  `--repaste` no longer needs the FOF files and preserves halo↔patch ordering.
+- Note + example figure: `docs/circular_aperture.md`. Full study (also scale_global
+  P(k)-invariance + taper sweeps): `experiments/composite_study/FINDINGS.md`.
+- Reversible: `--r200_factor 0` restores square; circular composites rebuild cheaply
+  from cached `generated_halos.npz`.
+
 ## 2026-06-08 — BIND high-k P(k) deficit: diagnosed + core-transplant fix (branch `feature/outpainting`)
 
 Investigated why BIND's composite total-matter P(k)/P_DMO under-delivers at high k (the "hydro-replaced"

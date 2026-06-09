@@ -340,10 +340,19 @@ class FlowMatching:
     """
 
     def __init__(self, model, cfg_dropout=0.0, star_occ_weight=5.0,
-                 star_zero_norm=None, out_channels=3, stars_two_head=False):
+                 star_zero_norm=None, out_channels=3, stars_two_head=False,
+                 core_weight=0.0, core_thresh=1.5):
         self.model = model
         self.cfg_dropout = cfg_dropout
         self.star_occ_weight = star_occ_weight
+        # Density-proportional up-weighting of high-density CORE pixels (all density
+        # channels jointly, so co-located DM+Gas+Stars cores are emphasised together).
+        # The sparse cores are a tiny fraction of pixels and get drowned out of the
+        # uniform velocity-MSE, so the flow under-fits them -> smooth cores -> high-k
+        # P(k) deficit. core_weight>0 fixes that; core_thresh is the normalized-value
+        # threshold (in target sigma) above which a pixel counts as core.
+        self.core_weight = core_weight
+        self.core_thresh = core_thresh
         # Normalised value of a zero-density stellar pixel; anything above this is "occupied".
         # Set from norm_stats: (0 - target_mean[2]) / target_std[2].
         # In two-head Stars mode this knob is unused (channel 2 is occupancy,
@@ -401,6 +410,14 @@ class FlowMatching:
                 star_occ = (x1[:, 2:3] > self.star_zero_norm + 0.1).float()
                 w[:, 2:3] = 1.0 + (self.star_occ_weight - 1.0) * star_occ
             per_pixel = per_pixel * w
+
+        if self.core_weight > 0:
+            # density-proportional core emphasis on every density channel; the binary
+            # two-head occupancy channel (ch2) is excluded (it carries no density).
+            wc = 1.0 + self.core_weight * torch.clamp(x1 - self.core_thresh, min=0.0)
+            if self.stars_two_head:
+                wc[:, 2:3] = 1.0
+            per_pixel = per_pixel * wc
 
         return per_pixel.mean()
 

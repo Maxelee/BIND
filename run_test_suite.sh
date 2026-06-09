@@ -58,6 +58,9 @@ SB35_PARAM_FILE=${SB35_PARAM_FILE:-/mnt/home/mlee1/Sims/IllustrisTNG_DM/L50n512/
 SB35_DM_ROOT=${SB35_DM_ROOT:-/mnt/home/mlee1/Sims/IllustrisTNG_DM/L50n512/SB35}
 SB35_HYDRO_ROOT=${SB35_HYDRO_ROOT:-/mnt/ceph/users/camels/Sims/IllustrisTNG_extras/L50n512/SB35}
 SB35_GROUP_ROOT=${SB35_GROUP_ROOT:-/mnt/ceph/users/camels/FOF_Subfind/IllustrisTNG_DM/L50n512/SB35}
+CV_PARAM_FILE=${CV_PARAM_FILE:-/mnt/home/mlee1/Sims/IllustrisTNG_DM/L50n512/CV/CosmoAstroSeed_IllustrisTNG_L50n512_CV.txt}
+CV_NBODY_ROOT=${CV_NBODY_ROOT:-/mnt/home/mlee1/Sims/IllustrisTNG_DM/L50n512/CV}
+CV_HYDRO_ROOT=${CV_HYDRO_ROOT:-/mnt/ceph/users/camels/Sims/IllustrisTNG/L50n512/CV}
 CV_FOF_ROOT=${CV_FOF_ROOT:-/mnt/ceph/users/camels/FOF_Subfind/IllustrisTNG_DM/L50n512/CV}
 ONEP_FOF_ROOT=${ONEP_FOF_ROOT:-/mnt/ceph/users/camels/FOF_Subfind/IllustrisTNG_DM/L50n512/1P}
 TEST_DATA_ROOT=${TEST_DATA_ROOT:-/mnt/home/mlee1/ceph/train_data_rotated2_128_cpu/test}
@@ -172,6 +175,9 @@ echo "=== [chunk $CHUNK_ID/$N_CHUNKS] suite=$SUITE model=$MODEL_NAME ckpt=${CHEC
     --max_workers 1 \
     --n_chunks "$N_CHUNKS" \
     --chunk_id "$CHUNK_ID" \
+    --cv_param_file "$CV_PARAM_FILE" \
+    --cv_nbody_root "$CV_NBODY_ROOT" \
+    --cv_hydro_root "$CV_HYDRO_ROOT" \
     --cv_fof_root "$CV_FOF_ROOT" \
     --onep_fof_root "$ONEP_FOF_ROOT" \
     "${EXTRA_FLAGS[@]}" \

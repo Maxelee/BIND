@@ -6,6 +6,34 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-06-08 — BIND high-k P(k) deficit: diagnosed + core-transplant fix (branch `feature/outpainting`)
+
+Investigated why BIND's composite total-matter P(k)/P_DMO under-delivers at high k (the "hydro-replaced"
+control proved it's the painted-patch *content*, not compositing). Long arc, fully in memory
+[[project_highk_deficit_fix]]; headline:
+
+- **Diagnosis.** Per-channel patch transfer T(k)+coherence (`bind_vs_truth_patches.py`): the deficit is
+  stellar core under-concentration (T_stars~0.75 flat), and the high-k *coherence* is intrinsically low
+  (sub-resolution baryon structure isn't determined by DMO) — irrelevant to P(k). A per-channel composite
+  swap then showed the high-k is the **cross-channel coherence of co-located sharp DM+Gas+Stars cores**
+  (whole ≈ 4× sum of parts), NOT any channel's auto-power.
+- **What failed (don't retry).** Pure post-hoc spectral boost / histogram-match (can't sharpen sparse
+  non-negative fields). A learned refiner — L1+spectral, adversarial (collapses; pivoted to feature-
+  matching), all regress to the smooth conditional mean → undershoot. Per-channel & joint sharpening →
+  wildly overshoot/unstable. `refiner_*.py`, `bind_highk_fix.py` document these.
+- **The fix (`core_transplant.py`).** Transplant REAL truth joint-cores: a codebook of central core stamps
+  (r<R, all 3 channels) from training halos, mass-matched per BIND halo, blended into the patch centre at
+  BIND's central mass (strict mass conservation). Restores co-location by construction; can't overshoot.
+  **Validated on 30 held-out-θ sims × 4 seeds (`core_transplant_validate.py`):** mass exact (1e-15),
+  composite S(k) k30 closed / **k50 +31%±8%**, profiles preserved — all 5 goals (mass/profile/field/
+  param-sensitivity/composite P(k)) met (k>30 partially; residual = per-halo joint structure a codebook
+  can't fully match). Also found, as a free win: **checkpoint epoch047 beats last.ckpt** on high-k and
+  lowest-val-loss is worst (`eval_ckpt_highk.py`) — confirms val_loss ≠ sample quality.
+- **Next:** wire `CoreCodebook` into the `bind.inference` composite as an optional post-step; regen base on
+  epoch047 to stack gains.
+
+---
+
 ## 2026-06-08 — BCM-with-flow-amplitudes outpainting (branch `feature/outpainting`)
 
 Second outpainting idea: model the *total-matter* baryonic correction δ_b = ρ_hydro − ρ_DMO as a

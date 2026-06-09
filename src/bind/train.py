@@ -24,7 +24,8 @@ class FlowMatchingLit(L.LightningModule):
                  cfg_dropout=0.1, warmup_steps=1000, n_sampling_steps=50,
                  star_occ_weight=1.0, star_zero_norm=None,
                  interpolant='fm', sigma=0.5, stars_two_head=False,
-                 no_large_scale=False, predict_thermo=False):
+                 no_large_scale=False, predict_thermo=False,
+                 core_weight=0.0, core_thresh=1.5):
         super().__init__()
         self.save_hyperparameters()
 
@@ -67,7 +68,9 @@ class FlowMatchingLit(L.LightningModule):
                                    star_occ_weight=star_occ_weight,
                                    star_zero_norm=star_zero_norm,
                                    out_channels=out_ch,
-                                   stars_two_head=stars_two_head)
+                                   stars_two_head=stars_two_head,
+                                   core_weight=core_weight,
+                                   core_thresh=core_thresh)
         self.ema = ExponentialMovingAverage(self.unet.parameters(), decay=ema_decay)
 
     def training_step(self, batch, batch_idx):
@@ -221,6 +224,19 @@ def main():
     parser.add_argument('--star_occ_weight', type=float, default=1.0,
                         help='Extra loss weight for occupied stellar pixels (1=disabled). '
                              'Ignored when --stars_two_head is set.')
+    parser.add_argument('--core_weight', type=float, default=0.0,
+                        help='Density-proportional up-weighting of high-density CORE pixels '
+                             '(all density channels jointly) in the velocity-MSE, to stop the '
+                             'flow under-fitting the sparse co-located cores (high-k P(k) fix). '
+                             '0=disabled; try 2-5 when fine-tuning.')
+    parser.add_argument('--core_thresh', type=float, default=1.5,
+                        help='Normalized-value (target sigma) threshold above which a pixel is '
+                             'treated as core for --core_weight.')
+    parser.add_argument('--init_from', type=str, default=None,
+                        help='Checkpoint to load UNet weights from (fine-tune): fresh optimizer/'
+                             'schedule + new hparams (e.g. --core_weight). For core-loss fine-tune.')
+    parser.add_argument('--resume_from', type=str, default=None,
+                        help='Checkpoint for a full Lightning state resume (optimizer+epoch).')
     parser.add_argument('--stars_two_head', action='store_true',
                         help='Split Stars target into (occupancy, conditional density) '
                              'and have the model predict both. Out_ch becomes 4. At '
@@ -310,6 +326,7 @@ def main():
         stars_two_head=args.stars_two_head,
         no_large_scale=args.no_large_scale,
         predict_thermo=args.predict_thermo,
+        core_weight=args.core_weight, core_thresh=args.core_thresh,
         n_params=n_params,
     )
 
@@ -336,7 +353,18 @@ def main():
         val_check_interval=1.0,
     )
 
-    trainer.fit(model, dm)
+    # Fine-tune: load model weights from a checkpoint (NOT optimizer/epoch/old hparams),
+    # so we continue from e.g. epoch047 with the new core-weighted loss + a fresh
+    # low-LR schedule. Use --init_from for this; --resume_from for a full state resume.
+    if args.init_from:
+        sd = torch.load(args.init_from, map_location='cpu')
+        state = sd.get('state_dict', sd)
+        unet_sd = {k[len('unet.'):]: v for k, v in state.items() if k.startswith('unet.')}
+        missing, unexpected = model.unet.load_state_dict(unet_sd, strict=False)
+        print(f"[init_from] loaded {len(unet_sd)} unet tensors from {args.init_from} "
+              f"(missing {len(missing)}, unexpected {len(unexpected)})")
+
+    trainer.fit(model, dm, ckpt_path=args.resume_from or None)
 
 
 if __name__ == '__main__':

@@ -56,14 +56,18 @@ def load_ckpt(run_dir, ckpt, device):
 def generate(model, ns, files, device, n_steps, batch, workers):
     loader = DataLoader(AstroDataset(files, ns), batch_size=batch, shuffle=False,
                         num_workers=workers, pin_memory=True)
-    real, gen = [], []
+    real, gen, losses = [], [], []
     for b in loader:
         cond, ls, pr = b["condition"].to(device), b["large_scale"].to(device), b["params"].to(device)
+        tgt = b["target"].to(device)
+        # training-objective loss on held-out data: VDM eps-MSE / FM velocity-MSE.
+        # eps-MSE ~ 1.0 == predicting eps=0 (learned nothing); << 1 == learning.
+        losses.append(float(model.fm.loss(tgt, cond, ls, pr)))
         with torch.amp.autocast("cuda", dtype=torch.bfloat16):
             g = model.fm.sample(cond, ls, pr, n_steps=n_steps)
         real.append(_denormalize_to_physical(b["target"].numpy().copy(), ns))
         gen.append(_denormalize_to_physical(g.float().cpu().numpy(), ns))
-    return np.concatenate(real), np.concatenate(gen)
+    return np.concatenate(real), np.concatenate(gen), float(np.mean(losses))
 
 
 def stacked_pk(fields, idx, nb):
@@ -99,17 +103,35 @@ def main():
     idx, kcent, nb = radial_bins(128, PATCH_BOX)
     print(f"[vdm-vs-fm] {len(files)} test patches | FM {args.fm_steps} steps, VDM {args.vdm_steps} steps | {device}")
 
-    gens = {}
+    gens = {}; train_loss = {}
     truth = None
     for tag, run, ckpt, steps in [("FM", args.fm_run, args.fm_ckpt, args.fm_steps),
                                   ("VDM", args.vdm_run, args.vdm_ckpt, args.vdm_steps)]:
         model, ns = load_ckpt(Path(args.runs_dir) / run, ckpt, device)
-        real, gen = generate(model, ns, files, device, steps, args.batch, args.workers)
-        gens[tag] = gen; truth = real if truth is None else truth
+        real, gen, loss = generate(model, ns, files, device, steps, args.batch, args.workers)
+        gens[tag] = gen; train_loss[tag] = loss; truth = real if truth is None else truth
         del model
         if device.type == "cuda":
             torch.cuda.empty_cache()
-        print(f"  {tag}: {gen.shape}")
+        print(f"  {tag}: {gen.shape}  train-objective loss={loss:.4f}")
+
+    # ---- decisive diagnostics: is the VDM undertrained, or is sampling broken? ----
+    # (1) VDM eps-MSE: ~1.0 = learned nothing; well below 1 = learning (training OK).
+    # (2) log-space (decoupled from the exp-denorm): mean offset + variance ratio.
+    #     If the log-space variance ratio ~1 but physical is orders low -> it's the
+    #     denorm exponential amplifying a tiny offset (calibration). If log-space
+    #     variance is itself far below 1 -> genuinely under-dispersed (undertrained
+    #     or sampler). This separates "undertrained" from "sampler bug".
+    print(f"\n=== VDM health: eps-MSE={train_loss['VDM']:.4f} (1.0=untrained)  "
+          f"FM loss={train_loss['FM']:.4f} ===")
+    print(f"{'channel':>9} | {'logVAR VDM/truth':>16} {'log mean off VDM':>16} | "
+          f"{'logVAR FM/truth':>15}")
+    for ci, cn in enumerate(CHANNEL_NAMES):
+        lt = np.log10(1 + np.clip(truth[:, ci], 0, None))
+        lv = np.log10(1 + np.clip(gens["VDM"][:, ci], 0, None))
+        lf = np.log10(1 + np.clip(gens["FM"][:, ci], 0, None))
+        print(f"{cn:>9} | {lv.var()/lt.var():16.3f} {lv.mean()-lt.mean():16.3f} | "
+              f"{lf.var()/lt.var():15.3f}")
 
     COL = {"truth": "k", "FM": "tab:orange", "VDM": "tab:blue"}
 

@@ -35,8 +35,8 @@ def parse_args() -> argparse.Namespace:
 
     p.add_argument("--no_patch_mass_match", action="store_true")
     p.add_argument("--taper_frac", type=float, default=0.15)
-    p.add_argument("--r200_factor", type=float, default=0.0,
-                   help="Circular paste radius as multiple of R200c (0 = square taper)")
+    p.add_argument("--r200_factor", type=float, default=4.0,
+                   help="Circular paste radius as multiple of R200c (default 4.0, standard; 0 = legacy square taper)")
     p.add_argument("--no_save_patches", action="store_true",
                    help="Don't carry generated patches into the new output "
                         "(makes it non-re-compositable)")

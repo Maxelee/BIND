@@ -62,18 +62,87 @@ def _safe_divide(numerator, denominator):
                      where=denominator > thresh)
 
 
+def cic_window_2d(npix: int) -> np.ndarray:
+    """2D CIC sampling window ``W(k)`` for deconvolution.
+
+    Dividing a CIC-deposited field's FFT by this array removes the CIC
+    smoothing.  ``W(k) = prod_i sinc(pi k_i / 2 k_Ny)^2``; with ``np.sinc``
+    (which already includes the ``pi``) and ``f = k/2k_Ny`` in cycles/pixel
+    from :func:`numpy.fft.fftfreq`, this is ``(sinc(f_x) sinc(f_y))^2``.
+    """
+    f = np.fft.fftfreq(npix)            # cycles/pixel in [-0.5, 0.5)
+    w1 = np.sinc(f)                     # np.sinc(x) = sin(pi x)/(pi x)
+    return (np.outer(w1, w1)) ** 2     # (npix, npix), CIC = sinc^2 per axis
+
+
+def interlace_combine_2d(
+    grid0: np.ndarray,
+    grid1: np.ndarray,
+    *,
+    deconvolve: bool = True,
+) -> np.ndarray:
+    """Combine two half-cell-offset CIC deposits into an anti-aliased field.
+
+    Interlacing (Sefusatti et al. 2016) cancels the leading aliasing image that
+    raw CIC assignment folds back below the Nyquist frequency — the dominant
+    cause of the spurious high-k excess seen in the BIND lightcone projections.
+
+    Parameters
+    ----------
+    grid0 : (N, N) array
+        CIC deposit at the particle transverse positions ``x``.
+    grid1 : (N, N) array
+        CIC deposit at ``x + H/2`` (shifted by half a pixel in *both*
+        transverse axes, periodic-wrapped).
+    deconvolve : bool
+        Also divide out the CIC window (:func:`cic_window_2d`) so the returned
+        field is unbiased up to the Nyquist frequency.
+
+    Returns
+    -------
+    (N, N) float64 array — corrected real-space field (same units/total as the
+    inputs; the DC mode is preserved exactly).
+    """
+    if grid0.shape != grid1.shape or grid0.shape[0] != grid0.shape[1]:
+        raise ValueError("grid0 and grid1 must be the same square shape")
+    npix = grid0.shape[0]
+    f = np.fft.fftfreq(npix)
+    # Half-cell shift d = H/2 ⇒ phase k·d = pi*(f_x+f_y) to realign grid1 onto grid0.
+    phase = np.exp(1j * np.pi * (f[:, None] + f[None, :]))
+    F = 0.5 * (np.fft.fft2(grid0) + phase * np.fft.fft2(grid1))
+    if deconvolve:
+        F /= cic_window_2d(npix)
+    return np.fft.ifft2(F).real
+
+
 def pixelize_z_projection(
     positions: np.ndarray,
     masses: np.ndarray,
     box_size: float,
     npix: int,
+    *,
+    mas_correct: bool = False,
 ) -> np.ndarray:
-    """Project particle masses onto a 2D grid with CIC assignment via Pylians."""
+    """Project particle masses onto a 2D grid with CIC assignment via Pylians.
+
+    With ``mas_correct=True`` the projection is anti-aliased via interlacing
+    (a second half-cell-shifted deposit) and the CIC window is deconvolved — use
+    this when matching an external, anti-aliased reference (e.g. kappaTNG).  The
+    default (``False``) is plain CIC, identical to the legacy behaviour; BIND/DMO
+    *ratios* computed from the same pipeline are unaffected by the choice because
+    the aliasing is common-mode and cancels.
+    """
     pos_ = np.ascontiguousarray(positions.astype(np.float32))[:, [0, 1]]
     mass_ = np.ascontiguousarray(masses.astype(np.float32))
     field = np.zeros((npix, npix), dtype=np.float32)
     MASL.MA(pos_, field, box_size, MAS="CIC", W=mass_, verbose=False)
-    return field
+    if not mas_correct:
+        return field
+    half = 0.5 * box_size / npix
+    pos_s = (pos_ + half) % box_size
+    field_s = np.zeros((npix, npix), dtype=np.float32)
+    MASL.MA(pos_s, field_s, box_size, MAS="CIC", W=mass_, verbose=False)
+    return interlace_combine_2d(field, field_s, deconvolve=True).astype(np.float32)
 
 
 def _dmo_snapshot_files(nbody_path: Path, snapshot: int) -> list[str]:
@@ -347,23 +416,67 @@ def extract_periodic_cutout(field: np.ndarray, cx: int, cy: int, size: int) -> n
     return field[np.ix_(ix, iy)]
 
 
-def extract_multiscale(dmo_map: np.ndarray, cx_pix: int, cy_pix: int, target_res: int) -> tuple[np.ndarray, np.ndarray]:
-    """Extract condition patch and three large-scale context patches.
+def _downsample_square(cutout: np.ndarray, target_res: int) -> np.ndarray:
+    """Downsample a square cutout to ``target_res × target_res``.
 
-    Physical scales are fixed to match training data regardless of box size:
-      6.25, 12.5, 25, 50 Mpc/h  →  target_res × {1, 2, 4, 8} pixels.
+    Uses exact block-mean when the size is an integer multiple of ``target_res``
+    (the training / CAMELS-suite case — kept bit-for-bit). Falls back to
+    area-averaging interpolation when it is not, which happens for the full-box
+    context scale of a box whose ``npix`` is not a multiple of ``target_res``
+    (e.g. TNG300: ``npix = round(205 / 0.0488) = 4198``, ``target_res = 128``).
+    ``mode="area"`` is exactly average pooling, so it matches block-mean for
+    integer factors and stays mass-preserving for fractional ones.
     """
-    scales_pix = [target_res, target_res * 2, target_res * 4, target_res * 8]
-    result = np.zeros((4, target_res, target_res), dtype=np.float32)
+    spx = cutout.shape[0]
+    if spx == target_res:
+        return cutout.astype(np.float32)
+    if spx % target_res == 0:
+        factor = spx // target_res
+        return (cutout.reshape(target_res, factor, target_res, factor)
+                .mean(axis=(1, 3)).astype(np.float32))
+    t = torch.from_numpy(np.ascontiguousarray(cutout, dtype=np.float32))[None, None]
+    if spx > target_res:
+        out = torch.nn.functional.interpolate(t, size=(target_res, target_res), mode="area")
+    else:
+        out = torch.nn.functional.interpolate(
+            t, size=(target_res, target_res), mode="bilinear", align_corners=False)
+    return out[0, 0].numpy().astype(np.float32)
 
+
+# Fixed physical scales (Mpc/h) of the condition + 3 large-scale context channels,
+# matching the training data generator (data_generation/process_simulations2_cpu.py,
+# extract_multiscale_cutouts: scales_mpc = [6.25, 12.5, 25.0, 50.0]). The model was
+# trained with the largest context channel = a 50 Mpc/h window, so inference MUST use
+# the same physical scales regardless of the full-box size — not [128,256,512,full_res]
+# pixels, which makes the 4th channel span the whole box (e.g. 205 Mpc/h for TNG300)
+# and feeds the network out-of-distribution context.
+MULTISCALE_MPC = (6.25, 12.5, 25.0, 50.0)
+
+
+def extract_multiscale(
+    dmo_map: np.ndarray, cx_pix: int, cy_pix: int, target_res: int,
+    mpc_per_pix: float | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Extract the condition patch and three large-scale context patches.
+
+    With ``mpc_per_pix`` (Mpc/h per pixel of ``dmo_map``) the four channels are
+    taken at the fixed *physical* scales :data:`MULTISCALE_MPC` =
+    (6.25, 12.5, 25, 50) Mpc/h — matching the training data — each capped at the
+    box and resampled to ``target_res``. For a native 50 Mpc/h / 1024-pixel
+    projection (training + CAMELS suites) this gives exactly [128,256,512,1024]
+    px, identical to the legacy behaviour. When ``mpc_per_pix is None`` the
+    legacy pixel-doubling scales ``[target_res, 2x, 4x, full_res]`` are used.
+    """
+    full_res = dmo_map.shape[0]
+    if mpc_per_pix is None:
+        scales_pix = [target_res, target_res * 2, target_res * 4, full_res]
+    else:
+        scales_pix = [min(int(round(s / mpc_per_pix)), full_res) for s in MULTISCALE_MPC]
+
+    result = np.zeros((4, target_res, target_res), dtype=np.float32)
     for i, spx in enumerate(scales_pix):
         cutout = extract_periodic_cutout(dmo_map, cx_pix, cy_pix, spx)
-        if spx == target_res:
-            result[i] = cutout
-            continue
-
-        factor = spx // target_res
-        result[i] = cutout.reshape(target_res, factor, target_res, factor).mean(axis=(1, 3))
+        result[i] = _downsample_square(cutout, target_res)
 
     return result[0], result[1:]
 
@@ -377,11 +490,13 @@ def extract_halo_cutouts(
 ) -> list[dict]:
     """Extract all multiscale DMO cutouts at halo centers."""
     pixels_per_mpc = npix / box_size
+    mpc_per_pix = box_size / npix
     halo_cutouts: list[dict] = []
     for halo in tqdm(halos, desc="Extracting DMO cutouts"):
         cx = int(halo["halo_center"][0] * pixels_per_mpc) % npix
         cy = int(halo["halo_center"][1] * pixels_per_mpc) % npix
-        cond_cut, ls_cut = extract_multiscale(dmo_fullbox, cx, cy, target_res=patch_pix)
+        cond_cut, ls_cut = extract_multiscale(
+            dmo_fullbox, cx, cy, target_res=patch_pix, mpc_per_pix=mpc_per_pix)
         halo_cutouts.append({"condition": cond_cut, "large_scale": ls_cut})
     return halo_cutouts
 
@@ -578,8 +693,11 @@ def paste_halos_2d(
 
     If ``weights_list`` is provided each halo uses its own (patch_pix, patch_pix)
     weight (e.g. a per-halo circular mask); otherwise all halos share ``weight``.
+    The channel count is inferred from ``patches`` (3 for mass, ``N_THERMO`` for
+    the gas-thermo maps), so the same blending is shared by both.
     """
-    canvas = np.zeros((3, canvas_res, canvas_res), dtype=np.float32)
+    n_ch = patches.shape[1]
+    canvas = np.zeros((n_ch, canvas_res, canvas_res), dtype=np.float32)
     w_accum = np.zeros((canvas_res, canvas_res), dtype=np.float32)
 
     pixels_per_mpc = canvas_res / box_size
@@ -592,7 +710,7 @@ def paste_halos_2d(
         ix = (cx - w_half + np.arange(w.shape[0])) % canvas_res
         iy = (cy - w_half + np.arange(w.shape[0])) % canvas_res
 
-        for ch in range(3):
+        for ch in range(n_ch):
             canvas[ch][np.ix_(ix, iy)] += patch[ch] * w
         w_accum[np.ix_(ix, iy)] += w
 
@@ -611,15 +729,23 @@ def build_bind_composite(
     patch_pix: int,
     patch_mass_match: bool,
     taper_frac: float,
-    r200_factor: float = 0.0,
+    r200_factor: float = 4.0,
+    thermo_patches: np.ndarray | None = None,
 ) -> dict:
     """Construct BIND composite map using notebook-consistent blending logic.
 
-    When ``r200_factor > 0`` each halo patch is blended with a circular
-    Hann-tapered weight of radius ``r200_factor * R200c`` (pixels), confining
-    the generated baryonic content to a physically motivated aperture.  The
-    square taper is used when ``r200_factor == 0`` (default, legacy behaviour)
-    or when R200c data is unavailable for a halo.
+    When ``r200_factor > 0`` (the standard, default 4.0) each halo patch is
+    blended with a circular Hann-tapered weight of radius ``r200_factor * R200c``
+    (pixels), confining the generated baryonic content to a physically motivated
+    aperture.  This recovers the small-scale total-matter power that the legacy
+    square taper (``r200_factor == 0``) smears away — see docs/circular_aperture.md.
+    The square taper is also used as a per-halo fallback when R200c is unavailable.
+
+    If ``thermo_patches`` (``(N_halos, N_THERMO, patch, patch)``) is given, the
+    gas-thermo channels are composited with the **same** per-halo weights and
+    returned as ``composite_thermo`` ``(N_THERMO, npix, npix)``.  They are blended
+    like the gas channel (``alpha * canvas``) — no DMO background (DMO has no gas)
+    and no ``scale_global`` mass-conservation rescaling (thermo is not mass).
     """
     patches = []
     patch_scales = []
@@ -663,7 +789,20 @@ def build_bind_composite(
     bind_composite *= scale_global
     coverage = float((alpha > 0.01).mean() * 100.0)
 
-    return {
+    # Gas-thermo channels: composite with the same weights, blend like gas
+    # (alpha * canvas; no DMO background, no scale_global).
+    composite_thermo = None
+    if thermo_patches is not None:
+        thermo_np = np.asarray(thermo_patches, dtype=np.float32)
+        if r200_factor > 0:
+            thermo_canvas, _ = paste_halos_2d(
+                npix, box_size, halos, thermo_np, square_taper, weights_list=weights_list
+            )
+        else:
+            thermo_canvas, _ = paste_halos_2d(npix, box_size, halos, thermo_np, square_taper)
+        composite_thermo = (alpha[None] * thermo_canvas).astype(np.float32)
+
+    bundle = {
         "composite": bind_composite,
         "alpha": alpha,
         "hydro_canvas": hydro_canvas,
@@ -672,6 +811,9 @@ def build_bind_composite(
         "scale_global": scale_global,
         "coverage_pct": coverage,
     }
+    if composite_thermo is not None:
+        bundle["composite_thermo"] = composite_thermo
+    return bundle
 
 
 def compute_per_halo_mass_error(

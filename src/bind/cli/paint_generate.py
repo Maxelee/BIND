@@ -19,6 +19,7 @@ import argparse
 from pathlib import Path
 
 import bind
+from bind.cli.paint import _load_params
 from bind.inference.paint_stages import generate_from_stage1
 
 
@@ -26,6 +27,11 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--stage1_dir", type=Path, required=True,
                    help="Stage-1 intermediate directory (holds stage1_manifest.json)")
+    p.add_argument("--params", type=Path, default=None,
+                   help="Override the 35-dim parameter vector (.npy/.npz/.txt). "
+                        "Lets one shared stage-1 dir feed many parameter runs "
+                        "(the science orchestration path); defaults to the "
+                        "stage-1 params.npy when omitted.")
     p.add_argument("--output_dir", type=Path, default=Path("bind_output"))
 
     grp = p.add_mutually_exclusive_group()
@@ -70,9 +76,12 @@ def main() -> None:
     else:
         model = bind.Model.from_files(args.checkpoint, args.norm_stats, device=args.device)
 
+    params = _load_params(args.params) if args.params is not None else None
+
     result = generate_from_stage1(
         args.stage1_dir, model,
         output_dir=args.output_dir,
+        params=params,
         redshift=args.redshift,
         scale_factor=args.scale_factor,
         n_steps=args.n_steps,

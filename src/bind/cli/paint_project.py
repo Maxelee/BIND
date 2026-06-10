@@ -49,6 +49,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--pixel_size", type=float, default=bind.NATIVE_PIXEL_SIZE_MPCH)
     p.add_argument("--slab_depth", type=float, default=bind.NATIVE_SLAB_DEPTH_MPCH)
     p.add_argument("--patch_pix", type=int, default=bind.PATCH_PIX)
+    p.add_argument("--mas_correct", action="store_true",
+                   help="Also store an anti-aliased (interlaced + CIC-deconvolved) "
+                        "DMO map 'dmo_aa' per slab, used as the composite/lensplane "
+                        "background. Model condition cutouts stay raw-CIC. Use when "
+                        "matching an anti-aliased reference (e.g. kappaTNG); doubles "
+                        "stage-1 projection cost.")
     p.add_argument("--no_progress", action="store_true")
 
     # Lightcone transform support
@@ -113,6 +119,7 @@ def main() -> None:
         patch_pix=args.patch_pix,
         transforms=transforms,
         transforms_snap_idx=args.transforms_snap_idx,
+        mas_correct=args.mas_correct,
         comm=comm,
         progress=not args.no_progress,
     )

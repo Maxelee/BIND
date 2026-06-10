@@ -193,6 +193,27 @@ def write_lensplane(phi: np.ndarray, path: str | Path) -> None:
         fp.write(struct.pack("<i", N))
 
 
+def write_yplane(y_map: np.ndarray, path: str | Path) -> None:
+    """Write a tSZ Compton-y plane in lux's single-field record format.
+
+    Binary layout (matching lux ``load_y``)::
+
+        int32   N
+        float64 y[N, N]   (C-order)
+        int32   N
+
+    The lux build reads these as ``yplane{PP:02d}.dat`` and integrates them along
+    the rays with the same per-snapshot randomization as the lens potentials.
+    """
+    N = y_map.shape[0]
+    if y_map.shape != (N, N):
+        raise ValueError(f"y_map must be square (N, N), got {y_map.shape}")
+    with open(path, "wb") as fp:
+        fp.write(struct.pack("<i", N))
+        fp.write(np.asarray(y_map, dtype=np.float64).tobytes())  # C-order
+        fp.write(struct.pack("<i", N))
+
+
 def read_lensplane(path: str | Path) -> np.ndarray:
     """Read a lux lensplane file back into a ``(N, N, 5)`` array."""
     with open(path, "rb") as fp:

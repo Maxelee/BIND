@@ -127,8 +127,18 @@ def load_halo_catalog(path: Path) -> tuple[list[dict], np.ndarray, np.ndarray, n
     centers = loaded["centers"]
     params = loaded["params"]
     masses = loaded["masses"]
-    r200s = loaded["r200s"] if "r200s" in loaded else np.zeros(len(centers), dtype=np.float32)
-    halo_r200s = loaded["halo_r200s"] if "halo_r200s" in loaded else np.zeros(len(loaded["halo_masses"]), dtype=np.float32)
+    if "r200s" in loaded:
+        r200s = loaded["r200s"]
+    elif "radii" in loaded:  # legacy catalogs stored R200c in kpc/h
+        r200s = loaded["radii"].astype(np.float32) / 1e3
+    else:
+        r200s = np.zeros(len(centers), dtype=np.float32)
+    if "halo_r200s" in loaded:
+        halo_r200s = loaded["halo_r200s"]
+    elif "radii" in loaded:
+        halo_r200s = loaded["radii"].astype(np.float32) / 1e3
+    else:
+        halo_r200s = np.zeros(len(loaded["halo_masses"]), dtype=np.float32)
 
     halos = [
         {"halo_center": centers[i], "halo_mass": float(masses[i]), "r200": float(r200s[i]), "params": params[i]}

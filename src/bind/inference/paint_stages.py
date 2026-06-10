@@ -59,7 +59,7 @@ from .paint import (
     NATIVE_SLAB_DEPTH_MPCH,
     PATCH_PIX,
 )
-from .pipeline import build_bind_composite
+from .pipeline import build_bind_composite, interlace_combine_2d
 
 MANIFEST_NAME = "stage1_manifest.json"
 
@@ -111,6 +111,7 @@ def project_and_extract(
     patch_pix: int = PATCH_PIX,
     transforms: LightconeTransforms | None = None,
     transforms_snap_idx: int | None = None,
+    mas_correct: bool = False,
     comm: Any | None = None,
     progress: bool = True,
 ) -> Path | None:
@@ -134,6 +135,14 @@ def project_and_extract(
     transforms_snap_idx : int, optional
         Index into *transforms* for this snapshot (0 = lowest-z snapshot).
         Required when *transforms* is provided.
+    mas_correct : bool
+        If True, additionally accumulate a half-cell-shifted CIC deposit and
+        store an **anti-aliased** DMO map (``dmo_aa``, interlaced + CIC-window
+        deconvolved) alongside the raw ``dmo`` in each slab npz.  The raw ``dmo``
+        is left untouched and remains the source for the model condition cutouts
+        (the generative model was trained on raw-CIC inputs); ``dmo_aa`` is for
+        the absolute lensing comparison against an anti-aliased reference
+        (e.g. kappaTNG).  Default False (no behaviour change).
     comm
         An ``mpi4py`` communicator, or ``None`` for a single-process run.  Each
         rank reads ``files[rank::size]``; partial slab maps are reduced to rank 0.
@@ -177,6 +186,10 @@ def project_and_extract(
 
     # --- project this rank's chunks into local slab maps -------------------
     local_slabs = np.zeros((n_slabs, npix, npix), dtype=np.float32)
+    # Interlacing: a second deposit shifted by half a transverse pixel.  The
+    # LOS (z) slab assignment is unchanged; only x,y are shifted before deposit.
+    local_slabs_s = np.zeros((n_slabs, npix, npix), dtype=np.float32) if mas_correct else None
+    half_pix = 0.5 * box_size / npix
     my_files = snap_files[rank::size]
     iterator = tqdm(my_files, desc=f"[rank {rank}] projecting") if (progress and my_files) else my_files
     t0 = time.time()
@@ -186,6 +199,12 @@ def project_and_extract(
         if transforms is not None:
             pos = transforms.apply(pos, transforms_snap_idx, box_size)
         _accumulate_chunk_into_slabs(local_slabs, pos, particle_mass, box_size, n_slabs)
+        if mas_correct:
+            pos_s = pos.copy()
+            pos_s[:, 0] = (pos_s[:, 0] + half_pix) % box_size
+            pos_s[:, 1] = (pos_s[:, 1] + half_pix) % box_size
+            _accumulate_chunk_into_slabs(local_slabs_s, pos_s, particle_mass, box_size, n_slabs)
+            del pos_s
         del pos
 
     # --- reduce partial maps onto rank 0 (slab-by-slab to cap message size) -
@@ -193,15 +212,30 @@ def project_and_extract(
         from mpi4py import MPI
 
         global_slabs = np.zeros_like(local_slabs) if rank == 0 else None
+        global_slabs_s = (np.zeros_like(local_slabs_s)
+                          if (mas_correct and rank == 0) else None)
         for si in range(n_slabs):
             recv = global_slabs[si] if rank == 0 else None
             comm.Reduce(local_slabs[si], recv, op=MPI.SUM, root=0)
+            if mas_correct:
+                recv_s = global_slabs_s[si] if rank == 0 else None
+                comm.Reduce(local_slabs_s[si], recv_s, op=MPI.SUM, root=0)
         comm.Barrier()
     else:
         global_slabs = local_slabs
+        global_slabs_s = local_slabs_s
 
     if rank != 0:
         return None
+
+    # Anti-aliased DMO maps (interlace + deconvolve); raw `global_slabs` is kept
+    # intact as the model-condition source.
+    aa_slabs = None
+    if mas_correct:
+        aa_slabs = np.stack([
+            interlace_combine_2d(global_slabs[si], global_slabs_s[si], deconvolve=True)
+            for si in range(n_slabs)
+        ]).astype(np.float32)
 
     print(f"[stage1] projection done in {time.time() - t0:.1f}s; reading halos...")
 
@@ -230,6 +264,7 @@ def project_and_extract(
     per_slab_meta = []
     for si in range(n_slabs):
         slab_map = global_slabs[si]
+        aa_kw = {"dmo_aa": aa_slabs[si]} if aa_slabs is not None else {}
         in_slab = np.where(halo_slab_idx == si)[0]
         n = int(len(in_slab))
         slab_path = _stage1_slab_path(output_dir, si)
@@ -237,7 +272,7 @@ def project_and_extract(
         if n == 0:
             np.savez(
                 slab_path, dmo=slab_map, n_halos=0, slab_idx=si,
-                n_slabs=n_slabs, box_size=box_size, npix=npix,
+                n_slabs=n_slabs, box_size=box_size, npix=npix, **aa_kw,
             )
             per_slab_meta.append({"slab_idx": si, "n_halos": 0})
             print(f"[stage1] slab {si}: 0 halos")
@@ -269,6 +304,7 @@ def project_and_extract(
             n_slabs=n_slabs,
             box_size=box_size,
             npix=npix,
+            **aa_kw,
         )
         per_slab_meta.append({"slab_idx": si, "n_halos": n})
         print(f"[stage1] slab {si}: {n} halos -> {slab_path.name}")
@@ -277,6 +313,7 @@ def project_and_extract(
         "box_size": box_size,
         "npix": npix,
         "n_slabs": n_slabs,
+        "mas_correct": bool(mas_correct),
         "pixel_size": pixel_size,
         "slab_depth": slab_depth,
         "patch_pix": patch_pix,
@@ -346,6 +383,8 @@ def _save_composite_slab(
         halo_masses=np.asarray(halo_masses, np.float32),
         halo_r200=np.asarray(halo_r200, np.float32),
     )
+    if "composite_thermo" in bundle:
+        kw["composite_thermo"] = bundle["composite_thermo"]
     if generated_patches is not None:
         kw["generated_patches"] = generated_patches
     if thermo_patches is not None:
@@ -369,7 +408,7 @@ def generate_from_stage1(
     use_amp: bool = True,
     patch_mass_match: bool = True,
     taper_frac: float = 0.15,
-    r200_factor: float = 0.0,
+    r200_factor: float = 4.0,
     save_per_halo_patches: bool = True,
     progress: bool = True,
 ) -> PaintResult:
@@ -429,11 +468,15 @@ def generate_from_stage1(
 
     for si in range(n_slabs):
         d = np.load(_stage1_slab_path(stage1_dir, si))
-        slab_map = d["dmo"]
+        # Composite background: prefer the anti-aliased DMO map when stage 1
+        # produced one (mas_correct), so the composite -> lensplane path matches
+        # an anti-aliased reference.  Model conditions still come from the raw
+        # `condition` cutouts below, so generative fidelity is unaffected.
+        bg_map = d["dmo_aa"] if "dmo_aa" in d.files else d["dmo"]
         n = int(d["n_halos"])
 
         if n == 0:
-            composite_paths.append(_save_empty_slab(output_dir, si, n_slabs, box_size, slab_map))
+            composite_paths.append(_save_empty_slab(output_dir, si, n_slabs, box_size, bg_map))
             per_slab.append({"slab_idx": si, "n_halos": 0})
             continue
 
@@ -457,18 +500,17 @@ def generate_from_stage1(
              "r200": float(halo_r[i]), "params": params.astype(np.float32)}
             for i in range(n)
         ]
-        bundle = build_bind_composite(
-            slab_map, halos_dicts, gen[:, :3], cutouts,
-            box_size=box_size, npix=npix, patch_pix=patch_pix,
-            patch_mass_match=patch_mass_match, taper_frac=taper_frac,
-            r200_factor=r200_factor,
-        )
-
         thermo = (gen[:, 3:3 + N_THERMO]
                   if (model.predict_thermo and gen.shape[1] >= 3 + N_THERMO) else None)
+        bundle = build_bind_composite(
+            bg_map, halos_dicts, gen[:, :3], cutouts,
+            box_size=box_size, npix=npix, patch_pix=patch_pix,
+            patch_mass_match=patch_mass_match, taper_frac=taper_frac,
+            r200_factor=r200_factor, thermo_patches=thermo,
+        )
         slab_path = _save_composite_slab(
             output_dir, si, n_slabs=n_slabs, box_size=box_size,
-            dmo=slab_map, bundle=bundle,
+            dmo=bg_map, bundle=bundle,
             halo_centers=halo_xy, halo_masses=halo_m, halo_r200=halo_r,
             generated_patches=(gen[:, :3] if save_per_halo_patches else None),
             thermo_patches=(thermo if save_per_halo_patches else None),
@@ -519,6 +561,69 @@ def generate_from_stage1(
     )
 
 
+def generate_halos(
+    stage1_dir: Path | str,
+    model: Model,
+    *,
+    output_dir: Path | str,
+    params: np.ndarray | None = None,
+    redshift: float | None = None,
+    scale_factor: float | None = None,
+    n_steps: int = 50,
+    batch_size: int = 16,
+    use_amp: bool = True,
+    progress: bool = True,
+) -> Path:
+    """GPU generation **only** (no compositing) — the portable, GPU-heavy half.
+
+    Runs the flow-matching sampler on the stage-1 cutouts and saves just the
+    per-halo patches as ``composite_slab{NN}.npz`` (``generated_patches`` +
+    ``thermo_patches`` + halo metadata, **no full-box maps and no DMO**).  This
+    needs only the cutouts (``condition`` / ``large_scale``), so a stripped
+    stage-1 (cutouts + params) can be shipped to a GPU-rich machine, generated
+    there, and the halos shipped back; compositing (which needs the DMO
+    background) then runs on the CPU side via :func:`recomposite_from_saved`.
+    """
+    stage1_dir = Path(stage1_dir)
+    manifest = json.loads((stage1_dir / MANIFEST_NAME).read_text())
+    n_slabs = int(manifest["n_slabs"])
+    box_size = float(manifest["box_size"])
+    if scale_factor is not None:
+        _sf = float(scale_factor)
+    elif redshift is not None:
+        _sf = 1.0 / (1.0 + float(redshift))
+    else:
+        _sf = float(manifest.get("scale_factor")) if "scale_factor" in manifest else None
+    if params is None:
+        params = np.load(stage1_dir / manifest.get("params_file", "params.npy"))
+    params = _validate_params(params)
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for si in range(n_slabs):
+        d = np.load(_stage1_slab_path(stage1_dir, si))
+        n = int(d["n_halos"])
+        slab_path = Path(output_dir) / f"composite_slab{si:02d}.npz"
+        if n == 0:
+            np.savez(slab_path, n_halos=0, slab_idx=si, n_slabs=n_slabs, box_size=box_size)
+            continue
+        cutouts = [{"condition": d["condition"][i], "large_scale": d["large_scale"][i]}
+                   for i in range(n)]
+        gen = model.generate(cutouts, params, n_steps=n_steps, batch_size=batch_size,
+                             use_amp=use_amp, progress=progress, scale_factor=_sf)
+        thermo = (gen[:, 3:3 + N_THERMO]
+                  if (model.predict_thermo and gen.shape[1] >= 3 + N_THERMO) else None)
+        kw = dict(generated_patches=gen[:, :3].astype(np.float32),
+                  halo_centers=d["halo_centers"], halo_masses=d["halo_masses"],
+                  halo_r200=d["halo_r200"], condition_sums=d["condition"].sum(axis=(1, 2)),
+                  n_halos=n, slab_idx=si, n_slabs=n_slabs, box_size=box_size)
+        if thermo is not None:
+            kw["thermo_patches"] = thermo.astype(np.float32)
+        np.savez_compressed(slab_path, **kw)
+        print(f"[generate-halos] slab {si}: {n} halos -> {slab_path.name}")
+    return output_dir
+
+
 # ---------------------------------------------------------------------------
 # Stage 3: re-composite already-generated patches (CPU, no GPU / no regen)
 # ---------------------------------------------------------------------------
@@ -530,7 +635,7 @@ def recomposite_slab(
     params: np.ndarray | None = None,
     patch_mass_match: bool = True,
     taper_frac: float = 0.15,
-    r200_factor: float = 0.0,
+    r200_factor: float = 4.0,
 ) -> dict | None:
     """Re-composite ONE slab's already-generated patches with new blend settings.
 
@@ -555,7 +660,7 @@ def recomposite_slab(
             "--no_save_patches, so there is nothing to re-composite."
         )
 
-    dmo = s["dmo"]
+    dmo = s["dmo_aa"] if "dmo_aa" in s.files else s["dmo"]
     box_size = float(s["box_size"])
     npix = int(s["npix"])
     gen = g["generated_patches"]                  # (N, 3, patch, patch)
@@ -566,6 +671,7 @@ def recomposite_slab(
     p = (np.zeros(35, np.float32) if params is None
          else np.asarray(params, np.float32).reshape(-1))
 
+    thermo = g["thermo_patches"] if "thermo_patches" in g.files else None
     cutouts = [{"condition": cond[i]} for i in range(n)]
     halos = [
         {"halo_center": centers[i], "halo_mass": float(mass[i]),
@@ -576,7 +682,7 @@ def recomposite_slab(
         dmo, halos, gen, cutouts,
         box_size=box_size, npix=npix, patch_pix=patch_pix,
         patch_mass_match=patch_mass_match, taper_frac=taper_frac,
-        r200_factor=r200_factor,
+        r200_factor=r200_factor, thermo_patches=thermo,
     )
 
 
@@ -588,7 +694,7 @@ def recomposite_from_saved(
     params: np.ndarray | None = None,
     patch_mass_match: bool = True,
     taper_frac: float = 0.15,
-    r200_factor: float = 0.0,
+    r200_factor: float = 4.0,
     save_per_halo_patches: bool = True,
     progress: bool = True,
 ) -> PaintResult:

@@ -11,7 +11,7 @@ from pathlib import Path
 
 from bind.data import (load_file_list, compute_norm_stats, AstroDataset, NormStats,
                   load_file_list_cube, compute_norm_stats_cube, CubeAstroDataset,
-                  N_THERMO)
+                  N_THERMO, N_OBS)
 from bind.model import UNet, FlowMatching, StochasticInterpolant
 
 
@@ -24,8 +24,11 @@ class FlowMatchingLit(L.LightningModule):
                  cfg_dropout=0.1, warmup_steps=1000, n_sampling_steps=50,
                  star_occ_weight=1.0, star_zero_norm=None,
                  interpolant='fm', sigma=0.5, stars_two_head=False,
-                 no_large_scale=False, predict_thermo=False):
+                 no_large_scale=False, predict_thermo=False,
+                 condition_observables=False):
         super().__init__()
+        # condition_observables is recorded for provenance/inference (it drives
+        # n_params = N_OBS upstream); the encoder/architecture are unchanged.
         self.save_hyperparameters()
 
         # Stars two-head mode: target gets a 4-channel layout
@@ -125,7 +128,8 @@ class AstroDataModule(L.LightningDataModule):
 
     def __init__(self, data_root, norm_stats_path=None, batch_size=64,
                  num_workers=8, n_stats_samples=10000, stars_two_head=False,
-                 param_indices=None, no_large_scale=False, predict_thermo=False):
+                 param_indices=None, no_large_scale=False, predict_thermo=False,
+                 condition_observables=False, mask_observables=False):
         super().__init__()
         self.data_root = data_root
         self.norm_stats_path = norm_stats_path
@@ -136,6 +140,8 @@ class AstroDataModule(L.LightningDataModule):
         self.param_indices = param_indices
         self.no_large_scale = no_large_scale
         self.predict_thermo = predict_thermo
+        self.condition_observables = condition_observables
+        self.mask_observables = mask_observables
 
     def setup(self, stage=None):
         if self.no_large_scale:
@@ -164,14 +170,21 @@ class AstroDataModule(L.LightningDataModule):
                     f'thermo stats. Delete the file and re-run to recompute, or '
                     f'pass a different norm_stats_path.'
                 )
+            if self.condition_observables and not self.norm_stats.condition_observables:
+                raise RuntimeError(
+                    f'condition_observables=True but {stats_path} was computed '
+                    f'without observable stats. Delete the file and re-run to '
+                    f'recompute, or pass a different norm_stats_path.'
+                )
         else:
             print(f'Computing norm stats from {self.n_stats_samples} samples '
                   f'(stars_two_head={self.stars_two_head}, '
                   f'no_large_scale={self.no_large_scale}, '
-                  f'predict_thermo={self.predict_thermo})...')
+                  f'predict_thermo={self.predict_thermo}, '
+                  f'condition_observables={self.condition_observables})...')
             if self.no_large_scale:
-                # Cube dataset has no thermo fields; predict_thermo is rejected
-                # in main() before reaching here.
+                # Cube dataset has no thermo fields; predict_thermo /
+                # condition_observables are rejected in main() before here.
                 self.norm_stats = compute_norm_stats_cube(
                     train_files, self.n_stats_samples,
                     stars_two_head=self.stars_two_head,
@@ -181,10 +194,20 @@ class AstroDataModule(L.LightningDataModule):
                     train_files, self.n_stats_samples,
                     stars_two_head=self.stars_two_head,
                     predict_thermo=self.predict_thermo,
+                    condition_observables=self.condition_observables,
                 )
             stats_path.parent.mkdir(parents=True, exist_ok=True)
             self.norm_stats.save(stats_path)
             print(f'Saved norm stats to {stats_path}')
+
+        # mask_observables is orthogonal to the stats themselves (it only changes
+        # how the conditioning vector is packed), so set it from args and persist
+        # if it differs — this also upgrades a freshly-computed stats file.
+        if self.condition_observables and \
+                self.norm_stats.mask_observables != self.mask_observables:
+            self.norm_stats.mask_observables = self.mask_observables
+            self.norm_stats.save(stats_path)
+            print(f'Set mask_observables={self.mask_observables} in {stats_path}')
 
         DatasetCls = CubeAstroDataset if self.no_large_scale else AstroDataset
         self.train_ds = DatasetCls(train_files, self.norm_stats,
@@ -241,6 +264,19 @@ def main():
                              '(compton_y, temperature, entropy, pressure) as extra output '
                              'channels appended after the mass target. Requires the '
                              'large-scale (rotated2_128) data path and --interpolant fm.')
+    parser.add_argument('--mask_observables', action='store_true',
+                        help='Train with random observable input-dropout (requires '
+                             '--condition_observables): the conditioning vector becomes '
+                             '2*N_OBS [obs*mask, mask] and the model learns to tolerate '
+                             'a missing subset, so it can be driven by whatever a survey '
+                             '(or another sim suite) actually measures.')
+    parser.add_argument('--condition_observables', action='store_true',
+                        help='Condition on aperture-integrated OBSERVABLES within '
+                             'R200 (Y_200, M_gas, M_star, T_X, K, P, M_200) measured '
+                             'from each halo\'s own maps, INSTEAD of the 35 params. '
+                             'Outputs are unchanged (pair with --predict_thermo for '
+                             'mass+thermo). Needs the thermo (rotated2_128) data path '
+                             'and --interpolant fm.')
     # Training
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
@@ -262,11 +298,29 @@ def main():
                      '(--no_large_scale) files have no thermo fields.')
     if args.predict_thermo and args.interpolant != 'fm':
         parser.error('--predict_thermo is only implemented for --interpolant fm.')
+    if args.condition_observables and args.no_large_scale:
+        parser.error('--condition_observables needs the thermo maps from the '
+                     'large-scale (rotated2_128) data path; cube (--no_large_scale) '
+                     'files have neither thermo maps nor halo_mass.')
+    if args.condition_observables and args.interpolant != 'fm':
+        parser.error('--condition_observables is only implemented for --interpolant fm.')
+    if args.condition_observables and args.exclude_cosmo_params:
+        parser.error('--condition_observables replaces the 35-param conditioning '
+                     'with observables, so --exclude_cosmo_params does not apply.')
+    if args.mask_observables and not args.condition_observables:
+        parser.error('--mask_observables only applies to observable conditioning; '
+                     'pass it together with --condition_observables.')
 
-    # Cosmological parameter indices to exclude when --exclude_cosmo_params is set.
+    # Conditioning vector dimensionality. Three mutually-exclusive modes:
+    #   observables  -> N_OBS aperture-integrated observables (no params)
+    #   exclude_cosmo -> 31 params (drop cosmo indices 0,1,7,8)
+    #   default      -> all 35 params
     COSMO_INDICES = [0, 1, 7, 8]
-    if args.exclude_cosmo_params:
-        import numpy as _np
+    if args.condition_observables:
+        param_indices = None
+        # Input-dropout packs the vector to [obs*mask, mask] -> 2*N_OBS.
+        n_params = 2 * N_OBS if args.mask_observables else N_OBS
+    elif args.exclude_cosmo_params:
         param_indices = [i for i in range(35) if i not in COSMO_INDICES]
         n_params = len(param_indices)          # 31
     else:
@@ -285,6 +339,8 @@ def main():
         param_indices=param_indices,
         no_large_scale=args.no_large_scale,
         predict_thermo=args.predict_thermo,
+        condition_observables=args.condition_observables,
+        mask_observables=args.mask_observables,
     )
 
     # Compute/load norm stats up-front so we can derive star_zero_norm before
@@ -310,6 +366,7 @@ def main():
         stars_two_head=args.stars_two_head,
         no_large_scale=args.no_large_scale,
         predict_thermo=args.predict_thermo,
+        condition_observables=args.condition_observables,
         n_params=n_params,
     )
 

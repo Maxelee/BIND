@@ -6,6 +6,96 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-06-18 — f_b prediction, Stage 1: sim-validation suite
+
+Turned the masked observable model into a baryon-fraction predictor: condition on a survey
+subset (headline `M+Y+Tx`, withholding the baryon-mass observables) and read f_b off the
+generated field. New reusable module `examples/fb_predict.py` (subset_keep / pack_cond /
+generate / aperture_fb[_profile] / measure_obs_from_maps / **predict_fb_marginal** = the
+DMO-template marginalization used for real halos w/o a DMO image). New notebook
+`examples/fb_prediction_validation.ipynb`: subset ablation, f_b–M trend, feedback recovery
+(SN `WindEnergyIn1e51erg` / AGN `BlackHoleFeedbackFactor`), **DMO-swap viability + coverage**
+(real-data proxy), f_b(<r) profile. Smoke (16 halos, `fm_observables_masked`, n_params=14):
+ablation scatter M 0.063 → M+Y 0.047 → **M+Y+Tx 0.047 (bias −0.016)** → full 0.016; **Y is the
+degeneracy-breaker, not Tx**; full tightest b/c Mgas is in it (ceiling). DMO-swap 0.047→0.059 —
+viability holds. Decisions: real-data target = **eROSITA/X-ray groups**, headline subset = **M+Y+Tx**.
+Next (Stage 2): mock-observation calibration (survey→BIND-observable converters) + eROSITA ingest.
+
+## 2026-06-17 — Observable input-dropout (`--mask_observables`)
+
+Engine support so an observable-conditioned model tolerates a **missing subset** of
+the 7 observables — the enabler for predicting f_b from a real survey's partial set
+(`Y,Tx,M` → Mgas) and for cross-suite use. Conditioning vector packs to `2·N_OBS`
+`[obs·mask, mask]` (`bind.data.pack_observable_conditioning`); training draws a random
+keep-mask per sample (`sample_observable_keep_mask`: 25% full, else Bernoulli(0.5)).
+CFG's whole-vector zero coincides with the empty subset, so it falls out for free.
+`NormStats.mask_observables` (back-compat default False) records the mode for inference
+auto-detect; `n_params=2·N_OBS`; model/`ParamEncoder` unchanged but for the width (so a
+masked model is a fresh run, not a fine-tune). Touched `data.py` (helpers + NormStats
+field + dataset packing), `train.py` (`--mask_observables`, validation, n_params, DataModule
+persist), `inference/pipeline.py` (`build_observable_vectors` packs all-ones mask),
+`run_train.sh` (`MASK=1`). Validated on CPU: helpers (25% full / 0.62 per-obs keep), NormStats
+round-trip, dataset (7,)→(14,), UNet fwd+bwd grad through param_emb(14) + full & empty-subset
+sample. Launch: `MASK=1 OBS=1 sbatch run_train.sh` (run `fm_observables_masked`). Docs: `docs/observables.md`.
+Both observable notebooks made mask-aware (auto-detect `ns.mask_observables`, pack `[obs*mask, mask]`
+via a `make_cond` helper, all-ones=full obs): `examples/analysis_observables.ipynb` (+ new §4
+subset-conditioning — predict withheld `Mgas,Mstar→f_b` from `Y,Tx,M`, guarded to skip on unmasked
+ckpt; also fixed its kernelspec `python3`→`torch3`) and `examples/observable_paint_literature.ipynb`.
+Both re-validated headlessly on the unmasked `fm_observables` (run clean, §4 prints its skip msg).
+
+## 2026-06-17 — Experiment A: paint baryons from observed scaling relations
+
+First science use of the observable-conditioned z=0 model. `examples/observable_paint_literature.ipynb`
+(GPU-explore notebook; `.py` script variant alongside) re-paints held-out halos twice from the SAME DMO + SAME noise: baseline (TNG-native
+observables) vs "observed" (each observable multiplied by the literature/TNG fractional
+offset at that halo's M200 — **ratio-anchoring**, to sidestep the projected-aperture vs
+spherical-`_500` unit mismatch). Headline knob = X-ray group gas deficit (Sun+09/Lovisari+15/
+Eckert+16/eROSITA); secondary Y/P (SZ ~0.85), Tx/K/Mstar; M200 fixed (lensing anchor).
+Reports the *non-circular* outputs (Mgas/Mstar/M200 are inputs, so R200-integrated f_b is
+~tautological): f_b(<r) at r≠R200, Gas/Stars profile shapes, and hydro-DM contraction
+(DM_hydro/DMO, DM is an output). 4-halo smoke test on A100/torch3 validated end-to-end:
+observed relations lower f_b by ~0.02 dex at all r and push DM_hydro closer to DMO (less
+adiabatic contraction with fewer baryons) — both physically correct, both genuine predictions.
+Decision: real f_b *prediction* (drop Mgas/Mstar from conditioning) needs an **input-dropout
+retrain** — the enabler for cross-survey/cross-sim deployment too; queued, not done.
+
+## 2026-06-16 — Observable conditioning (`feature/observable-conditioning`)
+
+New conditioning mode: instead of the 35 cosmology+astrophysics params, condition
+the emulator on **aperture-integrated observables within R200** measured (in
+projection) from each halo's own maps — the quantities a survey reports. The DMO
+image conditioning and the outputs (mass + thermo fields) are unchanged; only the
+conditioning vector changes, so the UNet/`ParamEncoder` are untouched apart from
+`n_params = N_OBS`. The observable vector flows through the existing `params`
+batch slot.
+
+- `OBSERVABLE_KEYS` (7): `Y_200, Mgas_200, Mstar_200, Tx_200, K_200, P_200, M_200`
+  — integrated Compton-y, projected gas/stellar mass, gas-mass-weighted T/K/P,
+  and M200c (lensing-like anchor). Per-feature log10+floor+standardize (mirrors
+  the thermo transform). `compute_observables()` / `compute_norm_stats(...,
+  condition_observables=True)` in `bind.data`.
+- R200c is derived deterministically from the saved M200c
+  (`m200c_to_r200c`, h cancels in h-units at z=0; matches FOF `Group_R_Crit200`).
+  `data_generation/add_r200.py` optionally persists it as an `r200` key; the loader
+  derives it on the fly when absent, so no data regen is required to train.
+- CLI: `bind.train --condition_observables` (needs `--interpolant fm` + the thermo
+  rotated2_128 path; pair with `--predict_thermo` for mass+thermo output). Launcher:
+  `OBS=1 sbatch run_train.sh` (implies `--predict_thermo`, run_name `fm_observables`).
+- Validated end-to-end on CPU (norm stats, dataset `target=(8,…)`/`params=(7,)`,
+  NormStats round-trip, UNet forward+backward, sample). Reference: `docs/observables.md`.
+- **Inference wired** (same session): `generate_halo_patches(..., cond_vectors=...)`
+  takes per-halo normalized conditioning; `build_observable_vectors` /
+  `extract_truth_mass_patches` (pipeline.py) measure per-halo observables from the
+  truth maps; `load_model_bundle`/runner auto-detect `condition_observables` from
+  norm_stats and thread it through `bind-camels-suite` (validation-by-reconstruction,
+  needs truth+thermo). Verified the inference-side observable build is **bit-identical**
+  to training (max |Δ|=0.0) and the full path runs against the live `fm_observables`
+  checkpoint (n_params=7, out_ch=8).
+- Notebook `examples/analysis_observables.ipynb`: load a checkpoint → reconstruct
+  held-out halos (gen-vs-truth, dex error, radial profiles) + conditioning-response
+  sweep (perturb one observable, fixed noise, watch field respond). Validated against
+  `fm_observables/last.ckpt`.
+
 ## 2026-06-09 — Circular paste aperture is now the standard (`r200_factor=4.0`)
 
 The BIND composite now defaults to a **circular `4×R200c` paste aperture** instead

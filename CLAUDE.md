@@ -69,6 +69,7 @@ The trainable engine lives on `main`. Understanding it requires reading `src/bin
 
 - **Branch organization** — `main` is the clean trunk: the core engine (`bind.data`/`bind.model`/`bind.train`/`bind.metrics`, `bind.inference/`) plus `examples/paper_figures.ipynb`. Distinct projects/analyses are **parked on topic branches**, not accumulated on `main`:
   - `feature/3d-cube` — 3D / cube-projection extension (`*_3d.py`, cube notebooks).
+  - `feature/observable-conditioning` — condition on aperture-integrated R200 **observables** (`Y_200, Mgas_200, Mstar_200, Tx_200, K_200, P_200, M_200`) instead of the 35 params; DMO image + outputs (mass+thermo) unchanged. Engine flag `bind.train --condition_observables` / `OBS=1 run_train.sh`; R200 derived from M200c (`bind.data.m200c_to_r200c`, optional persist `data_generation/add_r200.py`). Inference wired: `bind-camels-suite` auto-detects obs models and measures per-halo observables from truth (`build_observable_vectors`, `generate_halo_patches(cond_vectors=)`). Notebook `examples/analysis_observables.ipynb`. See `docs/observables.md`.
   - `analysis/2d` — matured 2D analyses (`scatter/` package, observables, `project1-7`, CV derivatives).
   - `analysis/tsz-icm` — tSZ / ICM thermo science: Y–M mass bias, WL calibration, entropy/pressure, Sobol assembly (`scatter/assembly_*`, `*_sobol` notebooks). Notebooks/scripts still on flat (`from data`) imports — fix per-file before reuse.
   - `analysis/ksz_project` — kSZ science analyses (renamed from `ksz_project`).

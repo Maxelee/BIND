@@ -22,7 +22,13 @@ class SinusoidalEmbedding(nn.Module):
 
 
 class ParamEncoder(nn.Module):
-    """Encode 35-dim cosmological parameters into embedding space."""
+    """Encode the conditioning vector into embedding space.
+
+    Normally the 35-dim cosmology+astrophysics parameter vector, but the same
+    encoder is reused for the alternative observable conditioning, where the
+    vector is the N_OBS aperture-integrated observables (set n_params=N_OBS).
+    The encoder is agnostic to which one it sees.
+    """
     def __init__(self, n_params=35, emb_dim=256):
         super().__init__()
         self.net = nn.Sequential(
@@ -184,7 +190,8 @@ class UNet(nn.Module):
         """
         x: (B, 7, 128, 128) — concat of [noisy_target, condition, large_scale]
         t: (B,) — timestep in [0, 1]
-        params: (B, 35) — normalized cosmological parameters
+        params: (B, n_params) — normalized conditioning vector (35 cosmological
+            parameters, or N_OBS observables in observable-conditioning mode)
         """
         emb = self.time_emb(t) + self.param_emb(params)
 

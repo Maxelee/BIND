@@ -33,12 +33,14 @@ from .artifacts import (
 )
 from .pipeline import (
     build_bind_composite,
+    build_observable_vectors,
     compute_per_halo_mass_error,
     compute_truth_thermo_patches,
     extract_halo_cutouts,
     extract_halo_cutouts_cube,
     extract_halo_cutouts_cube_from_3d,
     extract_truth_cutouts_cube_from_3d,
+    extract_truth_mass_patches,
     generate_halo_patches,
     load_dmo_particles,
     load_dmo_projection,
@@ -87,7 +89,8 @@ def _thermo_patch_metrics(gen_thermo: np.ndarray, truth_thermo: np.ndarray) -> d
 def load_model_bundle(run_cfg: RunConfig) -> tuple:
     """Load norm stats and model checkpoint once for all simulations.
 
-    Returns ``(norm_stats, fm, device, param_indices, no_large_scale, predict_thermo)``.
+    Returns ``(norm_stats, fm, device, param_indices, no_large_scale,
+    predict_thermo, condition_observables)``.
     """
     device = _resolve_device(run_cfg.device)
     norm_stats = NormStats.load(run_cfg.run_dir / "norm_stats.npz")
@@ -125,7 +128,12 @@ def load_model_bundle(run_cfg: RunConfig) -> tuple:
     # predict_thermo is authoritative from norm_stats (the model emits the extra
     # channels iff the stats carry thermo normalization).
     predict_thermo = bool(getattr(norm_stats, "predict_thermo", False))
-    return norm_stats, model.fm, device, param_indices, no_large_scale, predict_thermo
+    # Observable conditioning is likewise authoritative from norm_stats (it
+    # carries the obs_* stats); the conditioning vector is then per-halo
+    # observables rather than the per-sim params.
+    condition_observables = bool(getattr(norm_stats, "condition_observables", False))
+    return (norm_stats, model.fm, device, param_indices, no_large_scale,
+            predict_thermo, condition_observables)
 
 
 def _prepare_data(
@@ -134,6 +142,7 @@ def _prepare_data(
     load_truth: bool,
     no_large_scale: bool = False,
     predict_thermo: bool = False,
+    condition_observables: bool = False,
 ) -> tuple[dict, object]:
     """Load from cache or prepare DMO/halo/cutout artifacts."""
     paths = resolve_artifact_paths(run_cfg.output_root, spec, run_cfg.model_name)
@@ -220,8 +229,10 @@ def _prepare_data(
     # so the patches register with the generated ones. Only needed for models
     # that predict thermo. Not done in prep_only (predict_thermo is unknown
     # without the model/norm_stats); it is computed lazily on the first run.
+    # Observable conditioning also needs the truth thermo maps (to measure the
+    # SZ/X-ray observables), even if the model output is mass-only.
     truth_thermo: np.ndarray | None = None
-    if load_truth and predict_thermo:
+    if load_truth and (predict_thermo or condition_observables):
         thermo_path = paths.truth_thermo_patches_npz
         if thermo_path.exists() and not run_cfg.regenerate_all:
             truth_thermo = load_truth_thermo_patches(thermo_path)
@@ -253,11 +264,13 @@ def run_single_simulation(
     param_indices: np.ndarray | None = None,
     no_large_scale: bool = False,
     predict_thermo: bool = False,
+    condition_observables: bool = False,
 ) -> dict:
     """Run one simulation through prepare/generate/paste stages."""
     prepared, paths = _prepare_data(spec, run_cfg, load_truth=load_truth,
                                     no_large_scale=no_large_scale,
-                                    predict_thermo=predict_thermo)
+                                    predict_thermo=predict_thermo,
+                                    condition_observables=condition_observables)
 
     dmo_fullbox = prepared["dmo_fullbox"]
     truth_maps = prepared["truth_maps"]
@@ -283,6 +296,26 @@ def run_single_simulation(
     if paths.generated_halos_npz.exists() and not (run_cfg.regenerate or run_cfg.regenerate_all):
         generated_halos = load_generated_halos(paths.generated_halos_npz)
     else:
+        # Observable-conditioned models take a per-halo conditioning vector
+        # measured from the truth maps (validation-by-reconstruction), rather
+        # than the per-sim params.
+        cond_vectors = None
+        if condition_observables:
+            truth_maps_full = prepared["truth_maps"]
+            truth_thermo = prepared["truth_thermo"]
+            if truth_maps_full is None or truth_thermo is None:
+                raise RuntimeError(
+                    "condition_observables needs load_truth=True and the truth "
+                    "thermo maps so per-halo observables can be measured; one is "
+                    "missing (run with truth available)."
+                )
+            truth_mass_patches = extract_truth_mass_patches(
+                truth_maps_full, halos, box_size=spec.box_size,
+                npix=spec.npix, patch_pix=spec.patch_pix,
+            )
+            cond_vectors = build_observable_vectors(
+                truth_mass_patches, truth_thermo, halos, norm_stats,
+            )
         generated_halos = generate_halo_patches(
             halo_cutouts,
             norm_stats,
@@ -294,6 +327,7 @@ def run_single_simulation(
             use_amp=run_cfg.use_amp,
             param_indices=param_indices,
             no_large_scale=no_large_scale,
+            cond_vectors=cond_vectors,
         )
         save_generated_halos(paths.generated_halos_npz, generated_halos)
 
@@ -413,16 +447,18 @@ def run_suite(
     param_indices = None
     no_large_scale = False
     predict_thermo = False
+    condition_observables = False
     if not run_cfg.prep_only:
-        (norm_stats, fm, device, param_indices,
-         no_large_scale, predict_thermo) = load_model_bundle(run_cfg)
+        (norm_stats, fm, device, param_indices, no_large_scale,
+         predict_thermo, condition_observables) = load_model_bundle(run_cfg)
 
     for spec in specs:
         try:
             summary = run_single_simulation(spec, run_cfg, norm_stats, fm, device, load_truth,
                                             param_indices=param_indices,
                                             no_large_scale=no_large_scale,
-                                            predict_thermo=predict_thermo)
+                                            predict_thermo=predict_thermo,
+                                            condition_observables=condition_observables)
             results.append(summary)
             print(
                 f"[{spec.sim_label}] halos={summary['n_halos']} "

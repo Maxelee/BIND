@@ -6,6 +6,30 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-06-25 — `low_mass_extrapolation`: zero-shot test of BIND below its 1e13 training cut
+
+New branch off `main`. Question: BIND trains on M200c > 1e13 halos, but the
+6.25 Mpc/h patches contain smaller halos — can it paint sub-1e13 halos (goal:
+TNG300 down to ~1e10)? Decision: **z=0 zero-shot validation first** with the
+redshift-free `fm_thermo` model (`/mnt/home/mlee1/ceph/fm_runs/fm_thermo`,
+EMA epoch064); user later narrowed the floor to **1e12** (1e10 is sub-pixel —
+R200≈39 kpc/h < 48.8 kpc/h pixel; 1e12 is ~3.7 px, resolved).
+
+- Fix (`0e2f9fa`): new `/mnt/home/mlee1/Sims/IllustrisTNG/L50n512` hydro
+  snapshots are `snapshot_NNN.*`, loaders only globbed `snap_NNN.*`. Added
+  `_resolve_hydro_snap_files()` (both prefixes), routed all 3 hydro call sites.
+- Dry run (CV_0, 1e12, 382 halos): pipeline clean; mass conserved to 0.07%;
+  **thermo log10 bias small & flat across mass** (y/T/K/P_e ≈ −0.04/−0.03/−0.05/0.00
+  dex at 1e12–3e12, no worse than the >3e13 training regime); no channel collapse.
+- Staging (`213d270`): `run_lowmass_suite.sh` (SLURM array, `HALO_MASS_MIN=1e12`,
+  new L50n512 paths, explicit CV/1P roots, held-out SB35 `Test` manifest) +
+  `examples/lowmass_extrapolation.ipynb` (coverage = 8.5× more halos at 1e12,
+  thermo bias vs mass, per-halo mass conservation, painted low-mass halo).
+  CV + 1P paths smoke-validated; user submits the arrays.
+- Caveat: per-halo truth saved for thermo only; mass channels via mass
+  conservation + composite. `fm_thermo` is z=0 — redshift dependence (TNG300
+  goal) needs `feature/redshift` merged later.
+
 ## 2026-06-09 — Circular paste aperture is now the standard (`r200_factor=4.0`)
 
 The BIND composite now defaults to a **circular `4×R200c` paste aperture** instead

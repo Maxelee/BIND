@@ -781,6 +781,23 @@ def _project_species(pos_list: list[np.ndarray], mass_list: list[np.ndarray], bo
     return pixelize_z_projection(pos, mass.astype(np.float32), box_size, npix)
 
 
+def _resolve_hydro_snap_files(spec: SimulationSpec) -> list[str]:
+    """Resolve the hydro snapshot chunk(s) in ``spec.hydro_snapdir``.
+
+    Accepts both the CAMELS ``snap_NNN`` and the IllustrisTNG/Arepo
+    ``snapshot_NNN`` file-name conventions (multi-chunk ``*.N.hdf5`` first,
+    then a single ``.hdf5``), so the same loader works across data layouts.
+    """
+    for prefix in ("snap", "snapshot"):
+        files = sorted(glob.glob(str(spec.hydro_snapdir / f"{prefix}_{spec.snapshot:03d}.*.hdf5")))
+        if files:
+            return files
+        single = spec.hydro_snapdir / f"{prefix}_{spec.snapshot:03d}.hdf5"
+        if single.exists():
+            return [str(single)]
+    return []
+
+
 def load_hydro_particles(
     spec: SimulationSpec,
 ) -> tuple[
@@ -795,12 +812,7 @@ def load_hydro_particles(
     Positions are in kpc/h; masses are in units of 1e10 Msun/h — caller
     is responsible for applying the 1/1000 and ×1e10 conversions.
     """
-    pattern = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.*.hdf5"
-    snap_files = sorted(glob.glob(str(pattern)))
-    if not snap_files:
-        single = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.hdf5"
-        if single.exists():
-            snap_files = [str(single)]
+    snap_files = _resolve_hydro_snap_files(spec)
     if not snap_files:
         raise FileNotFoundError(f"No hydro snapshots found for {spec.hydro_snapdir}")
 
@@ -898,15 +910,11 @@ def extract_truth_cutouts_cube_from_3d(
 
 def load_truth_maps(spec: SimulationSpec) -> np.ndarray:
     """Load hydro species from snapshot chunks and project to 2D maps."""
-    pattern = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.*.hdf5"
-    snap_files = sorted(glob.glob(str(pattern)))
+    snap_files = _resolve_hydro_snap_files(spec)
     if not snap_files:
-        single = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.hdf5"
-        if single.exists():
-            snap_files = [str(single)]
-
-    if not snap_files:
-        raise FileNotFoundError(f"No hydro snapshots found with pattern {pattern}")
+        raise FileNotFoundError(
+            f"No hydro snapshots (snap_/snapshot_{spec.snapshot:03d}) in {spec.hydro_snapdir}"
+        )
 
     hydro_dm_pos: list[np.ndarray] = []
     hydro_dm_mass: list[np.ndarray] = []
@@ -951,12 +959,7 @@ def load_gas_thermo_particles(spec: SimulationSpec) -> tuple[float, dict]:
     [(km/s)^2], xe (N,) ElectronAbundance, sfr (N,) StarFormationRate.
     Star-forming gas is kept here; the caller applies the SFR>0 cut.
     """
-    pattern = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.*.hdf5"
-    snap_files = sorted(glob.glob(str(pattern)))
-    if not snap_files:
-        single = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.hdf5"
-        if single.exists():
-            snap_files = [str(single)]
+    snap_files = _resolve_hydro_snap_files(spec)
     if not snap_files:
         raise FileNotFoundError(f"No hydro snapshots found for {spec.hydro_snapdir}")
 

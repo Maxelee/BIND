@@ -12,7 +12,8 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from bind.data import NormStats, N_THERMO, THERMO_KEYS, log_transform, thermo_inverse
+from bind.data import (NormStats, N_THERMO, THERMO_KEYS, N_OBS, log_transform,
+                       thermo_inverse, thermo_forward, compute_observables)
 from .schemas import SimulationSpec
 
 
@@ -530,6 +531,7 @@ def generate_halo_patches(
     use_amp: bool,
     param_indices: np.ndarray | None = None,
     no_large_scale: bool = False,
+    cond_vectors: np.ndarray | None = None,
 ) -> np.ndarray:
     """Run model inference on all halo cutouts and denormalize to physical space.
 
@@ -544,8 +546,18 @@ def generate_halo_patches(
     no_large_scale: when True (cube model), large-scale context is not fed to
         the model (large_scale=None).  The cutout dict may still contain a
         'large_scale' key; it is simply ignored.
+    cond_vectors: optional (N, n_cond) array of *already-normalized* per-halo
+        conditioning vectors that replace the per-sim ``sim_params`` path. Used
+        for observable-conditioned models (n_cond = N_OBS), where the vector is
+        per-halo rather than per-sim — see :func:`build_observable_vectors`.
+        ``param_indices`` is ignored when this is given.
     """
     outputs: list[np.ndarray] = []
+    if cond_vectors is not None and len(cond_vectors) != len(halo_cutouts):
+        raise ValueError(
+            f"cond_vectors has {len(cond_vectors)} rows but there are "
+            f"{len(halo_cutouts)} halo cutouts"
+        )
 
     with torch.no_grad():
         for start in tqdm(range(0, len(halo_cutouts), batch_size), desc="Generating hydro"):
@@ -557,9 +569,15 @@ def generate_halo_patches(
                 None if no_large_scale
                 else torch.from_numpy(np.stack(lss).astype(np.float32)).to(device)
             )
-            params_np = np.stack(params).astype(np.float32)
-            if param_indices is not None:
-                params_np = params_np[:, param_indices]
+            if cond_vectors is not None:
+                # Per-halo observable conditioning (already normalized).
+                params_np = np.asarray(
+                    cond_vectors[start : start + batch_size], dtype=np.float32
+                )
+            else:
+                params_np = np.stack(params).astype(np.float32)
+                if param_indices is not None:
+                    params_np = params_np[:, param_indices]
             params_t = torch.from_numpy(params_np).to(device)
 
             amp_ctx = (
@@ -577,6 +595,72 @@ def generate_halo_patches(
         n_out = 3 + (N_THERMO if norm_stats.predict_thermo else 0)
         return np.zeros((0, n_out, 0, 0), dtype=np.float32)
     return np.concatenate(outputs, axis=0)
+
+
+def extract_truth_mass_patches(
+    truth_maps: np.ndarray,
+    halos: list[dict],
+    box_size: float,
+    npix: int,
+    patch_pix: int,
+) -> np.ndarray:
+    """Per-halo [DM_hydro, Gas, Stars] 6.25 Mpc/h truth patches from the full-box
+    truth maps, registered to the same halo-center convention as the DMO cutouts
+    and truth thermo patches. Returns (N_halos, 3, patch_pix, patch_pix)."""
+    pixels_per_mpc = npix / box_size
+    out = np.zeros((len(halos), 3, patch_pix, patch_pix), dtype=np.float32)
+    for i, halo in enumerate(halos):
+        cx = int(halo["halo_center"][0] * pixels_per_mpc) % npix
+        cy = int(halo["halo_center"][1] * pixels_per_mpc) % npix
+        for ch in range(3):
+            out[i, ch] = extract_periodic_cutout(truth_maps[ch], cx, cy, patch_pix)
+    return out
+
+
+def build_observable_vectors(
+    truth_mass_patches: np.ndarray,    # (N, 3, H, W)  [DM, Gas, Stars]
+    truth_thermo_patches: np.ndarray,  # (N, N_THERMO, H, W)  THERMO_KEYS order
+    halos: list[dict],
+    norm_stats: NormStats,
+) -> np.ndarray:
+    """Normalized per-halo observable conditioning matrix (N, N_OBS).
+
+    Recomputes the OBSERVABLE_KEYS aperture-integrated observables within R200
+    from per-halo truth mass + thermo patches (reusing
+    :func:`bind.data.compute_observables`, so the definition matches training
+    exactly), then log/standardizes them with the run's obs_* stats. R200 is
+    taken from each halo's catalog ``r200`` when > 0, else derived from M200c.
+
+    NOTE: suite truth patches are axis-aligned (z-projection) whereas the
+    training observables were measured on randomly-rotated cutouts; the
+    aperture-integrated R200 quantities are fairly rotation-robust, but small
+    differences are expected.
+    """
+    n = len(halos)
+    if not (len(truth_mass_patches) == len(truth_thermo_patches) == n):
+        raise ValueError("mass patches, thermo patches and halos must align in length")
+    obs = np.zeros((n, N_OBS), dtype=np.float64)
+    for i, halo in enumerate(halos):
+        sample = {
+            "target": truth_mass_patches[i],
+            "halo_mass": float(halo["halo_mass"]),
+        }
+        for j, key in enumerate(THERMO_KEYS):
+            sample[key] = truth_thermo_patches[i, j]
+        r200 = float(halo.get("r200", 0.0) or 0.0)
+        if r200 > 0:
+            sample["r200"] = r200      # else compute_observables derives from M200c
+        obs[i] = compute_observables(sample)
+    obs_norm = thermo_forward(
+        obs, norm_stats.obs_mean[None, :], norm_stats.obs_std[None, :],
+        norm_stats.obs_floor[None, :],
+    ).astype(np.float32)
+    if norm_stats.mask_observables:
+        # Masked model expects 2*N_OBS [obs*mask, mask]; full-obs eval = all-ones
+        # mask. Pass a partial mask here to condition on a subset instead.
+        mask = np.ones((n, N_OBS), dtype=np.float32)
+        obs_norm = np.concatenate([obs_norm * mask, mask], axis=1)
+    return obs_norm
 
 
 def square_taper_weight(patch_size: int, taper_frac: float = 0.15) -> np.ndarray:

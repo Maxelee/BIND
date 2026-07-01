@@ -6,6 +6,29 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-01 — Multi-halo "covering" paint + generated closure-radius aperture (`low_mass_extrapolation`)
+
+Idea: baryonify *many* halos per GPU call by covering the box with the fewest
+6.25 Mpc/h generations (greedy geometric set-cover, largest-first; a halo joins a
+box iff its 4·R200 aperture fits). New notebooks (+ `_build_*_nb.py` builders) in
+`examples/`:
+- `offcenter_covering.ipynb` — GPU probe of BIND's off-center validity radius:
+  DM/Gas hold to r_max≈1 Mpc/h (<0.1 dex); thermo + low-mass tighter.
+- `covering_plan.ipynb` — CPU planner + GPU-call savings; `covering_paint_pk.ipynb`
+  — deploy + full-box P(k) vs hydro truth, r_max sweep.
+- `covering_lowmass_closure.ipynb` — covering down to **1e10** (all ~24k halos in
+  **183 generations, 132×**); **generated closure-radius aperture** (paste each
+  halo to where *its generated* f_b(<r)=Ω_b/Ω_m — deployable, no truth) fixes the
+  1e10 total-matter P(k) overshoot; **inter-halo gas background** (f_gas·smooth(DMO),
+  total conserved) removes the hard gas edges.
+- Numbers firmed over **8 CV sims** (1e10 floor): R_c beats fixed 4·R200 by
+  +2.9/+3.2 pp at mid/small-k; covering→total-matter P(k) ≈ +0.5/+4.6/+6.8%.
+- Gotchas: mass-match MUST be aperture-local (full-128px match on roll-recentered
+  passengers → 0.6–1.9× amplitude scatter → ring residuals); projected (2D)
+  closure radius is unusable (background column already = cosmic). Dwarfs match
+  truth (small dwarf R_c is a projection/resolution artifact); the real fidelity
+  gap is BIND slightly under-depleting group cores. See memory `project_covering_paint`.
+
 ## 2026-06-25 — `low_mass_extrapolation`: zero-shot test of BIND below its 1e13 training cut
 
 New branch off `main`. Question: BIND trains on M200c > 1e13 halos, but the

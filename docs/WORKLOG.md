@@ -6,6 +6,20 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-01 — `integration/paper-figures`: consolidate all model families for one paper notebook
+
+Goal: one `examples/paper_figures2.ipynb` that generates every paper figure. New
+branch off `low_mass_extrapolation`; merged `feature/vdm`, `feature/redshift`,
+`feature/observable-conditioning` (union-resolved `docs/WORKLOG.md`; hand-resolved
+overlapping additive conflicts in `model.py` docstring, `data.py` `__getitem__`,
+`train.py` ×9 — kept both features' hparam-gated paths). **All four checkpoints now
+load from one code path** (verified): `fm_thermo` (FM+thermo), `vdm`
+(VariationalDiffusion), `fm_redshift` (FM+thermo, condition_redshift), 
+`fm_observables_masked` (FM+thermo, condition_observables, n_params=14). Added
+paper_figures2 §Fig 8 (low-mass covering to 1e10 + generated closure-radius
+aperture + connected-gas showcase; self-contained). TODO: §redshift, §VDM-vs-FM,
+§observables sections (models wired; each needs its conditioning-eval input).
+
 ## 2026-07-01 — Multi-halo "covering" paint + generated closure-radius aperture (`low_mass_extrapolation`)
 
 Idea: baryonify *many* halos per GPU call by covering the box with the fewest

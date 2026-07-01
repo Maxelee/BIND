@@ -120,5 +120,5 @@ cli
 :hidden:
 :caption: Project
 GitHub <https://github.com/Maxelee/BIND>
-Hugging Face weights <https://huggingface.co/Maxelee/BIND2>
+Hugging Face weights <https://huggingface.co/mel2260/BIND>
 ```

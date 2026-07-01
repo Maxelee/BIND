@@ -241,11 +241,13 @@ class Model:
         n_params: int,
         no_large_scale: bool,
         device: torch.device,
+        condition_redshift: bool = False,
     ):
         self.fm = fm
         self.norm_stats = norm_stats
         self.n_params = int(n_params)
         self.no_large_scale = bool(no_large_scale)
+        self.condition_redshift = bool(condition_redshift)
         self.device = device
         cosmo_idx = [0, 1, 7, 8]
         self.param_indices: np.ndarray | None = (
@@ -269,8 +271,10 @@ class Model:
         lit.eval().to(dev)
         n_params = int(getattr(lit.hparams, "n_params", 35))
         no_large_scale = bool(getattr(lit.hparams, "no_large_scale", False))
+        condition_redshift = bool(getattr(lit.hparams, "condition_redshift", False))
         ns = NormStats.load(str(norm_stats))
-        return cls(lit.fm, ns, n_params=n_params, no_large_scale=no_large_scale, device=dev)
+        return cls(lit.fm, ns, n_params=n_params, no_large_scale=no_large_scale,
+                   device=dev, condition_redshift=condition_redshift)
 
     @classmethod
     def from_local(
@@ -294,9 +298,32 @@ class Model:
     def __repr__(self) -> str:
         return (f"Model(n_params={self.n_params}, "
                 f"no_large_scale={self.no_large_scale}, "
-                f"predict_thermo={self.predict_thermo}, device={self.device})")
+                f"predict_thermo={self.predict_thermo}, "
+                f"condition_redshift={self.condition_redshift}, device={self.device})")
 
     @torch.no_grad()
+    def _resolve_scale_factor(self, redshift, scale_factor) -> float | None:
+        """Map a user-supplied redshift OR scale factor to the model's scale
+        factor a=1/(1+z). Returns None for a non-redshift model.
+
+        Accepts either ``redshift`` or ``scale_factor`` (not both). A
+        redshift-conditioned model with neither defaults to z=0 (a=1).
+        """
+        if redshift is not None and scale_factor is not None:
+            raise ValueError("pass only one of redshift= / scale_factor=")
+        if not self.condition_redshift:
+            if redshift is not None or scale_factor is not None:
+                warnings.warn("model was not trained with redshift conditioning; "
+                              "ignoring redshift/scale_factor.", stacklevel=2)
+            return None
+        if scale_factor is not None:
+            return float(scale_factor)
+        if redshift is not None:
+            return 1.0 / (1.0 + float(redshift))
+        warnings.warn("redshift-conditioned model but no redshift/scale_factor "
+                      "given; defaulting to z=0 (a=1).", stacklevel=2)
+        return 1.0
+
     def generate(
         self,
         cutouts: list[dict],
@@ -306,6 +333,8 @@ class Model:
         batch_size: int = 16,
         use_amp: bool = True,
         progress: bool = True,
+        redshift: float | None = None,
+        scale_factor: float | None = None,
     ) -> np.ndarray:
         """Run the flow-matching sampler on per-halo cutouts.
 
@@ -328,6 +357,7 @@ class Model:
             (un-normalized) units.
         """
         params = _validate_params(params)
+        sf = self._resolve_scale_factor(redshift, scale_factor)
         if not cutouts:
             n_out = 3 + (N_THERMO if self.norm_stats.predict_thermo else 0)
             return np.zeros((0, n_out, PATCH_PIX, PATCH_PIX), dtype=np.float32)
@@ -350,13 +380,18 @@ class Model:
             if self.param_indices is not None:
                 par_np = par_np[:, self.param_indices]
             par_t = torch.from_numpy(par_np).to(self.device)
+            sf_t = (
+                None if sf is None
+                else torch.full((cond_t.shape[0],), sf, device=self.device)
+            )
 
             ctx = (
                 torch.amp.autocast(device_type="cuda", dtype=torch.bfloat16)
                 if use_amp and self.device.type == "cuda" else nullcontext()
             )
             with ctx:
-                gen = self.fm.sample(cond_t, ls_t, par_t, n_steps=n_steps)
+                gen = self.fm.sample(cond_t, ls_t, par_t, n_steps=n_steps,
+                                     scale_factor=sf_t)
             outputs.append(_denormalize_to_physical(
                 gen.float().cpu().numpy().astype(np.float32), self.norm_stats
             ))
@@ -493,6 +528,8 @@ def paint(
     r200_factor: float = 0.0,
     save_per_halo_patches: bool = True,
     progress: bool = True,
+    redshift: float | None = None,
+    scale_factor: float | None = None,
 ) -> PaintResult:
     """Generate baryonified hydro maps from a DMO simulation + halo catalog.
 
@@ -512,6 +549,11 @@ def paint(
         Sampling controls. ``patch_pix`` should stay at 128 (model contract).
     patch_mass_match, taper_frac, r200_factor
         Compositing controls (see :func:`bind.inference.pipeline.build_bind_composite`).
+    redshift, scale_factor
+        For a redshift-conditioned model, the target redshift ``z`` *or* scale
+        factor ``a=1/(1+z)`` to generate at (pass only one). Ignored by a model
+        trained without redshift conditioning; a redshift model with neither
+        defaults to z=0.
     """
     params = _validate_params(params)
     _warn_off_native(pixel_size, slab_depth)
@@ -563,7 +605,7 @@ def paint(
         gen = model.generate(
             cutouts, params,
             n_steps=n_steps, batch_size=batch_size, use_amp=use_amp,
-            progress=progress,
+            progress=progress, redshift=redshift, scale_factor=scale_factor,
         )
 
         # 4. Composite.  build_bind_composite expects per-halo dicts and works

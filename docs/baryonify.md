@@ -16,7 +16,7 @@ $L \in [50, 500]\,\mathrm{Mpc}/h$ at $\gtrsim$ TNG resolution.
    - `Group/GroupPos`,
    - `Group/Group_M_Crit200` (the field name is configurable),
    - optionally `Group/Group_R_Crit200`.
-3. The **pretrained checkpoint** ([Hugging Face](https://huggingface.co/Maxelee/BIND2)):
+3. The **pretrained checkpoint** ([Hugging Face](https://huggingface.co/mel2260/BIND)):
 
    ```bash
    bind-download-weights fm_two_head

@@ -81,6 +81,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--batch_size", type=int, default=16)
     p.add_argument("--device", type=str, default="auto")
     p.add_argument("--no_amp", action="store_true")
+    p.add_argument("--redshift", type=float, default=None,
+                   help="Target redshift z for a redshift-conditioned model "
+                        "(mutually exclusive with --scale_factor).")
+    p.add_argument("--scale_factor", type=float, default=None,
+                   help="Target scale factor a=1/(1+z) for a redshift-conditioned "
+                        "model (mutually exclusive with --redshift).")
 
     p.add_argument("--no_patch_mass_match", action="store_true")
     p.add_argument("--taper_frac", type=float, default=0.15)
@@ -130,6 +136,8 @@ def main() -> None:
         taper_frac=args.taper_frac,
         r200_factor=args.r200_factor,
         save_per_halo_patches=not args.no_save_patches,
+        redshift=args.redshift,
+        scale_factor=args.scale_factor,
     )
 
     print("=" * 80)

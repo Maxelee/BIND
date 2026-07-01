@@ -1,6 +1,6 @@
 """Download pretrained BIND2 checkpoints from Hugging Face Hub.
 
-Default repo: ``Maxelee/BIND2`` (override with ``--hf_repo``).
+Default repo: ``mel2260/BIND`` (override with ``--hf_repo``).
 
 Layout on the Hub mirrors the local ``weights/<run>/`` layout:
     <run>/last.ckpt
@@ -17,8 +17,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-DEFAULT_REPO = "Maxelee/BIND2"
-KNOWN_RUNS = ("fm_two_head", "fm_thermo")
+DEFAULT_REPO = "mel2260/BIND"
+KNOWN_RUNS = ("fm_two_head", "fm_thermo", "fm_redshift_thermo")
 FILES_PER_RUN = ("last.ckpt", "norm_stats.npz")
 
 

@@ -38,7 +38,7 @@ dev = ["ruff"]
 
 [project.urls]
 Repository = "https://github.com/Maxelee/BIND"
-Weights = "https://huggingface.co/Maxelee/BIND2"
+Weights = "https://huggingface.co/mel2260/BIND"
 
 [project.scripts]
 bind-paint = "bind.cli.paint:main"

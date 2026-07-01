@@ -12,7 +12,7 @@ from pathlib import Path
 from bind.data import (load_file_list, compute_norm_stats, AstroDataset, NormStats,
                   load_file_list_cube, compute_norm_stats_cube, CubeAstroDataset,
                   N_THERMO)
-from bind.model import UNet, FlowMatching, StochasticInterpolant
+from bind.model import UNet, FlowMatching, StochasticInterpolant, VariationalDiffusion
 
 
 class FlowMatchingLit(L.LightningModule):
@@ -62,6 +62,19 @@ class FlowMatchingLit(L.LightningModule):
                                             cfg_dropout=cfg_dropout,
                                             star_occ_weight=star_occ_weight,
                                             star_zero_norm=star_zero_norm)
+        elif interpolant == 'vdm':
+            # Variational diffusion / score matching on the SAME UNet — the only
+            # difference vs fm is eps-prediction instead of the flow velocity.
+            # Two-head stars breaks the Gaussian diffusion assumption -> single-head 3ch.
+            assert not stars_two_head, (
+                'stars_two_head=True breaks the VDM Gaussian forward process; use '
+                'single-head (--interpolant vdm without --stars_two_head).'
+            )
+            assert not predict_thermo, (
+                'predict_thermo=True is not wired into the VDM branch.'
+            )
+            self.fm = VariationalDiffusion(self.unet, cfg_dropout=cfg_dropout,
+                                           out_channels=out_ch)
         else:
             self.fm = FlowMatching(self.unet, cfg_dropout=cfg_dropout,
                                    star_occ_weight=star_occ_weight,
@@ -226,8 +239,10 @@ def main():
                              'and have the model predict both. Out_ch becomes 4. At '
                              'inference the two channels are recombined via a soft '
                              'multiplier before writing the standard 3-channel artifact.')
-    parser.add_argument('--interpolant', type=str, default='fm', choices=['si', 'fm'],
-                        help='si=stochastic interpolant (DMO→hydro), fm=original flow matching (noise→hydro)')
+    parser.add_argument('--interpolant', type=str, default='fm', choices=['si', 'fm', 'vdm'],
+                        help='si=stochastic interpolant (DMO→hydro), fm=flow matching (noise→hydro), '
+                             'vdm=variational diffusion / score matching (noise→hydro, eps-prediction, '
+                             'same UNet as fm; single-head only)')
     parser.add_argument('--sigma', type=float, default=0.5,
                         help='Stochastic interpolant noise amplitude (0=deterministic bridge)')
     parser.add_argument('--exclude_cosmo_params', action='store_true',

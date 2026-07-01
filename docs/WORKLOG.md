@@ -16,9 +16,14 @@ overlapping additive conflicts in `model.py` docstring, `data.py` `__getitem__`,
 load from one code path** (verified): `fm_thermo` (FM+thermo), `vdm`
 (VariationalDiffusion), `fm_redshift` (FM+thermo, condition_redshift), 
 `fm_observables_masked` (FM+thermo, condition_observables, n_params=14). Added
-paper_figures2 §Fig 8 (low-mass covering to 1e10 + generated closure-radius
-aperture + connected-gas showcase; self-contained). TODO: §redshift, §VDM-vs-FM,
-§observables sections (models wired; each needs its conditioning-eval input).
+paper_figures2 §Fig 8–11: low-mass covering to 1e10 + closure-radius + connected
+gas (Fig 8); redshift response z=0–2 (Fig 9, `fm_redshift`); VDM-vs-FM sharpness +
+high-k patch P(k) (Fig 10, `vdm` vs `fm_redshift`); observable-conditioned paint on
+the M+Y+Tx subset (Fig 11, `fm_observables_masked` via `fb_predict` helpers). All
+five sections smoke-tested (load+generate). Consolidation fix: `Model.generate`
+passed `scale_factor=` unconditionally (redshift feature), incompatible with the
+VDM sampler → now passed only when set. Observable models can't use `Model.generate`
+(35-param assumption); use `fb_predict.generate`/`build_observable_vectors`.
 
 ## 2026-07-01 — Multi-halo "covering" paint + generated closure-radius aperture (`low_mass_extrapolation`)
 

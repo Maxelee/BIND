@@ -389,9 +389,11 @@ class Model:
                 torch.amp.autocast(device_type="cuda", dtype=torch.bfloat16)
                 if use_amp and self.device.type == "cuda" else nullcontext()
             )
+            # Only pass scale_factor to samplers that accept it (redshift-
+            # conditioned FlowMatching). VDM/plain samplers don't take the kwarg.
+            _sf_kw = {"scale_factor": sf_t} if sf_t is not None else {}
             with ctx:
-                gen = self.fm.sample(cond_t, ls_t, par_t, n_steps=n_steps,
-                                     scale_factor=sf_t)
+                gen = self.fm.sample(cond_t, ls_t, par_t, n_steps=n_steps, **_sf_kw)
             outputs.append(_denormalize_to_physical(
                 gen.float().cpu().numpy().astype(np.float32), self.norm_stats
             ))

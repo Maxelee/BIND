@@ -6,6 +6,25 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-15 (later) — WL-emulator paper figures (`examples/paper_fig_wlemu.ipynb`)
+
+Four publication figures for the paper's community-tool section (builder
+`examples/_build_paper_fig_wlemu.py`, saved to `paper_figures/wlemu_fig*`),
+designed after a literature scan: baryon emulators exist for P(k) suppression
+only (BCemu 2108.08863, BACCO 2011.15018); Euclid HOWLS (2301.12890,
+2510.04953) shows HOS ×4.5 combined info but no consistent baryon model
+across statistics; map-level baryonification (2505.07949) is consistent but
+per-point pipeline-bound; HSC Y1 HOS baryon bias 2403.03807; FLAMINGO peaks
+2312.08450. Our slot: first instant emulator of the full joint statistic
+suite over a 30-dim feedback space, with σ + covariance. Figures: (1)
+six-statistic held-out validation with Δ/SEM strips; (2) err/SEM intervals
+per block vs noise floor + Euclid/LSST stat-error lines, and design
+comparison incl. field-level FM (5–100×); (3) sweep responses standardized by
+**LSST-area statistical error** on shared symlog (per-single-field σ made HOS
+look dead — key framing lesson; S/N_int: Cl~200, peaks 6–13, PDF 3–7, V2
+2–24); (4) cross-statistic response scatter (r≈0.8) + inference contours with
+11/12 coverage. LaTeX metrics table in the last cell.
+
 ## 2026-07-15 — feature/wl-emu: community WL statistics emulator (`bind.wlemu`)
 
 The paper's community-tool section: `bind.wlemu.WLEmulator` maps the 30 SB35

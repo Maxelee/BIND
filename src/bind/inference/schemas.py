@@ -48,3 +48,7 @@ class RunConfig:
     repaste: bool = False
     channel_correction: np.ndarray | None = None
     r200_factor: float = 4.0  # circular paste at r200_factor * R200c (standard); 0 = legacy square taper
+    # 'shared' (standard): overlapping halos share one realization before the
+    # weighted-average blend (avoids the high-k P(k) loss from averaging
+    # independent generations); 'average' = legacy independent-patch blending.
+    paste_mode: str = "shared"

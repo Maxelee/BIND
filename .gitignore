@@ -12,6 +12,9 @@ __pycache__/
 analysis_physics_cache/
 analysis_physics_cache
 *_cache/
+# tools/paper_cache/ is the paper-figure cache *builder* (source code), not a data
+# cache — keep it tracked despite the *_cache/ rule above.
+!tools/paper_cache/
 outputs/
 docs/_build/
 examples/bind_output/

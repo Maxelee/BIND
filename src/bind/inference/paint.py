@@ -527,7 +527,8 @@ def paint(
     use_amp: bool = True,
     patch_mass_match: bool = True,
     taper_frac: float = 0.15,
-    r200_factor: float = 0.0,
+    r200_factor: float = 4.0,
+    paste_mode: str = "shared",
     save_per_halo_patches: bool = True,
     progress: bool = True,
     redshift: float | None = None,
@@ -549,8 +550,13 @@ def paint(
         50 Mpc/h slab depth). Off-spec values trigger a warning.
     patch_pix, n_steps, batch_size, use_amp
         Sampling controls. ``patch_pix`` should stay at 128 (model contract).
-    patch_mass_match, taper_frac, r200_factor
+    patch_mass_match, taper_frac, r200_factor, paste_mode
         Compositing controls (see :func:`bind.inference.pipeline.build_bind_composite`).
+        Defaults are the standard: circular 4×R200c apertures with shared-content
+        overlap handling ('shared'), which avoids both the square-taper window
+        artifact and the high-k power loss from averaging independent
+        realizations in overlapping apertures. ``paste_mode='average'`` restores
+        the legacy independent-patch blend.
     redshift, scale_factor
         For a redshift-conditioned model, the target redshift ``z`` *or* scale
         factor ``a=1/(1+z)`` to generate at (pass only one). Ignored by a model
@@ -623,7 +629,7 @@ def paint(
             slab_map, halos_dicts, gen[:, :3], cutouts,
             box_size=sim.box_size, npix=npix, patch_pix=patch_pix,
             patch_mass_match=patch_mass_match, taper_frac=taper_frac,
-            r200_factor=r200_factor,
+            r200_factor=r200_factor, paste_mode=paste_mode,
         )
 
         slab_path = output_dir / f"composite_slab{si:02d}.npz"
@@ -675,6 +681,7 @@ def paint(
         "patch_mass_match": patch_mass_match,
         "taper_frac": taper_frac,
         "r200_factor": r200_factor,
+        "paste_mode": paste_mode,
         "predict_thermo": model.predict_thermo,
         "thermo_keys": list(THERMO_KEYS) if model.predict_thermo else [],
         "per_slab": per_slab,

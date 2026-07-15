@@ -55,3 +55,45 @@ Reproduce: `experiments/composite_study/exp4_cv_suppression.py` (see that folder
 - **Revert:** pass `--r200_factor 0` to any CLI (or set `RunConfig.r200_factor = 0`)
   for the legacy square taper. A circular composite can always be rebuilt from the
   cached `generated_halos.npz` with `--repaste`, so switching is cheap and reversible.
+
+---
+
+## Shared-content overlap handling (the standard, `paste_mode = "shared"`)
+
+**As of July 2026 the composite additionally shares one realization across
+overlapping paste apertures by default** (`paste_mode="shared"` in
+`build_bind_composite` / `RunConfig` / `bind.paint`; `"average"` restores the
+legacy behavior).
+
+`paste_halos_2d` blends overlapping pastes by weighted *averaging*. Averaging N
+independent flow-matching realizations of the same region keeps their
+conditional mean but divides the stochastic small-scale variance by ~N — so
+wherever apertures overlap, the composite loses exactly the sampled high-k
+power. With the historical ≥1e13 halo population overlaps were rare and this
+was invisible; at a ≥1e12 floor, 30–50% of the painted area is multi-covered
+and the artifact costs **−10% (CV) to −12% (SB35) of total-matter P(k) at
+k≈40–70 h/Mpc** (Spearman −0.75 vs the multi-covered fraction across 57 sims).
+
+Two things make this artifact easy to misdiagnose:
+
+- **The hydro-replaced control cannot see it.** Overlapping *truth* patches are
+  cutouts of the same map — identical pixels — so their average is a no-op. A
+  flat control therefore does not exonerate the paste for generated content.
+- It only appears when independent realizations overlap, so it looks like a
+  "low-mass halo" content problem when a mass floor is lowered.
+
+The fix mirrors the covering paint: a greedy set-cover in descending halo mass
+(`share_overlap_content`) makes any halo whose aperture fits inside a
+more-massive halo's patch footprint adopt *that* patch's realization (rolled to
+its own frame) before pasting, so overlapping contributions are identical and
+the average is lossless. In shared mode `patch_mass_match` operates
+*aperture-locally* (weighted content mass matched to the weighted DMO mass in
+each footprint — the covering-paint standard), since adopted content is rolled
+and whole-patch totals no longer correspond to the halo's own condition cutout.
+
+Validated on the fm_lowmass ≥1e12 suite (fm_thermo epoch064 EMA), median
+BIND/Truth at k=40–70: CV 0.969 → 1.059, SB35 0.872 → 0.940; remaining
+deviations are model content error, not paste. Fresh covering-paint generation
+(one sample per cover box) gives the same result as adoption from existing
+per-halo patches. Diagnostics + scripts:
+`ceph/paper_cache/fm_thermo/pk_diagnostics/`.

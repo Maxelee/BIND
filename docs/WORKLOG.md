@@ -6,6 +6,164 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-06 — Paper restricted to the trained regime (≥1e13); hand-edits folded back into the notebook builder
+
+Decision: the paper drops the low-mass (<1e13) halos entirely — all analysis now
+uses the trained regime $M_{200c}\ge 10^{13}$ only. `examples/_build_paper_nbs.py`
+first absorbed every hand-edit that had accumulated in `paper_figures2.ipynb`
+(new Fig 1 layout without residual row, consolidated Fig 2 scatter+distribution
+per bin, KS/median-bias table, Fig 3a-bis per-bin parameter correlations, pk.npz
+diagnostic, pk_fixed Fig 5, §6 shape-illustration cell, `eps`-metric filter), so
+**regenerating is safe again** — the builder is the source of truth. Then the
+≥1e13 restriction: shared SETUP defines `BINS` (mass bins ≥13.0) and every per-bin
+loop (main + thermo T4) iterates over it; §7 covering-paint section and the
+`paper_fig_lowmass.ipynb` appendix were removed from the builder (the generated
+lowmass ipynb is left on disk, delete when ready). Fig 5 P(k) now shows only the
+BIND ≥1e13 shared-paste line, and `tools/paper_cache/build_pk_fixed.py` gained an
+`hr_ge13` control — truth patches of the *same* ≥1e13 halos, same shared paste —
+replacing the legacy all-catalog (≥1e12) hydro-replace; stale partials are
+recomputed automatically and `--reduce` tolerates missing keys. Validated on
+CV/sim_0 (hr_ge13/truth ≈ 1.04 at k=40–64 vs BIND 1.16); full rebuild
+(`build_pk_fixed.py --metric fixed --pool N` then `--reduce`) still to run.
+
+## 2026-07-02 (later) — T6 outlier physics: +1σ ridge diagnosed as aperture contamination; section rebuilt on clean halos
+
+Why does the T6 corner plot correlate strongly only in the **+1σ** tails? Diagnosis:
+the eval maps are full-box-depth projections, so R200c apertures also sum every
+*projected* neighbor — an additive (strictly positive) boost lifting M★/Mgas/Y
+coherently. Joint (+SHMR,+Y–M) outliers have median external catalog mass ≈ 1×M200
+(70% >0.2×; half have a more-massive projected companion; only ~16% 3D-associated →
+mostly chance LOS superposition); joint negative outliers have none. T6 was rebuilt
+on **clean halos** (M_ext < 0.2 M200, drops ~6%): fits tighten (σ_SHMR 0.13→0.09,
+Y–M 0.19→0.14) and two new figures added — `figT6c` (contamination diagnostic:
+r_SHMR vs r_Y–M colored by aperture M_ext; ρ₊ = +0.84 contaminated vs +0.26 clean,
+ρ₋ ≈ 0) and `figT6d` (surviving physics: star-rich halos are *gas-rich* at fixed
+M200 → SZ-bright, gas-mass-mediated ρ(r_Mgas, r_Y)=0.82; star-poor halos are NOT
+gas-poor → −1σ tails decorrelate; BIND reproduces the tail-conditional structure).
+Caveat recorded: ALL R200-aperture quantities in the pipeline carry this projection
+contamination — filter via catalog projected neighbors for clean-halo statements.
+
+## 2026-07-02 — T6: joint mass+SZ scaling-relation scatter & residual corner plot (from analysis/2d)
+
+Promoted the `analysis/2d` `scatter.ipynb` figures (residual-colored scaling
+relations + ±1σ outlier residual corner plot) into the paper pipeline as the
+previously missing **T6** section of `examples/paper_fig_thermo.ipynb`, extended
+with the SZ relations **Y–M200** and **Y–T** (both in the scatter grid and as
+corner-plot dimensions). Pure load-only: joins the existing `mass_table.pkl` +
+`thermo_scaling.pkl` caches per halo (row-aligned by (suite, sim, row), asserted
+via the shared log-mass column) — no new cache builder. CV suite, ≥1e13
+(`C.PARAM_RESPONSE_MASS_MIN`). Cells inserted **in place** into the existing
+notebook (outputs preserved; `_build_paper_nbs.py` deliberately *not* rerun — user
+has custom edits in `paper_figures2.ipynb`); the generator source was updated to
+match so a future deliberate regen keeps T6. Headline numbers (truth vs BIND):
+Y–M α 1.94/1.87 σ 0.19/0.21; Y–T α 2.49/2.41 σ 0.14/0.14 (self-similar 5/3, 5/2);
+BIND reproduces the truth outlier ridge in r_Y–M vs r_Mbar–M200. Note: this dev
+suite's Test/SB35 *does* have thermo truth in `thermo_scaling.pkl` (truth-thermo
+projection was kept on), though T6 uses CV only.
+
+## 2026-07-02 — Fig 5 high-k P(k) suppression diagnosed: overlap-averaging paste artifact (+ SB35 content deficit)
+
+The new ≥1e12 Fig 5 (`pk.npz`, fm_lowmass suite) rolls off at k>30 (CV −3%,
+SB35 −13% vs truth at k40–70) where the old main-branch ≥1e13 circular figure was
+near-perfect (reproduced on `fm_testsuite/fm_two_head`: 1.002). Full decomposition
+(mass subsets × content × paste mode, 57 sims) in
+`ceph/paper_cache/fm_thermo/pk_diagnostics/` (scripts + partials + figures):
+
+- **Dominant artifact — the paste, not the low-mass content.** `paste_halos_2d`
+  weight-*averages* overlapping patches; with the 1e12 floor 30–50% of painted area
+  is multi-covered, and averaging *independent* FM realizations destroys their
+  stochastic small-scale power: −10% (CV) / −12% (SB35) at k40–70, Spearman −0.75
+  vs multi-covered fraction across sims. The hydro-replace control is immune
+  (overlapping truth patches are identical pixels), which is why it stays flat.
+  1e12–1e13-only content is fine (b/hr ≈ 1.00 CV).
+- **Secondary, honest signal — SB35 content deficit.** ≥1e13 BIND/HR content ratio
+  at k40–70: CV 1.011 [0.96–1.07], Test 0.927 [0.84–0.99] (worst sim 0.49). Not an
+  n_steps artifact (20 vs 50 vs 100 identical within realization noise) — genuine
+  extrapolation error; already hinted in the old SB35 panel's droop+wide bands.
+- **Fix validated — covering-style shared content.** "Adoption repaste" (greedy set
+  cover over the *existing* `generated_halos.npz`; satellites adopt the host patch's
+  realization; aperture-local mass match; CPU-only) ≈ fresh covering paint (GPU) and
+  removes the averaging loss: CV 0.969→1.06 (4R200) / 1.04 (Rc), SB35 0.872→0.94 at
+  k40–70; SB35 mid-k 0.963→1.00. Exclusive first-wins paste also works but has
+  ordering/seam artifacts (+8% CV). Remaining deviations = model content (the same
+  ~+8% mid-k CV hump the original figure had).
+- **Engine fix (same day, follow-up):** shared-content paste is now the package
+  default. `bind.inference.pipeline.share_overlap_content()` + `paste_mode`
+  {"shared" (default) | "average" (legacy, bit-identical to old composites)} on
+  `build_bind_composite`, wired through `RunConfig`/runner, `bind-camels-suite
+  --paste_mode`, `bind.paint()` (whose `r200_factor` default also fixed 0.0→4.0),
+  `bind-paint`, and all three `paint_stages` entry points; documented in
+  `docs/circular_aperture.md` ("Shared-content overlap handling") + CLAUDE.md.
+  In shared mode `patch_mass_match` is aperture-local (covering-paint standard).
+  Validated: `average` reproduces cached composites bit-for-bit; `shared` matches
+  the adoption diagnostic to 0.03%.
+- **Corrected Fig 5**: `tools/paper_cache/build_pk_fixed.py` (resumable, env-flips
+  to the fm_redshift spine like the other builders) computes per-sim P(k) for
+  shared-paste ≥1e13 / ≥1e12 composites (CPU) and the TRUE covering paint (GPU:
+  all FoF halos ≥1e10, fresh generation per set-cover box, Rc closure apertures
+  with per-sim f_cos=Ω_b/Ω_m, gas background; CAMELS 1P N-body routing for the
+  shared-DMO 1P sims) over CV+Test+1P; `--reduce` → `pk_fixed.npz` (+ hydro-replace
+  stacks carried over from `pk.npz`). Notebook cell:
+  `tools/paper_cache/fig5_pk_fixed_cell.py` (paste into `paper_figures2.ipynb`).
+  Two data-handling gotchas fixed en route: (1) f_cos must be per-sim — SB35
+  spans Ω_b/Ω_m ≈ 0.06–0.68 (a first-pass clip at 0.35 silently distorted 9
+  low-Ω_m sims); (2) 1P astro-param `n1`/`n2` sims fail `_resolve_1p_nbody_sim`'s
+  int parse and need the build_1p_specs-style fallback to the `1P_p1_0` DMO FoF.
+
+---
+
+## 2026-07-01 — `integration/paper-figures`: parallel cache pipeline + load-only notebooks; reframe around one model
+
+Reworked the paper-figure workflow from a slow, all-inline `paper_figures2.ipynb`
+(re-loads the same suite `.npz` and re-runs per-halo loops / Pylians FFTs in every
+figure; narratively a mass-only high-mass model with low-mass/thermo/redshift/VDM/
+observable variants tacked on) into **parallel cache builders + load-only notebooks**,
+reframed around **one model** (mass + thermo as a function of redshift & parameters,
+`fm_redshift` @ z=0) validated **by halo-mass bin**. User decisions: spine =
+`fm_redshift`@z=0 (needs one new z=0 suite eval, user submits); lean main + thin
+companion notebooks over one shared cache.
+
+- **`tools/paper_cache/`** (new): `paper_config.py` (single source of truth — paths,
+  discovery, loaders; env-flip dev→spine), `build_metric.py` (7 resumable per-sim CPU
+  metrics + `--reduce`, mirroring `tools/partial_supp_sobol.py`: `mass profiles
+  profiles_r200 pk shapes thermo field1p`), `build_gpu_insets.py` (`covering redshift
+  vdm obs`), `README.md`. Launcher `run_paper_cache.sh` (local pool **or** SLURM array +
+  dependent reduce).
+- **Two latent bugs fixed as caches:** Fig 3b (param→profile Spearman, referenced an
+  undefined `rho_prof`) is computed in `profiles_r200` reduce; shape **parameter
+  response** (absent before) added in `shapes` reduce. P(k) hydro-replace control is
+  **reconstructed on CPU** (`build_bind_composite` with truth patches; settings from
+  `summary.json`) so it no longer needs the missing `hydro_replace.npy`.
+- **4 load-only notebooks** built by `examples/_build_paper_nbs.py`: `paper_figures2`
+  (main: §1 showcase · §2 mass+response by bin · §3 profiles+response by bin · §4 field
+  1P · §5 P(k) · §6 shapes+response · §7 low-mass covering paint), `paper_fig_thermo`,
+  `paper_fig_redshift`, `paper_fig_models` (App A VDM, App B observables). Old
+  `paper_figures2.ipynb` (inline) preserved in git history (`f59139a`); `paper_figures2_lowmass.ipynb`
+  superseded.
+- **Validated end-to-end on the on-disk `fm_lowmass` (fm_thermo, CV/1P/Test ≥1e12,
+  identical layout to the spine eval):** all 7 CPU metrics + 4 GPU insets build/reduce/
+  load clean; per-sim ~6-12 s (full 268-sim run ~20 min pooled); mass full-patch ratios
+  1.00/0.99/1.03; P(k) BIND/DMO 0.99→0.85→0.85; covering 24252 halos→183 gens (133×).
+  All 4 notebooks execute headlessly **0 errors, 22 figures**.
+- **Two figure fixes from review:** (1) Fig 1 residual used the blended `composite`,
+  whose paste-weight `alpha` tapers to 0 at each 4×R200 aperture edge → spurious −1 ring
+  around every halo; switched to the taper-free `hydro_canvas`, and now emit both a patches
+  variant (`fig1_showcase`) and a full-box variant (`fig1_showcase_composite`). (2) Fig 3a/3b
+  parameter response averaged each sim over the full ≥1e12 population → diluted by the
+  extrapolation halos (True−BIND residual ~0.2); made param-response **per mass window**
+  (`PARAM_WINDOWS` trained ≥1e13 / lowmass 1e12–1e13) for mass/profile/thermo/shape → main
+  figs use `trained` (residual ~0.01, all astro params shown). Added `paper_fig_lowmass.ipynb`
+  (the 1e12–1e13 breakdown: integrated-mass & profile fidelity + per-window param response).
+  Finding: BIND reproduces the low-mass feedback *response* (residual ~0.014); its low-mass
+  error is absolute *amplitude* (Gas over-produced), not response.
+- **Data caveats found:** Test/SB35 has no truth-thermo in `fm_lowmass` → thermo
+  validation is CV+1P (keep truth-thermo projection on for the spine eval's Test suite);
+  CV has fixed params so param-response figures populate only with 1P+Test; the notebook's
+  old hardcoded `SB35_param_minmax.csv` path is dead — config reads the bundled asset.
+- **Remaining (Phase II/III, user):** submit the `fm_redshift`@z=0 suite eval (parameter
+  swap of `run_lowmass_suite.sh`), then flip `PAPER_SUITE_ROOT/MODEL_SUBDIR/MODEL_TAG`
+  and rerun the cache. See `tools/paper_cache/README.md`.
+
 ## 2026-07-01 — `integration/paper-figures`: consolidate all model families for one paper notebook
 
 Goal: one `examples/paper_figures2.ipynb` that generates every paper figure. New

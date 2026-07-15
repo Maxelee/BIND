@@ -92,6 +92,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--taper_frac", type=float, default=0.15)
     p.add_argument("--r200_factor", type=float, default=4.0,
                    help="Circular paste radius as multiple of R200c (default 4.0, standard; 0 = legacy square taper)")
+    p.add_argument("--paste_mode", choices=["shared", "average"], default="shared",
+                   help="Overlap handling: 'shared' (default) shares one realization across "
+                        "overlapping apertures (avoids the high-k P(k) loss from averaging "
+                        "independent generations); 'average' = legacy blending.")
     p.add_argument("--no_save_patches", action="store_true",
                    help="Skip saving per-halo generated patches in the output npz")
 
@@ -135,6 +139,7 @@ def main() -> None:
         patch_mass_match=not args.no_patch_mass_match,
         taper_frac=args.taper_frac,
         r200_factor=args.r200_factor,
+        paste_mode=args.paste_mode,
         save_per_halo_patches=not args.no_save_patches,
         redshift=args.redshift,
         scale_factor=args.scale_factor,

@@ -363,6 +363,7 @@ def run_single_simulation(
             patch_mass_match=run_cfg.patch_mass_match,
             taper_frac=run_cfg.taper_frac,
             r200_factor=run_cfg.r200_factor,
+            paste_mode=run_cfg.paste_mode,
         )
         mass_stats = compute_per_halo_mass_error(
             dmo_fullbox,

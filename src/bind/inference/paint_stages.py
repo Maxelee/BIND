@@ -328,7 +328,8 @@ def generate_from_stage1(
     use_amp: bool = True,
     patch_mass_match: bool = True,
     taper_frac: float = 0.15,
-    r200_factor: float = 0.0,
+    r200_factor: float = 4.0,
+    paste_mode: str = "shared",
     save_per_halo_patches: bool = True,
     progress: bool = True,
 ) -> PaintResult:
@@ -396,7 +397,7 @@ def generate_from_stage1(
             slab_map, halos_dicts, gen[:, :3], cutouts,
             box_size=box_size, npix=npix, patch_pix=patch_pix,
             patch_mass_match=patch_mass_match, taper_frac=taper_frac,
-            r200_factor=r200_factor,
+            r200_factor=r200_factor, paste_mode=paste_mode,
         )
 
         thermo = (gen[:, 3:3 + N_THERMO]
@@ -432,6 +433,7 @@ def generate_from_stage1(
         "patch_mass_match": patch_mass_match,
         "taper_frac": taper_frac,
         "r200_factor": r200_factor,
+        "paste_mode": paste_mode,
         "predict_thermo": model.predict_thermo,
         "thermo_keys": list(THERMO_KEYS) if model.predict_thermo else [],
         "stage1_dir": str(stage1_dir),
@@ -463,7 +465,8 @@ def recomposite_slab(
     params: np.ndarray | None = None,
     patch_mass_match: bool = True,
     taper_frac: float = 0.15,
-    r200_factor: float = 0.0,
+    r200_factor: float = 4.0,
+    paste_mode: str = "shared",
 ) -> dict | None:
     """Re-composite ONE slab's already-generated patches with new blend settings.
 
@@ -509,7 +512,7 @@ def recomposite_slab(
         dmo, halos, gen, cutouts,
         box_size=box_size, npix=npix, patch_pix=patch_pix,
         patch_mass_match=patch_mass_match, taper_frac=taper_frac,
-        r200_factor=r200_factor,
+        r200_factor=r200_factor, paste_mode=paste_mode,
     )
 
 
@@ -521,7 +524,8 @@ def recomposite_from_saved(
     params: np.ndarray | None = None,
     patch_mass_match: bool = True,
     taper_frac: float = 0.15,
-    r200_factor: float = 0.0,
+    r200_factor: float = 4.0,
+    paste_mode: str = "shared",
     save_per_halo_patches: bool = True,
     progress: bool = True,
 ) -> PaintResult:
@@ -548,7 +552,7 @@ def recomposite_from_saved(
 
     print(f"[recomposite] {generated_dir} -> {output_dir}  "
           f"(taper_frac={taper_frac}, r200_factor={r200_factor}, "
-          f"patch_mass_match={patch_mass_match})")
+          f"paste_mode={paste_mode}, patch_mass_match={patch_mass_match})")
 
     composite_paths: list[Path] = []
     per_slab: list[dict] = []
@@ -565,7 +569,7 @@ def recomposite_from_saved(
 
         bundle = recomposite_slab(
             s1, gp, params=params, patch_mass_match=patch_mass_match,
-            taper_frac=taper_frac, r200_factor=r200_factor,
+            taper_frac=taper_frac, r200_factor=r200_factor, paste_mode=paste_mode,
         )
         g = np.load(gp)
         slab_path = _save_composite_slab(
@@ -602,6 +606,7 @@ def recomposite_from_saved(
         "patch_mass_match": patch_mass_match,
         "taper_frac": taper_frac,
         "r200_factor": r200_factor,
+        "paste_mode": paste_mode,
         "per_slab": per_slab,
     }, indent=2))
 

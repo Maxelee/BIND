@@ -72,6 +72,17 @@ def parse_args() -> argparse.Namespace:
             "legacy square taper. See docs/circular_aperture.md."
         ),
     )
+    parser.add_argument(
+        "--paste_mode",
+        choices=["shared", "average"],
+        default="shared",
+        help=(
+            "Overlap handling for the composite paste. 'shared' (default, standard): "
+            "overlapping halos share one realization before the weighted-average blend "
+            "(avoids the high-k P(k) loss from averaging independent generations); "
+            "'average' = legacy independent-patch blending."
+        ),
+    )
     parser.add_argument("--skip_truth", action="store_true", help="Skip hydro truth map projection")
 
     parser.add_argument("--max_workers", type=int, default=1)
@@ -164,6 +175,7 @@ def main() -> None:
         patch_mass_match=not args.no_patch_mass_match,
         taper_frac=args.taper_frac,
         r200_factor=args.r200_factor,
+        paste_mode=args.paste_mode,
         use_amp=not args.no_amp,
         device=args.device,
         prep_only=args.prep_only,
@@ -188,6 +200,7 @@ def main() -> None:
     print(f"Regenerate: {run_cfg.regenerate}")
     print(f"Regenerate all: {run_cfg.regenerate_all}")
     print(f"Repaste: {run_cfg.repaste}")
+    print(f"Paste mode: {run_cfg.paste_mode}")
     if run_cfg.channel_correction is not None:
         print(f"Channel correction (truth/gen): {run_cfg.channel_correction.tolist()}")
     if args.suite in {"sb35", "all"}:

@@ -733,6 +733,75 @@ def paste_halos_2d(
     return canvas, w_accum
 
 
+def share_overlap_content(
+    halos: list[dict],
+    patches: np.ndarray,
+    box_size: float,
+    npix: int,
+    patch_pix: int,
+    r200_factor: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Greedy set-cover content sharing ('adoption') for overlapping pastes.
+
+    Patches blended by weighted averaging must contain the *same* realization
+    wherever they overlap: averaging N independent generative samples of the
+    same region keeps their conditional mean but divides their stochastic
+    small-scale variance by ~N, which suppresses the composite's high-k power
+    wherever paste apertures overlap (a hydro-replaced control cannot detect
+    this — overlapping truth patches are identical pixels, so the average is a
+    no-op for truth content but lossy for generated content).
+
+    Walking halos in descending mass, each not-yet-covered halo keeps its own
+    patch and becomes a host; every other not-yet-covered halo whose paste
+    aperture (``r200_factor * R200c`` pixels) fits inside the host's patch
+    footprint adopts the host's realization, rolled to its own frame. The fit
+    criterion guarantees an adopted halo's tapered paste disk never reads the
+    rolled patch's wrapped edges. Halos without a positive R200c keep their own
+    patch (their square-taper paste spans the full footprint).
+
+    Returns ``(contents, host)``: per-halo content ``(N, C, patch_pix,
+    patch_pix)`` float32 and the index of the halo whose realization each halo
+    carries (``host[i] == i`` for hosts / non-adopted halos).
+    """
+    n = len(halos)
+    pixels_per_mpc = npix / box_size
+    half = patch_pix // 2
+    masses = np.asarray([h["halo_mass"] for h in halos], dtype=np.float64)
+    ap_pix = np.asarray(
+        [min(h.get("r200", 0.0) * pixels_per_mpc * r200_factor, half - 2.0) for h in halos]
+    )
+    px = np.asarray([int(h["halo_center"][0] * pixels_per_mpc) % npix for h in halos])
+    py = np.asarray([int(h["halo_center"][1] * pixels_per_mpc) % npix for h in halos])
+
+    host = np.arange(n)
+    covered = np.zeros(n, dtype=bool)
+    for oi in np.argsort(-masses):
+        if covered[oi]:
+            continue
+        covered[oi] = True
+        dx = (px - px[oi] + npix // 2) % npix - npix // 2
+        dy = (py - py[oi] + npix // 2) % npix - npix // 2
+        fits = (
+            (~covered)
+            & (ap_pix > 0)
+            & (np.abs(dx) + ap_pix < half - 1)
+            & (np.abs(dy) + ap_pix < half - 1)
+        )
+        host[fits] = oi
+        covered[fits] = True
+
+    contents = np.empty_like(np.asarray(patches, dtype=np.float32))
+    for j in range(n):
+        h = int(host[j])
+        if h == j:
+            contents[j] = patches[j]
+        else:
+            dx = (px[j] - px[h] + npix // 2) % npix - npix // 2
+            dy = (py[j] - py[h] + npix // 2) % npix - npix // 2
+            contents[j] = np.roll(patches[h], shift=(-dx, -dy), axis=(1, 2))
+    return contents, host
+
+
 def build_bind_composite(
     dmo_fullbox: np.ndarray,
     halos: list[dict],
@@ -744,6 +813,7 @@ def build_bind_composite(
     patch_mass_match: bool,
     taper_frac: float,
     r200_factor: float = 4.0,
+    paste_mode: str = "shared",
 ) -> dict:
     """Construct BIND composite map using notebook-consistent blending logic.
 
@@ -753,22 +823,29 @@ def build_bind_composite(
     aperture.  This recovers the small-scale total-matter power that the legacy
     square taper (``r200_factor == 0``) smears away — see docs/circular_aperture.md.
     The square taper is also used as a per-halo fallback when R200c is unavailable.
+
+    ``paste_mode`` controls how overlapping apertures are populated:
+
+    - ``"shared"`` (default, standard): overlapping halos share one realization
+      via :func:`share_overlap_content` before the weighted-average blend, and
+      ``patch_mass_match`` rescales each paste *aperture-locally* (its weighted
+      content mass matched to the weighted DMO mass in its footprint). Without
+      sharing, averaging independent generative realizations in overlaps
+      destroys their stochastic small-scale power (≈−10% total-matter P(k) at
+      k≈40–70 h/Mpc for a ≥1e12 Msun/h halo population).
+    - ``"average"`` (legacy): every halo pastes its own realization and
+      ``patch_mass_match`` rescales whole patches against their DMO condition
+      cutout. Kept for reproducing pre-fix composites.
+
+    ``r200_factor <= 0`` (legacy square taper) always uses the legacy path.
     """
-    patches = []
-    patch_scales = []
+    if paste_mode not in ("shared", "average"):
+        raise ValueError(f"Unknown paste_mode {paste_mode!r} (use 'shared' or 'average')")
+    shared = paste_mode == "shared" and r200_factor > 0
 
-    for patch, hc in zip(generated_patches, halo_cutouts):
-        p = patch.copy()
-        if patch_mass_match:
-            m_pred = float(p.sum())
-            m_dmo = float(hc["condition"].sum())
-            s = m_dmo / (m_pred + 1e-30)
-            p *= s
-            patch_scales.append(s)
-        patches.append(p)
-
-    patches_np = np.asarray(patches, dtype=np.float32)
     square_taper = square_taper_weight(patch_pix, taper_frac=taper_frac)
+    patch_scales: list[float] = []
+    host_idx = None
 
     if r200_factor > 0:
         pixels_per_mpc = npix / box_size
@@ -780,11 +857,47 @@ def build_bind_composite(
             )
             for halo in halos
         ]
+
+    if shared:
+        patches_np, host_idx = share_overlap_content(
+            halos, generated_patches, box_size, npix, patch_pix, r200_factor
+        )
+        if patch_mass_match:
+            # Aperture-local match: adopted content is rolled, so whole-patch
+            # totals no longer correspond to the halo's own condition cutout.
+            half = patch_pix // 2
+            ar = np.arange(patch_pix)
+            for i, (halo, w) in enumerate(zip(halos, weights_list)):
+                cx = int(halo["halo_center"][0] * pixels_per_mpc) % npix
+                cy = int(halo["halo_center"][1] * pixels_per_mpc) % npix
+                footprint = np.ix_((cx - half + ar) % npix, (cy - half + ar) % npix)
+                m_dmo = float((dmo_fullbox[footprint] * w).sum())
+                m_patch = float((patches_np[i].sum(0) * w).sum())
+                s = m_dmo / (m_patch + 1e-30)
+                patches_np[i] *= s
+                patch_scales.append(s)
         hydro_canvas, hydro_weights = paste_halos_2d(
             npix, box_size, halos, patches_np, square_taper, weights_list=weights_list
         )
     else:
-        hydro_canvas, hydro_weights = paste_halos_2d(npix, box_size, halos, patches_np, square_taper)
+        patches = []
+        for patch, hc in zip(generated_patches, halo_cutouts):
+            p = patch.copy()
+            if patch_mass_match:
+                m_pred = float(p.sum())
+                m_dmo = float(hc["condition"].sum())
+                s = m_dmo / (m_pred + 1e-30)
+                p *= s
+                patch_scales.append(s)
+            patches.append(p)
+        patches_np = np.asarray(patches, dtype=np.float32)
+
+        if r200_factor > 0:
+            hydro_canvas, hydro_weights = paste_halos_2d(
+                npix, box_size, halos, patches_np, square_taper, weights_list=weights_list
+            )
+        else:
+            hydro_canvas, hydro_weights = paste_halos_2d(npix, box_size, halos, patches_np, square_taper)
 
     alpha = np.clip(hydro_weights, 0.0, 1.0)
     bind_composite = np.zeros((3, npix, npix), dtype=np.float32)
@@ -804,6 +917,8 @@ def build_bind_composite(
         "patch_scales": np.asarray(patch_scales, dtype=np.float64),
         "scale_global": scale_global,
         "coverage_pct": coverage,
+        "paste_mode": paste_mode,
+        "host_idx": host_idx,
     }
 
 

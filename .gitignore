@@ -27,6 +27,10 @@ examples/bind_output/
 # Allow the bundled demo input + bundled package assets.
 !examples/data/dmo_sample.npz
 !src/bind/assets/*
+# WL-emulator bundled data: held-out validation predictions + sample kappa maps
+# used by examples/wlemu_tutorial.ipynb (see docs/wl_emulator.md).
+!examples/data/wlemu_validation.npz
+!examples/data/kappa_sample.npz
 
 # ---------------------------------------------------------------------------
 # Run logs

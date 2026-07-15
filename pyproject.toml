@@ -35,6 +35,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["ruff"]
+# fitting the WL statistics emulator (bind.wlemu.fit); prediction is numpy-only
+wlemu-fit = ["gpytorch", "scikit-learn"]
 
 [project.urls]
 Repository = "https://github.com/Maxelee/BIND"
@@ -46,6 +48,7 @@ bind-paint-project = "bind.cli.paint_project:main"
 bind-paint-generate = "bind.cli.paint_generate:main"
 bind-paint-recomposite = "bind.cli.paint_recomposite:main"
 bind-camels-suite = "bind.cli.camels_suite:main"
+bind-wlemu = "bind.cli.wlemu:main"
 bind-download-weights = "bind.tools.download_weights:main"
 bind-slim-checkpoint = "bind.tools.slim_checkpoint:main"
 
@@ -53,7 +56,7 @@ bind-slim-checkpoint = "bind.tools.slim_checkpoint:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-bind = ["assets/*.csv", "assets/*.txt"]
+bind = ["assets/*.csv", "assets/*.txt", "assets/*.npz"]
 
 [tool.ruff]
 line-length = 110

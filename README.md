@@ -203,6 +203,24 @@ Plus parameter helpers exported at the top level:
 
 See the API reference in the docs for full signatures.
 
+### Weak-lensing statistics emulator (`bind.wlemu`)
+
+Instant, self-consistent WL convergence summary statistics (power spectrum,
+PDF, peaks, minima, Minkowski functionals, scattering coefficients, moments)
+as a function of the 30 SB35 astro parameters and source redshift, trained on
+statistics of κ maps raytraced through BIND-baryonified IllustrisTNG-DMO
+lightcones. Numpy-only inference; the ~3 MB artifact ships with the package.
+
+```python
+from bind.wlemu import WLEmulator
+emu = WLEmulator.load()
+pred = emu.predict({"WindEnergyIn1e51erg": 7.2}, z_source=1.0)   # all statistics + GP sigma
+cov = emu.covariance(z_source=1.0, blocks=("Cl", "peak"))        # single-field covariance
+```
+
+Tutorial + held-out validation: `examples/wlemu_tutorial.ipynb`; design notes:
+`docs/wl_emulator.md`; CLI: `bind-wlemu`.
+
 ---
 
 ## Repo layout
@@ -238,6 +256,7 @@ are cut directly from `main`. Distinct analyses live on topic branches
 ```bash
 bind-paint           # paint a single snapshot
 bind-camels-suite    # batch-generate over a CAMELS suite (CV / 1P / SB35)
+bind-wlemu           # WL statistics emulator predictions
 bind-download-weights
 bind-slim-checkpoint
 ```

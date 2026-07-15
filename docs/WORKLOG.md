@@ -6,6 +6,37 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-15 — feature/wl-emu: community WL statistics emulator (`bind.wlemu`)
+
+The paper's community-tool section: `bind.wlemu.WLEmulator` maps the 30 SB35
+astro params (unit cube or physical dict) + source z ∈ {0.5,1,1.5,2,2.44} to
+all κ summary statistics of a 5×5 deg 1024² field (Cl/pdf/peak/min/V0–V2/
+scattering/moments = 383 dims) with GP σ and a single-field covariance.
+Trained on `ceph/wlemu_cache_1024/stats_cache.npz` (253 Sobol pts × 50
+noise-paired realizations × 5 z; raytraced BIND-baryonified TNG-DMO
+lightcones, built in the `kappa_emu` sibling project). Design = the winner of
+kappa_emu's 9-design shootout (per-z PCA-32 + batched exact ARD-Matérn-5/2
+GPs; beats the field-level FM map generator 5–100×/statistic); the port
+reproduces the historical fixed-split table *exactly* and the numpy predictor
+matches gpytorch to 7e-11. **Inference is numpy-only** from the committed
+artifact `src/bind/assets/wlemu_gp.npz` (3.3 MB); refits via
+`python -m bind.wlemu.fit` (gpytorch, `bind[wlemu-fit]`). Validation =
+13-fold CV over all 253 pts (`examples/data/wlemu_validation.npz`, committed):
+frac err 0.09–2% (peaks 5%, minima 7% — empty-tail dominated), median
+|err|/SEM 0.09–0.7 (typ. ≈0.2); GP σ approximately calibrated (68%→54–69%);
+known systematic: last Cl bins (ℓ≳10⁴) ~+2 SEM, covered by GP σ. Toy
+2-param inference (ASN2 × BH rad. eff., Cl+peaks, Hartlap + GP-var budget):
+11/12 held-out points inside the 68% contour. Tutorial
+`examples/wlemu_tutorial.ipynb` (executed; generator
+`examples/_build_wlemu_tutorial.py`), docs `docs/wl_emulator.md`, CLI
+`bind-wlemu`, sample maps `examples/data/kappa_sample.npz`. Gotchas learned:
+realizations are noise-paired across runs so SEM-based dilution/reliability
+math misleads (truth cross-stat corrs only mildly diluted); the naive
+max-bin/σ sensitivity ranking is contaminated by zero-variance bins;
+peak-count information in a 50-realization covariance is eaten by the
+Hartlap factor. Pre-existing ruff violations on the integration branch
+(16, none in wlemu) left untouched.
+
 ## 2026-07-06 — Paper restricted to the trained regime (≥1e13); hand-edits folded back into the notebook builder
 
 Decision: the paper drops the low-mass (<1e13) halos entirely — all analysis now

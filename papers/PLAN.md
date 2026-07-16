@@ -80,6 +80,29 @@ papers/<id>/
    shared numbers agree; series numbering/titles consistent; every paper cites
    its siblings as "in prep."), write `papers/README.md` index.
 
+## Phase 7 — figure overhaul (workflow 2, after the text pipeline)
+
+The harvested notebook figures are PLACEHOLDERS. A second workflow regenerates
+every figure to publication standard, governed by `_tools/FIGURE_STYLE.md`
+(binding) and `_tools/paper_style.py` (scienceplots, no titles, concise
+frameless legends, semantic suite-wide colors, vector PDF at column width):
+
+1. **Data-map** (per paper): for each figure in main.tex, locate the cached
+   arrays that back it (`examples/figures_lightcone/*.npz`,
+   `examples/*_figs/*.npz`, notebook-adjacent caches, known ceph paths named
+   in dossiers/engine docstrings — read-only, no engine re-runs). Output
+   `fig_scripts/DATA_MAP.md` (+ which figures have no cache → placeholders).
+2. **Regenerate**: one standalone script per figure
+   (`fig_scripts/figNN_<slug>.py`, run with the BIND venv python), swap
+   `main.tex` to the PDF, reconcile captions with the new styling.
+3. **Verify** (adversarial, per paper): open every PNG preview — style-gate
+   checklist in FIGURE_STYLE.md — AND confirm the regenerated content matches
+   the placeholder it replaced (same data, same conclusions).
+4. **Fix + recompile.**
+
+Overleaf packaging: each `papers/<id>/` is self-contained (main.tex +
+references.bib + figs/); final step zips each to `papers/<id>.zip`.
+
 ## Hard rules for every agent
 
 - **Never invent a number, result, or reference.** If the dossier lacks it,

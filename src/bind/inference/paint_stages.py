@@ -211,6 +211,13 @@ def project_and_extract(
     if comm is not None and size > 1:
         from mpi4py import MPI
 
+        if not my_files:
+            # Ranks with no chunks never wrote their calloc'd buffers; UCX CMA
+            # (process_vm_readv) aborts on such unfaulted pages during Reduce.
+            local_slabs.fill(0.0)
+            if local_slabs_s is not None:
+                local_slabs_s.fill(0.0)
+
         global_slabs = np.zeros_like(local_slabs) if rank == 0 else None
         global_slabs_s = (np.zeros_like(local_slabs_s)
                           if (mas_correct and rank == 0) else None)

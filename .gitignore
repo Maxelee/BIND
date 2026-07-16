@@ -80,3 +80,7 @@ weights/
 # ---------------------------------------------------------------------------
 .DS_Store
 docs/_build/
+
+# SBI TensorBoard logs + generated DMO accretion-history catalog
+sbi-logs/
+tng300_dm_mass_history.hdf5

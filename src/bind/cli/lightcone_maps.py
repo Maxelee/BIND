@@ -7,7 +7,10 @@ a common grid (see :mod:`bind.inference.lightcone_maps`).  Writes, into
 * ``kappa_maps.npz`` — ``kappa`` ``(n_real, n_source_bins, npix, npix)`` for the
   BIND total-matter field; ``kappa_dmo`` (same shape) when ``--with_dmo`` so the
   same-pipeline suppression ratio cancels the projection MAS artifact.
-* ``y_maps.npz``     — ``y`` ``(n_real, npix, npix)`` Compton-y (tSZ).
+* ``y_maps.npz``     — ``y`` ``(n_real, n_source_bins, npix, npix)`` Compton-y (tSZ).
+* ``tau_maps.npz``   — ``tau`` ``(n_real, n_source_bins, npix, npix)`` kSZ optical
+  depth from the gas electron column; FRB ``DM = tau / TAU_PER_DM`` (pc/cm^3), the
+  same map in FRB units.  Pixel-aligned with kappa/y for cross-correlation.
 
 ``--n_real`` realizations differ by the random per-snapshot transverse shift
 (the fiducial run typically uses more realizations than the Sobol runs).
@@ -51,7 +54,13 @@ def parse_args() -> argparse.Namespace:
                    help="Also assemble the same-pipeline DMO kappa (for the "
                         "artifact-cancelling suppression ratio).")
     p.add_argument("--no_y", action="store_true", help="Skip the tSZ y-map.")
+    p.add_argument("--no_tau", action="store_true",
+                   help="Skip the kSZ-tau / FRB-DM electron-column map.")
     p.add_argument("--seed0", type=int, default=0, help="First realization seed.")
+    p.add_argument("--mass_key", default="composite",
+                   help="Slab array summed for the total-matter map. The spherical-BCM "
+                        "trees carry three keys: 'composite' (radial-warp BCM), "
+                        "'composite_mono' (circular monopole), 'composite_bind' (BIND).")
     return p.parse_args()
 
 
@@ -61,16 +70,19 @@ def main() -> None:
     common = dict(snapshots=args.snapshots, source_redshifts=tuple(args.source_redshifts),
                   fov_deg=args.fov_deg, npix=args.npix, Omega_m=args.omega_m,
                   r200_factor=args.r200_factor, manifest_root=args.manifest_root,
-                  verbose=False)
+                  mass_key=args.mass_key, verbose=False)
 
-    kappa, ymaps, kappa_dmo = [], [], []
+    kappa, ymaps, taumaps, kappa_dmo = [], [], [], []
     for r in range(args.n_real):
         seed = args.seed0 + r
         res = assemble_lightcone(args.snap_root, field="bind",
-                                 want_y=not args.no_y, seed=seed, **common)
+                                 want_y=not args.no_y, want_tau=not args.no_tau,
+                                 seed=seed, **common)
         kappa.append(res["kappa"])
         if not args.no_y:
             ymaps.append(res["y"])
+        if not args.no_tau:
+            taumaps.append(res["tau"])
         if args.with_dmo:
             rd = assemble_lightcone(args.snap_root, field="dmo",
                                     want_y=False, seed=seed, **common)
@@ -86,10 +98,20 @@ def main() -> None:
     print(f"[maps] wrote kappa_maps.npz  kappa{kappa.shape}")
 
     if not args.no_y:
-        y = np.asarray(ymaps, dtype=np.float32)            # (n_real, npix, npix)
+        y = np.asarray(ymaps, dtype=np.float32)            # (n_real, n_src, npix, npix)
         np.savez_compressed(args.output_dir / "y_maps.npz", y=y,
+                            source_redshifts=np.asarray(args.source_redshifts),
                             fov_deg=args.fov_deg, npix=args.npix, n_real=args.n_real)
         print(f"[maps] wrote y_maps.npz  y{y.shape}")
+
+    if not args.no_tau:
+        from bind.inference.lightcone_maps import TAU_PER_DM
+        tau = np.asarray(taumaps, dtype=np.float32)        # (n_real, n_src, npix, npix)
+        np.savez_compressed(args.output_dir / "tau_maps.npz", tau=tau,
+                            tau_per_dm=TAU_PER_DM,
+                            source_redshifts=np.asarray(args.source_redshifts),
+                            fov_deg=args.fov_deg, npix=args.npix, n_real=args.n_real)
+        print(f"[maps] wrote tau_maps.npz  tau{tau.shape}  (DM[pc/cm^3]=tau/{TAU_PER_DM:.3e})")
 
 
 if __name__ == "__main__":

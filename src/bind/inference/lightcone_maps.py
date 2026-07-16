@@ -13,6 +13,13 @@ raytracing); lux remains available for high-fidelity kappa validation.
 - **y** (tSZ Compton-y): additive along the LOS — ``y(theta) = sum_planes
   y_plane(theta)`` from the composited ``compton_y`` channel.  No lensing kernel.
   ⚠ z>0 thermo a-factors are taken as the model emits them (see CLAUDE.md caveat).
+- **tau** (kSZ optical depth / FRB DM): additive along the LOS from the composited
+  **gas** mass channel as an electron column, ``tau = sigma_T x_e Sigma_gas/m_p``,
+  with the per-plane physical-area factor (scale factor a_l).  ``DM[pc/cm^3] =
+  tau / TAU_PER_DM``.  No lensing kernel.  Pixel-aligned with kappa/y, so kappa x
+  tau and y x tau cross-spectra are immediate.  For additive LOS probes (y, tau)
+  Born projection along the unperturbed ray is exact to first order; ray deflection
+  (the lux path) only matters for kappa.
 
 Each plane is periodically tiled to fill the field of view (``fov_deg``) at its
 comoving distance and resampled (periodic bilinear) onto ``npix^2``.  A random
@@ -30,6 +37,24 @@ import numpy as np
 from bind.data import N_THERMO
 from .lensplane import comoving_distance_from_a, mass_map_to_delta_scaled, C_KMS
 from .pipeline import paste_halos_2d, circular_taper_weight, square_taper_weight
+
+# Electron-column (kSZ tau / FRB DM) physical constants -------------------------
+SIGMA_T = 6.6524e-25            # Thomson cross-section [cm^2]
+M_P = 1.6726e-24               # proton mass [g]
+MSUN_G = 1.989e33              # solar mass [g]
+MPC_CM = 3.0857e24             # Mpc -> cm
+PC_CM = 3.0857e18              # pc -> cm
+X_E_PER_MASS = 0.88 / M_P      # free electrons per gram (X=0.76, Y_He=0.24, ionized)
+HUBBLE_H = 0.6774              # h (manifests carry no hubble; matches tau_profiles/morphology)
+TAU_PER_DM = SIGMA_T * PC_CM   # tau = TAU_PER_DM * DM[pc/cm^3];  DM = tau / TAU_PER_DM
+
+
+def _tau_per_gas_pixel(box_size: float, n_grid: int, a_l: float) -> float:
+    """Gas mass [Msun/h] per plane pixel -> kSZ optical depth tau (intensive surface
+    density).  Physical pixel area = (comoving pixel * a / h)^2; mass /h to Msun.
+    Independent of the angular output pixel size (tau is a sky surface quantity)."""
+    pix_phys_cm = (box_size / n_grid) / HUBBLE_H * a_l * MPC_CM       # physical pixel side
+    return SIGMA_T * X_E_PER_MASS * MSUN_G / HUBBLE_H / pix_phys_cm ** 2
 
 
 # ── plane geometry ────────────────────────────────────────────────────────────
@@ -92,11 +117,13 @@ def assemble_lightcone(
     snapshots,
     *,
     field: str = "bind",
+    mass_key: str = "composite",
     source_redshifts=(1.0,),
     fov_deg: float = 5.0,
     npix: int = 1024,
     Omega_m: float = 0.3089,
     want_y: bool = True,
+    want_tau: bool = True,
     r200_factor: float = 4.0,
     taper_frac: float = 0.15,
     seed: int = 0,
@@ -120,8 +147,10 @@ def assemble_lightcone(
         Defaults to ``snap_root``.
 
     Returns dict: ``kappa`` (n_src, npix, npix), ``y`` (n_src, npix, npix) or None
-    (tomographic: cumulative Compton-y to each source plane),
-    ``source_redshifts``, ``fov_deg``, ``npix``, ``n_planes``, ``field``, ``seed``.
+    (tomographic: cumulative Compton-y to each source plane), ``tau`` (n_src, npix,
+    npix) or None (cumulative kSZ optical depth / FRB electron column; only for
+    ``field="bind"``), ``source_redshifts``, ``fov_deg``, ``npix``, ``n_planes``,
+    ``field``, ``seed``.
     """
     snap_root = Path(snap_root)
     man_root = Path(manifest_root) if manifest_root is not None else snap_root
@@ -133,6 +162,7 @@ def assemble_lightcone(
 
     kappa = np.zeros((len(zs), npix, npix), dtype=np.float64)
     ymap = np.zeros((len(zs), npix, npix), dtype=np.float64) if want_y else None
+    taumap = np.zeros((len(zs), npix, npix), dtype=np.float64) if want_tau else None
     n_planes = 0
 
     for s in snapshots:
@@ -159,7 +189,7 @@ def assemble_lightcone(
             L_ang = fov * chi_l            # comoving FOV size at this plane [Mpc/h]
             d = np.load(f2)
 
-            mass = (d["composite"].sum(0) if field == "bind"
+            mass = (d[mass_key].sum(0) if field == "bind"
                     else d["dmo"]).astype(np.float64)
             delta = mass_map_to_delta_scaled(mass, box_size=box,
                                              slab_depth=slab_depth, Omega_m=Om)
@@ -183,12 +213,22 @@ def assemble_lightcone(
                     for j in range(len(zs)):
                         if chi_l < chi_s[j]:
                             ymap[j] += yplane
+
+            if want_tau and field == "bind":
+                # kSZ optical depth / FRB DM: electron column of the composited gas
+                # channel, additive along the LOS with the per-plane a_l area factor.
+                gas = d["composite"][1].astype(np.float64)
+                tau_slab = _tau_per_gas_pixel(box, gas.shape[0], a_l) * gas
+                tplane = _periodic_bilinear(tau_slab, box, L_ang, npix, *shift)
+                for j in range(len(zs)):
+                    if chi_l < chi_s[j]:
+                        taumap[j] += tplane
             n_planes += 1
         if verbose:
             print(f"[lightcone] snap {s} (z={1/a_l-1:.2f}) done; planes so far {n_planes}")
 
     return {
-        "kappa": kappa, "y": ymap,
+        "kappa": kappa, "y": ymap, "tau": taumap,
         "source_redshifts": zs, "fov_deg": fov_deg, "npix": npix,
         "n_planes": n_planes, "field": field, "seed": seed,
     }

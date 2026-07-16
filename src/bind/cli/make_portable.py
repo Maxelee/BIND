@@ -62,7 +62,10 @@ _README = """# BIND portable generation bundle — `{design}` ({n_runs} runs)
 Self-contained inputs for generating BIND halos on a GPU machine.
 
 ## On the GPU machine
-1. Install BIND once:  `git clone <BIND repo> && cd BIND && pip install -e .`
+1. Install BIND once (the **`lightcone`** branch — it has the redshift-conditioned
+   model the generation needs):
+   `git clone https://github.com/Maxelee/BIND.git && cd BIND && git checkout lightcone && pip install -e .`
+   (push it first from Flatiron if needed: `git push origin lightcone`)
 2. Generate all {n_runs} runs (each ~4 GPU-hr, 20 snapshots):
    ```
    cd {bundle_name}

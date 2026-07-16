@@ -41,5 +41,14 @@ __all__ = [
     "vary_param",
     "vary_params",
     "param_dataframe",
+    "Emulator",
     "__version__",
 ]
+
+
+def __getattr__(name: str):
+    # Lazy: the emulator pulls in scikit-learn / zuko / kymatio, so only import on use.
+    if name == "Emulator":
+        from bind.emulator import Emulator
+        return Emulator
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

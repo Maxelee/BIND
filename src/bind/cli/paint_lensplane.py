@@ -50,8 +50,12 @@ from bind.inference.lensplane import (
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--generate_dir", type=Path, required=True,
-                   help="Directory containing composite_slab*.npz from stage 2")
+    p.add_argument("--generate_dir", type=Path, default=None,
+                   help="Directory containing composite_slab*.npz from stage 2 "
+                        "(not needed with --dmo)")
+    p.add_argument("--dmo", action="store_true",
+                   help="Build DMO-only lensplanes from the stage-1 DMO maps "
+                        "(no baryons) — for the ray-traced baryonic-suppression baseline.")
     p.add_argument("--stage1_dir", type=Path, required=True,
                    help="Stage-1 intermediate directory (for the manifest + box metadata)")
     p.add_argument("--output_dir", type=Path, required=True,
@@ -97,8 +101,17 @@ def _total_mass_map(composite_npz: Path) -> np.ndarray:
     return composite.sum(axis=0).astype(np.float64)  # (N, N)
 
 
+def _dmo_mass_map(stage1_dir: Path, si: int) -> np.ndarray:
+    """DMO (no-baryon) total-matter map for slab ``si`` from stage 1."""
+    d = np.load(stage1_dir / f"stage1_slab{si:02d}.npz")
+    key = "dmo_aa" if "dmo_aa" in d.files else "dmo"
+    return d[key].astype(np.float64)
+
+
 def main() -> None:
     args = parse_args()
+    if not args.dmo and args.generate_dir is None:
+        raise SystemExit("--generate_dir is required (unless --dmo)")
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     # ── Load manifest for this snapshot ───────────────────────────────────────
@@ -125,12 +138,14 @@ def main() -> None:
 
     for si in range(n_slabs):
         plane_idx = plane_offset + si
-        composite_path = args.generate_dir / f"composite_slab{si:02d}.npz"
-        if not composite_path.exists():
-            print(f"[lensplane] WARNING: {composite_path} not found — skipping slab {si}")
-            continue
-
-        mass_map = _total_mass_map(composite_path)   # (N, N) Msun/h
+        if args.dmo:
+            mass_map = _dmo_mass_map(args.stage1_dir, si)        # DMO-only lightcone
+        else:
+            composite_path = args.generate_dir / f"composite_slab{si:02d}.npz"
+            if not composite_path.exists():
+                print(f"[lensplane] WARNING: {composite_path} not found — skipping slab {si}")
+                continue
+            mass_map = _total_mass_map(composite_path)   # (N, N) Msun/h
 
         # Center-crop to lp_grid × lp_grid so lux sees a power-of-2 FFT grid.
         # box_size scales proportionally to keep pixel_size exact.

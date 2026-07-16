@@ -77,3 +77,31 @@ def load_y_realizations(
     zs = np.array([PLANE_TO_ZS.get(p, np.nan) for p in planes])
     out = [[read_lux_map(rd / f"y{p}.dat") for p in planes] for rd in runs]
     return np.asarray(out), zs
+
+
+def load_tau_realizations(
+    rt_root: str | Path,
+    *,
+    planes=(26, 45, 59, 70, 78),
+    n_real: int | None = None,
+    run_glob: str = "run*",
+) -> tuple[np.ndarray, np.ndarray]:
+    """Load lux kSZ/FRB electron-column ``tau`` realizations into ``(n_real,
+    n_planes, N, N)``.
+
+    ``tau{plane}.dat`` (written by lux with ``compute_tau = true``) is the
+    cumulative electron column integrated to that plane's source distance, the
+    ray-traced counterpart of the Born ``tau`` from
+    :func:`bind.inference.lightcone_maps.assemble_lightcone`.  Only runs that have
+    *all* requested ``tau`` planes are included.  Returns ``(tau, source_redshifts)``.
+    """
+    rt_root = Path(rt_root)
+    runs = sorted(d for d in rt_root.glob(run_glob) if d.is_dir())
+    runs = [rd for rd in runs if all((rd / f"tau{p}.dat").exists() for p in planes)]
+    if n_real is not None:
+        runs = runs[:n_real]
+    if not runs:
+        raise FileNotFoundError(f"no runs with complete tau planes under {rt_root}")
+    zs = np.array([PLANE_TO_ZS.get(p, np.nan) for p in planes])
+    out = [[read_lux_map(rd / f"tau{p}.dat") for p in planes] for rd in runs]
+    return np.asarray(out), zs

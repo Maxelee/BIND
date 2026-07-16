@@ -26,6 +26,9 @@ from pathlib import Path
 
 import numpy as np
 
+# ``np.trapz`` was removed in NumPy 2.0 in favour of ``np.trapezoid``; support both.
+_trapezoid = getattr(np, "trapezoid", None) or np.trapz
+
 # ── Physical constants (matching lux source) ──────────────────────────────────
 C_KMS = 299792.458          # speed of light [km/s]
 # Critical density today in lux units: [10^10 Msun/h / (Mpc/h)^3]
@@ -214,6 +217,19 @@ def write_yplane(y_map: np.ndarray, path: str | Path) -> None:
         fp.write(struct.pack("<i", N))
 
 
+def write_tauplane(tau_map: np.ndarray, path: str | Path) -> None:
+    """Write a kSZ/FRB electron-column ``tau`` plane in lux's single-field format.
+
+    Binary layout is identical to :func:`write_yplane` (``int32 N | float64
+    tau[N, N] | int32 N``); the modified lux build reads these as
+    ``tauplane{PP:02d}.dat`` and integrates them along the (deflected) rays with
+    the same per-snapshot randomization as the lens potentials and y-planes, so
+    the resulting tau map is pixel-consistent with the ray-traced kappa and y
+    maps (for the kappa x tau and y x tau cross-spectra).
+    """
+    write_yplane(tau_map, path)
+
+
 def read_lensplane(path: str | Path) -> np.ndarray:
     """Read a lux lensplane file back into a ``(N, N, 5)`` array."""
     with open(path, "rb") as fp:
@@ -251,7 +267,7 @@ def comoving_distance_from_a(
         a_int = np.linspace(a_end, 1.0, n_steps + 1)
         E_a = np.sqrt(Omega_m * a_int ** (-3) + Omega_L)
         integrand = (C_KMS / 100.0) / (a_int ** 2 * E_a)
-        chi_arr[idx] = np.trapz(integrand, a_int)
+        chi_arr[idx] = _trapezoid(integrand, a_int)
 
     return float(chi_arr[0]) if scalar else chi_arr
 

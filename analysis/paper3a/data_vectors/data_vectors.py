@@ -22,12 +22,16 @@ re-derived result.
 
 Units caveat: the source ``.npz``/``.fits`` files carry no embedded unit
 metadata. Bin axes (arcmin, multipole, log10 mass) are labeled from the
-originating figure's axis; *signal* units (e.g. kSZ ΔT amplitude) are
-reported as given in the archive with ``value_units="unverified — see
-source paper figure/table caption"`` wherever WP1 did not independently
-confirm the normalization convention against the paper text. Do not feed a
-vector with an unverified value_units into a likelihood without closing
-that flag first.
+originating figure's axis. Session-2 audit (2026-07-16) closed the signal
+units and h-conventions against the actual paper PDFs: all CAP kSZ vectors
+are muK arcmin^2 on the ACT DR6 hILC dr6.01 map (0.5' pixels, effective
+Gaussian beam FWHM 1.6'), tau conversion tau_CAP = T_kSZ/T_CMB * c/v_rms;
+Pandey's compton_shear is a dimensionless xi^{gamma_t y}; the Hadzhiyska
+2026 Part II "ratio" is a hybrid data/model f~gas(theta) — see each
+loader's ``value_units``/``notes``. Remaining flags are stated per-loader
+(e.g. the Fig. 9 harmonic-space units, per-bin sigma_true values). Do not
+feed a vector whose value_units still says "unverified" into a likelihood
+without closing that flag first.
 """
 
 from __future__ import annotations
@@ -271,14 +275,17 @@ def load_ksz_hadzhiyska2024(
         bin_type="theta_arcmin",
         bin_units="arcmin",
         values=d["prof"],
-        value_units="unverified — see paper Fig. 1 caption for CAP kSZ ΔT normalization",
+        value_units="muK arcmin^2 (CAP T_kSZ; confirmed against arXiv:2407.07152 figure axes + estimator section, audit 2026-07-16)",
         covariance=d["cov"],
         mass_definition="stellar-mass-proxy LRG host halo (no explicit M500/M200 calibration in this paper)",
         aperture="Compensated Aperture Photometry (CAP) filter",
         redshift_range=_HADZ2024_ZBIN_RANGES[key],
         sample="DESI imaging (photometric) LRGs x ACT DR6",
-        h_convention="unspecified",
+        h_convention="n/a for the angular vector; halo-mass bin-edge h-convention still unaudited",
         notes=(
+            "Map/beam convention (audit 2026-07-16): ACT DR6 hILC dr6.01, 0.5' pixels, "
+            "effective Gaussian beam FWHM 1.6', ~15 muK-arcmin white noise; "
+            "tau_CAP = T_kSZ/T_CMB * c/v_rms per the paper's own conversion. "
             "13-sigma combined detection; this file is one of 4 photo-z bins. "
             "Filename variant selects DR9/DR10 x extended/main x corrected/raw pipeline; "
             "default is WP1's best read of the paper's fiducial choice, not independently verified."
@@ -311,7 +318,7 @@ def load_ksz_hadzhiyska2024_mass_bins(
             bin_type="theta_arcmin",
             bin_units="arcmin",
             values=d["prof"] if "prof" in d else d[keys[1]],
-            value_units="unverified — see paper Fig. 4 caption",
+            value_units="muK arcmin^2 (CAP T_kSZ; same map/estimator conventions as the pzbin loader, audit 2026-07-16)",
             covariance=d["cov"] if "cov" in d else None,
             mass_definition="log10(M_halo/Msun) in (%.2f, %.2f), stellar-mass-proxy assignment" % (lo, hi),
             aperture="CAP filter",
@@ -365,14 +372,17 @@ def load_ksz_ried_guachalla2025(binned_by: str = "mass") -> dict:
             bin_type="R_arcmin",
             bin_units="arcmin",
             values=d[vkey],
-            value_units="unverified — see paper Fig. 11/12 caption",
+            value_units="muK arcmin^2 (CAP T_kSZ; confirmed against arXiv:2503.19870 Fig. 8/11/12 captions, audit 2026-07-16)",
             covariance=None,
             errors=d[ekey],
-            mass_definition="stellar-mass quartile (mass binning) — no explicit M500/M200 in this file",
-            aperture="CAP filter",
+            mass_definition=(
+                "stellar-mass quartile, log10(M*/Msun) edges [10.5, 11.2, 11.4, 11.6, ...] "
+                "(paper Sec. on sample splits; h-free Msun) — no explicit M500/M200 in this file"
+            ),
+            aperture="CAP filter (ACT DR6 hILC dr6.01 map, 0.5' pixels, beam FWHM 1.6'; audit 2026-07-16)",
             redshift_range=None if binned_by == "mass" else None,  # not encoded in this npz; see paper Table
             sample=f"DESI Y1 spectroscopic LRGs x ACT DR6, {binned_by} bin {i}/4",
-            h_convention="unspecified",
+            h_convention="h-free (stellar masses in Msun)",
             notes=(
                 "Independent (diagonal) errors only; a shared 9x9 correlation matrix "
                 "(fig18_cor.npz) exists in this release but its applicability to this "
@@ -422,13 +432,19 @@ def load_ksz_qu2026_lrg_fiducial() -> DataVector:
         bin_type="R_arcmin",
         bin_units="arcmin",
         values=d12["T_ksz"],
-        value_units="unverified — see paper Fig. 12 caption for CAP kSZ ΔT normalization",
+        value_units=(
+            "muK arcmin^2 (confirmed: arXiv:2604.19744 Fig. 12 caption 'mean stacked kSZ "
+            "signal in muK arcmin2', audit 2026-07-16). Estimator (their Eq. 30): "
+            "velocity-weighted uniform-mean, normalized so E[T_hat] = T_CMB*(sigma_true/c)*tau_CAP "
+            "with the r ~= 0.65 reconstruction-fidelity correction already applied; "
+            "sigma_true per bin from AbacusSummit (values not yet extracted — A5 to-do)"
+        ),
         covariance=cov,
         mass_definition="full DESI DR2 LRG sample; see load_ksz_qu2026_lrg_by_mass for per-bin M200c ticks",
-        aperture="CAP filter",
+        aperture="CAP filter (ACT DR6 hILC dr6.01 map, 0.5' pixels, Gaussian beam FWHM 1.6'; audit 2026-07-16)",
         redshift_range=(0.4, 1.1),
         sample="DESI DR2 spectroscopic LRGs x ACT DR6 (all z, all mass; 18-sigma combined)",
-        h_convention="unspecified",
+        h_convention="h-free (M200c ticks and stellar masses in Msun; paper uses Msun throughout)",
         notes=(
             "Values pulled from fig12_cap_vs_simulations.npz (T_ksz on the same R grid as "
             "fig07's covariance); WP1 did not independently re-derive that the two files "
@@ -465,17 +481,17 @@ def load_ksz_qu2026_lrg_by_mass() -> dict:
             bin_type="R_arcmin",
             bin_units="arcmin",
             values=d[f"m{i}_T"],
-            value_units="unverified — see paper Fig. 15 caption",
+            value_units="muK arcmin^2 (same estimator/normalization as the fiducial vector; audit 2026-07-16)",
             covariance=d[f"m{i}_cov"],
             mass_definition=(
                 f"log10(M*/Msun) in ({mstar_edges[i-1]:.2f}, {mstar_edges[i]:.2f}); "
                 f"approx log10(M200c/Msun) tick = {m200c_ticks[i-1]:.2f} "
                 "(abundance-matching estimate from fig02, not a per-galaxy mass)"
             ),
-            aperture="CAP filter",
+            aperture="CAP filter (ACT DR6 hILC dr6.01, beam FWHM 1.6')",
             redshift_range=(0.4, 1.1),
             sample=f"DESI DR2 LRGs x ACT DR6, stellar-mass quartile {i}/4",
-            h_convention="unspecified",
+            h_convention="h-free (M200c tick in Msun, SHMR + c-M relation at z=0.7 per Fig. 2 caption)",
             notes="log10(M200c) tick = %.2f -> %s the M>=1e13 floor (R2)."
             % (m200c_ticks[i - 1], "clears" if m200c_ticks[i - 1] >= 13.0 else "BELOW"),
             provenance=_provenance(_QU_SUBDIR, "fig15_mass_dependence.npz"),
@@ -519,7 +535,13 @@ def load_ksz_hadzhiyska2026_bgs_elg(
             bin_type="theta_arcmin",
             bin_units="arcmin",
             values=d["ratio"],
-            value_units="unverified — 'ratio' quantity, see paper Fig. 8 caption",
+            value_units=(
+                "dimensionless f~gas(theta) = T_kSZ^CAP / kappa^CAP, normalized so "
+                "gas-traces-matter -> 1 (audit 2026-07-16, Fig. 8 caption + Sec. 'Gas fractions'). "
+                "CAUTION: hybrid data/model quantity — the kappa^CAP denominator is a "
+                "*prediction* from best-fit HOD-emulator parameters, not a measurement; "
+                "r_fid = 0.64 (BGS) / 0.55 (ELG)"
+            ),
             covariance=d["cov_ksz"],
             mass_definition=f"log10(M_stellar/Msun) >= {log10_mstar:.2f} (BGS/ELG selection)",
             aperture="CAP filter",
@@ -634,8 +656,14 @@ def load_egas_erass1(catalog: str = "primary") -> GasFractionCatalog:
         f_gas500_err=f_gas_err,
         redshift=z,
         mass_definition=(
-            "M500c, eROSITA-internal X-ray scaling-relation mass (Bulbul et al. 2024) "
-            "— NOT Siegel et al.'s GGL-recalibrated mass"
+            "M500c in h-free Msun at the eROSITA best-fit cosmology (Ghirardini et al. 2024), "
+            "from the count-rate--mass scaling relation whose calibration IS weak-lensing based "
+            "(Grandis et al.; audit 2026-07-16) — so 'X-ray scaling mass vs Siegel GGL mass' is a "
+            "calibration-vintage difference, not an X-ray-vs-lensing dichotomy. CAVEAT (catalog "
+            "paper Sec. on mass inference): median/mean point-estimate masses are biased HIGH for "
+            "M500 <~ 1e14 Msun and biased LOW for M500 >~ 7e14 Msun (selection/Eddington-type); "
+            "per-cluster mass PDFs ship in the catalog and should be used for any f_gas(M) "
+            "likelihood in the group regime"
             if catalog == "primary"
             else "no M500 column in this DR1 vintage of the cosmology subsample"
         ),
@@ -705,9 +733,12 @@ def load_kappa_y_pandey2025(component: str = "compton_shear") -> DataVector:
 
     sub_cov = full_cov[lo:hi, lo:hi]
     value_units = {
-        "compton_shear": "unverified — gamma_t x y cross-correlation amplitude, see paper Sec. 2/Fig. captions",
-        "xip": "unverified — DES Y3 cosmic shear xi_+, dimensionless",
-        "xim": "unverified — DES Y3 cosmic shear xi_-, dimensionless",
+        "compton_shear": (
+            "dimensionless xi^{gamma_t y}(theta) cross-correlation (paper figures plot "
+            "values x 1e-9; audit 2026-07-16). Paper's quoted masses are in Msun/h."
+        ),
+        "xip": "DES Y3 cosmic shear xi_+, dimensionless (audit 2026-07-16)",
+        "xim": "DES Y3 cosmic shear xi_-, dimensionless (audit 2026-07-16)",
     }[component]
 
     return DataVector(
@@ -724,7 +755,7 @@ def load_kappa_y_pandey2025(component: str = "compton_shear") -> DataVector:
         redshift_range=None,  # see nz_source/nz_lens extensions in the same FITS file
         sample="DES Y3 metacal shear x ACT DR6+Planck Compton-y, 4x4 tomographic bins" if component != "compton_shear"
         else "DES Y3 metacal shear (source) x ACT DR6+Planck Compton-y (lens proxy)",
-        h_convention="unspecified",
+        h_convention="Msun/h for halo masses quoted in the paper (abstract + Sec. 1, audit 2026-07-16); the angular data vector itself is h-free",
         notes=(
             f"BIN1/BIN2/ANGBIN columns identify the tomographic sub-vector each point belongs "
             f"to (not exposed as separate arrays here — read the raw FITS table for the full "

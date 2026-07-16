@@ -67,7 +67,7 @@ print(f"gas composite: {gas_map.shape}, coverage {100 * (alpha > 0.01).mean():.1
 
 geom = PatchGeometry(pixel_mpch=PIX_MPCH, z=Z_SNAP, cosmology=FlatLCDM())
 dv = load_ksz_qu2026_lrg_fiducial()
-cfg = KSZOperatorConfig(radii_arcmin=dv.bins, beam_fwhm_arcmin=2.1, z_eff=Z_SNAP,
+cfg = KSZOperatorConfig(radii_arcmin=dv.bins, beam_fwhm_arcmin=1.6, z_eff=Z_SNAP,
                         v_rms_over_c=1.06e-3)
 print(f"min cutout extent needed: {minimum_cutout_extent_hmpc(cfg, geom):.1f} Mpc/h "
       f"(core patch is 6.25); arcmin/px = {geom.arcmin_per_pixel():.4f}")

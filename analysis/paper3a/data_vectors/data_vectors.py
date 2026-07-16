@@ -446,11 +446,11 @@ def load_ksz_qu2026_lrg_fiducial() -> DataVector:
         sample="DESI DR2 spectroscopic LRGs x ACT DR6 (all z, all mass; 18-sigma combined)",
         h_convention="h-free (M200c ticks and stellar masses in Msun; paper uses Msun throughout)",
         notes=(
-            "Values pulled from fig12_cap_vs_simulations.npz (T_ksz on the same R grid as "
-            "fig07's covariance); WP1 did not independently re-derive that the two files "
-            "share an identical bin ordering beyond matching array length — cross-check "
-            "R_arcmin against fig12's own T_ksz_err vs sqrt(diag(cov)) before A5 use "
-            "(both are present in fig12 as an independent cross-check)."
+            "Values pulled from fig12_cap_vs_simulations.npz. Bin-ordering cross-check "
+            "CLOSED 2026-07-16: fig12.T_ksz_err == sqrt(diag(fig07.covariance)) to machine "
+            "precision, fig12.covariance == fig07.covariance exactly, and both share the "
+            "same R_arcmin grid. fig12 also carries the paper's simulation curves "
+            "(DM, Illustris z0.5/z0.8, TNG z0.8) — useful for the A3 overlay sanity check."
         ),
         provenance=_provenance(_QU_SUBDIR, "fig07_correlation_matrix.npz"),
     )

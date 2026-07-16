@@ -66,8 +66,10 @@ class KSZOperatorConfig:
     radii_arcmin : CAP disk radii — take these from the A1 loader's `bins`
         (e.g. ``load_ksz_qu2026_lrg_fiducial().bins``), never retype them.
     beam_fwhm_arcmin : effective Gaussian beam of the stacked CMB map.
-        ACT DR6 f090 ~ 2.1', f150 ~ 1.3' — nominal values, flagged UNVERIFIED
-        in the A1 freeze until the per-paper audit closes; 0 disables.
+        All four frozen kSZ vectors stack the ACT DR6 hILC dr6.01 map,
+        which is smoothed to an effective Gaussian beam of FWHM 1.6'
+        (confirmed against each paper, A1 freeze doc section 6a,
+        audit 2026-07-16); 0 disables.
     z_eff : redshift the painted patch is placed at (per-bin effective
         redshift of the galaxy sample).
     v_rms_over_c : RMS reconstructed radial velocity over c, for the

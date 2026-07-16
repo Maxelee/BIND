@@ -20,6 +20,8 @@ arcmin or h^-1 Mpc.
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 import numpy as np
 
 
@@ -44,19 +46,29 @@ def _downsample_mean(fine: np.ndarray, supersample: int) -> np.ndarray:
     return fine.reshape(ny, s, nx, s).mean(axis=(1, 3))
 
 
+@lru_cache(maxsize=512)
 def disk_weight_map(
     shape: tuple[int, int],
     center: tuple[float, float],
     radius_pix: float,
     supersample: int = 8,
 ) -> np.ndarray:
-    """Anti-aliased top-hat disk: per-pixel covered-area fraction in [0, 1]."""
+    """Anti-aliased top-hat disk: per-pixel covered-area fraction in [0, 1].
+
+    Cached (all-scalar/tuple args): stacking pipelines evaluate the same
+    aperture geometry for hundreds of same-size cutouts, and the
+    supersampled construction dominates the aperture cost otherwise. The
+    returned array is marked read-only — copy before mutating.
+    """
     if radius_pix <= 0:
         raise ValueError(f"radius_pix must be > 0, got {radius_pix}")
     r = _radius_grid(shape, center, supersample)
-    return _downsample_mean((r <= radius_pix).astype(np.float64), supersample)
+    w = _downsample_mean((r <= radius_pix).astype(np.float64), supersample)
+    w.setflags(write=False)
+    return w
 
 
+@lru_cache(maxsize=512)
 def cap_weight_map(
     shape: tuple[int, int],
     center: tuple[float, float],
@@ -83,7 +95,9 @@ def cap_weight_map(
     fine = np.zeros(r.shape, dtype=np.float64)
     fine[disk] = 1.0
     fine[annulus] = -disk.sum() / n_ann
-    return _downsample_mean(fine, supersample)
+    w = _downsample_mean(fine, supersample)
+    w.setflags(write=False)  # cached (see disk_weight_map) — copy before mutating
+    return w
 
 
 def require_fits_in_patch(shape: tuple[int, int], center: tuple[float, float], outer_radius_pix: float) -> None:

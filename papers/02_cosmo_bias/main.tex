@@ -332,15 +332,18 @@ stable under this refresh. % src: WORKLOG:843-846
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig01_transfer_ensemble.png}
+\includegraphics[width=\textwidth]{figs/fig01_transfer_ensemble.pdf}
 \caption{The full ensemble of measured weak-lensing suppression curves
 $S_i(\ell,\zs)=C_\ell^{\kappa\kappa}(\theta_{\rm astro}^i)/C_\ell^{\kappa\kappa,{\rm DMO}}$
-for 99 SB35 Sobol realizations at five source planes, colored by each run's
-group gas fraction $\fgas$; the black solid/dashed lines mark the ensemble
-median and 95\% envelope. The ensemble brackets both suppression and
-enhancement relative to the paired DMO trace, and the spread narrows toward
-higher $\zs$ as the low-redshift baryonic signal is diluted by feedback-free
-structure along the line of sight. The $\zs=0.5$ panel's $y$-axis is fixed
+for 99 SB35 Sobol realizations at five source planes (labeled $\zs$ in each
+panel), computed against a single fixed, paired DMO skeleton and colored by
+each run's group gas fraction $\fgas$; the near-black solid/dashed lines
+mark the ensemble median and 95\% envelope. The ensemble brackets both
+suppression and enhancement relative to the paired DMO trace, and the
+spread narrows toward higher $\zs$ as the low-redshift baryonic signal is
+diluted by feedback-free structure along the line of sight. The $x$-axis is
+capped at $\ell_{\rm max,trust}=1.5\times10^4$, above which CIC aliasing
+dominates the run-to-run scatter. The $\zs=0.5$ panel's $y$-axis is fixed
 at $[0.78,1.18]$ for readability across all five panels, which visibly clips
 the highest-enhancement curves and the top of the 95\% envelope near
 $\ell\sim10^4$; the $\approx0.80$--$1.24$ range quoted in the text is the
@@ -351,13 +354,13 @@ directly visible within this panel's plotted range.}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig02_transfer_tomography.png}
+\includegraphics[width=\textwidth]{figs/fig02_transfer_tomography.pdf}
 \caption{Left: median $\Sell$ (16--84\% band) at each of five source planes,
 showing the clean redshift dilution of the suppression signal. Right:
 run-to-run scatter $\sigma[\Sell]$ driven by the feedback-parameter sweep,
 growing with $\ell$ and largest at the lowest source redshift, where the
 line of sight is most dominated by low-$z$, strongly-baryon-affected
-structure.}
+structure (colors as in the left panel).}
 \label{fig:transfer_tomography}
 \end{figure}
 
@@ -393,11 +396,13 @@ significance, as the robust headline of this section.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig03_bias_scatter.png}
+\includegraphics[width=\textwidth]{figs/fig03_bias_scatter.pdf}
 \caption{Left: the $(\Delta\Omega_{\rm m},\Delta S_8)$ bias induced by
 ignoring baryons in an LSST-Y10 Fisher analysis at $\ell_{\rm max}=3000$
-(99 runs), colored by group $\fgas$, compared to the $1\sigma$ LSST-Y10
-uncertainty cross. The bias traces a tight, nearly one-dimensional locus.
+(99 runs), colored by group $\fgas$, compared to the $1\sigma\,S_8$
+LSST-Y10 uncertainty reference bar (vertical only; the corresponding
+$\sigma_{\Omega_{\rm m}}$ intermediate is not part of the cached Fisher
+output). The bias traces a tight, nearly one-dimensional locus.
 Right: the distribution of $\Delta S_8/\sigma_{S_8}$ across the ensemble at
 three $\ell_{\rm max}$ cuts, showing the significance of the unmodeled bias
 growing with the amount of small-scale information included.}
@@ -470,7 +475,7 @@ inflection point of the ladder. % src: verified cosmo_bias_capstone.npz
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig04_template_ladder.png}
+\includegraphics[width=\textwidth]{figs/fig04_template_ladder.pdf}
 \caption{The N-template ladder (headline result). Left: residual
 $|\Delta S_8|/\sigma_{S_8}$ (LSST-Y10) after marginalizing $N$ baryon
 templates, median and 95th-percentile across 216 runs, at three
@@ -554,7 +559,7 @@ the accessible feedback directions rather than expanding their number.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig05_beyond2pt_manifold.png}
+\includegraphics[width=\textwidth]{figs/fig05_beyond2pt_manifold.pdf}
 \caption{Left: cumulative feedback-manifold variance versus number of
 baryon-template modes for ten weak-lensing and tSZ summary statistics
 (237 runs). All statistics with per-realization feedback signal-to-noise
@@ -590,7 +595,7 @@ importance -- agree on this ranking.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig06_bias_sensitivity.png}
+\includegraphics[width=\textwidth]{figs/fig06_bias_sensitivity.pdf}
 \caption{Left: ranked total-order ($S_{T_i}$) and first-order ($S_i$) Sobol
 sensitivity indices of $\Delta S_8$ over the twelve most important of the 30
 astrophysical parameters (99 runs, $\ell_{\rm max}=3000$). IMFslope and
@@ -643,6 +648,11 @@ full tomography. % src: WORKLOG:779-800
 
 \begin{figure}[t]
 \centering
+\todo{regenerate: no cached final-product array -- \texttt{lightcone\_selfcal.py}
+computes the joint $(S_8,\Omega_{\rm m},A_{\rm bary})$ Fisher forecast fresh
+at plot time via \texttt{pyccl} and never calls \texttt{np.savez}; re-running
+the Fisher/pyccl calculation is out of scope for this figure-integration pass
+(see \texttt{fig\_scripts/UNREGENERATED.md})}
 \includegraphics[width=\textwidth]{figs/fig07_selfcal.png}
 \caption{The corrected tomographic self-calibration result. Left: the
 per-plane baryonic bias $\Delta S_8(\zs)$, normalized to its value at the
@@ -659,7 +669,7 @@ with two or more well-separated bins.}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.85\textwidth]{figs/fig10_bias_tomography_superseded.png}
+\includegraphics[width=\textwidth]{figs/fig10_bias_tomography_superseded.pdf}
 \caption{The original, pre-correction Step-4 self-calibration analysis,
 retained here only as a methodological cautionary figure. Collapsing each
 of the five source planes to a single amplitude (left, middle) produces a
@@ -709,6 +719,14 @@ the wrong part of suppression space.
 
 \begin{figure}[t]
 \centering
+\todo{regenerate: no cached final-product array -- the BCM/van~Daalen/BCemu
+analytic-model spans in \texttt{lightcone\_model\_comparison.py} are computed
+fresh at plot time via \texttt{pyccl} (\texttt{BaryonsSchneider15},
+\texttt{BaryonsvanDaalen19}) and the external \texttt{BCemu} package, with no
+\texttt{np.savez} call; only the BIND envelope half is cached
+(\texttt{transfer\_Sell.npz}), which is insufficient to reproduce the
+three-way comparison; re-running the analytic engines is out of scope for
+this figure-integration pass (see \texttt{fig\_scripts/UNREGENERATED.md})}
 \includegraphics[width=\textwidth]{figs/fig08_model_comparison.png}
 \caption{BIND's median suppression and 95\% envelope (black/grey) compared
 to the achievable span of three analytic baryon-correction models -- BCM
@@ -995,7 +1013,7 @@ quality flag. % src: examples/rescale_validation.py; docs/cosmo_rescaling_plan.m
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig09_rescale_validation.png}
+\includegraphics[width=\textwidth]{figs/fig09_rescale_validation.pdf}
 \caption{Real-data validation of Angulo-White rescaling: TNG300-3-Dark
 rescaled to three SB35 target cosmologies (rows: mild, low-$\Omega_{\rm m}$,
 extreme corner) versus \texttt{halofit}/Tinker08 theory at the target
@@ -1086,4 +1104,41 @@ the halo-catalogue concentration correction of
 % Skipped: none of the reported findings were skipped; all three verifiers'
 % high/medium findings were applied, and all low findings were judged
 % trivial enough to apply as well.
+% ============================================================
+
+% ============================================================
+% Figure verification log (2026-07-16, FIGURE FIX pass)
+% ============================================================
+% Scope: two adversarial figure verifiers reviewed all 10 figures (8
+% regenerated fig_scripts/*.py + 2 kept placeholders fig07/fig08). Verifier 1
+% found one MEDIUM finding; verifier 2 (independent pass, data-provenance +
+% caption cross-check) found none.
+% Applied (MEDIUM):
+%  - FIGURE_STYLE.md rule 7 violation: several fig_scripts manually shrank
+%    fonts below the paper_style.py rcParams defaults (font.size=8,
+%    legend.fontsize=7, tick labels=7) instead of resizing the figure.
+%    Worst offender was fig05_beyond2pt_manifold.py's 10x10 subspace-
+%    alignment matrix (panel b): legend fontsize=5.2, tick-label
+%    fontsize=5.5, in-cell value annotations fontsize=4.3. Fixed by
+%    re-laying out fig05 as a taller, stacked (not side-by-side) figure
+%    (TWO_COL width x 8.4in) so panel (b) gets close to the full page width;
+%    all fontsize= overrides removed, everything now renders at the style's
+%    default sizes. (This also required moving panel (b)'s "(b)" tag from
+%    the standard panel_label() corner to just above the axes, since every
+%    corner cell of the matrix holds real data -- e.g. the diagonal (0,0)
+%    cell is 1.00 -- and the default corner placement collided with it.)
+%  - Same rule 7 violation, smaller instances: fig04_template_ladder.py's
+%    in-axes "solid/dashed" legend note (fontsize=6), fig06_bias_sensitivity
+%    .py's 12-parameter y-tick labels (fontsize=6), and
+%    fig09_rescale_validation.py's per-panel (s, z_*) annotation
+%    (fontsize=5.5) and top-left legend (fontsize=6). All four fontsize=
+%    overrides removed; at default sizes every panel remains legible with
+%    no clipping or overlap at native print resolution (re-checked via
+%    cropped zooms of figs_preview/*.png, ~193-200 dpi at TWO_COL/\textwidth
+%    scale, matching the verifier's own methodology).
+% Data/content: unchanged. No cached array, curve, point, or matrix value was
+% altered by this pass -- only matplotlib layout/font parameters. Figures
+% fig01, fig02, fig03, fig10 (not flagged) and the fig07/fig08 kept
+% placeholders were not touched. Recompiled clean (pdflatex x2 + bibtex +
+% pdflatex): no undefined references/citations, no LaTeX errors.
 % ============================================================

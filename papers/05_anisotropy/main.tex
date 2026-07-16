@@ -206,7 +206,7 @@ Figure~\ref{fig:decomposition} (\S\ref{sec:headline}).\ % src: full-notebook
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig01_maps.png}
+\includegraphics[width=\textwidth]{figs/fig01_maps.pdf}
 \caption{Convergence maps built from the \emph{same} halos and the same
 lightcone realization at $\zs=1$: DMO-only, the crude pure-spherical
 \texttt{mono} control (panel label ``spherical BCM''), the full \bind{}
@@ -263,7 +263,7 @@ the faithful control is listed as an open item in \S\ref{sec:discussion}.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig03_crossauto.png}
+\includegraphics[width=\textwidth]{figs/fig03_crossauto.pdf}
 \caption{The exact cross/auto decomposition of $\Delta P=P_{\rm
 bind}-P_{\rm sph}$ (left: raw contributions; right: fraction of
 $\Delta P$), showing that the cross (first-order) term dominates and has
@@ -361,7 +361,7 @@ $\ftri$ is largest.\ % src: WORKLOG:1154-1155 ("the warp barely beats mono
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig02_decomposition.png}
+\includegraphics[width=\textwidth]{figs/fig02_decomposition.pdf}
 \caption{The corrected, faithful three-way comparison at the fiducial
 feedback point ($\zs=1$). \emph{Left:} suppression $S(\ell)=C_\ell/C_\ell^{\rm
 dmo}$ for the full \bind{} field, the faithful radial-BCM-warp control,
@@ -452,11 +452,14 @@ feedback-only probe of the two.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.95\textwidth]{figs/fig04_ejection_profiles.png}
+\includegraphics[width=\textwidth]{figs/fig04_ejection_profiles.pdf}
 \caption{Radial profiles of the aligned quadrupole fraction $q_2=|c_2|/c_0$
 (or $/c_0^{\rm dmo}$ for $\kappa$) for the WL convergence residual
 (left) and the tSZ pressure (right), for group- and cluster-mass bins, comparing
-the fiducial \bind{} lightcone (solid) to TNG truth (dashed). The WL
+the fiducial \bind{} lightcone (solid) to TNG truth (dashed). Color encodes
+mass bin (group/cluster); only linestyle distinguishes \bind{} from TNG
+truth in this figure -- unlike Figures~\ref{fig:maps}-\ref{fig:decomposition},
+color here is not the bind/truth semantic. The WL
 residual is mildly anisotropic ($3$--$5\%$) and roughly flat with
 radius, while the tSZ pressure quadrupole grows strongly in the
 outskirts ($\sim\!35$--$43\%$ at $r\sim2.9\,r_{200c}$); the shaded band
@@ -651,4 +654,82 @@ Institute, a division of the Simons Foundation. \todo{finalize}
 %   (avoids overselling a corrected feedback-dependence result that does
 %   not yet exist); verifier itself said no action required if space is
 %   the binding constraint.
+% ============================================================
+%
+% ============================================================
+% FIGURE VERIFICATION LOG -- 2026-07-16 (FIGURE FIX pass, applied
+% against an adversarial figure-verifier report; see task transcript
+% for full JSON). All fixes below are re-renders of the SAME cached
+% data (fid/{bind,sph,mono,dmo}/kappa_maps.npz,
+% bind_science/ejection/{fid,truth}_snap096.npz) already used by the
+% figures they touch -- no new data, no engine/MPI/Slurm re-run.
+% Numeric diagnostics reprinted by fig01/fig02's scripts after the fix
+% (rms dmo=2.34e-02 mono=2.32e-02 bind=2.29e-02, residual=16.0% of bind
+% rms) are unchanged from before the fix, confirming styling-only edits.
+%
+% APPLIED:
+% - [HIGH] Fig. 2 (fig:decomposition, the Letter's headline figure),
+%   panel (c): legend at loc="upper left" collided with panel_label's
+%   default "upper left" corner tag, the bold "(c)" sitting on top of the
+%   f_aniso legend swatch. Moved panel_label to loc="lower left" (the one
+%   corner none of f_aniso/f_tri/f_mono populate); legend kept at "upper
+%   left". Re-rendered (fig_scripts/fig02_decomposition.py) and
+%   re-verified via PIL crop: no overlap.
+% - [HIGH] Fig. 2, panel (b): legend at loc="lower right" put "total
+%   baryon"/"pure-sph error" text directly under/through the rising
+%   triaxiality curve. No in-axes corner was empty enough for a 4-entry
+%   legend (checked all four corners), so moved the legend outside the
+%   axes, centered below the panel (bbox_to_anchor=(0.5,-0.28), 2-column).
+%   Re-rendered and re-verified via PIL crop: no curve crosses the
+%   legend.
+% - [MEDIUM] Fig. 1 (fig:maps), panels (b)-(d): only panel (a) carried
+%   an axis-label with units ($\theta_x$/$\theta_y$ [deg]); panels
+%   (b)-(d) showed bare numeric ticks, short of FIGURE_STYLE.md rule 5
+%   ("axis labels always, with units ... on every panel"). Added
+%   "$\theta_x$ [deg]" to all four panels in
+%   fig_scripts/fig01_maps.py; kept "$\theta_y$ [deg]" on panel (a) only
+%   since it is the only panel with y-tick labels shown (panels (b)-(d)
+%   share the row's y-extent). Re-rendered; rms diagnostics unchanged.
+% - [LOW] Fig. 4 (fig:ejection) draws TNG truth dashed in the SAME color
+%   as the corresponding BIND solid curve (color=mass bin), departing
+%   from the suite convention hydro truth=black used elsewhere. Recoloring
+%   truth to black would destroy the mass-bin encoding for the truth
+%   curves (both bins become indistinguishable black dashed lines) --
+%   the CACHED DATA and its two-way (mass-bin x model) encoding is
+%   otherwise faithful and unchanged, so per the truthfulness rule this
+%   is resolved as a caption clarification rather than a color change:
+%   added "Color encodes mass bin ... only linestyle distinguishes BIND
+%   from TNG truth in this figure -- unlike Figures 1-3, color here is
+%   not the bind/truth semantic" to the Fig. 4 caption. No script/plot
+%   change.
+% - [LOW, documentation-only] fig_scripts/DATA_MAP.md's fig02 provenance
+%   claimed examples/bcm_warp_comparison.py and
+%   examples/figures_lightcone/bcm_warp_comparison_fid.png were "present
+%   on main". Re-checked directly: `git show main:examples/bcm_warp_comparison.py`
+%   and `git show main:examples/figures_lightcone/bcm_warp_comparison_fid.png`
+%   both fail against branch main (script lives on analysis/wl-anisotropy;
+%   the PNG is an untracked/gitignored working-tree artifact). Corrected
+%   DATA_MAP.md's provenance text; no figure, script, or caption content
+%   changed (the figure's data/formulas were independently re-verified
+%   against analysis/wl-anisotropy's actual compare() and match exactly).
+%
+% SKIPPED (no change, reasoned):
+% - [LOW] Fig. 1 panels (a)-(c) use one colorbar per panel rather than a
+%   single shared row colorbar (FIGURE_STYLE.md rule 8). Already a
+%   documented, deliberate trade-off (fig_scripts/notes_fig01_maps.md):
+%   a shared fig.colorbar(im, ax=[...]) produced label/tick collisions
+%   under GridSpec. Left as the documented exception; not trivial to fix
+%   without re-litigating the layout.
+% - [LOW] figs 02/03/04 repurpose COLORS['highlight']/['secondary'] for
+%   non-bind/truth curves (control/cross/triaxiality/mass-bin), a
+%   documented per-figure deviation from FIGURE_STYLE.md's cross-paper
+%   color contract. No caption in this paper names a specific color, so
+%   there is no in-paper mismatch; a suite-wide recolor pass (if wanted)
+%   is out of scope for a single-paper figure fix.
+%
+% Compiled clean after all fixes: pdflatex + bibtex + pdflatex x2, 10
+% pages, no undefined references/citations, no missing-figure errors.
+% One pre-existing Overfull \hbox (lines 161-206, a long \todo{} box in
+% S2.2, predating this pass and unrelated to any figure touched here)
+% remains and was not introduced by this pass.
 % ============================================================

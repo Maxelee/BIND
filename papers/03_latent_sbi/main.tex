@@ -473,7 +473,7 @@ tension.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig01_latent_axes_zones.png}
+\includegraphics[width=\textwidth]{figs/fig01_latent_axes_zones.pdf}
 \caption{The 2-D latent space of the WL suppression $\sez$, from the
 $\beta$-TC-VAE decomposition on the $N=216$ Sobol subsample. (a) Linear
 scree confirms two components capture $99\%$ of the variance. (b) The
@@ -500,12 +500,22 @@ kSZ's much cleaner separation of the same two zones in
 \textbf{Takeaway:} the WL feedback response is governed by two physical
 directions — a wind/SN sector and a BH/AGN sector — not by 30 independent
 knobs.}
+% NOTE (figure-integration pass): the regenerated script reproduces every
+% number in this caption (98.7\%, r_in=+0.59, r_out=+0.71, the loadings
+% above) exactly via a plain linear SVD/PCA on the current $N=253$-valid
+% \texttt{emulator\_dataset.npz} cache -- not a $\beta$-TC-VAE, and not an
+% $N=216$ subsample. \todo{Reconcile this caption's method/sample-size
+% attribution ($\beta$-TC-VAE, $N=216$) with the regenerated figure script,
+% which reproduces the identical numbers via linear PCA on $N=253$; either
+% the caption's method label is stale or the notebook cell it was
+% transcribed from differs from \texttt{wl\_latent\_sbi.ipynb} cell 8 as it
+% exists today.}
 \label{fig:latent-axes}
 \end{figure}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.8\textwidth]{figs/fig02_latent_physical.png}
+\includegraphics[width=\textwidth]{figs/fig02_latent_physical.pdf}
 \caption{Physical correlates of the two latent coordinates, measured on
 the $N=253$ final Sobol sweep (\texttt{paper\_lightcone\_figs2.ipynb}
 \S6.1). Each panel shows the same latent plane colored by a different
@@ -548,7 +558,7 @@ aligned with the two axes as expected (Figure~\ref{fig:latent-plane}). %
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.85\textwidth]{figs/fig02b_latent_plane.png}
+\includegraphics[width=\textwidth]{figs/fig02b_latent_plane.pdf}
 \caption{The independent $N=253$ repeat of the latent-plane construction
 (\texttt{paper\_lightcone\_figs2.ipynb} \S5.1). Left: linear scree showing
 $\mathrm{PC1}\approx89\%$, $\mathrm{PC2}\approx11\%$ (independently rounded
@@ -587,7 +597,7 @@ corresponding kSZ latent. % src: WORKLOG 2026-06-29; figure
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.9\textwidth]{figs/fig03_wl_ksz_geometry.png}
+\includegraphics[width=\textwidth]{figs/fig03_wl_ksz_geometry.pdf}
 \caption{Canonical-correlation geometry between the WL suppression latent
 (left) and the kSZ $\tau$/$y$ latent (right), both colored by the same
 inner-halo gas fraction. The two planes have canonical correlations
@@ -619,10 +629,10 @@ Minkowski statistics seeing a different (more mixed) combination.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.75\textwidth]{figs/fig04_multistat_align.png}
+\includegraphics[width=3.5in]{figs/fig04_multistat_align.pdf}
 \caption{Alignment of each WL summary statistic's own top-2 PCA latent to
 the $\kappa$-$C_\ell$ 2-D latent, for eight statistics. Latent 1 (blue) is
-nearly universal ($\geq0.93$); latent 2 (orange) ranges from $0.20$
+nearly universal ($\geq0.93$); latent 2 (red) ranges from $0.20$
 (Minkowski $V_0$) to $0.90$ ($C_\ell^{\kappa y}$). % src:
 % f2d\_multistat\_align.png, bar values
 \textbf{Takeaway:} every WL statistic sees the same leading feedback
@@ -657,7 +667,7 @@ the high-$\nu$ tail of the peak function. % src: WORKLOG 2026-06-29 §1;
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig05_spearman_response.png}
+\includegraphics[width=\textwidth]{figs/fig05_spearman_response.pdf}
 \caption{Model-free per-bin Spearman correlation of seven field statistics
 against all 30 SB35 astrophysical parameters, computed directly on the
 $n=253$ measured Sobol runs at $\zs=1$ (deliberately emulator-free). % src:
@@ -715,7 +725,7 @@ adopted) are left near-prior. % src: WORKLOG 2026-06-29 §3; figure
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.85\textwidth]{figs/fig06_npe_corner.png}
+\includegraphics[width=\textwidth]{figs/fig06_npe_corner.pdf}
 \caption{Neural posterior $P(\theta \mid C_\ell^{\rm fiducial})$ for the
 six parameters the source notebook selects as best-constrained, from NPE
 against the emulator-as-simulator
@@ -752,6 +762,9 @@ individual parameters. % src: WORKLOG 2026-06-29 §3; figure
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.9\textwidth]{figs/fig07_latent_posterior.png}
+\todo{regenerate fig07 — needs one CPU-only forward pass of the cached GP
+emulator checkpoint to build the chi2 grid / latent-projected posterior
+cache; not yet run (see \texttt{fig\_scripts/UNREGENERATED.md})}
 \caption{(a) $\chi^2$ over the 2-D suppression latent plane with the
 maximum-a-posteriori (MAP) point marked; the Sobol node cloud (grey) is
 overplotted. (b) The full 30-dimensional NPE posterior
@@ -818,35 +831,33 @@ histogram that is approximately uniform (Figure~\ref{fig:sbc}b,c). % src:
 % figure f3e\_crosschecks.png panel (c), title "mean 68\% coverage = 0.70,"
 % red dashed reference line $\approx0.68$
 An independent explicit-likelihood \texttt{emcee} cross-check was also run
-for this posterior (\S\ref{sec:methods-sbi}; WORKLOG 2026-06-29 §3), but we
-note that Figure~\ref{fig:sbc}a, despite its in-panel title, does not
-actually plot the promised \texttt{emcee} overlay (see the figure caption's
-caveat); we therefore do not cite that panel as visual evidence of NPE/emcee
-agreement, only the SBC coverage result above, which is not affected by
-this issue.
+for this posterior (\S\ref{sec:methods-sbi}; WORKLOG 2026-06-29 §3), and
+Figure~\ref{fig:sbc}a now visually substantiates it: the dashed
+\texttt{emcee} marginals overlay the solid NPE marginals for all three
+plotted parameters, in general agreement. (An earlier rendering of this
+panel had silently dropped the dashed overlay — traced during figure
+regeneration to a matplotlib quirk where \texttt{ax.hist(...,
+histtype="step", ls="--")} renders solid unless the unabbreviated
+\texttt{linestyle="--"} kwarg is used — and is now fixed.)
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig08_sbc_crosschecks.png}
+\includegraphics[width=\textwidth]{figs/fig08_sbc_crosschecks.pdf}
 \caption{Cross-checks on the NPE posterior. (a) NPE posterior marginals
-(unit-prior units) for three representative parameters; the in-panel title
-anticipates an overlaid explicit-likelihood \texttt{emcee} comparison
-(``NPE solid vs.\ emcee dashed''), but as extracted from the source notebook
-the panel contains only the three solid NPE curves — no dashed \texttt{emcee}
-curves are actually rendered. We flag this discrepancy rather than silently
-correct or omit it; \todo{re-generate this panel with the emcee marginals
-actually overlaid, or confirm none were computed for these three
-parameters.} (b) Simulation-based calibration rank
+(unit-prior units, solid) for three representative parameters, with the
+independent explicit-likelihood \texttt{emcee} marginals (dashed) overlaid.
+(b) Simulation-based calibration rank
 histogram, approximately uniform if the posterior is well calibrated. (c)
 Per-parameter empirical $68\%$ coverage across all 30 parameters, mean
-$=0.70$ (red dashed line). % src: f3e\_crosschecks.png; panel (a) checked
-% directly against the rendered image, no dashed lines present despite the
-% title and legend implying an emcee overlay
+$=0.70$ (red dashed line). % src: f3e\_crosschecks.png; panel (a) regenerated
+% from the cached emcee\_cl.npz chain, restoring the dashed overlay that a
+% matplotlib step-histogram linestyle bug had suppressed in the original
+% notebook rendering
 \textbf{Takeaway:} panels (b)/(c) show the NPE posterior is reasonably well
 calibrated (mean coverage close to the nominal $0.68$), which is the basis
 for the broad-vs-tight contrast between the 30-parameter and 2-D-latent
-posteriors above; panel (a)'s emcee cross-check is described in
-\S\ref{sec:methods-sbi} but is not visually substantiated by this figure.}
+posteriors above; panel (a) now visually substantiates the NPE/emcee
+agreement referenced in \S\ref{sec:methods-sbi}.}
 \label{fig:sbc}
 \end{figure}
 
@@ -882,23 +893,24 @@ mind.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/fig09_progressive_stacking.png}
+\includegraphics[width=\textwidth]{figs/fig09_progressive_stacking.pdf}
 \caption{Left: mean NPE posterior/prior width as higher-order statistics
 are progressively stacked onto the $C_\ell$ likelihood
 ($C_\ell\to C_\ell+{\rm peaks}\to C_\ell+{\rm peaks}+\kappay$); values
 $>1$ indicate the posterior is \emph{wider} than the prior at the measured
 fiducial, i.e.\ the fit has degraded. Right: the same comparison,
-per-parameter, for the ten best-constrained parameters. Two of the
-$y$-axis tick labels in this panel are truncated to the identical string
-``WindEnergyReductio,'' which the SB35 parameter table shows corresponds to
-two (of three) distinct parameters —
-\emph{WindEnergyReductionFactor}, \emph{WindEnergyReductionMetallicity}, and
-\emph{WindEnergyReductionExponent} all truncate identically; we cannot
-determine from the extracted image alone which two of the three are shown,
-so we flag this as a labeling ambiguity in the source figure rather than
-guess. \todo{Re-generate this panel with untruncated parameter labels.} %
-% src: f3d\_progressive.png; src/bind/assets/SB35\_param\_minmax.csv lines
-% 19--21 (three \emph{WindEnergyReduction*} parameters)
+per-parameter, for the ten best-constrained parameters, in order:
+\emph{IMFslope}, \emph{WindEnergyIn1e51erg}, \emph{VariableWindVelFactor},
+\emph{BlackHoleRadiativeEfficiency}, \emph{WindFreeTravelDensFac},
+\emph{WindEnergyReductionFactor}, \emph{SNII\_MinMass\_Msun},
+\emph{WindEnergyReductionMetallicity}, \emph{VariableWindSpecMomentum}, and
+\emph{QuasarThresholdPower} — with untruncated labels, the two similarly
+named \emph{WindEnergyReduction*} parameters in this list are
+\emph{WindEnergyReductionFactor} (rank 6) and
+\emph{WindEnergyReductionMetallicity} (rank 8); the third,
+\emph{WindEnergyReductionExponent}, is not among the ten. % src:
+% f3d\_progressive.png; fig\_scripts/fig09\_progressive\_stacking.py, full
+% \texttt{param\_names} array + \texttt{argsort(shr["C\_l"])[:10]} selection
 \textbf{Takeaway:} this is a warning about emulator fidelity for
 higher-order/cross statistics, not evidence that those statistics lack
 feedback information (contrast with Figures~\ref{fig:spearman} and
@@ -1030,7 +1042,7 @@ maps overlaid (red); the old, low-redshift-only proxy epoch ($z=0.034$)
 carries only $3\%$ of the total kernel weight. Middle: correlation between
 the $z=0.034$-only readout and the full lightcone-kernel-weighted readout,
 separately for ``amplitude'' features ($r>0.95$, red) and
-``redistribution'' features ($r\approx0.47$, blue). Right: per-halo Born
+``redistribution'' features ($r\approx0.47$, green). Right: per-halo Born
 $\delta\kappa$ versus halo $\fgas(<r_{500c})$, $r=+0.62$. % src:
 % examples/figures\_lightcone/fig\_lightcone\_population.pdf
 \textbf{Takeaway:} the low-redshift snapshot used in earlier work is a
@@ -1128,7 +1140,7 @@ angular range used for each.}
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{figs/fig12_desact_sheary.pdf}
-\caption{$\bind{}$ shear$\times y$ predictions (red; $16$–$84\%$ Sobol
+\caption{$\bind{}$ shear$\times y$ predictions (blue; $16$–$84\%$ Sobol
 band, solid line with the physical $2.4'$ ACT beam, dotted without any
 beam) versus the real DES~Y3~$\times$~ACT measurement (black points), for
 two DES source-redshift bins. Grey shading marks the beam/resolution- and
@@ -1362,12 +1374,12 @@ above the mean relation. % src: WORKLOG 2026-06-22 "SHMR scatter (feedback
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.6\textwidth]{figs/fig13_shmr_scatter_budget.png}
+\includegraphics[width=3.5in]{figs/fig13_shmr_scatter_budget.pdf}
 \caption{SHMR scatter budget on the SB35 Sobol suite: variance of
 $\log_{10}M_\star$ at fixed halo mass from jointly varying all 30 feedback
-parameters (``feedback,'' orange) versus the halo-to-halo (non-feedback)
-residual (blue), with the twobound one-at-a-time marginal scatter overlaid
-as a dashed reference line. % src:
+parameters (``feedback,'' red) versus the halo-to-halo (non-feedback)
+residual (green), with the twobound one-at-a-time marginal scatter overlaid
+as a dashed reference (black) line. % src:
 % figs\_raw/shmr\_accretion\_scatter\_sb35/cell011\_out1.png
 \textbf{Takeaway:} joint 30-parameter feedback variation compounds well
 past the one-at-a-time envelope — single-knob sweeps under-estimate the
@@ -1487,4 +1499,56 @@ statement.}
 % the primary sources themselves were insufficient or mutually inconsistent,
 % the text now says so explicitly via \todo{} rather than fabricating a
 % resolution.
+% =====================================================================
+%
+% --- Figure-verification pass, 2026-07-16 ---
+% Applied fixes for verifier findings on regenerated figures (all fixes
+% re-run from cached data via fig_scripts/*.py; no new data, no engine
+% re-run; identical curves/points/bar heights/ranks to the pre-fix PDFs):
+% [applied, HIGH] fig01 (Fig.~\ref{fig:latent-axes}) panel (b) y-tick labels
+%   were hard-truncated with pn[i][:16], cutting several SB35 parameter
+%   names mid-word (e.g. VariableWindVelFactor -> VariableWindVelF).
+%   Replaced with a curated, word-boundary-safe abbreviation table
+%   (fig_scripts/param_labels.py, shared by fig01/fig06/fig08) instead of
+%   fixed-width slicing.
+% [applied, HIGH] fig06 (Fig.~\ref{fig:corner}) corner-plot axis labels used
+%   a two-stage abbreviate-then-slice[:14] that still cut names mid-word
+%   (e.g. WindFreeTravelDensFac -> WindFreeTravelDens dropped "Fac"; more
+%   severely VariableWindVelFactor -> VariableWindVe). Now uses the same
+%   param_labels.py table; all six axis labels are unambiguous.
+% [applied, HIGH] fig08 (Fig.~\ref{fig:sbc}) panel (a) legend used
+%   pn[i][:14], truncating 2 of 3 entries mid-word (WindEnergyIn1e51erg ->
+%   WindEnergyIn1e). Fixed via param_labels.py.
+% [applied, MEDIUM] fig08 panel (a): the default upper-left panel tag "(a)"
+%   sat directly on top of the legend's first entry. Moved the tag to the
+%   lower-left corner (clear of both the legend and the histogram curves),
+%   mirroring the same collision-avoidance already used in
+%   fig02b_latent_plane.py.
+% [applied, MEDIUM] fig09 (Fig.~\ref{fig:progressive}) panel (b): the
+%   lower-right legend sat on top of the bottom two parameter rows' bars
+%   (every row's $C_\ell$+peaks / $C_\ell$+peaks+$\kappa{\times}y$ bars
+%   extend to $\approx$1, so no in-axes corner is actually bar-free). Moved
+%   the color key above the axes (3-column, outside the plotted data).
+% [applied, MEDIUM] fig05 (Fig.~\ref{fig:spearman}): the plotted column
+%   order (shared by all 7 panels) was computed from the *unrestricted*
+%   $\ell$ axis, which disagrees with the paper's own $\ell$-restricted
+%   top-driver ranking quoted in the caption/body text (IMF slope 0.49,
+%   variable wind-velocity factor 0.48, ...). Recomputed the order from the
+%   same $100\le\ell\le20000$ band used everywhere else in the script/paper
+%   (fig_scripts/fig05_spearman_response.py:
+%   param\_importance\_ell\_restricted); the leftmost column is now
+%   IMFslope, matching the caption exactly.
+% [applied, LOW] fig11 (Fig.~\ref{fig:halo-population}) panel (a): default
+%   panel tag sat on the $z=0.034$ reference line. Nudged right, clear of
+%   the line and the legend.
+% [applied, LOW] fig12 (Fig.~\ref{fig:desact}): default upper-left panel
+%   tags sat on the steep "no beam" curve and the "DES bin N" label in both
+%   panels (every in-axes corner is occupied by curve/legend/label/robust-
+%   window text). Moved both tags just above the axes.
+% [not changed] Fig.~\ref{fig:latent-axes}'s caption method/sample-size
+%   mismatch ($\beta$-TC-VAE/$N{=}216$ claimed vs. linear-PCA/$N{=}253$
+%   actually plotted) remains an open, already-flagged gap (see the
+%   existing \todo{} immediately after this figure); resolving it requires
+%   sourcing or re-running the $\beta$-TC-VAE comparison, which is out of
+%   scope for a figure-only fix pass.
 % =====================================================================

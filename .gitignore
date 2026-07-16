@@ -89,3 +89,6 @@ tng300_dm_mass_history.hdf5
 !papers/**/figs/*.png
 !papers/**/figs/*.pdf
 !papers/*/main.pdf
+
+# Overleaf export bundles (regenerable via zip)
+papers/*.zip

@@ -243,12 +243,13 @@ halo centers; the $y$ map traces halo cores with the expected compact morphology
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig01_map_gallery.png}
+\includegraphics[width=\textwidth]{figs/fig01_map_gallery.pdf}
 \caption{Fiducial \bind{} lightcone maps over the full $5\times5\,{\rm deg}^2$ field of
 view. % src: src/bind/inference/stats.py fov_deg=5.0 default; demo_maps.png/fig_skymaps.pdf axes
-\textit{Left:} \bind{} convergence $\kappa$ at source redshift $\zs=1.0$.
-\textit{Middle:} the paired DMO-only convergence at identical geometry, used as the
-common-mode reference for all suppression ratios in this paper. \textit{Right:} the
+\textit{Left:} the paired DMO-only convergence at identical geometry, used as the
+common-mode reference for all suppression ratios in this paper. \textit{Middle:} \bind{}
+convergence $\kappa$ at source redshift $\zs=1.0$, sharing the color scale with the left
+panel. \textit{Right:} the
 \bind{} Compton-$y$ map from the same realization. The painted field is visually distinct
 from the DMO progenitor as an overall smoothing of the field-wide small-scale texture
 (most apparent in the diffuse, non-halo regions) rather than a localized change at
@@ -318,7 +319,7 @@ BIND and truth), and the $y$-profile stacked at WL peaks matches to $\sim5\%$. %
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig02_validation_field.png}
+\includegraphics[width=\textwidth]{figs/fig02_validation_field.pdf}
 \caption{Field-level fiducial closure: \bind{} (solid) vs.\ TNG300 hydrodynamical truth
 (dashed) for the convergence power spectrum $C_\ell^{\kappa\kappa}$, peak counts
 $N_{\rm peak}(\nu)$, minimum counts $N_{\rm min}(\nu)$, and the three Minkowski
@@ -349,7 +350,7 @@ comparison is dominated by small-number and outer-radius noise. % src: figs_raw/
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig03_validation_halo.png}
+\includegraphics[width=\textwidth]{figs/fig03_validation_halo.pdf}
 \caption{Halo-level thermodynamic closure at snapshot 96 ($z\approx0.03$).
 \textit{Left:} the $Y_{500c}$--$\Mhalo$ relation, \bind{} (solid) vs.\ TNG300 hydrodynamical
 truth (dashed), with $1\sigma$ intrinsic-scatter bands overlapping across
@@ -391,7 +392,7 @@ Section~\ref{subsec:caveats}.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig04_cross_spectra.png}
+\includegraphics[width=\textwidth]{figs/fig04_cross_spectra.pdf}
 \caption{Tomographic cross- and auto-power spectra at fiducial parameters.
 \textit{Left:} $\ell(\ell+1)|C_\ell^{\kappa y}|/2\pi$ for all five source-redshift bins,
 $\zs=0.5,1.0,1.5,2.0,2.44$. % src: fiducial_lightcone_stats.ipynb §6 "tSZ × WL cross-correlation (1a)"; cell013_out0.png legend
@@ -459,7 +460,7 @@ argument from Section~\ref{subsec:res2}.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig05_bridge_hero.png}
+\includegraphics[width=\textwidth]{figs/fig05_bridge_hero.pdf}
 \caption{The per-halo $\to$ per-peak bridge, 1P feedback suite. \textit{Left:} WL peak
 height excursion $\Delta\kappa/\kappa$ vs.\ the per-halo gas-mass excursion $\Delta\ln
 M_{\rm gas}$; grey points are individual peaks, blue points are per-run means. The
@@ -490,7 +491,7 @@ in Section~\ref{subsec:caveats}.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig06_bridge_fgas.png}
+\includegraphics[width=\textwidth]{figs/fig06_bridge_fgas.pdf}
 \caption{The group-scale, van-Daalen-style bridge. \textit{Left:} $\Sell$ suppression
 curves for the fiducial, lowest-$\fgas$, and highest-$\fgas$ 1P runs, showing the
 CIC-aliasing upturn at $\ell\gtrsim2\times10^4$ discussed in Section~\ref{subsec:caveats}.
@@ -525,7 +526,7 @@ conflate the two.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig07_bridge_response.png}
+\includegraphics[width=\textwidth]{figs/fig07_bridge_response.pdf}
 \caption{The bridge generalizes across the statistic set. \textit{Left:} absolute
 correlation of each field-level statistic with the group-scale $\Delta\fgas$ across the
 57-run 1P suite: $\Sell$ $0.92$, $\Rnu$ $0.92$, $N_{\rm min}$ $0.90$, $C_{\kappa y}$
@@ -537,7 +538,7 @@ $r=0.92$.}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig10_bridge_compton_y.pdf}
+\includegraphics[width=\textwidth]{figs/fig10_bridge_compton_y.pdf}
 \caption{The Compton-$Y$ bridge resolves the tightest single-quantity predictor of the
 field-level suppression. \textit{(a)} $\Sell(\ell\sim1500)$ vs.\ $\log_{10}Y_{500c}^{\rm
 group}$, $r=0.93$. % src: WORKLOG 2026-06-18 "anatomy of the f_gas→S(ℓ) bridge", item 3; fig_bridge_compton_y.pdf
@@ -559,7 +560,7 @@ rarer and more stochastic, contribute more scatter than signal. % src: WORKLOG 2
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig12_bridge_mass.pdf}
+\includegraphics[width=\textwidth]{figs/fig12_bridge_mass.pdf}
 \caption{The bridge fit separately in three $M_{200c}$ bins (group, intermediate,
 cluster). \textit{(a)} $\Sell(\ell\sim1500)$ vs.\ group $\fgas$ per mass bin.
 \textit{(b)} Pearson $r$ and best-fit slope $\alpha=\partial S/\partial\fgas$ vs.\ mass-bin
@@ -583,11 +584,11 @@ about \emph{which} feedback channel is acting, beyond the amount of gas removed.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig13_bridge_residual.pdf}
+\includegraphics[width=\textwidth]{figs/fig13_bridge_residual.pdf}
 \caption{When and why the single-predictor bridge breaks down. \textit{(a)} Partial
 correlation of each halo-level quantity with $\Sell$ (at fixed $\fgas$) vs.\ $\ell$:
-thermal quantities ($c_{\rm gas}$, $\log Y$, $\log K$) dominate below $\ell\sim1500$,
-structural quantities ($c_{\rm DM}$, $f_\star$) above. \textit{(b)} The two-variable
+thermal quantities ($\log Y$, $\log K$) dominate below $\ell\sim1500$,
+structural quantities ($c_{\rm DM}$, $c_{\rm gas}$, $f_\star$) above. \textit{(b)} The two-variable
 $\fgas+c_{\rm DM}$ bridge (green) restores the correlation with $\Sell$ relative to the
 $\fgas$-only bridge (black), especially at high $\ell$.
 \textit{(c)} The mean residual $S-{\rm bridge}(\fgas)$ by feedback family, showing AGN
@@ -617,7 +618,7 @@ Daalen relation, defined for suppression only, does not cover). % src: fig_bridg
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig08_vandaalen_analog.pdf}
+\includegraphics[width=\textwidth]{figs/fig08_vandaalen_analog.pdf}
 \caption{The TNG-CAMELS design samples only the saturated top of the global
 baryon-fraction--suppression relation. \textit{(a)} $\Delta P/P_{\rm DMO}$ vs.\ the
 renormalized baryon fraction $\tilde f_{\rm bar,500c}$, van Daalen et al.\ functional
@@ -646,7 +647,7 @@ feedback-response study in \citep[Paper~II]{bindII}.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig09_cl_envelope.pdf}
+\includegraphics[width=\textwidth]{figs/fig09_cl_envelope.pdf}
 \caption{The bridge is robust from the 1P corners to the full Sobol design.
 \textit{Left:} $\Sell$ envelopes for the fiducial run, the 1P design ($n=57$), and the
 Sobol design ($n=253$), % src: WORKLOG 2026-06-29 §6, "253 runs + fid"
@@ -814,7 +815,7 @@ required, which is a central question for \citep[Paper~II]{bindII}.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{figs/fig11_fgas_saturation.pdf}
+\includegraphics[width=3.5in]{figs/fig11_fgas_saturation.pdf}
 \caption{The corrected eROSITA gas-fraction tension. Sorted group-scale ($\Mhalo=1$--
 $2\times10^{13}\,\Msun/h$) $\fgas$ across the 1P feedback suite, against the X-ray-standard
 band ($0.06$--$0.10$) and the eROSITA-low value \citep[$0.026$;][]{Popesso2024}. The
@@ -952,4 +953,52 @@ Institute, a division of the Simons Foundation. \todo{finalize}
 %   fig13 family-count mismatch) is disclosed via \todo rather than silently resolved, since
 %   fixing it would require regenerating a figure from analysis code, which this FIX pass is
 %   not permitted to run.
+% ============================================================
+% Figure-verification log (FIGURE FIX pass, 2026-07-16, adversarial-verifier findings)
+% ============================================================
+% Applied (medium):
+% - fig03_validation_halo.py panel (a): panel_label "(a)" collided with the "BIND"/"TNG300
+%   hydro" legend at their shared default upper-left corner; moved the panel label to
+%   loc="lower right" (verified empty region: panel (a) is a monotonically increasing
+%   Y-M relation, so high-mass/low-Y is unpopulated). Re-rendered; figs/fig03_validation_halo.pdf.
+% - fig05_bridge_hero.py panel (a): same upper-left panel_label/legend collision (obscured the
+%   "per peak" swatch); moved panel_label to loc="lower right" (pixel-verified empty in the
+%   scatter cloud). Re-rendered; figs/fig05_bridge_hero.pdf.
+% - fig13_bridge_residual.py panel (c): same upper-left collision, this time with the
+%   "AGN (n=18)" legend line. Rather than relocate the panel label (a pixel check showed the
+%   "other"-family residual curve dips into the lower-right corner at high ell, so that corner
+%   is not actually clean), moved the legend itself to loc="lower left", which is empty because
+%   all three family residual curves sit flat near zero at low ell. Re-rendered;
+%   figs/fig13_bridge_residual.pdf.
+% - fig11_fgas_saturation.py: the axhline labeled "BIND fiducial (0.081)" was drawn in
+%   COLORS["truth"] (black) instead of COLORS["bind"] (blue), contradicting the suite-wide
+%   fixed color convention (and the figure's own legend text) established in fig02/fig03;
+%   changed to COLORS["bind"]. Re-rendered; figs/fig11_fgas_saturation.pdf.
+% - fig09_cl_envelope.py panel (b) inset: dropped the free-floating axin.text "Sobol at
+%   l=1037 (r=0.86)" heading sitting above the inset frame (functioned as a title, which the
+%   style guide forbids; the same l/r values are already stated in the fig:cl_envelope caption
+%   in main.tex, so no information is lost) and raised the inset's legend/tick/axis-label
+%   fontsizes from 4.3-6pt to 6.5pt, closer to the suite floor. Re-rendered; figs/fig09_cl_envelope.pdf.
+% - fig12_bridge_mass.py panel (b): the separate ax/axb legends (loc="lower left"/"lower right")
+%   sat directly on top of the lowest-mass-bin Pearson-r and slope-alpha markers, reading as
+%   spurious extra data points. Combined into a single two-entry legend, added y-axis headroom
+%   on both the primary and twin axes so the bottom of the panel is genuinely marker-free, and
+%   placed it at loc="lower center". Re-rendered; figs/fig12_bridge_mass.pdf.
+% - main.tex fig:bridge_residual caption (panel a): corrected an internal inconsistency --
+%   $c_{\rm gas}$ was listed under "thermal quantities" in the caption, contradicting both the
+%   figure's own legend/data (fig_scripts/fig13_bridge_residual.py's struct=[cdm,cgas,fstar]
+%   list, rendered in green as "structural"), the body text two sentences earlier
+%   (line~575, "structural quantities (DM and gas concentration...)"), and dossier.md. Moved
+%   $c_{\rm gas}$ to the structural list in the caption.
+% Applied (low):
+% - fig08_vandaalen_analog.py panel (b): the "enhancement"/"suppression" zero-line annotations
+%   were manually shrunk to fontsize=5.5, below the suite's 7-8pt floor; raised to fontsize=7
+%   and added a translucent white text background (bbox) since the larger glyphs now visibly
+%   cross the l=3000 suppression trend line at that font size. Re-rendered; figs/fig08_vandaalen_analog.pdf.
+% Skipped / not independently actionable:
+% - None; all findings from this verifier pass were applied. The pre-existing fig13
+%   family-count \todo (from the prior verification log above) is unrelated to this pass's
+%   findings and was left as-is.
+% Compile: pdflatex -> bibtex -> pdflatex -> pdflatex, clean (no undefined refs/citations),
+% main.pdf 20 pages.
 % ============================================================

@@ -1,0 +1,106 @@
+[
+ {
+  "file": "cell004_out0.png",
+  "cell": 4,
+  "heading": "\u00a71 \u00b7 DATA \u2014 the ray-traced field lightcone",
+  "source_head": [
+   "fig, ax = plt.subplots(1, 3, figsize=(9.8, 2.9), constrained_layout=True)",
+   "# (a) a fiducial ray-traced map (kappa or y)",
+   "km = np.load(LC / \"y_maps.npz\")                       # ray-traced tSZ y map",
+   "ymap = km[\"y\"][0, -1]                                  # realization 0, highest source z",
+   "fov = float(km[\"fov_deg\"])",
+   "im = ax[0].imshow(np.log10(np.clip(ymap, ymap[ymap>0].min(), None)), origin=\"lower\","
+  ]
+ },
+ {
+  "file": "cell006_out0.png",
+  "cell": 6,
+  "heading": "\u00a72 \u00b7 METHODS \u2014 from ray-traced map to a field statistic, and the DMO ratio",
+  "source_head": [
+   "ell = E[\"a__cl_kappa__ell\"]",
+   "ckk, _, _ = stat(\"cl_kappa\"); cky, ckye, _ = stat(\"cl_kappa_y\"); cyy, _, _ = stat(\"cl_yy\")",
+   "zi = len(ZS) - 1                                       # highest source z (most signal)",
+   "fid = lambda arr: np.nanmedian(arr, 0)                 # 'fiducial' ~ node median (DMO-paired ratio uses cl_dmo)",
+   "fig, ax = plt.subplots(1, 3, figsize=(9.8, 3.0), constrained_layout=True)",
+   "# (a) fiducial spectra"
+  ]
+ },
+ {
+  "file": "cell008_out0.png",
+  "cell": 8,
+  "heading": "\u00a73 \u00b7 The field feedback response \u2014 the continuous fan",
+  "source_head": [
+   "S, _, _ = stat(\"suppression\"); ellS = E[\"a__suppression__ell\"]; cky, _, _ = stat(\"cl_kappa_y\")",
+   "zi = len(ZS) - 1",
+   "norm = plt.Normalize(np.nanpercentile(fgas, 5), np.nanpercentile(fgas, 95)); cmap = plt.cm.RdYlBu_r",
+   "fig, axes = plt.subplots(1, 2, figsize=(8.0, 3.0), constrained_layout=True)",
+   "for ax, arr, lab, lx in [(axes[0], S[:, zi], r\"$S(\\ell)$  [WL suppression]\", ellS),",
+   "                         (axes[1], cky[:, zi] * F_XPK * ell*(ell+1)/(2*np.pi), r\"$\\ell(\\ell{+}1)C_\\ell^{\\kappa y}/2\\pi$\", ell)]:"
+  ]
+ },
+ {
+  "file": "cell010_out0.png",
+  "cell": 10,
+  "heading": "\u00a74 \u00b7 The field response compresses to ~1 latent \u2014 the projection washes out the 2nd dimension",
+  "source_head": [
+   "from numpy.linalg import svd",
+   "S, _, _ = stat(\"suppression\"); cky, _, _ = stat(\"cl_kappa_y\"); ell = E[\"a__cl_kappa__ell\"]",
+   "band = (ell > 300) & (ell < 8000)",
+   "# TOMOGRAPHIC response: the 2nd latent lives in the source-z dependence (Lin+2025) -> stack all z_s",
+   "blocks = [np.log10(np.clip(S[:, zj, band], 1e-3, None)) for zj in range(len(ZS))]",
+   "blocks += [cky[:, zj, band] - np.nanmean(cky[:, zj, band], 0) for zj in range(len(ZS))]"
+  ]
+ },
+ {
+  "file": "cell012_out0.png",
+  "cell": 12,
+  "heading": "\u00a75 \u00b7 Confrontation \u2014 BIND shear $\\times\\,y$ vs the **real** DES Y3 $\\times$ ACT",
+  "source_head": [
+   "from scipy.special import jv",
+   "Y_BEAM, TLO, THI = 2.4, 8.0, 40.0                     # ACT DR6 beam (physical, not the 10' fudge); robust window",
+   "def xi_gy(th_arcmin, ell, cl):",
+   "    th = th_arcmin * np.pi / (180 * 60)",
+   "    return np.array([np.trapezoid(ell * cl * jv(2, ell * t), ell) / (2 * np.pi) for t in th])",
+   "def beam(ell, fwhm): s = fwhm * np.pi / (180*60) / 2.3548; return np.exp(-ell*(ell+1)*s**2/2)"
+  ]
+ },
+ {
+  "file": "cell014_out0.png",
+  "cell": 14,
+  "heading": "\u00a76 \u00b7 The $\\kappa\\times y$ cross is the feedback driver",
+  "source_head": [
+   "ell = E[\"a__cl_kappa__ell\"]; zi = len(ZS) - 1; band = (ell > 300) & (ell < 8000)",
+   "probes = {}",
+   "ckk, _, _ = stat(\"cl_kappa\"); probes[r\"$\\kappa\\kappa$\"] = ckk[:, zi, zi]",
+   "cky, _, _ = stat(\"cl_kappa_y\"); probes[r\"$\\kappa y$\"] = cky[:, zi]",
+   "cyy, _, _ = stat(\"cl_yy\"); probes[r\"$yy$\"] = cyy",
+   "ctt, _, _ = stat(\"cl_tt\"); probes[r\"$\\tau\\tau$\"] = ctt"
+  ]
+ },
+ {
+  "file": "cell016_out0.png",
+  "cell": 16,
+  "heading": "\u00a77 \u00b7 The feedback directions the field constrains \u2014 latent-limited",
+  "source_head": [
+   "from numpy.linalg import svd, eigh, pinv",
+   "S, _, _ = stat(\"suppression\"); cky, ckye, _ = stat(\"cl_kappa_y\"); ell = E[\"a__cl_kappa_y__ell\"]",
+   "zi = len(ZS) - 1; band = (ell > 300) & (ell < 8000)",
+   "# field observable = standardized [S, kxy] in band; compress to top PCs",
+   "O = np.hstack([np.log10(np.clip(S[:, zi, band], 1e-3, None)), cky[:, zi, band] * F_XPK])",
+   "good = np.isfinite(O).all(1); Os = (O[good] - O[good].mean(0)) / (O[good].std(0) + 1e-12)"
+  ]
+ },
+ {
+  "file": "cell018_out0.png",
+  "cell": 18,
+  "heading": "\u00a78 \u00b7 MONEY PLOT \u2014 the gas-ejection latent, pinned by a future LSST $\\times$ CMB-S4 $\\kappa\\times y$",
+  "source_head": [
+   "from numpy.linalg import eigh",
+   "d = np.load(\"/tmp/bind_field_fisher.npz\", allow_pickle=True); F = d[\"F\"]; PARAMS_F = list(d[\"PARAMS\"])",
+   "boost = 5.0                                            # ~2x smaller errors (LSST x CMB-S4 vs DES x ACT) -> ~5x Fisher",
+   "Ff = F * boost",
+   "w, V = eigh(Ff); nu = 1.0 / (1.0 + w)                  # whitened posterior variances along eigen-dirs",
+   "order = np.argsort(nu); V2 = V[:, order[:2]]; nu2 = nu[order[:2]]"
+  ]
+ }
+]

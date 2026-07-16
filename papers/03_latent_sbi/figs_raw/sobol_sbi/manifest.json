@@ -1,0 +1,15 @@
+[
+ {
+  "file": "cell003_out0.png",
+  "cell": 3,
+  "heading": "The training data \u2014 millions of per-halo $(\\,\\theta,\\,Y_{200})$ pairs",
+  "source_head": [
+   "ph0 = H.load_perhalo(snaps=[96], subsample=60000, seed=0)   # z\u22480, [logM200, a, logY200]",
+   "wi = names.index(\"WindEnergyIn1e51erg\")",
+   "fig, ax = plt.subplots(figsize=(6.4, 4.6))",
+   "sc = ax.scatter(ph0.X[:, 0], ph0.X[:, 2], c=ph0.THETA[:, wi], s=3, alpha=0.35,",
+   "                cmap=\"viridis\", rasterized=True)",
+   "ax.set(xlabel=r\"$\\log_{10} M_{200}$\", ylabel=r\"$\\log_{10} Y_{200}$\","
+  ]
+ }
+]

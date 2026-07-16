@@ -1,0 +1,264 @@
+\begin{thebibliography}{30}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Amodeo et~al.(2021)Amodeo, Battaglia, Schaan, Ferraro,
+  et~al.]{Amodeo2021kSZ}
+Stefania Amodeo, Nicholas Battaglia, Emmanuel Schaan, Simone Ferraro, et~al.
+\newblock Atacama cosmology telescope: Modeling the gas thermodynamics in
+  {BOSS} {CMASS} galaxies from kinematic and thermal {S}unyaev-{Z}el'dovich
+  measurements.
+\newblock \emph{Physical Review D}, 103:\penalty0 063514, 2021.
+\newblock \doi{10.1103/PhysRevD.103.063514}.
+
+\bibitem[Amon et~al.(2022)Amon, Gruen, Troxel, MacCrann, Dodelson, Choi, Doux,
+  Secco, Samuroff, et~al.]{Amonetal2023}
+A.~Amon, D.~Gruen, M.~A. Troxel, N.~MacCrann, S.~Dodelson, A.~Choi, C.~Doux,
+  L.~F. Secco, S.~Samuroff, et~al.
+\newblock Dark energy survey year 3 results: Cosmology from cosmic shear and
+  robustness to data calibration.
+\newblock \emph{Physical Review D}, 105:\penalty0 023514, 2022.
+\newblock \doi{10.1103/PhysRevD.105.023514}.
+
+\bibitem[Aric{\`o} and Angulo(2024)]{Arico2024}
+Giovanni Aric{\`o} and Raul~E. Angulo.
+\newblock Baryonification extended to thermal {S}unyaev {Z}eldovich.
+\newblock \emph{Astronomy \& Astrophysics}, 690:\penalty0 A188, 2024.
+\newblock \doi{10.1051/0004-6361/202450232}.
+
+\bibitem[Battaglia et~al.(2012)Battaglia, Bond, Pfrommer, and
+  Sievers]{Battaglia2012pressure}
+Nicholas Battaglia, J.~Richard Bond, Christoph Pfrommer, and Jonathan~L.
+  Sievers.
+\newblock On the cluster physics of {S}unyaev-{Z}el'dovich and {X}-ray surveys.
+  {II}. deconstructing the thermal {SZ} power spectrum.
+\newblock \emph{The Astrophysical Journal}, 758:\penalty0 75, 2012.
+\newblock \doi{10.1088/0004-637X/758/2/75}.
+
+\bibitem[Bigwood et~al.(2024)Bigwood, Amon, Schneider, Salcido, McCarthy,
+  Preston, Sanchez, Sijacki, Schaan, Ferraro, Battaglia,
+  et~al.]{BigwoodAmon2024}
+Leah Bigwood, Alexandra Amon, Aurel Schneider, Juliana Salcido, Ian~G.
+  McCarthy, Carter Preston, David Sanchez, Debora Sijacki, Emmanuel Schaan,
+  Simone Ferraro, Nicholas Battaglia, et~al.
+\newblock Weak lensing combined with the kinetic {S}unyaev-{Z}el'dovich effect:
+  A study of baryonic feedback.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  534\penalty0 (1):\penalty0 655--680, 2024.
+\newblock \doi{10.1093/mnras/stae2100}.
+
+\bibitem[Chen et~al.(2018)Chen, Li, Grosse, and Duvenaud]{Chen2019TCVAE}
+Ricky T.~Q. Chen, Xuechen Li, Roger Grosse, and David Duvenaud.
+\newblock Isolating sources of disentanglement in variational autoencoders.
+\newblock In \emph{Advances in Neural Information Processing Systems 31
+  (NeurIPS 2018)}, 2018.
+
+\bibitem[Cheng et~al.(2020)Cheng, Ting, M{\'e}nard, and Bruna]{Cheng2020WST}
+Sihao Cheng, Yuan-Sen Ting, Brice M{\'e}nard, and Joan Bruna.
+\newblock A new approach to observational cosmology using the scattering
+  transform.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  499\penalty0 (4):\penalty0 5902--5914, 2020.
+\newblock \doi{10.1093/mnras/staa3165}.
+
+\bibitem[Cranmer et~al.(2020)Cranmer, Brehmer, and Louppe]{Cranmer2020SBI}
+Kyle Cranmer, Johann Brehmer, and Gilles Louppe.
+\newblock The frontier of simulation-based inference.
+\newblock \emph{Proceedings of the National Academy of Sciences}, 117\penalty0
+  (48):\penalty0 30055--30062, 2020.
+\newblock \doi{10.1073/pnas.1912789117}.
+
+\bibitem[Gatti et~al.(2022{\natexlab{a}})Gatti, Jain, Chang, Secco, Amon,
+  Fosalba, Alarcon, et~al.]{Gatti2022HOScos}
+M.~Gatti, B.~Jain, C.~Chang, L.~Secco, A.~Amon, P.~Fosalba, A.~Alarcon, et~al.
+\newblock Dark energy survey year 3 results: Cosmology with moments of weak
+  lensing mass maps.
+\newblock \emph{Physical Review D}, 106:\penalty0 083509, 2022{\natexlab{a}}.
+\newblock \doi{10.1103/PhysRevD.106.083509}.
+
+\bibitem[Gatti et~al.(2022{\natexlab{b}})Gatti, Pandey, Baxter, Hill, Moser,
+  Raveri, Fang, DeRose, Giannini, Doux, et~al.]{Gatti2021DESACT}
+M.~Gatti, S.~Pandey, E.~Baxter, J.~C. Hill, E.~Moser, M.~Raveri, X.~Fang,
+  J.~DeRose, G.~Giannini, C.~Doux, et~al.
+\newblock Cross-correlation of {DES} {Y3} lensing and {ACT}/{Planck} thermal
+  {S}unyaev {Z}el'dovich effect {I}: Measurements, systematics tests, and
+  feedback model constraints.
+\newblock \emph{Physical Review D}, 105:\penalty0 123525, 2022{\natexlab{b}}.
+\newblock \doi{10.1103/PhysRevD.105.123525}.
+
+\bibitem[Gatti et~al.(2024)Gatti, Zischka, Chang, Jeffrey, Whiteway,
+  Demirbozan, et~al.]{Gatti2023maplevel}
+M.~Gatti, M.~Zischka, C.~Chang, N.~Jeffrey, L.~Whiteway, U.~Demirbozan, et~al.
+\newblock Dark energy survey year 3 results: simulation-based cosmological
+  inference with wavelet harmonics, scattering transforms, and moments of weak
+  lensing mass maps {I}: validation on simulations.
+\newblock \emph{Physical Review D}, 109:\penalty0 063509, 2024.
+\newblock \doi{10.1103/PhysRevD.109.063509}.
+\newblock arXiv preprint submitted 2023.
+
+\bibitem[Greenberg et~al.(2019)Greenberg, Nonnenmacher, and
+  Macke]{Greenberg2019APT}
+David~S. Greenberg, Marcel Nonnenmacher, and Jakob~H. Macke.
+\newblock Automatic posterior transformation for likelihood-free inference.
+\newblock In \emph{Proceedings of the 36th International Conference on Machine
+  Learning (ICML)}, volume~97 of \emph{PMLR}, pages 2404--2414, 2019.
+
+\bibitem[Hill and Spergel(2014)]{HillSpergel2014}
+J.~Colin Hill and David~N. Spergel.
+\newblock Detection of thermal {SZ}--{CMB} lensing cross-correlation in
+  {Planck} nominal mission data.
+\newblock \emph{Journal of Cosmology and Astroparticle Physics}, 2014\penalty0
+  (02):\penalty0 030, 2014.
+\newblock \doi{10.1088/1475-7516/2014/02/030}.
+
+\bibitem[Hotelling(1936)]{Hotelling1936CCA}
+Harold Hotelling.
+\newblock Relations between two sets of variates.
+\newblock \emph{Biometrika}, 28\penalty0 (3-4):\penalty0 321--377, 1936.
+\newblock \doi{10.1093/biomet/28.3-4.321}.
+
+\bibitem[Lee(2026{\natexlab{a}})]{bindI}
+Max~E. Lee.
+\newblock The {BIND} lightcone suite {I}: Baryon-painted weak-lensing and
+  sunyaev--zel'dovich lightcones from dark-matter-only simulations.
+\newblock in preparation, 2026{\natexlab{a}}.
+
+\bibitem[Lee(2026{\natexlab{b}})]{bindII}
+Max~E. Lee.
+\newblock The {BIND} lightcone suite {II}: Two nuisance parameters suffice to
+  marginalize baryonic feedback in {LSST}-era cosmic shear.
+\newblock in preparation, 2026{\natexlab{b}}.
+
+\bibitem[Lee(2026{\natexlab{c}})]{bindIV}
+Max~E. Lee.
+\newblock The {BIND} lightcone suite {IV}: Gas thermodynamics across a
+  30-parameter feedback space, confronted with {DESI}$\times${ACT} {kSZ} and
+  {eROSITA}.
+\newblock in preparation, 2026{\natexlab{c}}.
+
+\bibitem[Lin et~al.(2026)Lin, Li, Genel, Villaescusa-Navarro, Dai, Luo, and
+  Wang]{Lin2026latent}
+Shurui Lin, Yin Li, Shy Genel, Francisco Villaescusa-Navarro, Biwei Dai, Wentao
+  Luo, and Yang Wang.
+\newblock One latent to fit them all: A unified representation of baryonic
+  feedback on matter distribution.
+\newblock \emph{The Astrophysical Journal Letters}, 996\penalty0 (2):\penalty0
+  L41, 2026.
+\newblock \doi{10.3847/2041-8213/ae3084}.
+
+\bibitem[Martinet et~al.(2021)Martinet, Harnois-D{\'e}raps, Jullo, and
+  Schneider]{Martinet2021peaks}
+Nicolas Martinet, Joachim Harnois-D{\'e}raps, Eric Jullo, and Peter Schneider.
+\newblock Probing dark energy with tomographic weak-lensing aperture mass
+  statistics.
+\newblock \emph{Astronomy \& Astrophysics}, 646:\penalty0 A62, 2021.
+\newblock \doi{10.1051/0004-6361/202039679}.
+
+\bibitem[Pandey et~al.(2022)Pandey, Gatti, Baxter, Hill, Moser, Raveri, Fang,
+  DeRose, Giannini, et~al.]{Pandey2022DESACT}
+S.~Pandey, M.~Gatti, E.~Baxter, J.~C. Hill, E.~Moser, M.~Raveri, X.~Fang,
+  J.~DeRose, G.~Giannini, et~al.
+\newblock Cross-correlation of {DES} {Y3} lensing and {ACT}/{Planck} thermal
+  {S}unyaev {Z}el'dovich effect {II}: Modeling and constraints on halo pressure
+  profiles.
+\newblock \emph{Physical Review D}, 105:\penalty0 123526, 2022.
+\newblock \doi{10.1103/PhysRevD.105.123526}.
+
+\bibitem[Pandey et~al.(2025)Pandey, Hill, Alarcon, et~al.]{DESACTTSZWL2025}
+S.~Pandey, J.~C. Hill, A.~Alarcon, et~al.
+\newblock Constraints on cosmology and baryonic feedback with joint analysis of
+  dark energy survey year 3 lensing data and {ACT} {DR6} thermal
+  {S}unyaev-{Z}el'dovich effect observations.
+\newblock \emph{arXiv e-prints}, 2025.
+
+\bibitem[Papamakarios and Murray(2016)]{PapamakariosMurray2016}
+George Papamakarios and Iain Murray.
+\newblock Fast $\epsilon$-free inference of simulation models with {B}ayesian
+  conditional density estimation.
+\newblock In \emph{Advances in Neural Information Processing Systems 29
+  (NeurIPS 2016)}, pages 1028--1036, 2016.
+
+\bibitem[Schaye et~al.(2023)Schaye, Kugel, Schaller, Helly, Braspenning,
+  Elbers, Kwan, McCarthy, van Daalen, et~al.]{Schaye2023FLAMINGO}
+Joop Schaye, Roi Kugel, Matthieu Schaller, John~C. Helly, Joey Braspenning,
+  Willem Elbers, Juliana Kwan, Ian~G. McCarthy, Marcel~P. van Daalen, et~al.
+\newblock The {FLAMINGO} project: cosmological hydrodynamical simulations for
+  large-scale structure and galaxy cluster surveys.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  526:\penalty0 4978--5020, 2023.
+\newblock \doi{10.1093/mnras/stad2419}.
+
+\bibitem[Schneider et~al.(2022)Schneider, Giri, Amodeo, and
+  Refregier]{Schneider2022clusters}
+Aurel Schneider, Sambit~K. Giri, Stefania Amodeo, and Alexandre Refregier.
+\newblock Constraining baryonic feedback and cosmology with weak-lensing,
+  {X}-ray, and kinematic {S}unyaev-{Z}el'dovich observations.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  514\penalty0 (3):\penalty0 3802--3818, 2022.
+\newblock \doi{10.1093/mnras/stac1493}.
+
+\bibitem[Talts et~al.(2018)Talts, Betancourt, Simpson, Vehtari, and
+  Gelman]{Talts2018SBC}
+Sean Talts, Michael Betancourt, Daniel Simpson, Aki Vehtari, and Andrew Gelman.
+\newblock Validating {B}ayesian inference algorithms with simulation-based
+  calibration.
+\newblock \emph{arXiv e-prints}, 2018.
+
+\bibitem[Tejero-Cantero et~al.(2020)Tejero-Cantero, Boelts, Deistler,
+  Lueckmann, Durkan, Gon{\c c}alves, Greenberg, and
+  Macke]{TejeroCantero2020sbi}
+Alvaro Tejero-Cantero, Jan Boelts, Michael Deistler, Jan-Matthis Lueckmann,
+  Conor Durkan, Pedro~J. Gon{\c c}alves, David~S. Greenberg, and Jakob~H.
+  Macke.
+\newblock sbi: A toolkit for simulation-based inference.
+\newblock \emph{Journal of Open Source Software}, 5\penalty0 (52):\penalty0
+  2505, 2020.
+\newblock \doi{10.21105/joss.02505}.
+
+\bibitem[Tr{\"o}ster et~al.(2022)Tr{\"o}ster, Mead, Heymans, Yan, Alonso,
+  Asgari, Bilicki, Dvornik, Hildebrandt, Joachimi, Kannawadi, Kuijken,
+  Schneider, Shan, van Waerbeke, and Wright]{Troster2021KiDSPlanck}
+Tilman Tr{\"o}ster, Alexander~J. Mead, Catherine Heymans, Ziang Yan, David
+  Alonso, Marika Asgari, Maciej Bilicki, Andrej Dvornik, Hendrik Hildebrandt,
+  Benjamin Joachimi, Arun Kannawadi, Konrad Kuijken, Peter Schneider, HuanYuan
+  Shan, Ludovic van Waerbeke, and Angus~H. Wright.
+\newblock Joint constraints on cosmology and the impact of baryon feedback:
+  combining {KiDS}-1000 lensing with the thermal {S}unyaev-{Z}el'dovich effect
+  from {Planck} and {ACT}.
+\newblock \emph{Astronomy \& Astrophysics}, 660:\penalty0 A27, 2022.
+\newblock \doi{10.1051/0004-6361/202142197}.
+
+\bibitem[van Daalen et~al.(2020)van Daalen, McCarthy, and
+  Schaye]{vanDaalen2020}
+Marcel~P. van Daalen, Ian~G. McCarthy, and Joop Schaye.
+\newblock Exploring the effects of galaxy formation on matter clustering
+  through a library of simulation power spectra.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  491\penalty0 (2):\penalty0 2424--2446, 2020.
+\newblock \doi{10.1093/mnras/stz3199}.
+
+\bibitem[Villaescusa-Navarro et~al.(2021)Villaescusa-Navarro,
+  Angl{\'e}s-Alc{\'a}zar, Genel, Spergel, Somerville, Dave, Pillepich,
+  Hernquist, Nelson, Torrey, et~al.]{VillaescusaNavarro2021CAMELS}
+Francisco Villaescusa-Navarro, Daniel Angl{\'e}s-Alc{\'a}zar, Shy Genel,
+  David~N. Spergel, Rachel~S. Somerville, Romeel Dave, Annalisa Pillepich, Lars
+  Hernquist, Dylan Nelson, Paul Torrey, et~al.
+\newblock The {CAMELS} project: {C}osmology and astrophysics with
+  machine-learning simulations.
+\newblock \emph{The Astrophysical Journal}, 915:\penalty0 71, 2021.
+\newblock \doi{10.3847/1538-4357/abf7ba}.
+
+\bibitem[Z{\"u}rcher et~al.(2021)Z{\"u}rcher, Fluri, Sgier, Kacprzak, and
+  Refregier]{Zurcher2022MFs}
+Dominik Z{\"u}rcher, Janis Fluri, Raphael Sgier, Tomasz Kacprzak, and Alexandre
+  Refregier.
+\newblock Cosmological forecast for non-{G}aussian statistics in large-scale
+  weak lensing surveys.
+\newblock \emph{Journal of Cosmology and Astroparticle Physics}, 2021\penalty0
+  (01):\penalty0 028, 2021.
+\newblock \doi{10.1088/1475-7516/2021/01/028}.
+
+\end{thebibliography}

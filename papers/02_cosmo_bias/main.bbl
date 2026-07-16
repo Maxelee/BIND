@@ -1,0 +1,264 @@
+\begin{thebibliography}{30}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Amon et~al.(2022)]{desY3Amon2022}
+A.~Amon et~al.
+\newblock Dark energy survey year 3 results: Cosmology from cosmic shear and
+  robustness to data calibration.
+\newblock \emph{Physical Review D}, 105:\penalty0 023514, 2022.
+\newblock \doi{10.1103/PhysRevD.105.023514}.
+
+\bibitem[Amon and Efstathiou(2022)]{amonEfstathiou2022}
+Alexandra Amon and George Efstathiou.
+\newblock A non-linear solution to the {$S_8$} tension?
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  516\penalty0 (4):\penalty0 5355--5366, 2022.
+\newblock \doi{10.1093/mnras/stac2429}.
+
+\bibitem[Angulo and White(2010)]{anguloWhite2010}
+Raul~E. Angulo and Simon D.~M. White.
+\newblock One simulation to fit them all -- changing the background parameters
+  of a cosmological {N}-body simulation.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  405\penalty0 (1):\penalty0 143--154, 2010.
+\newblock \doi{10.1111/j.1365-2966.2010.16459.x}.
+
+\bibitem[Angulo et~al.(2021)Angulo, Zennaro, Contreras, Aric{\`o},
+  Pellejero-Iba{\~n}ez, and St{\"u}cker]{bacco2021}
+Raul~E. Angulo, Matteo Zennaro, Sergio Contreras, Giovanni Aric{\`o}, Marcos
+  Pellejero-Iba{\~n}ez, and Jens St{\"u}cker.
+\newblock The {BACCO} simulation project: Exploiting the full power of
+  large-scale structure for cosmology.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  507\penalty0 (4):\penalty0 5869--5881, 2021.
+\newblock \doi{10.1093/mnras/stab2018}.
+
+\bibitem[Asgari et~al.(2021)Asgari, Lin, Joachimi, et~al.]{kids1000Asgari2021}
+M.~Asgari, C.-A. Lin, B.~Joachimi, et~al.
+\newblock {KiDS-1000} cosmology: Cosmic shear constraints and comparison
+  between two point statistics.
+\newblock \emph{Astronomy \& Astrophysics}, 645:\penalty0 A104, 2021.
+\newblock \doi{10.1051/0004-6361/202039070}.
+
+\bibitem[Chen et~al.(2018)Chen, Li, Grosse, and Duvenaud]{chen2018}
+Ricky T.~Q. Chen, Xuechen Li, Roger Grosse, and David Duvenaud.
+\newblock Isolating sources of disentanglement in variational autoencoders.
+\newblock In \emph{Advances in Neural Information Processing Systems 31
+  (NeurIPS 2018)}, 2018.
+
+\bibitem[Chisari et~al.(2019)Chisari, Alonso, Krause, Leonard, Bull, Neveu,
+  Villarreal, Singh, McClintock, Ellison, Du, Zuntz, Mead, Joudaki, Lorenz,
+  Tr{\"o}ster, Sanchez, Lanusse, Ishak, Hlozek, Blazek, Campagne, Almoubayyed,
+  Eifler, Kirby, Kirkby, Plaszczynski, Slosar, Vrastil, and
+  Wagoner]{chisari2019}
+Nora~Elisa Chisari, David Alonso, Elisabeth Krause, C.~Danielle Leonard, Philip
+  Bull, J{\'e}r{\'e}my Neveu, Antonio Villarreal, Sukhdeep Singh, Thomas
+  McClintock, John Ellison, Zilong Du, Joe Zuntz, Alexander Mead, Shahab
+  Joudaki, Christiane~S. Lorenz, Tilman Tr{\"o}ster, Javier Sanchez, Fran{\c
+  c}ois Lanusse, Mustapha Ishak, Ren{\'e}e Hlozek, Jonathan Blazek, Jean-Eric
+  Campagne, Husni Almoubayyed, Tim Eifler, Matthew Kirby, David Kirkby,
+  St{\'e}phane Plaszczynski, An{\v z}e Slosar, Michal Vrastil, and Erika~L.
+  Wagoner.
+\newblock Core cosmology library: Precision cosmological predictions for
+  {LSST}.
+\newblock \emph{The Astrophysical Journal Supplement Series}, 242\penalty0
+  (1):\penalty0 2, 2019.
+\newblock \doi{10.3847/1538-4365/ab1658}.
+
+\bibitem[Constantine(2015)]{constantine2015}
+Paul~G. Constantine.
+\newblock \emph{Active Subspaces: Emerging Ideas for Dimension Reduction in
+  Parameter Studies}, volume~2 of \emph{SIAM Spotlights}.
+\newblock SIAM, Philadelphia, PA, 2015.
+\newblock ISBN 978-1-611973-85-3.
+
+\bibitem[Eifler et~al.(2015)Eifler, Krause, Dodelson, Zentner, Hearin, and
+  Gnedin]{eifler2015}
+Tim Eifler, Elisabeth Krause, Scott Dodelson, Andrew~R. Zentner, Andrew~P.
+  Hearin, and Nickolay~Y. Gnedin.
+\newblock Accounting for baryonic effects in cosmic shear tomography:
+  Determining a minimal set of nuisance parameters using {PCA}.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  454\penalty0 (3):\penalty0 2451--2471, 2015.
+\newblock \doi{10.1093/mnras/stv2000}.
+
+\bibitem[Foreman-Mackey et~al.(2013)Foreman-Mackey, Hogg, Lang, and
+  Goodman]{foremanMackey2013}
+Daniel Foreman-Mackey, David~W. Hogg, Dustin Lang, and Jonathan Goodman.
+\newblock emcee: The {MCMC} hammer.
+\newblock \emph{Publications of the Astronomical Society of the Pacific},
+  125\penalty0 (925):\penalty0 306--312, 2013.
+\newblock \doi{10.1086/670067}.
+
+\bibitem[Giri and Schneider(2021)]{giriSchneider2021}
+Sambit~K. Giri and Aurel Schneider.
+\newblock Emulation of baryonic effects on the matter power spectrum and
+  constraints from galaxy cluster data.
+\newblock \emph{Journal of Cosmology and Astroparticle Physics}, 2021\penalty0
+  (12):\penalty0 046, 2021.
+\newblock \doi{10.1088/1475-7516/2021/12/046}.
+\newblock \texttt{BCemu} package (v2.0.5 used here) implements this
+  baryonification emulator.
+
+\bibitem[Huang et~al.(2019)Huang, Eifler, Mandelbaum, and Dodelson]{huang2019}
+Hung-Jin Huang, Tim Eifler, Rachel Mandelbaum, and Scott Dodelson.
+\newblock Modelling baryonic physics in future weak lensing surveys.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  488\penalty0 (2):\penalty0 1652--1678, 2019.
+\newblock \doi{10.1093/mnras/stz1714}.
+
+\bibitem[Lee(2026{\natexlab{a}})]{bindI}
+Max~E. Lee.
+\newblock The {BIND} lightcone suite {I}: Baryon-painted weak-lensing and
+  sunyaev--zel'dovich lightcones from dark-matter-only simulations.
+\newblock in preparation, 2026{\natexlab{a}}.
+
+\bibitem[Lee(2026{\natexlab{b}})]{bindIII}
+Max~E. Lee.
+\newblock The {BIND} lightcone suite {III}: The two-dimensional latent space of
+  baryonic feedback, and what lensing $\times$ {SZ} statistics can constrain.
+\newblock in preparation, 2026{\natexlab{b}}.
+
+\bibitem[Li et~al.(2023)Li, Zhang, Sugiyama, Dalal, Terasawa, Rau, Mandelbaum,
+  et~al.]{hscY3}
+Xiangchong Li, Tianqing Zhang, Sunao Sugiyama, Roohi Dalal, Ryo Terasawa,
+  Markus~M. Rau, Rachel Mandelbaum, et~al.
+\newblock Hyper suprime-cam year 3 results: Cosmology from cosmic shear
+  two-point correlation functions.
+\newblock \emph{Physical Review D}, 108:\penalty0 123518, 2023.
+\newblock \doi{10.1103/PhysRevD.108.123518}.
+
+\bibitem[Lin et~al.(2026)Lin, Li, Genel, Villaescusa-Navarro, Dai, Luo, and
+  Wang]{lin2026}
+Shurui Lin, Yin Li, Shy Genel, Francisco Villaescusa-Navarro, Biwei Dai, Wentao
+  Luo, and Yang Wang.
+\newblock One latent to fit them all: a unified representation of baryonic
+  feedback on matter distribution.
+\newblock \emph{The Astrophysical Journal Letters}, 2026.
+
+\bibitem[{LSST Dark Energy Science Collaboration} et~al.(2018){LSST Dark Energy
+  Science Collaboration}, Mandelbaum, Eifler, Hlo{\v z}ek, Collett, Gawiser,
+  Scolnic, et~al.]{lsstDescSrd2018}
+{LSST Dark Energy Science Collaboration}, Rachel Mandelbaum, Tim Eifler,
+  Ren{\'e}e Hlo{\v z}ek, Thomas Collett, Eric Gawiser, Daniel Scolnic, et~al.
+\newblock The {LSST} dark energy science collaboration ({DESC}) science
+  requirements document.
+\newblock \emph{arXiv e-prints}, 2018.
+
+\bibitem[Mead and Peacock(2014{\natexlab{a}})]{meadPeacock2014a}
+A.~J. Mead and J.~A. Peacock.
+\newblock Remapping dark matter halo catalogues between cosmological
+  simulations.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  440\penalty0 (2):\penalty0 1233--1247, 2014{\natexlab{a}}.
+\newblock \doi{10.1093/mnras/stu341}.
+
+\bibitem[Mead and Peacock(2014{\natexlab{b}})]{meadPeacock2014b}
+A.~J. Mead and J.~A. Peacock.
+\newblock Remapping simulated halo catalogues in redshift space.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  445\penalty0 (4):\penalty0 3453--3467, 2014{\natexlab{b}}.
+\newblock \doi{10.1093/mnras/stu1936}.
+
+\bibitem[Mead et~al.(2015)Mead, Peacock, Heymans, Joudaki, and
+  Heavens]{mead2015}
+A.~J. Mead, J.~A. Peacock, C.~Heymans, S.~Joudaki, and A.~F. Heavens.
+\newblock An accurate halo model for fitting non-linear cosmological power
+  spectra and baryonic feedback models.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  454\penalty0 (2):\penalty0 1958--1975, 2015.
+\newblock \doi{10.1093/mnras/stv2036}.
+
+\bibitem[Mead et~al.(2021)Mead, Brieden, Tr{\"o}ster, and Heymans]{mead2021}
+Alexander Mead, Sebastian Brieden, Tilman Tr{\"o}ster, and Catherine Heymans.
+\newblock {HMcode-2020}: Improved modelling of non-linear cosmological power
+  spectra with baryonic feedback.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  502\penalty0 (1):\penalty0 1401--1422, 2021.
+\newblock \doi{10.1093/mnras/stab082}.
+
+\bibitem[Preston et~al.(2023)Preston, Amon, and Efstathiou]{preston2023}
+Calvin Preston, Alexandra Amon, and George Efstathiou.
+\newblock A non-linear solution to the {$S_8$} tension {II}: Analysis of {DES}
+  year 3 cosmic shear.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  525\penalty0 (4):\penalty0 5554--5564, 2023.
+\newblock \doi{10.1093/mnras/stad2573}.
+
+\bibitem[Robertson et~al.(2026)Robertson, Heymans, Zuntz, Burger, Leonard,
+  McCarthy, Paine, Salcido, {\v S}ar{\v c}evi{\'c}, Schaller, Schaye, and van
+  Daalen]{robertson2026}
+N.~C. Robertson, C.~Heymans, J.~Zuntz, P.~Burger, C.~D. Leonard, I.~G.
+  McCarthy, J.~G. Paine, J.~Salcido, N.~{\v S}ar{\v c}evi{\'c}, M.~Schaller,
+  J.~Schaye, and M.~P. van Daalen.
+\newblock Impact and interplay of {$\Lambda$CDM}\ analysis choices for {LSST}
+  cosmic shear.
+\newblock \emph{arXiv e-prints}, 2026.
+\newblock FLAMINGO team and the LSST Dark Energy Science Collaboration.
+
+\bibitem[Schneider and Teyssier(2015)]{schneiderTeyssier2015}
+Aurel Schneider and Romain Teyssier.
+\newblock A new method to quantify the effects of baryons on the matter power
+  spectrum.
+\newblock \emph{Journal of Cosmology and Astroparticle Physics}, 2015\penalty0
+  (12):\penalty0 049, 2015.
+\newblock \doi{10.1088/1475-7516/2015/12/049}.
+
+\bibitem[Schneider et~al.(2019)Schneider, Teyssier, Stadel, Chisari, Le~Brun,
+  Amara, and Refregier]{schneider2019bcm}
+Aurel Schneider, Romain Teyssier, Joachim Stadel, Nora~Elisa Chisari, Amandine
+  M.~C. Le~Brun, Adam Amara, and Alexandre Refregier.
+\newblock Quantifying baryon effects on the matter power spectrum and the weak
+  lensing shear correlation.
+\newblock \emph{Journal of Cosmology and Astroparticle Physics}, 2019\penalty0
+  (03):\penalty0 020, 2019.
+\newblock \doi{10.1088/1475-7516/2019/03/020}.
+
+\bibitem[Schneider et~al.(2020)Schneider, Stoira, Refregier, Weiss, Knabenhans,
+  Stadel, and Teyssier]{schneider2020fisher}
+Aurel Schneider, Nicola Stoira, Alexandre Refregier, Andreas~J. Weiss, Mischa
+  Knabenhans, Joachim Stadel, and Romain Teyssier.
+\newblock Baryonic effects for weak lensing. {P}art {I}. {P}ower spectrum and
+  covariance matrix.
+\newblock \emph{Journal of Cosmology and Astroparticle Physics}, 2020\penalty0
+  (04):\penalty0 019, 2020.
+\newblock \doi{10.1088/1475-7516/2020/04/019}.
+
+\bibitem[Secco et~al.(2022)Secco, Samuroff, et~al.]{desY3Secco2022}
+L.~F. Secco, S.~Samuroff, et~al.
+\newblock Dark energy survey year 3 results: Cosmology from cosmic shear and
+  robustness to modeling uncertainty.
+\newblock \emph{Physical Review D}, 105:\penalty0 023515, 2022.
+\newblock \doi{10.1103/PhysRevD.105.023515}.
+
+\bibitem[Stiskalek et~al.(2026)Stiskalek, Perez, Genel, Somerville, and
+  Angulo]{learningTheUniverse2026}
+Richard Stiskalek, Lucia~A. Perez, Shy Genel, Rachel~S. Somerville, and Raul~E.
+  Angulo.
+\newblock Learning the universe with cosmological rescaling of merger trees and
+  semi-analytic galaxy formation models.
+\newblock \emph{arXiv e-prints}, 2026.
+
+\bibitem[Tinker et~al.(2008)Tinker, Kravtsov, Klypin, Abazajian, Warren, Yepes,
+  Gottl{\"o}ber, and Holz]{tinker2008}
+Jeremy Tinker, Andrey~V. Kravtsov, Anatoly Klypin, Kevork Abazajian, Michael
+  Warren, Gustavo Yepes, Stefan Gottl{\"o}ber, and Daniel~E. Holz.
+\newblock Toward a halo mass function for precision cosmology: The limits of
+  universality.
+\newblock \emph{The Astrophysical Journal}, 688:\penalty0 709--728, 2008.
+\newblock \doi{10.1086/591439}.
+
+\bibitem[van Daalen et~al.(2020)van Daalen, McCarthy, and
+  Schaye]{vanDaalen2020}
+Marcel~P. van Daalen, Ian~G. McCarthy, and Joop Schaye.
+\newblock Exploring the effects of galaxy formation on matter clustering
+  through a library of simulation power spectra.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  491\penalty0 (2):\penalty0 2424--2446, 2020.
+\newblock \doi{10.1093/mnras/stz3199}.
+
+\end{thebibliography}

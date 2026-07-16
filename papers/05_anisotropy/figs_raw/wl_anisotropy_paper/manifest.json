@@ -1,0 +1,223 @@
+[
+ {
+  "file": "cell006_out0.png",
+  "cell": 6,
+  "heading": "Toy example: the whole analysis on a halo with a *known* answer",
+  "source_head": [
+   "# ============================================================================",
+   "# \u00a72.5  TOY EXAMPLE \u2014 the full pipeline on a synthetic halo with a KNOWN answer.",
+   "# Reuses the PRODUCTION estimators defined just above (multipoles, axis_angle,",
+   "# hankel, the _RR/_E2 grid).  Pure synthetic data: no ceph, no model.",
+   "#   DMO halo is elliptical (has a shape axis PHI0); the baryonic correction's",
+   "#   quadrupole is aligned to that axis with an ejection sign (mass pushed to the"
+  ]
+ },
+ {
+  "file": "cell008_out0.png",
+  "cell": 8,
+  "heading": "Per-halo: how anisotropic is the correction itself?",
+  "source_head": [
+   "fid = reduce_wl('fid')",
+   "kk = np.logspace(np.log10(0.3), np.log10(60), 30)            # h/Mpc",
+   "chi_l = 1200.0                                                # comoving Mpc/h to z_l=0.3 (k->ell label)",
+   "fig, ax = plt.subplots(1, 2, figsize=(13, 4.8))",
+   "for b, col in [(0, 'tab:blue'), (1, 'tab:red')]:",
+   "    m = fid['bin'] == b"
+  ]
+ },
+ {
+  "file": "cell010_out0.png",
+  "cell": 10,
+  "heading": "Pillar 2 \u2014 is it detectable?",
+  "source_head": [
+   "fid = reduce_wl('fid')",
+   "def sig_profile(ph, b):",
+   "    m = ph['bin'] == b",
+   "    return np.nanmean(aligned(ph, m).real, 0)                 # DMO-aligned Delta Sigma_2 [Msun/pc^2]",
+   "def forecast(sig, Ncl, ngal, sige):",
+   "    rp = RM / H; th = rp / DA * (180 / np.pi * 60); Aann = 2 * np.pi * th * np.gradient(th)   # arcmin^2"
+  ]
+ },
+ {
+  "file": "cell013_out0.png",
+  "cell": 13,
+  "heading": "Pillar 3 \u2014 does feedback control it?",
+  "source_head": [
+   "B = 0   # group (cleanest feedback regime)",
+   "rk = sorted([(float(np.mean(v[1])), nm, v[0]) for (nm, b), v in agg.items() if b == B],",
+   "            key=lambda t: -abs(t[0]))",
+   "top = rk[:12][::-1]; y = np.arange(len(top))",
+   "fig, ax = plt.subplots(figsize=(8.5, 6))",
+   "ax.barh(y, [t[0] for t in top], color=[FAM_COLOR[t[2]] for t in top], edgecolor='k')"
+  ]
+ },
+ {
+  "file": "cell017_out0.png",
+  "cell": 17,
+  "heading": "Validation \u2014 the spherical control is a *fair* monopole-only counterpart",
+  "source_head": [
+   "# PROOF: the spherical model reproduces each halo's radial mass profile exactly,",
+   "# discarding only the angular structure. Built from the fid source patches the way",
+   "# bind.inference.spherical builds the slabs: spherical correction = azimuthal",
+   "# average of the mass-matched BIND correction DeltaSigma = Sigma_hydro - Sigma_dmo.",
+   "from bind.inference.spherical import azimuthal_average_patch",
+   "from bind.inference.pipeline import extract_periodic_cutout"
+  ]
+ },
+ {
+  "file": "cell018_out0.png",
+  "cell": 18,
+  "heading": "Validation \u2014 the spherical control is a *fair* monopole-only counterpart",
+  "source_head": [
+   "# RIGOUR: the residual bind - sph is a PURE m>=2 field -- its monopole is consistent",
+   "# with zero, so the spherical control removes the anisotropy and NOTHING else (no",
+   "# spurious change to the radial profile). Uses _corr_patches / _cl from the cell above",
+   "# and the production multipoles() estimator. Stacked over cluster halos.",
+   "_diff = [multipoles((R - Rs) * _conv) for R, Rs in (_corr_patches(h) for h in _cl)]   # (bind-sph) multipoles",
+   "m0 = np.nanmean([d[0] for d in _diff], 0)                       # residual monopole c0(r)  [Msun/pc^2]"
+  ]
+ },
+ {
+  "file": "cell020_out0.png",
+  "cell": 20,
+  "heading": "Field 1 \u2014 the maps",
+  "source_head": [
+   "# Example convergence maps: DMO, spherical BCM, BIND, and the anisotropy-only",
+   "# residual (bind - sph) -- the structure a spherical BCM can never produce.",
+   "RUN = 'fid'; isrc = 1; zsrc = ZS[isrc]",
+   "if have_fieldlevel(RUN):",
+   "    km = {f: load_fl(RUN, f, 'kappa_maps.npz')['kappa'][0, isrc] for f in FIELDS}",
+   "    aniso = km['bind'] - km['sph']"
+  ]
+ },
+ {
+  "file": "cell022_out0.png",
+  "cell": 22,
+  "heading": "\u2026and how the anisotropy field responds to feedback",
+  "source_head": [
+   "# How the field-level anisotropy MAP responds to a feedback parameter.",
+   "# kappa_bind - kappa_sph is the lensing field a spherical BCM cannot produce;",
+   "# we show it at the parameter's min / fid / max bound (same DMO + seed throughout).",
+   "PARAM = 'RadioFeedbackFactor'      # AGN kinetic mode; change to any key of `design`",
+   "isrc = 1",
+   "def aniso_field(run):"
+  ]
+ },
+ {
+  "file": "cell024_out0.png",
+  "cell": 24,
+  "heading": "Why the anisotropy is *first order*: the cross/auto decomposition",
+  "source_head": [
+   "# ============================================================================",
+   "# \u00a74.2  CROSS / AUTO decomposition of  Delta P = P_bind - P_sph  (exact identity).",
+   "#   cross = 2 Re < kappa_dmo* F(kappa_bind - kappa_sph) >   -> FIRST order in correction",
+   "#   auto  = <|F d_bind|^2> - <|F d_sph|^2>                  -> second order",
+   "# Measured straight from the saved kappa maps (8 paired realizations, z_s=1).",
+   "# This is the mechanism behind the whole field-level result."
+  ]
+ },
+ {
+  "file": "cell026_out0.png",
+  "cell": 26,
+  "heading": "Field 2 \u2014 the convergence power spectrum $C_\\ell^{\\kappa\\kappa}$",
+  "source_head": [
+   "# Power-spectrum decomposition (paired across realizations -> tiny errors).",
+   "RUN = 'fid'",
+   "if have_fieldlevel(RUN):",
+   "    ell, cl = paired_cl(RUN, isrc=1)                 # per-realization C_ell, z_s=1",
+   "    nreal = cl['bind'].shape[0]; rt = np.sqrt(nreal)",
+   "    S_b = cl['bind'] / cl['dmo']; S_s = cl['sph'] / cl['dmo']        # paired ratios"
+  ]
+ },
+ {
+  "file": "cell028_out0.png",
+  "cell": 28,
+  "heading": "Is the anisotropy real? \u2014 bootstrap significance and null tests",
+  "source_head": [
+   "# ============================================================================",
+   "# STATISTICAL VALIDATION of the C_ell anisotropy: bootstrap significance + nulls.",
+   "#   per-realization paired spectra (cosmic variance cancels at fixed seed).",
+   "#   f_aniso_band = sum_band(C_sph - C_bind) / sum_band(C_dmo - C_bind)",
+   "# ============================================================================",
+   "RUN, isrc = 'fid', 1"
+  ]
+ },
+ {
+  "file": "cell030_out0.png",
+  "cell": 30,
+  "heading": "$C_\\ell$ anisotropy as a function of feedback",
+  "source_head": [
+   "# The anisotropic part of the C_ell suppression, dS(ell) = S_sph - S_bind, as a",
+   "# family of lines colored by the normalized parameter value u (min -> fid -> max),",
+   "# for the four parameters whose anisotropy responds most. Each panel: how much MORE",
+   "# the full field suppresses power than a spherical BCM, and how feedback tunes it.",
+   "isrc = 1; BAND = (2e3, 2e4)",
+   "def cl_response(p):                                  # signed dS-aniso slope vs u, in the band"
+  ]
+ },
+ {
+  "file": "cell032_out0.png",
+  "cell": 32,
+  "heading": "Field 3 \u2014 peaks, minima, PDF, and Minkowski functionals",
+  "source_head": [
+   "# Non-Gaussian statistics: peaks, minima, and the convergence PDF.",
+   "# These are cluster-scale / high-nu probes, where the discarded quadrupole should",
+   "# matter MOST (vs the near-cancellation it shows in the 2-point C_ell).",
+   "RUN = 'fid'",
+   "pk = {f: load_peaks(RUN, f) for f in FIELDS}",
+   "ng = {f: load_fl(RUN, f, 'nongaussian_stats.npz') for f in FIELDS}"
+  ]
+ },
+ {
+  "file": "cell033_out0.png",
+  "cell": 33,
+  "heading": "Field 3 \u2014 peaks, minima, PDF, and Minkowski functionals",
+  "source_head": [
+   "# ============================================================================",
+   "# SIGNIFICANCE of the non-Gaussian anisotropy: is N_bind(nu) - N_sph(nu) real?",
+   "#   Uses the saved peak_counts_err (per-field, MARGINAL -> conservative, since the",
+   "#   paired bind/sph cancellation is ignored). chi^2 vs zero + high-nu excess z-score.",
+   "# ============================================================================",
+   "from scipy import stats as sstats"
+  ]
+ },
+ {
+  "file": "cell035_out0.png",
+  "cell": 35,
+  "heading": "Peak-count anisotropy as a function of feedback",
+  "source_head": [
+   "# Peak-count anisotropy vs feedback: dN(nu) = N_peak_bind - N_peak_sph, the peaks a",
+   "# spherical BCM gets wrong, as a family colored by the normalized parameter value u.",
+   "isrc, iscale = 1, 0",
+   "def pk_response(p):                                  # |dN| summed over nu, slope vs u",
+   "    runs = design[p][2]; a0, a1 = aniso_peaks(runs[0][1], isrc, iscale), aniso_peaks(runs[-1][1], isrc, iscale)",
+   "    if a0 is None or a1 is None: return 0.0"
+  ]
+ },
+ {
+  "file": "cell037_out0.png",
+  "cell": 37,
+  "heading": "Field 4 \u2014 the parameter control of anisotropy, without bar charts",
+  "source_head": [
+   "# Parameter control of the WL anisotropy: response curves + scale-resolved heatmap.",
+   "isrc = 1; BAND = (2e3, 2e4)",
+   "ellref = aniso_cl('fid', isrc)['ell']; bsel = (ellref > BAND[0]) & (ellref < BAND[1])",
+   "def A_cl(run):                                       # scalar: band-averaged anisotropic suppression [%]",
+   "    a = aniso_cl(run, isrc); return np.nan if a is None else 100 * np.nanmean(a['dS'][bsel])",
+   "A_fid = A_cl('fid')"
+  ]
+ },
+ {
+  "file": "cell038_out0.png",
+  "cell": 38,
+  "heading": "Field 4 \u2014 the parameter control of anisotropy, without bar charts",
+  "source_head": [
+   "# ============================================================================",
+   "# SIGNIFICANCE GATING of the Field-4 parameter responses.",
+   "#   The twobound runs store realization-AVERAGED C_ell, so we use the fid",
+   "#   per-realization scatter of the band-averaged anisotropic suppression A as the",
+   "#   noise floor; a response dA = A(max)-A(min) (two runs) is significant at 2sigma",
+   "#   if |dA| > 2*sqrt(2)*sigma_fid.  (Reuses A_cl, resp, design, FAM_COLOR from above.)"
+  ]
+ }
+]

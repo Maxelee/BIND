@@ -1,0 +1,93 @@
+[
+ {
+  "file": "cell003_out0.png",
+  "cell": 3,
+  "heading": "1. Example maps",
+  "source_head": [
+   "src = 1  # z_s = 1.0",
+   "fig, ax = plt.subplots(1, 3 if ymaps is not None else 1, figsize=(16,5))",
+   "ax = np.atleast_1d(ax)",
+   "im=ax[0].imshow(kappa[0,src], cmap=\"viridis\", extent=[0,FOV_DEG,0,FOV_DEG],",
+   "                vmin=np.percentile(kappa[0,src],1), vmax=np.percentile(kappa[0,src],99))",
+   "ax[0].set_title(f\"BIND \u03ba (ray-traced), z_s={zs[src]}\"); plt.colorbar(im,ax=ax[0],fraction=.046)"
+  ]
+ },
+ {
+  "file": "cell005_out0.png",
+  "cell": 5,
+  "heading": "2. WL convergence power spectrum (tomographic)",
+  "source_head": [
+   "ck = S.cl_kappa(kappa, fov_deg=FOV_DEG)",
+   "ell = ck[\"ell\"]",
+   "fig, ax = plt.subplots(figsize=(7,5))",
+   "for i in range(len(zs)):",
+   "    cl = ck[\"cl\"][i,i]; err = ck[\"cl_err\"][i,i]",
+   "    f = ell*(ell+1)/(2*np.pi)"
+  ]
+ },
+ {
+  "file": "cell007_out0.png",
+  "cell": 7,
+  "heading": "3. Baryonic suppression of the matter power",
+  "source_head": [
+   "import Pk_library as PKL",
+   "bind_tot = np.zeros((4198,4198)); dmo_tot = np.zeros((4198,4198))",
+   "for s in SNAPS:",
+   "    for sl in range(4):",
+   "        d = np.load(f\"{COMP_ROOT}/snap_{s:03d}/composite_slab{sl:02d}.npz\")",
+   "        bind_tot += d[\"composite\"].sum(0); dmo_tot += d[\"dmo\"]"
+  ]
+ },
+ {
+  "file": "cell009_out0.png",
+  "cell": 9,
+  "heading": "4. Peak & minimum counts (S/N)",
+  "source_head": [
+   "pk_ = S.peak_counts(kappa, fov_deg=FOV_DEG, smoothing_arcmin=2.0)",
+   "nu = pk_[\"nu\"]",
+   "fig,ax=plt.subplots(1,2,figsize=(13,5))",
+   "for i in range(len(zs)):",
+   "    ax[0].plot(nu, pk_[\"peak_counts\"][i], label=f\"z_s={zs[i]}\")",
+   "    ax[1].plot(nu, pk_[\"minima_counts\"][i])"
+  ]
+ },
+ {
+  "file": "cell011_out0.png",
+  "cell": 11,
+  "heading": "5. Non-Gaussian statistics: PDF, moments, Minkowski functionals",
+  "source_head": [
+   "ng = S.nongaussian_stats(kappa, fov_deg=FOV_DEG)",
+   "fig,ax=plt.subplots(2,2,figsize=(13,9))",
+   "# PDF",
+   "for i in range(len(zs)): ax[0,0].plot(ng[\"pdf_bins\"], ng[\"pdf\"][i], label=f\"z_s={zs[i]}\")",
+   "ax[0,0].set_yscale(\"log\"); ax[0,0].set_xlabel(r\"$\\kappa$\"); ax[0,0].set_title(\"Convergence PDF\"); ax[0,0].legend()",
+   "# skewness vs scale"
+  ]
+ },
+ {
+  "file": "cell013_out0.png",
+  "cell": 13,
+  "heading": "6. tSZ \u00d7 WL cross-correlation (1a)",
+  "source_head": [
+   "if ymaps is None:",
+   "    print(\"y maps not ready \u2014 rerun lux with compute_tsz, then re-run this cell.\")",
+   "else:",
+   "    nr = min(kappa.shape[0], ymaps.shape[0])",
+   "    cky = S.cl_kappa_y(kappa[:nr], ymaps[:nr,-1], fov_deg=FOV_DEG)  # cross with full y (to z=2.44)",
+   "    ell = cky[\"ell\"]; f = ell*(ell+1)/(2*np.pi)"
+  ]
+ },
+ {
+  "file": "cell015_out0.png",
+  "cell": 15,
+  "heading": "7. Per-halo scaling relations",
+  "source_head": [
+   "paths=[f\"{COMP_ROOT}/snap_{s:03d}/composite_slab{sl:02d}.npz\"",
+   "       for s in [96,71,46] for sl in range(4)]",
+   "hs = S.halo_scaling(paths)",
+   "m = hs[\"halo_mass\"]; ok = np.isfinite(hs[\"Y_500c\"]) & (hs[\"Y_500c\"]>0)",
+   "fig,ax=plt.subplots(1,3,figsize=(16,5))",
+   "ax[0].loglog(m[ok], hs[\"Y_500c\"][ok], \".\", ms=2, alpha=.3)"
+  ]
+ }
+]

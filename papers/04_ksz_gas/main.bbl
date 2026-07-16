@@ -1,0 +1,141 @@
+\begin{thebibliography}{15}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Amodeo et~al.(2021)Amodeo, Battaglia, Schaan, Ferraro,
+  et~al.]{amodeo21}
+Stefania Amodeo, Nicholas Battaglia, Emmanuel Schaan, Simone Ferraro, et~al.
+\newblock Atacama cosmology telescope: Modeling the gas thermodynamics in
+  {BOSS} {CMASS} galaxies from kinematic and thermal {Sunyaev-Zel'dovich}
+  measurements.
+\newblock \emph{Phys. Rev. D}, 103:\penalty0 063514, 2021.
+
+\bibitem[Bigwood et~al.(2024)Bigwood, Amon, Schneider, Salcido, McCarthy,
+  Preston, Sanchez, Sijacki, Schaan, Ferraro, Battaglia, et~al.]{bigwood24}
+Leah Bigwood, Alexandra Amon, Aurel Schneider, Jaime Salcido, Ian~G. McCarthy,
+  Cameron Preston, Daniela Sanchez, Debora Sijacki, Emmanuel Schaan, Simone
+  Ferraro, Nicholas Battaglia, et~al.
+\newblock Weak lensing combined with the kinetic {Sunyaev-Zel'dovich} effect: a
+  study of baryonic feedback.
+\newblock \emph{Mon. Not. R. Astron. Soc.}, 534:\penalty0 655, 2024.
+
+\bibitem[Eckert et~al.(2019)Eckert, Ghirardini, Ettori, Rasia, Biffi,
+  Pointecouteau, Rossetti, Molendi, Vazza, Gastaldello, Gaspari, De~Grandi,
+  Ghizzardi, Bourdin, Tchernin, and Roncarelli]{eckert19}
+Dominique Eckert, Vittorio Ghirardini, Stefano Ettori, Elena Rasia, Veronica
+  Biffi, Etienne Pointecouteau, Mariachiara Rossetti, Silvano Molendi, Franco
+  Vazza, Fabio Gastaldello, Massimo Gaspari, Sabrina De~Grandi, Simona
+  Ghizzardi, Herve Bourdin, Celine Tchernin, and Mauro Roncarelli.
+\newblock Non-thermal pressure support in {X-COP} galaxy clusters.
+\newblock \emph{Astron. Astrophys.}, 621:\penalty0 A40, 2019.
+
+\bibitem[Gatti et~al.(2022)Gatti, Pandey, Baxter, Hill, Moser, et~al.]{gatti22}
+Marco Gatti, Shivam Pandey, Eric Baxter, J.~Colin Hill, Edward Moser, et~al.
+\newblock Cross-correlation of {DES} y3 lensing and {ACT}/{Planck} thermal
+  {Sunyaev-Zel'dovich} effect {I}: measurements, systematics tests, and
+  feedback model constraints.
+\newblock \emph{Phys. Rev. D}, 105:\penalty0 123525, 2022.
+
+\bibitem[Hadzhiyska et~al.(2026)Hadzhiyska, Ferraro, Qu, Ried~Guachalla,
+  Schaan, et~al.]{kszpartII}
+Boryana Hadzhiyska, Simone Ferraro, Frank~J. Qu, Bernardita Ried~Guachalla,
+  Emmanuel Schaan, et~al.
+\newblock Precision kinematic {Sunyaev--Zel'dovich} measurements across halo
+  mass and redshift with {DESI} {DR2} and {ACT} {DR6}: {P}art {II}. {B}right
+  {G}alaxy {S}urvey and {E}mission-{L}ine {G}alaxies.
+\newblock 2026.
+\newblock Companion paper submitted simultaneously with arXiv:2604.19744 (Qu et
+  al. 2026).
+
+\bibitem[Kova{\v{c}} et~al.(2025)Kova{\v{c}}, Nicola, Bucko, Schneider,
+  Reischke, Giri, Teyssier, Schaller, and Schaye]{kovac25}
+Michael Kova{\v{c}}, Andrina Nicola, Jozef Bucko, Aurel Schneider, Robert
+  Reischke, Sambit~K. Giri, Romain Teyssier, Matthieu Schaller, and Joop
+  Schaye.
+\newblock Baryonification {II}: constraining feedback with x-ray and kinematic
+  {Sunyaev-Zel'dovich} observations.
+\newblock \emph{J. Cosmol. Astropart. Phys.}, 2025\penalty0 (11):\penalty0 046,
+  2025.
+
+\bibitem[Lee(2026)]{bindI}
+Max~E. Lee.
+\newblock The {BIND} lightcone suite {I}: Baryon-painted weak-lensing and
+  sunyaev--zel'dovich lightcones from dark-matter-only simulations.
+\newblock in preparation, 2026.
+
+\bibitem[Liu et~al.(2025)Liu, Ferraro, Schaan, et~al.]{ycapdata25}
+R.~Henry Liu, Simone Ferraro, Emmanuel Schaan, et~al.
+\newblock Measurements of the thermal {Sunyaev-Zel'dovich} effect with {ACT}
+  and {DESI} luminous red galaxies.
+\newblock \emph{Phys. Rev. D}, 112:\penalty0 083561, 2025.
+
+\bibitem[Pandey et~al.(2022)Pandey, Gatti, Baxter, Hill, Fang,
+  et~al.]{pandey22}
+Shivam Pandey, Marco Gatti, Eric Baxter, J.~Colin Hill, Xiao Fang, et~al.
+\newblock Cross-correlation of {DES} y3 lensing and {ACT}/{Planck} thermal
+  {Sunyaev-Zel'dovich} effect {II}: modeling and constraints on halo pressure
+  profiles.
+\newblock \emph{Phys. Rev. D}, 105:\penalty0 123526, 2022.
+
+\bibitem[Popesso et~al.(2024)Popesso, Biviano, Marini, Dolag, Vladutescu-Zopp,
+  Csizi, Biffi, Lamer, Robotham, Bravo, Lovisari, Ettori, Angelinelli, Driver,
+  Toptun, Dev, Mazengo, Merloni, Comparat, Ponti, Mroczkowski, Bulbul, Grandis,
+  and Bahar]{popesso24}
+Paola Popesso, Andrea Biviano, Ivan Marini, Klaus Dolag, Sebastian
+  Vladutescu-Zopp, Balazs Csizi, Veronica Biffi, Georg Lamer, Aaron Robotham,
+  Manuel Bravo, Lorenzo Lovisari, Stefano Ettori, Massimo Angelinelli, Simon
+  Driver, Valeria Toptun, Ashesh Dev, Deka Mazengo, Andrea Merloni, Johan
+  Comparat, Gabriele Ponti, Tony Mroczkowski, Esra Bulbul, Sebastian Grandis,
+  and Emre Bahar.
+\newblock The hot gas mass fraction in halos: from milky way-like groups to
+  massive clusters.
+\newblock \emph{Astron. Astrophys.}, 2024.
+\newblock A\&A 707, A362 (2026).
+
+\bibitem[Qu et~al.(2026)Qu, Ried~Guachalla, Schaan, Hadzhiyska, Ferraro,
+  et~al.]{kszpartI}
+Frank~J. Qu, Bernardita Ried~Guachalla, Emmanuel Schaan, Boryana Hadzhiyska,
+  Simone Ferraro, et~al.
+\newblock Precision kinematic {Sunyaev--Zel'dovich} measurements across halo
+  mass and redshift with {DESI} {DR2} and {ACT} {DR6}: {P}art {I}. {L}uminous
+  {R}ed {G}alaxies.
+\newblock 2026.
+\newblock Companion paper submitted simultaneously with arXiv:2604.19745
+  (Hadzhiyska et al. 2026).
+
+\bibitem[Sailer et~al.(2024)Sailer, Kim, Ferraro, Madhavacheril, White,
+  et~al.]{sailer24}
+Noah Sailer, Joshua Kim, Simone Ferraro, Mathew~S. Madhavacheril, Martin White,
+  et~al.
+\newblock Cosmological constraints from the cross-correlation of {DESI}
+  luminous red galaxies with {CMB} lensing from {Planck} {PR4} and {ACT} {DR6}.
+\newblock \emph{J. Cosmol. Astropart. Phys.}, 2025\penalty0 (06):\penalty0 008,
+  2024.
+
+\bibitem[Schaan et~al.(2021)Schaan, Ferraro, Amodeo, Battaglia,
+  et~al.]{schaan21}
+Emmanuel Schaan, Simone Ferraro, Stefania Amodeo, Nicholas Battaglia, et~al.
+\newblock Atacama cosmology telescope: Combined kinematic and thermal
+  {Sunyaev-Zel'dovich} measurements from {BOSS} {CMASS} and {LOWZ} halos.
+\newblock \emph{Phys. Rev. D}, 103:\penalty0 063513, 2021.
+
+\bibitem[Siegel et~al.(2025)Siegel, Amon, McCarthy, Bigwood, Yamamoto, Bulbul,
+  Greene, McCullough, Schaller, and Schaye]{siegel25}
+Jared Siegel, Alexandra Amon, Ian~G. McCarthy, Leah Bigwood, Masaya Yamamoto,
+  Esra Bulbul, Jenny~E. Greene, Jamie McCullough, Matthieu Schaller, and Joop
+  Schaye.
+\newblock Joint x-ray, kinetic {Sunyaev-Zeldovich}, and weak lensing
+  measurements: toward a consensus picture of efficient gas expulsion from
+  groups and clusters.
+\newblock 2025.
+
+\bibitem[van Daalen et~al.(2020)van Daalen, McCarthy, and Schaye]{vandaalen20}
+Marcel~P. van Daalen, Ian~G. McCarthy, and Joop Schaye.
+\newblock Exploring the effects of galaxy formation on matter clustering
+  through a library of simulation power spectra.
+\newblock \emph{Mon. Not. R. Astron. Soc.}, 491:\penalty0 2424, 2020.
+
+\end{thebibliography}

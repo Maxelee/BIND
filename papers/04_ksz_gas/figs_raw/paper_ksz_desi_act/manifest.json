@@ -1,0 +1,171 @@
+[
+ {
+  "file": "cell004_out0.png",
+  "cell": 4,
+  "heading": "\u00a71 \u00b7 DATA \u2014 the continuous, painted feedback lightcone",
+  "source_head": [
+   "SNAP_ELG, Z_ELG = 46, 1.16                                 # the ELG slice (confronted in \u00a76b)",
+   "fig, ax = plt.subplots(1, 3, figsize=(9.6, 2.9), constrained_layout=True)",
+   "",
+   "# (a) snapshot <-> redshift coverage + halo counts; mark BOTH confronted slices (BGS, ELG)",
+   "cov = pd.read_parquet(PARQUET, columns=[\"snap\",\"z\"]).groupby(\"snap\").agg(z=(\"z\",\"median\"), n=(\"z\",\"size\")).reset_index()",
+   "ax[0].plot(cov.z, cov.n, \"o-\", color=\"tab:blue\", ms=4, lw=1)"
+  ]
+ },
+ {
+  "file": "cell006_out0.png",
+  "cell": 6,
+  "heading": "\u00a72 \u00b7 METHODS \u2014 from DMO to a stacked observable: painting, stacking, matching, CAP",
+  "source_head": [
+   "fce = np.load(KS / \"bind_tauy_fiducial_snap085.npz\"); x = fce[\"x\"]; tauF = fce[\"tau\"]; cntsF = fce[\"cnts\"]; mbe = fce[\"mbins\"]",
+   "cm = np.load(KS / \"bind_mstar_xprof_snap085.npz\")",
+   "fig, ax = plt.subplots(1, 3, figsize=(9.6, 3.0), constrained_layout=True)",
+   "",
+   "# (a) FIDUCIAL tau profiles by mass bin (the stacking step; the response across nodes is \u00a73)",
+   "cols = plt.cm.viridis(np.linspace(0, .9, 4))"
+  ]
+ },
+ {
+  "file": "cell008_out0.png",
+  "cell": 8,
+  "heading": "\u00a73 \u00b7 The feedback response \u2014 the continuous fan that no discrete suite provides",
+  "source_head": [
+   "c = np.load(KS / \"bind_tauy_xprof_snap085.npz\")",
+   "x, tau, y, nodes = c[\"x\"], c[\"tau\"], c[\"y\"], c[\"nodes\"]",
+   "fc = np.load(KS / \"bind_tauy_fiducial_snap085.npz\")                  # TNG fiducial reference (this paper's baseline)",
+   "MB = BGS_BIN",
+   "fgdf = pd.read_parquet(PARQUET, columns=[\"run\",\"snap\",\"M_tot_500\",\"f_gas_500\"])",
+   "fgdf = fgdf[(fgdf.snap == SNAP_BGS) & (np.log10(fgdf.M_tot_500) > 13.3)]"
+  ]
+ },
+ {
+  "file": "cell010_out0.png",
+  "cell": 10,
+  "heading": "\u00a74 \u00b7 The idea \u2014 the 30-d feedback response is a ~2-d latent manifold",
+  "source_head": [
+   "from numpy.linalg import svd, lstsq",
+   "band = (x >= 0.3) & (x <= 1.5)",
+   "R = np.hstack([np.log10(np.clip(tau[:, MB, band], 1e-30, None)),",
+   "               np.log10(np.clip(y[:, MB, band], 1e-30, None))])",
+   "good = np.isfinite(R).all(1)",
+   "Rs = (R[good] - R[good].mean(0)) / R[good].std(0)"
+  ]
+ },
+ {
+  "file": "cell012_out0.png",
+  "cell": 12,
+  "heading": "\u00a75 \u00b7 Confrontation I \u2014 gas content vs eROSITA: the *whole* feedback range is too gas-rich",
+  "source_head": [
+   "df = pd.read_parquet(PARQUET, columns=[\"run\",\"snap\",\"z\",\"M_tot_500\",\"f_gas_500\"])",
+   "sel = df[(df.z > 0.08) & (df.z < 0.45) & (df.f_gas_500 > 0)]",
+   "mb = np.linspace(13.0, 14.4, 8); cM = 0.5 * (mb[:-1] + mb[1:]); Mc = 10 ** cM",
+   "sel = sel.assign(b=np.digitize(np.log10(sel.M_tot_500), mb) - 1)",
+   "g = sel.groupby([\"run\",\"b\"]).f_gas_500.median()",
+   "stack = np.full((sel.run.nunique(), len(cM)), np.nan)"
+  ]
+ },
+ {
+  "file": "cell014_out1.png",
+  "cell": 14,
+  "heading": "\u00a76 \u00b7 Confrontation II \u2014 the kSZ gas fraction vs DESI DR2 $\\times$ ACT DR6",
+  "source_head": [
+   "# Single observable: the velocity-marginalised f~gas (the raw T^CAP needs the survey's velocity",
+   "# model + folds in M_halo -> a naive tau conversion is invalid; see markdown). Real data: Zenodo 19160138.",
+   "fr = np.load(KS / \"fgas_cap_mstar_snap085.npz\")    # CAP-ratio f~gas = CAP_gas/CAP_mat (the paper's exact observable)",
+   "xb = fr[\"xb\"]; fidp = fr[\"fiducial\"]; sbp = fr[\"sb35\"]; lmcut = fr[\"logM200\"]; zc = 0.26",
+   "ZEN = KS / \"desact_zenodo\"; DCUT = [\"11.00\", \"11.25\"]   # data M* cut matching BIND k=0,1",
+   "fig, ax = plt.subplots(figsize=(5.1, 3.6))"
+  ]
+ },
+ {
+  "file": "cell016_out0.png",
+  "cell": 16,
+  "heading": "\u00a76a \u00b7 *Which* feedback fits the data \u2014 the parameters of the data-consistent nodes",
+  "source_head": [
+   "from numpy.random import default_rng",
+   "fr = np.load(KS / \"fgas_cap_mstar_snap085.npz\")",
+   "xb = fr[\"xb\"]; sbk = fr[\"sb35\"][:, 0, :]; idk = fr[\"node_ids\"]; lmk = float(fr[\"logM200\"][0]); zk = 0.26",
+   "thx = xb * r200phys(lmk, zk) / DA(zk) * ARCMIN; thr = r200phys(lmk, zk) / DA(zk) * ARCMIN",
+   "dk = np.load(KS / \"desact_zenodo/Fig8_BGS_BRIGHT-20.2_logm11.00.npz\")",
+   "m1 = dk[\"th\"] <= 1.4 * thr; Cinv = np.linalg.inv(dk[\"cov_ksz\"][np.ix_(m1, m1)])"
+  ]
+ },
+ {
+  "file": "cell018_out2.png",
+  "cell": 18,
+  "heading": "\u00a76b \u00b7 The ELG regime at its redshift \u2014 the gas tension across mass *and* time (patch reuse)",
+  "source_head": [
+   "# Two redshifts, two tracers: BGS (z=0.18, r200-matched) and ELG (z=1.16, data only reaches ~2.8 r200).",
+   "# all DESI M* cuts; host logM200 per cut from BIND painted central M* (snap85 centrals / snap46 reuse;",
+   "# the 3 lowest BGS cuts pile up near the 1e13 floor -> floor-limited host mass).",
+   "PAN = [(\"085\", 0.26, r\"$z{=}0.18$ \u00b7 BGS\", \"BGS_BRIGHT-20.2\",",
+   "        [(\"9.50\",13.36),(\"10.00\",13.38),(\"10.50\",13.43),(\"11.00\",13.60),(\"11.25\",13.82)], \"r200\"),",
+   "       (\"046\", 1.16, r\"$z{=}1.16$ \u00b7 ELG\", \"ELG_LOPnotqso\","
+  ]
+ },
+ {
+  "file": "cell020_out1.png",
+  "cell": 20,
+  "heading": "\u00a76c \u00b7 The mass anchor \u2014 CMB-lensing $\\kappa$ confirms the tension is gas, not mass",
+  "source_head": [
+   "kp = np.load(KS / \"kappa_bgs_snap085.npz\")",
+   "th = kp[\"theta\"]; fidk = kp[\"fiducial\"]; sbk = kp[\"sb35\"]; cutsk = kp[\"cuts\"]",
+   "fig, ax = plt.subplots(figsize=(4.9, 3.5))",
+   "ax.axvspan(0, 3, color=\"0.93\", zorder=0); ax.text(2.85, 4e-2, \"1-halo\", fontsize=6.5, color=\"0.5\", ha=\"right\", rotation=90, va=\"top\")",
+   "for ci, cut in enumerate(cutsk):",
+   "    if cut not in (11.0, 11.25):"
+  ]
+ },
+ {
+  "file": "cell022_out0.png",
+  "cell": 22,
+  "heading": "\u00a76d \u00b7 The pressure leg (tSZ) \u2014 a consistency check, *mass-selection-dominated*",
+  "source_head": [
+   "import csv",
+   "from scipy.stats import spearmanr",
+   "yl = np.load(KS / \"ycap_lrg_snap067.npz\"); R = yl[\"R\"]; yfid = yl[\"fiducial\"]; ysb = yl[\"sb35\"]; idy = yl[\"node_ids\"]",
+   "ylo = yl[\"fid_msys_lo\"]; yhi = yl[\"fid_msys_hi\"]; M_LENS = float(yl[\"logM\"])   # 13.18 Msun/h",
+   "rows = list(csv.reader(open(KS / \"tsz_zenodo/fig3.csv\")))",
+   "Rd = np.array([float(r[1]) for r in rows[1:] if r[1]]); yd = np.array([float(r[2]) for r in rows[1:] if r[1]])"
+  ]
+ },
+ {
+  "file": "cell024_out0.png",
+  "cell": 24,
+  "heading": "\u00a76e \u00b7 The data in the feedback-latent plane \u2014 a 2-d constraint from kSZ $+$ tSZ",
+  "source_head": [
+   "from numpy.linalg import inv, lstsq as _lstsq",
+   "import csv as _csv",
+   "# --- reuse the \u00a74 latent (same kernel): Ze=[ejection e1, shape e2], aligned to nodes[good] ---",
+   "ng = nodes[good]; row_of = {int(n): i for i, n in enumerate(ng)}; E = Ze[:, :2]",
+   "def _design(ids):",
+   "    keep = [j for j, n in enumerate(ids) if int(n) in row_of]"
+  ]
+ },
+ {
+  "file": "cell026_out0.png",
+  "cell": 26,
+  "heading": "\u00a77 \u00b7 The first continuous-feedback kSZ posterior \u2014 *all* the DESI\u00d7ACT M* cuts, still latent-limited",
+  "source_head": [
+   "fig, ax = plt.subplots(figsize=(3.7, 4.5))",
+   "ref = np.load(KS / \"ksz_posterior_cap_all.npz\", allow_pickle=True)",
+   "pp = list(ref[\"params\"]); o = np.argsort(ref[\"ratio\"])",
+   "for tag, lbl, col in [(\"bgs2\", r\"2 BGS bins ($M_\\star{>}11.0,11.25$)\", \"tab:gray\"),",
+   "                      (\"bgsall\", \"all 5 BGS cuts\", \"tab:blue\"),",
+   "                      (\"all\", \"5 BGS + 3 ELG cuts\", \"tab:red\")]:"
+  ]
+ },
+ {
+  "file": "cell028_out0.png",
+  "cell": 28,
+  "heading": "\u00a78 \u00b7 MONEY PLOT \u2014 the same two latents, pinned by future kSZ $+$ tSZ",
+  "source_head": [
+   "import corner",
+   "d = np.load(KS / \"ksz_posterior_multiprobe_future.npz\", allow_pickle=True)",
+   "params = list(d[\"params\"]); lo, hi = d[\"prior_lo\"], d[\"prior_hi\"]",
+   "pmean, psd = 0.5 * (lo + hi), (hi - lo) / np.sqrt(12); white = lambda ch: (ch - pmean) / psd",
+   "Uj = white(d[\"chain_joint\"]); ev, evec = np.linalg.eigh(np.cov(Uj.T)); V = evec[:, :2]",
+   "def topload(v, n=3):"
+  ]
+ }
+]

@@ -1,0 +1,193 @@
+{
+  "results": [
+    {
+      "claim": "OLD/superseded upper-bound anisotropic fraction of the C_ell^kappa baryon suppression, from the circular/monopole-of-correction spherical control (f_mono).",
+      "numbers": "f_mono = (C_bind - C_mono)/(C_bind - C_dmo) ~ 0.5, roughly flat in ell; equivalently the notebook's own figure: f_aniso(C_ell) ~= 41% -> 48% -> 55% at ell = 5000 -> 1e4 -> 2e4 (increasing with scale); band-averaged [3000,20000]: f_aniso=48% (bootstrap 16-84%: 47-48%), significance z=52.3 sigma (paired, N=8, optimistic/shared-box)",
+      "provenance": "docs/WORKLOG.md 2026-06-17 'WL-anisotropy notebook turned into a paper draft (cross-term = first-order)' (line ~1193-1216); wl_anisotropy_paper.ipynb cell 25 (markdown) + cell 28 (printed output); memory wl-anisotropy-fieldlevel.md",
+      "section": "Result (superseded, cite as earlier estimate)"
+    },
+    {
+      "claim": "CORRECTED anisotropic fraction of the WL suppression using the faithful radial-BCM-warp control (bcm_warp_patch), which lets triaxiality co-move with the mass flow so only genuine feedback anisotropy is isolated. Declines strongly with scale, opposite trend to the old number.",
+      "numbers": "f_aniso = (C_bind - C_sph)/(C_bind - C_dmo) ~= 0.45 at ell=3e3 -> 0.24 at ell=1e4 -> ~0 at ell=2e4 (fid, z_s=1.0); triaxiality-tracing f_tri = (C_sph - C_mono)/(C_bind - C_dmo) rises 0.08 -> 0.25 -> 0.61 over the same range; old '40-65%'/f_mono ~ 0.5 flat in ell is the sum f_aniso+f_tri under the crude control",
+      "provenance": "docs/WORKLOG.md 2026-06-17 'lightcone: three-way kappa comparison confirms triaxiality-tracing inflated f_aniso' (line 1144); script examples/bcm_warp_comparison.py; figure examples/figures_lightcone/bcm_warp_comparison_fid.png; memory wl-anisotropy-fieldlevel.md lines 29-37",
+      "section": "Result (HEADLINE - this is the number the Letter should lead with)"
+    },
+    {
+      "claim": "Real-space agreement: BIND vs radial-BCM (sph) and BIND vs pure-spherical (mono) correlate almost identically; the faithful warp control barely beats the crude mono control in real space, its advantage is concentrated at high ell.",
+      "numbers": "r(bind,sph) = r(bind,mono) ~= 0.987-0.988; warp vs mono both ~16% of kappa rms globally",
+      "provenance": "docs/WORKLOG.md 2026-06-17 'three-way kappa comparison' (line 1154-1155)",
+      "section": "Result"
+    },
+    {
+      "claim": "Exact cross/auto decomposition of Delta P = P_bind - P_sph shows the anisotropic suppression is carried by the FIRST-order cross term (alignment of ejected gas with its own halo's DMO field), not the second-order auto (quadrupole self-power); closure verified numerically.",
+      "numbers": "band ell in [3000,20000]: cross/deltaP = +1.39 (first order, suppressive); auto/deltaP = -0.39 (second order, wrong sign); closure (cross+auto)/deltaP = 1.000; rising to ~1.95/-0.95 by ell~1.8e4",
+      "provenance": "wl_anisotropy_paper.ipynb cell 24 printed output; docs/WORKLOG.md 2026-06-17 'WL-anisotropy notebook turned into a paper draft (cross-term = first-order)' lines 1197-1203",
+      "section": "Method (mechanism) -- CAVEAT: computed with the superseded (monopole) sph control, not re-derived with the faithful bcm_warp control (memory file flags this explicitly as unresolved: 'Re-evaluate the cross/auto identity with kappa_s = radial-BCM, not mono')"
+    },
+    {
+      "claim": "Validation that the spherical control (either variant) is a fair monopole-only counterpart: it reproduces each halo's radial correction profile almost exactly and the residual bind-sph is a pure m>=2 (angular-only) field.",
+      "numbers": "stacked-cluster c0(r): L2 relative residual = 2.22%, correlation = 0.99998; residual (bind-sph) monopole purity RMS|c0|/RMS|c2| = 0.018 (PASS, m=0 consistent with 0); residual monopole as fraction of full-correction monopole = 0.019; biggest halo (logM=14.57): anisotropy carries 97% of correction pixel rms",
+      "provenance": "wl_anisotropy_paper.ipynb cells 17-18 printed output; docs/WORKLOG.md 2026-06-17 'Part II built out' line ~1222-1224",
+      "section": "Method (validation)"
+    },
+    {
+      "claim": "Null tests confirm the paired f_aniso signal is real, not a pipeline/cosmic-variance artifact.",
+      "numbers": "NULL A (dmo,sph,sph) -> f_aniso = 0.00e+00 exactly; NULL B unpaired/paired band-scatter ratio = 25.8x (seed-pairing suppresses cosmic variance by this factor)",
+      "provenance": "wl_anisotropy_paper.ipynb cell 28 printed output",
+      "section": "Method (validation)"
+    },
+    {
+      "claim": "60 one-at-a-time (OAT) feedback runs (30 CAMELS/TNG parameters x min/max bound) underlie the field-level parameter-response analysis; 2 were pending a maps re-run at the time of the Part II session.",
+      "numbers": "60 twobound runs (tb0000-tb0059); fid+truth+tb0000-59 minus tb0032/tb0043 completed at time of WORKLOG entry; notebook design dict = 30 parameters with completed runs (60 runs total: min+max per param); 22/30 parameters move the WL anisotropy above the 2-sigma fid noise floor",
+      "provenance": "docs/WORKLOG.md 2026-06-17 'WL-anisotropy notebook Part II built out (all 60 OAT runs done)' line 1217-1232; wl_anisotropy_paper.ipynb design-loading cell + cell 38 printed output",
+      "section": "Method"
+    },
+    {
+      "claim": "Which feedback parameters control the (superseded-control) field-level anisotropic Cl suppression, ranked by band-averaged response.",
+      "numbers": "BlackHoleRadiativeEfficiency dA/du=-9.90%; QuasarThreshold +6.21%; IMFslope +5.53%; SeedBlackHoleMass +4.02%; VariableWindVelFactor +3.91%; BlackHoleAccretionFactor +3.36%; BlackHoleEddingtonFactor +2.96%; WindEnergyIn1e51erg -2.93%; fid realization noise on A: sigma=0.161%, 2-sigma threshold |dA/du|>0.456%",
+      "provenance": "wl_anisotropy_paper.ipynb cells 37-38 printed output, 'Field 4 -- the parameter control of anisotropy'",
+      "section": "Result (which feedback channels drive it)"
+    },
+    {
+      "claim": "Which feedback parameters control the per-halo (real-space) WL quadrupole Q2 response, group scale.",
+      "numbers": "VariableWindVelFactor dQ2/du=-0.065 Msun/pc^2; BlackHoleRadiativeEfficiency +0.057; WindEnergyIn1e51erg -0.032; WindFreeTravelDensFac +0.029; QuasarThreshold -0.029; SeedBlackHoleMass -0.029; BlackHoleAccretionFactor -0.025; MaxSfrTimescale -0.025",
+      "provenance": "wl_anisotropy_paper.ipynb cell 13 printed output, 'Pillar 3'",
+      "section": "Result (which feedback channels drive it)"
+    },
+    {
+      "claim": "Per-halo, one-halo-power anisotropic fraction f_quad = |H2|^2/(|H0|^2+|H2|^2), a lower bound on the observable importance (second-order diagnostic).",
+      "numbers": "peak |aligned c2|/peak |c0| = 1.44 (group), 0.73 (cluster); f_quad(k) figure peaks at ~20% (cluster, k~2 h/Mpc) and ~5% (group) -- NOTE: Conclusions text separately claims 'f_quad ~30-55% at k gtrsim few h/Mpc' which is NOT supported by the directly plotted figure; flagged as an internal inconsistency",
+      "provenance": "wl_anisotropy_paper.ipynb cell 8 printed output + cell 8 figure (Pillar 1); Conclusions cell 40 for the disputed 30-55% claim",
+      "section": "Result (Pillar 1, per-halo) -- caveat: narrative vs figure mismatch"
+    },
+    {
+      "claim": "Non-Gaussian statistics (peaks/minima) anisotropic significance, using conservative marginal (not paired) errors -- a lower bound on true significance.",
+      "numbers": "peaks: chi^2 vs 0 = 23/55 dof (p=1.0); high-nu(>2) anisotropic shift = -6, i.e. -1% of spherical, z=-0.5 sigma; minima: chi^2=7/22 dof (p=1.0); high-nu shift -12% of spherical, z=-0.3 sigma",
+      "provenance": "wl_anisotropy_paper.ipynb cell 33 printed output, 'Field 3'",
+      "section": "Result"
+    },
+    {
+      "claim": "Stage-IV stacked-cluster detectability forecast for the WL quadrupole, including 0.55 alignment-dilution factor; cluster-bin only.",
+      "numbers": "N_cl=1000: LSST Y10 S/N=0.5, Euclid 0.5, Roman HLS 0.7; N_cl=3000: LSST 0.8, Euclid 0.8, Roman 1.3; N_cl=10000: LSST 1.5, Euclid 1.5, Roman 2.3; group-bin S/N is lower still (figure only). NOTE: Conclusions text claims 'S/N ~3-5 for N_cl~3e3-1e4' which is NOT supported by these printed/plotted numbers (max ~2.3-3 near N_cl~1.6e4) -- flagged inconsistency",
+      "provenance": "wl_anisotropy_paper.ipynb cell 10 printed output + figure, 'Pillar 2'; Conclusions cell 40 for disputed 3-5 claim",
+      "section": "Discussion (detectability) -- caveat: narrative vs figure mismatch"
+    },
+    {
+      "claim": "Alignment-dilution factor for the stacked-cluster forecast, validated by an analytic toy model.",
+      "numbers": "<cos 2 Delta theta> = 0.55, corresponding to Delta theta ~= 28 deg (Gaussian rms sigma ~= 26 deg); NOT the commonly quoted 35 deg (cos70deg=0.34 would give a different dilution)",
+      "provenance": "wl_anisotropy_paper.ipynb Methods cell + cell 9 markdown + cell 6 toy validation; docs/WORKLOG.md 2026-06-17 'cross-term = first-order' line 1213",
+      "section": "Method (error model)"
+    },
+    {
+      "claim": "Ejection is anisotropic at the per-halo level and coherently oriented: WL residual mildly anisotropic and roughly radially flat/declining; tSZ pressure strongly anisotropic and rising outward; ejection is anti-aligned with (perpendicular to) the DM major axis -- the bipolar signature.",
+      "numbers": "q2(kappa-kappa_dmo) ~ 3-5% (mildly anisotropic, WL); q2(y) rises from ~5-12% (inner) to ~35-43% at r~2.9 r200c (tSZ); fiducial alignment cos2(theta_Delta - theta_DM) (group) = -0.773 (negative = perpendicular to DM major axis)",
+      "provenance": "ejection_anisotropy.ipynb cell 5 (Figure 1) and cell 19 (Figure 4, cos2 printed output)",
+      "section": "Result (ejection-anisotropy driver)"
+    },
+    {
+      "claim": "The outer tSZ (y) quadrupole in cluster outskirts is largely a cosmic-web/filament effect, not pure AGN bipolarity; the WL kappa quadrupole is the cleaner feedback-only probe.",
+      "numbers": "environment jackknife (Test 4c): filament environment ~52% vs void environment ~29% at 2.7 r200 (q2(y))",
+      "provenance": "ejection_anisotropy.ipynb 'Test 7 -- observational anchors' markdown cell 13 + cell 12 (Test 4c)",
+      "section": "Discussion (caveat on the tSZ anisotropy probe)"
+    },
+    {
+      "claim": "57 single-knob OAT runs (ejection_anisotropy.ipynb's own count, distinct from the 60/58 count in wl_anisotropy_paper.ipynb) drive per-halo q2(kappa) and q2(y) response; top knobs listed.",
+      "numbers": "57 single-knob OAT runs; top knobs (group scale): WindEnergyIn1e51erg dq2k/du=-0.0115 dq2y/du=+0.0561; IMFslope +0.0111/-0.0489; VariableWindVelFactor -0.0111/+0.0319; WindFreeTravelDensFac +0.0086/-0.0397; WindEnergyReductionFactor -0.0060/+0.0225",
+      "provenance": "ejection_anisotropy.ipynb cell 15 (run count) + cell 16 (printed output)",
+      "section": "Result (which feedback channels drive it) -- caveat: run-count discrepancy vs the 60-run wl_anisotropy_paper.ipynb design, unreconciled in sources"
+    },
+    {
+      "claim": "Observational consistency check for the tSZ pressure quadrupole against literature X-ray/SZ morphology studies.",
+      "numbers": "Planck Int. V (2013) Fig.15: azimuthal scatter in stacked cluster pressure profile at r500 ~20%; this analysis's cluster curve at r~0.5 r200c~r500 reads ~12-19% (coherent, gas-axis) -- consistent; Lau et al. (2011) and Biffi et al. (2016): X-ray morphology quadrupoles in simulated clusters ~15-25% at r500",
+      "provenance": "ejection_anisotropy.ipynb cell 13 markdown, 'Test 7 -- observational anchors'",
+      "section": "Discussion"
+    },
+    {
+      "claim": "Discussion determination: a spherical BCM's zero cross term forces over-ejection to fit P(ell), biasing the recovered gas profile by order the anisotropic fraction; three testable consequences (biased gas profile / multi-probe break / non-Gaussian failure) and the fix (aligned m=2 term).",
+      "numbers": "fiducial S_sph ~= 0.93 at k~17 h/Mpc vs S_bind ~= 0.86 (illustrative of the over-ejection compensation); ties to Lee et al. 2022 MNRAS 519,573 / arXiv:2201.08320 (BCM peak counts fail above nu~4)",
+      "provenance": "wl_anisotropy_paper.ipynb cell 39 (Discussion) and cell 40 (Conclusions)",
+      "section": "Discussion"
+    }
+  ],
+  "figures": [
+    {
+      "path": "examples/figures_lightcone/bcm_warp_comparison_fid.png",
+      "shows": "3-panel: suppression S(ell) for BIND vs radial-BCM (sph) vs pure-spherical (mono); residual-field power C_ell^DeltaDelta (total-baryon / pure-sph-error / BCM-misses / triaxiality); decomposition fractions f_aniso, f_tri, f_mono(ell). The corrected, faithful-control headline measurement.",
+      "section": "Result (primary figure)"
+    },
+    {
+      "path": "papers/05_anisotropy/figs_raw/wl_anisotropy_paper/cell020_out0.png",
+      "shows": "4-panel maps: DMO, spherical-BCM, BIND (full), and the anisotropy residual kappa_bind-kappa_sph at z_s=1, same halos/seed",
+      "section": "Method/Intro (painted-vs-warped visual)"
+    },
+    {
+      "path": "papers/05_anisotropy/figs_raw/wl_anisotropy_paper/cell024_out0.png",
+      "shows": "Cross/auto decomposition of Delta P = P_bind - P_sph: Delta C_ell contributions and fraction-of-Delta-P vs ell, showing cross dominates (first order), auto subdominant/wrong-sign (second order)",
+      "section": "Method (mechanism) -- caveat: superseded sph control"
+    },
+    {
+      "path": "papers/05_anisotropy/figs_raw/wl_anisotropy_paper/cell037_out0.png",
+      "shows": "Field 4: response curves (top-10 parameters, anisotropic suppression % vs normalized u) and scale-resolved d(S_sph-S_bind)/du heatmap (parameter x ell)",
+      "section": "Result (which feedback channels drive it)"
+    },
+    {
+      "path": "papers/05_anisotropy/figs_raw/ejection_anisotropy/cell005_out0.png",
+      "shows": "Figure 1: radial q2(kappa) [3-5%, mild] and q2(y) [rises to 35-43%, strong] anisotropy profiles, fiducial vs TNG truth, group/cluster bins",
+      "section": "Result/Discussion (ejection-anisotropy driver, optional)"
+    },
+    {
+      "path": "papers/05_anisotropy/figs_raw/ejection_anisotropy/cell019_out0.png",
+      "shows": "Figure 4: which feedback knobs change the orientation of ejection (bipolar vs shape-tracing); star=AGN jet-reorientation factor",
+      "section": "Discussion (optional, ejection driver)"
+    },
+    {
+      "path": "papers/05_anisotropy/figs_raw/wl_anisotropy_paper/cell006_out0.png",
+      "shows": "Toy-model validation: injected pure aligned quadrupole recovered exactly; null test; cos2(Delta theta) alignment-dilution curve validated",
+      "section": "Methods appendix (validation)"
+    },
+    {
+      "path": "papers/05_anisotropy/figs_raw/wl_anisotropy_paper/cell008_out0.png",
+      "shows": "Pillar 1: correction profiles c0/c2 and f_quad(k) per-halo anisotropic fraction (group ~5%, cluster ~20% peak)",
+      "section": "Backup/appendix -- flagged inconsistency with Conclusions text (30-55%)"
+    },
+    {
+      "path": "papers/05_anisotropy/figs_raw/wl_anisotropy_paper/cell010_out0.png",
+      "shows": "Pillar 2: Stage-IV S/N forecast curves (group/cluster x LSST/Euclid/Roman) vs N_clusters",
+      "section": "Discussion (detectability), if space allows"
+    },
+    {
+      "path": "papers/05_anisotropy/figs_raw/wl_anisotropy_paper/cell032_out0.png",
+      "shows": "Field 3: peak counts, f_aniso(nu) for peaks/minima (noisy), convergence-PDF baryon residual",
+      "section": "Backup -- not recommended as primary (noisy)"
+    },
+    {
+      "path": "examples/figures_lightcone/fig_anisotropy_stats.pdf",
+      "shows": "Bar charts: feedback-response CV R2 with/without 'anisotropy' features per statistic (S(ell), peaks, V0-V2), and incremental R2 -- claims non-radial info adds ~nothing to feedback-parameter regression",
+      "section": "NOT recommended -- no WORKLOG/script provenance found"
+    }
+  ],
+  "caveats": [
+    "PRELIMINARY: control revision pending / number expected to drop -- the revision HAS been run (bcm_warp_comparison.py, 2026-06-17) and the number DID drop (scale-dependent ~45%->~0), but this correction has not been propagated back into the notebook's own Field-2/Discussion/Conclusions text, which still shows the pre-fix 41->48->55% (increasing with ell). Present the corrected number as headline; flag the old number as superseded.",
+    "Fiducial TNG only for the CORRECTED (bcm_warp) measurement -- it has only been run on the fid lightcone (z_s=1); no parameter-dependence figure exists yet for the corrected control (WORKLOG TODO: rerun --run tbNNNN). All existing feedback-response figures (Field 4, Pillar 3, ejection anisotropy) use the superseded circular/monopole control.",
+    "First-order decomposition only -- the cross/auto split of Delta P is exact (closure to machine precision) but was computed against the superseded (monopole) sph control; NOT re-derived with the faithful bcm_warp control (memory file explicitly flags this as an open TODO).",
+    "N_real=8 realizations are plane-randomizations of ONE 205 Mpc/h box -- errors are realization/projection scatter, not independent cosmic volumes; all significances/S/N in this dossier are optimistic under this caveat.",
+    "CAMELS-25/SB35 training caps clusters at M200c <~ 5e14 Msun/h; profiles measured at z~0 and placed at z_l=0.3 for the Pillar-2 forecast (assumes self-similar shape); 128^2 patches set a ~50 kpc/h resolution floor.",
+    "Peak/PDF significance uses per-field MARGINAL errors (paired cancellation ignored) -- conservative, a lower bound on the true paired significance.",
+    "Pillar-2 alignment dilution is a single scalar (0.55); a calibrated BCG-misalignment model is future work, not done.",
+    "Internal inconsistencies found in the source notebook (flag for Draft/Verify): Pillar-1 f_quad Conclusions text (30-55%) vs directly plotted figure (~5-20%); Pillar-2 Conclusions S/N claim (~3-5) vs printed forecast (<=2.3 at N_cl=1e4); 60 vs 57 OAT-run counts between the two notebooks; the on-disk fig_anisotropy_stats.pdf has no traceable WORKLOG/script provenance and answers an apparently different question (SBI feature importance, not WL-suppression anisotropic fraction) -- do not cite without further sourcing.",
+    "Peak-count '436->418->424, ~43% anisotropic' figure appears only in the memory file (wl-anisotropy-fieldlevel.md), not found verbatim in the notebook's own printed cell outputs inspected -- lower confidence, needs the originating cell re-identified before use."
+  ],
+  "citations": [
+    "Schneider & Teyssier 2015 (BCM origin) -- found: wl_anisotropy_paper.ipynb cell 0; src/bind/inference/spherical.py docstring",
+    "Aricò et al. 2020 (BCM) -- found: wl_anisotropy_paper.ipynb cell 0",
+    "Mead et al. 2021 (BCM/HMcode-style) -- found: wl_anisotropy_paper.ipynb cell 0",
+    "Lee et al. 2022, MNRAS 519, 573; arXiv:2201.08320 -- found: wl_anisotropy_paper.ipynb cells 39-40 ('our earlier result' that BCMs reproduce hydro peak counts only to nu<~4); real published paper, same author group, cite with real arXiv ID (not 'in prep')",
+    "Planck Intermediate V (2013), Fig. 15 -- found: ejection_anisotropy.ipynb cell 13 (azimuthal pressure-profile scatter ~20% at r500)",
+    "Lau et al. (2011) -- found: ejection_anisotropy.ipynb cell 13 (X-ray morphology quadrupoles ~15-25% at r500)",
+    "Biffi et al. (2016) -- found: ejection_anisotropy.ipynb cell 13 (same context as Lau+2011)",
+    "Dai, Feng & Seljak 2018 -- brief seed citation, NOT found in searched sources; needs external verification or drop",
+    "Osato+ (halo triaxiality WL) -- brief seed citation, NOT found in searched sources; needs external verification or drop",
+    "van Daalen+2020 -- brief seed citation; only a generic year-less 'van Daalen' mention found in ejection_anisotropy.ipynb (f_gas-suppression correlation); needs external verification that this is the intended paper",
+    "Paper I/II/III (BIND lightcone suite, in prep.) -- cross-references implied by the Discussion's tie to Paper II (data-driven 2-template marginalization) but not literally present in these source notebooks (predate the paper-suite split); cite per PLAN.md 'in prep.' convention"
+  ]
+}

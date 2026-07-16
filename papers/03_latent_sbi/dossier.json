@@ -1,0 +1,363 @@
+{
+  "results": [
+    {
+      "claim": "WL suppression latent PCA explained variance, 2 comps",
+      "numbers": "0.884 / 0.103 = 98.7% cumulative (216-run suite)",
+      "provenance": "WORKLOG 2026-06-29 wl_latent_sbi.ipynb §2; figs examples/wl_latent_sbi_figs/f2a_effdim.png, f2b_wl_latent_gaszones.png panel (a)",
+      "section": "Results (1) 2-D latent"
+    },
+    {
+      "claim": "Independent consistency check of the 2-D latent variance on the final 253-run Sobol sweep",
+      "numbers": "PC1~89%, PC2~11%, cumulative 99.2% (read off figure, not text-exact)",
+      "provenance": "paper_lightcone_figs2.ipynb cell 22 (§5.1 fig_latent_plane); figs_raw/paper_lightcone_figs2/cell022_out1.png",
+      "section": "Results (1) 2-D latent"
+    },
+    {
+      "claim": "Latent axis physics: BH axis and SN/wind axis, beta-TCVAE",
+      "numbers": "Latent0=BH axis (BlackHoleRadiativeEfficiency loading -0.43, QuasarThreshold, BH accr/Edd), uniform across z_s; Latent1=SN/wind axis (VariableWindVelFactor loading -0.46, WindEnergy, IMFslope), evolves with z_s; VAE reconstruction RMSE 1.3%",
+      "provenance": "WORKLOG 2026-06-24 'WL feedback latents (Lin+2026 for WL) + multi-probe test'; wl_feedback_vae.py docstring; figs examples/figures_lightcone/wl_vae_{latent_perturbation,param_corr,latent_params}.png",
+      "section": "Results (1) axis physics"
+    },
+    {
+      "claim": "Alternate axis-loading readout (independent of VAE), which params drive e1/e2",
+      "numbers": "Ranked by |loading|: VariableWindVelFactor, BlackHoleRadiativeEfficiency, IMFslope, WindFreeTravelDensFac, RadioFeedbackReorient, WindEnergyIn1e51, QuasarThreshold, BlackHoleAccretionFactor",
+      "provenance": "examples/wl_latent_sbi_figs/f2b_wl_latent_gaszones.png panel (b)",
+      "section": "Results (1) axis physics"
+    },
+    {
+      "claim": "Physical readout of latent plane (§6.1), correlation of latent-1/latent-2 with measured quantities",
+      "numbers": "f_gas r1=+0.26/r2=+0.94; f_star r1=+0.56/r2=-0.69; T r1=-0.33/r2=+0.05; Y r1=+0.27/r2=+0.93; gas conc r1=+0.58/r2=+0.78; DM conc r1=+0.74/r2=+0.61; star conc r1=+0.42/r2=+0.42; P_e r1=+0.65/r2=+0.69; K r1=-0.41/r2=-0.89; y-map r1=-0.01/r2=+0.90; tau-map r1=+0.21/r2=+0.84",
+      "provenance": "figs_raw/paper_lightcone_figs2/cell026_out1.png (§6.1 fig_latent_colored), read off panel annotations",
+      "section": "Results (1) axis physics"
+    },
+    {
+      "claim": "WL↔kSZ latent geometry: canonical correlation and principal angles",
+      "numbers": "canonical corr [0.98, 0.79]; principal angles [12°, 38°]",
+      "provenance": "WORKLOG 2026-06-29 wl_latent_sbi.ipynb §2; fig examples/wl_latent_sbi_figs/f2c_wl_vs_ksz_latent.png (title states numbers exactly)",
+      "section": "Results (2) WL↔kSZ geometry"
+    },
+    {
+      "claim": "WL tracks inner/outer f_gas zones less cleanly than kSZ",
+      "numbers": "WL: inner f_gas r=+0.59, outer f_gas r=+0.71; kSZ separates zones at r≈0.95",
+      "provenance": "WORKLOG 2026-06-29; fig examples/wl_latent_sbi_figs/f2b_wl_latent_gaszones.png panels (c)/(d)",
+      "section": "Results (2) WL↔kSZ geometry"
+    },
+    {
+      "claim": "1st WL latent universal across statistics, 2nd latent rotates",
+      "numbers": "latent-1 alignment: peak_counts 0.99, minima_counts 0.99, pdf 1.00, mf_v0 0.98, mf_v1 1.00, mf_v2 1.00, cl_kappa_y 0.97, cl_yy 0.93; latent-2 alignment: 0.76, 0.73, 0.69, 0.20, 0.43, 0.41, 0.90, 0.89 respectively",
+      "provenance": "WORKLOG 2026-06-24 'WL feedback latents...' (qualitative 1.0 / 0.7-0.8 / 0.2-0.4 match); fig examples/wl_latent_sbi_figs/f2d_multistat_align.png (exact bar values)",
+      "section": "Results (2) WL↔kSZ geometry"
+    },
+    {
+      "claim": "Orthogonal tSZ probes sharpen/rotate accessible axes without expanding # constrained params",
+      "numbers": "recoverable params (CV-R2>0.1) ~5/30 for kappa-2pt vs all-WL vs WL+tSZ; IMFslope recoverability 0.33->0.56->0.64; WindEnergy 0.13->0.33; RadioFeedbackReorient ->0.16",
+      "provenance": "WORKLOG 2026-06-24 'WL feedback latents...'; figs examples/figures_lightcone/{wl_stat_latent_summary,wl_recoverability_byparam}.png",
+      "section": "Results (2) WL↔kSZ geometry"
+    },
+    {
+      "claim": "Top Cl-suppression drivers by model-free Spearman |r|, n=253",
+      "numbers": "IMFslope 0.49, VariableWindVelFactor 0.48, BlackHoleRadiativeEfficiency 0.43, WindEnergy 0.34",
+      "provenance": "WORKLOG 2026-06-29 §1; fig examples/wl_latent_sbi_figs/f1_corr_heatmaps.png (labeled n=253, z_s=1); also paper_lightcone_figs2.ipynb cell 18 §4.6a",
+      "section": "Results (3) global response"
+    },
+    {
+      "claim": "Deprecated Sobol-index global sensitivity metric disagrees with Spearman ranking",
+      "numbers": "Sobol S_i: VariableWindVelFactor ~0.33 top, BlackHoleRadiativeEfficiency ~0.23 2nd, IMFslope not a top driver",
+      "provenance": "wl_latent_sbi.py docstring §1 ('kept for reference but no longer drives §1'); fig examples/wl_latent_sbi_figs/f1_global_sobol.png",
+      "section": "Results (3) global response (caveat)"
+    },
+    {
+      "claim": "Auto-Cl 30-param NPE posterior is broad; ~5 params constrained",
+      "numbers": "posterior sigma/prior sigma: IMFslope 0.66, WindEnergy 0.72, VariableWindVelFactor 0.75, BlackHoleRadiativeEfficiency 0.83",
+      "provenance": "WORKLOG 2026-06-29 §3; fig examples/wl_latent_sbi_figs/f3b_corner_cl.png",
+      "section": "Results (4) SBI"
+    },
+    {
+      "claim": "Auto-Cl information content is ~3-dimensional",
+      "numbers": "510x5 modes PCA-compress to 3 comps = 99.5% var (0.863/0.126/0.006)",
+      "provenance": "WORKLOG 2026-06-24 'auto-Cl NPE on 216 runs + all-modes/Nyquist summary'",
+      "section": "Results (4) SBI"
+    },
+    {
+      "claim": "2-D latent posterior is tight even though 30-param marginals are broad",
+      "numbers": "latent posterior ~0.17-0.18 of the node-cloud width",
+      "provenance": "WORKLOG 2026-06-29 §3; fig examples/wl_latent_sbi_figs/f3c_latent_posterior.png panel (b)",
+      "section": "Results (4) SBI"
+    },
+    {
+      "claim": "All-modes/Nyquist summary beats old coarse ell<5000 binning",
+      "numbers": "(A) 10-bin/ell<5000: mean shrink 0.994; (B) all-modes/ell<Nyquist+PCA: 0.986 (best); (C) all-modes no PCA: 1.004 (worst); all coverage~0.90; Nyquist ell~36864",
+      "provenance": "WORKLOG 2026-06-24 'auto-Cl NPE on 216 runs + all-modes/Nyquist summary'",
+      "section": "Results (4) SBI"
+    },
+    {
+      "claim": "Full tomography does not improve constraints beyond the autos",
+      "numbers": "mean shrink 0.992 (full tomo) vs 0.986 (auto only); 7650 feats still -> 3 PCA comps, 0.864/0.125/0.006",
+      "provenance": "WORKLOG 2026-06-24, same entry, 'raw-Cl + full-tomography' paragraph",
+      "section": "Results (4) SBI"
+    },
+    {
+      "claim": "Model-free proof the auto-Cl inverse problem is rank-2/degenerate",
+      "numbers": "PC1=86.3%+PC2=12.6%=98.9% of Cl variation; forward |corr| 0.37-0.45 for VarWindVel/BHRadEff/WindFreeTravelDens/IMFslope; 40 nearest-fiducial runs span ~100% of prior (kNN std/prior~1.01); linear inverse R2<=0.43, mean 0.06",
+      "provenance": "WORKLOG 2026-06-24, 'diagnosed why (rank-2 forward map)' paragraph",
+      "section": "Results (4) SBI"
+    },
+    {
+      "claim": "SBC calibration of the wl_latent_sbi NPE",
+      "numbers": "mean 68% coverage = 0.70 (calibrated)",
+      "provenance": "WORKLOG 2026-06-29 §3; fig examples/wl_latent_sbi_figs/f3e_crosschecks.png panel (c)",
+      "section": "Results (4) SBI"
+    },
+    {
+      "claim": "Cautionary: stacking emulated HOS/kappa x y onto Cl degrades the fiducial fit",
+      "numbers": "mean shrink 0.97->1.01->1.03 (Cl -> Cl+peaks -> Cl+peaks+kappa x y); informed params 5->0; measured fiducial max|z|=2.1sigma for Cl alone, 5.2sigma once HOS appended",
+      "provenance": "WORKLOG 2026-06-29 §3 'Cautionary result (§3d)'; fig examples/wl_latent_sbi_figs/f3d_progressive.png",
+      "section": "Results (4) SBI (mandatory caveat)"
+    },
+    {
+      "claim": "kappa x y cross-spectrum is the single most feedback-sensitive field-level observable",
+      "numbers": "Sobol spread 0.76 vs peaks/WST ~0.08",
+      "provenance": "wl_sz_multiprobe.py docstring",
+      "section": "Results (5) kappa x y dominance"
+    },
+    {
+      "claim": "WL auto-stats barely constrain feedback; kappa x y + tSZ dominate",
+      "numbers": "pins 2 directions to variance 0.06/0.11 (fixed cosmology); amplitude-marginalized shear x y variance 0.25; per-halo kappa stack = feedback-blind mass anchor",
+      "provenance": "WORKLOG 2026-06-24 'P4 → multi-probe WL×SZ...' Findings (1)-(3); memory wl-sz-kappay-feedback.md",
+      "section": "Results (5) kappa x y dominance"
+    },
+    {
+      "claim": "Cosmology anchor: kappa-auto pins amplitude, freeing kappa x y for feedback",
+      "numbers": "A = 1.00±0.06 -> 0.999±0.008; feedback-direction variance 0.25 -> 0.15 (toward fixed-cosmology floor 0.06)",
+      "provenance": "WORKLOG 2026-06-24 'FIRST REAL-DATA fit (D9-D10)'; wl_sz_cosmo_anchor.py docstring",
+      "section": "Results (5) kappa x y dominance"
+    },
+    {
+      "claim": "Per-halo Born delta-kappa tracks f_gas, peaks at a specific redshift",
+      "numbers": "r=+0.62 with f_gas(<r500c) (plus T); imprint peaks at z~0.33; aperture = 0.659xR200 (R500_FAC)",
+      "provenance": "WORKLOG 2026-06-29 §6 entry (lightcone_halo_dkappa.py bullet); lightcone_halo_dkappa.py code (R500_FAC=0.659); fig examples/figures_lightcone/fig_lightcone_population.pdf right panel",
+      "section": "Results (6) halo-level anchor"
+    },
+    {
+      "claim": "z=0.034 shell carries little weight but proxies amplitude features well, not redistribution",
+      "numbers": "z=0.034 shell = ~3% of z_s=1 lensing kernel weight (kernel peaks z~0.42); amplitude features (f_gas/f_star/Y/T/K) r>0.95 z=0.034-vs-lightcone; redistribution features (gas conc/ejection) r~0.47; latent-1 CV R2 improves 0.94->0.95 on lightcone-weighted readout",
+      "provenance": "WORKLOG 2026-06-29 '§6 of paper_lightcone_figs2.ipynb fixed...' full entry; fig examples/figures_lightcone/fig_lightcone_population.pdf (3-panel)",
+      "section": "Results (6) §6 population fix"
+    },
+    {
+      "claim": "First real-data confrontation: BIND shear x y vs DES Y3 x ACT",
+      "numbers": "DES_ACT.fits, 26.5 sigma total detection, joint covariance, DES n(z); Pylians XPk_plane norm bug factor F=1.2016e7 found+fixed",
+      "provenance": "desact_sheary_realfit.py docstring; WORKLOG 2026-06-24 'FIRST REAL-DATA fit (D9-D10)'",
+      "section": "Results (7) real-data contact"
+    },
+    {
+      "claim": "Corrected shear x y vs real data result (final, WORKLOG-corrected number; supersedes an earlier pipeline-bug '~2x too weak' read)",
+      "numbers": "BIND ~1.5-2x high (TNG too gas-bound), also too steep; physical 2.4' ACT beam (10' 'effective beam' was a bug); figure-level: DES bin3 (z~0.74) robust 8'-40' BIND/data ~2.5x, bin4 (z~0.94) ~2.3x",
+      "provenance": "WORKLOG 2026-06-26 'NEW field-level companion paper paper_ksz_field.ipynb' (corrects WORKLOG 2026-06-24's intermediate 10'-beam framing); fig examples/figures_field/g5_desact_confront.pdf",
+      "section": "Results (7) real-data contact"
+    },
+    {
+      "claim": "Robust feedback signal remains inner-CGM (kSZ-CAP, X-ray f_gas), not shear x y, at this stage",
+      "numbers": "n/a (qualitative)",
+      "provenance": "WORKLOG 2026-06-24, closing sentence of 'FIRST REAL-DATA fit (D9-D10)'",
+      "section": "Results (7) real-data contact (caveat)"
+    },
+    {
+      "claim": "Emulator fidelity: GP recovers WL suppression response to ~2% on held-out interior split",
+      "numbers": "median frac err 2.0% on S(ell), dip-corr 0.87 (237-run suite); below ~6% cosmic-variance/BIND-noise floor; GP epistemic 1sigma ~1.4%",
+      "provenance": "WORKLOG 2026-06-23 'bind.emulator', 'Full-set rebuild + backend verdict' paragraph",
+      "section": "Discussion (emulator fidelity)"
+    },
+    {
+      "claim": "Emulator Stage-IV-precision check: median S(ell) error (ell>300) vs number of physical features",
+      "numbers": "N2=5.3%, N3=4.4%, N4=4.4%, N5=4.4%",
+      "provenance": "fig figs_raw/paper_lightcone_figs2/cell034_out1.png (§7 fig_emulator), annotation text",
+      "section": "Discussion (emulator fidelity)"
+    },
+    {
+      "claim": "SHMR: joint 30-param Sobol feedback scatter exceeds one-at-a-time twobound spread; extremes not an upper bound",
+      "numbers": "Sobol feedback sigma~=0.386 dex (var~=0.149 dex^2) > twobound one-at-a-time sigma~=0.161 dex (var~=0.026 dex^2); accretion history (t_form) explains ~10% of halo-to-halo residual (halo-to-halo var~=0.005 dex^2)",
+      "provenance": "WORKLOG 2026-06-22 'SHMR scatter (feedback vs accretion) on the SB35 Sobol suite'; fig figs_raw/shmr_accretion_scatter_sb35/cell011_out1.png",
+      "section": "Optional appendix (SHMR)"
+    },
+    {
+      "claim": "Sobol/twobound/fiducial share the same halos (drop-in reuse)",
+      "numbers": "2933/2933 matched snap-96 DMO halos",
+      "provenance": "WORKLOG 2026-06-22, same entry",
+      "section": "Optional appendix (SHMR), Methods"
+    },
+    {
+      "claim": "Suite design size bookkeeping across analyses",
+      "numbers": "256-node Sobol design total; 123 valid runs (lightcone_cl_sbi.py, 06-23); 216 completed runs (06-24 auto-Cl NPE refresh + WL feedback latents); 237-run bind.emulator rebuild (06-24); 253 usable runs final (wl_latent_sbi.ipynb / paper_lightcone_figs2.ipynb, 06-29)",
+      "provenance": "WORKLOG entries 2026-06-21/22/23/24/29 (design-size mentions collected across the dated sections)",
+      "section": "Methods"
+    },
+    {
+      "claim": "Per-halo population SBI (8.6M halos) was never completed to a real numeric result",
+      "numbers": "n/a — GAP, see dossier.md Gaps #1",
+      "provenance": "sobol_sbi.ipynb executed text outputs: 'GPU results present: False'; '[DEMO] no GPU results; training a small inline model (illustration only)'; no perhalo_sbi_results/population_posterior.npz found on disk",
+      "section": "Methods / Results (gap, not a sourced result)"
+    }
+  ],
+  "figures": [
+    {
+      "path": "examples/wl_latent_sbi_figs/f2a_effdim.png",
+      "shows": "Linear PCA scree (2 comps=99% var) + nonlinear IOB information curve, effective dim ~2",
+      "section": "Results (1) 2-D latent"
+    },
+    {
+      "path": "papers/03_latent_sbi/figs_raw/paper_lightcone_figs2/cell022_out1.png",
+      "shows": "Latent-plane scree (PC1~89%,PC2~11%,cum 99.2%) + Sobol/1P spokes on the latent plane, colored by group-cluster f_gas",
+      "section": "Results (1) 2-D latent"
+    },
+    {
+      "path": "examples/wl_latent_sbi_figs/f2b_wl_latent_gaszones.png",
+      "shows": "2-comp scree; which params drive e1/e2 (BH/SN/wind bar chart); latent plane colored by inner/outer f_gas (r=+0.59/+0.71)",
+      "section": "Results (1) axis physics + Results (2) WL/kSZ zones"
+    },
+    {
+      "path": "examples/figures_lightcone/fig_latent_drivers.pdf",
+      "shows": "Latent plane colored by gas amplitude/ejection/gas-DM offset; partial-correlation driver bar chart",
+      "section": "Results (1) axis physics"
+    },
+    {
+      "path": "examples/figures_lightcone/wl_vae_latent_perturbation.png",
+      "shows": "beta-TCVAE latent-perturbation effect on S(ell) at each z_s (Lin+2026 Fig 1 analogue)",
+      "section": "Results (1) axis physics"
+    },
+    {
+      "path": "examples/figures_lightcone/wl_vae_param_corr.png",
+      "shows": "Pearson correlation of the 2 VAE latents with the 30 astro params",
+      "section": "Results (1) axis physics"
+    },
+    {
+      "path": "examples/figures_lightcone/wl_vae_latent_params.png",
+      "shows": "30 params projected onto the (Latent0,Latent1) plane (Lin+2026 Fig 3 analogue)",
+      "section": "Results (1) axis physics"
+    },
+    {
+      "path": "examples/wl_latent_sbi_figs/f2c_wl_vs_ksz_latent.png",
+      "shows": "WL latent vs kSZ tau/y latent, colored by inner f_gas; canon corr [0.98,0.79], principal angles [12,38 deg] in title",
+      "section": "Results (2) WL-kSZ geometry"
+    },
+    {
+      "path": "examples/wl_latent_sbi_figs/f2d_multistat_align.png",
+      "shows": "1st WL latent universal (~0.99 across 8 statistics) vs 2nd latent rotated (0.20-0.90) bar chart",
+      "section": "Results (2) WL-kSZ geometry"
+    },
+    {
+      "path": "examples/wl_latent_sbi_figs/f1_corr_heatmaps.png",
+      "shows": "Model-free per-bin Spearman r, 7 statistics x 30 params, n=253 z_s=1",
+      "section": "Results (3) global response"
+    },
+    {
+      "path": "papers/03_latent_sbi/figs_raw/paper_lightcone_figs2/cell018_out1.png",
+      "shows": "Same Spearman-heatmap analysis, 6-panel, embedded in the paper notebook",
+      "section": "Results (3) global response"
+    },
+    {
+      "path": "examples/wl_latent_sbi_figs/f1_global_sobol.png",
+      "shows": "Deprecated Sobol-index global sensitivity (disagrees with Spearman ranking) -- use with caveat",
+      "section": "Results (3) global response (caveat/appendix only)"
+    },
+    {
+      "path": "examples/wl_latent_sbi_figs/f3b_corner_cl.png",
+      "shows": "NPE posterior corner, 6 best-constrained params, physical units, TNG fiducial marked",
+      "section": "Results (4) SBI"
+    },
+    {
+      "path": "examples/wl_latent_sbi_figs/f3c_latent_posterior.png",
+      "shows": "chi^2 over the latent plane w/ MAP; 30-d NPE posterior projected into the 2-D latent (tight vs Sobol cloud)",
+      "section": "Results (4) SBI"
+    },
+    {
+      "path": "examples/wl_latent_sbi_figs/f3e_crosschecks.png",
+      "shows": "NPE vs emcee marginals; SBC rank histogram; per-param 68% coverage (mean 0.70)",
+      "section": "Results (4) SBI, SBC calibration"
+    },
+    {
+      "path": "examples/wl_latent_sbi_figs/f3d_progressive.png",
+      "shows": "Cautionary: mean posterior/prior width for Cl / Cl+peaks / Cl+peaks+kappa x y (degrades ~0.96->1.01->1.03)",
+      "section": "Results (4) SBI, cautionary section 3d"
+    },
+    {
+      "path": "examples/figures_field/g6_kxy_driver.pdf",
+      "shows": "Band-integrated feedback response D by probe (y-tau>tau-tau>y-y>kappa-y>>kappa-kappa); node-spread/fiducial vs ell per probe",
+      "section": "Results (5) kappa x y dominance -- cross-paper provenance, see dossier.md Gaps #2"
+    },
+    {
+      "path": "examples/figures_lightcone/fig_lightcone_population.pdf",
+      "shows": "Lensing-kernel weight vs z (3% at z=0.034); amplitude-vs-redistribution driver bars (r>0.95 vs r~0.47); per-halo Born delta-kappa vs f_gas scatter (r=+0.62)",
+      "section": "Results (6) halo-level anchor + section 6 population fix"
+    },
+    {
+      "path": "examples/figures_field/g5_desact_confront.pdf",
+      "shows": "xi_gamma-y(theta) BIND Sobol band vs real DES Y3xACT data, 2 source bins, 2.4' beam, robust-aperture BIND/data ~2.5x/2.3x annotated",
+      "section": "Results (7) real-data contact -- cross-paper provenance, see dossier.md Gaps #2"
+    },
+    {
+      "path": "papers/03_latent_sbi/figs_raw/shmr_accretion_scatter_sb35/cell011_out1.png",
+      "shows": "SHMR scatter-budget bar chart: feedback var ~0.149 dex^2 vs twobound-marginal ~0.026 dex^2 vs halo-to-halo ~0.005 dex^2",
+      "section": "Optional appendix (SHMR)"
+    },
+    {
+      "path": "papers/03_latent_sbi/figs_raw/shmr_accretion_scatter_sb35/cell009_out0.png",
+      "shows": "SHMR relation and its scatter (binned)",
+      "section": "Optional appendix (SHMR)"
+    },
+    {
+      "path": "papers/03_latent_sbi/figs_raw/shmr_accretion_scatter_sb35/cell013_out1.png",
+      "shows": "Accretion-history (t_form) regression against halo-to-halo residual",
+      "section": "Optional appendix (SHMR)"
+    },
+    {
+      "path": "papers/03_latent_sbi/figs_raw/shmr_accretion_scatter_sb35/cell015_out0.png",
+      "shows": "Fiducial SHMR colored by formation time (4-panel)",
+      "section": "Optional appendix (SHMR)"
+    },
+    {
+      "path": "papers/03_latent_sbi/figs_raw/paper_lightcone_figs2/cell010_out1.png",
+      "shows": "Experimental design: 256-node unit-cube Sobol design ranked by |r| with S(ell), with 1P/twobound spokes overlaid",
+      "section": "Methods (supplementary)"
+    },
+    {
+      "path": "papers/03_latent_sbi/figs_raw/paper_lightcone_figs2/cell034_out1.png",
+      "shows": "Emulator held-out fractional error vs LSST-Y10/Euclid measurement error, swept over N physical features (N2=5.3%, N3-5=4.4%)",
+      "section": "Discussion (emulator fidelity, supplementary)"
+    },
+    {
+      "path": "examples/sobol_sbi_figs/perhalo_data.png",
+      "shows": "Per-halo training-data illustration only: 60,000 halos, Y200-M200 colored by wind energy (NOT a posterior result)",
+      "section": "Methods (per-halo SBI data illustration)"
+    }
+  ],
+  "caveats": [
+    "Emulator HOS/cross fidelity limits stacked SBI -- the 5.2sigma artifact (section 3d) is a methods warning, not a physics result (WORKLOG 2026-06-29)",
+    "TNG-only + fixed cosmology throughout; cross-suite/cosmology generalization untested (wl_stat_latents.py docstring; WORKLOG 2026-06-24)",
+    "n=253 design points in 30-D -- interpolation within the Sobol prior-predictive cloud, not extrapolation (label on f1_corr_heatmaps.png; WORKLOG 2026-06-29)",
+    "Per-halo map link (Born delta-kappa) is fiducial-only -- Sobol runs have no lensplanes, only randomized ray-traced kappa_maps.npz (WORKLOG 2026-06-29 section 6 entry)",
+    "WST excluded from wl_stat_latents.py cross-statistic comparison -- only 40 valid runs at that point (WORKLOG 2026-06-24)",
+    "Two disagreeing global-sensitivity metrics exist (Spearman vs Sobol-index); Spearman is the one WORKLOG endorses for the headline figure, Sobol-index is deprecated per wl_latent_sbi.py docstring",
+    "Per-halo population SBI on 8.6M halos was never run to a completed GPU result -- notebook explicitly falls back to a small inline DEMO model labeled 'illustration only, not the science result'; no cached population_posterior.npz found on disk",
+    "The DES Y3xACT shear x y real-data result went through 3 corrections in one WORKLOG entry plus a further correction 2 days later; use the final (2026-06-26) '~1.5-2x high, too steep' number, not the initial '~2x too weak' pipeline-bug read still present in desact_sheary_realfit.py's stale docstring",
+    "sobol_sbi_figs/{corner_fiducial,calibration,degeneracy_matrices,degenerate_directions,joint_degeneracy,loo_recovery,marginals,constrained_params}.png are first-generation (2026-06-22 MDN/GaussNPE) results, methodologically superseded by the 2026-06-29 wl_latent_sbi.ipynb generation -- use as methods-history only",
+    "twobound one-at-a-time response errors are a conservative marginal convention, not paired per-run, when compared to the Sobol joint-feedback SHMR variance in the optional appendix"
+  ],
+  "citations": [
+    "Lin+2026, arXiv:2509.01881 -- CONFIRMED verbatim in wl_feedback_vae.py docstring ('Lin, Li, Genel, Villaescusa-Navarro+ 2026, One latent to fit them all')",
+    "Cranmer+2020 (SBI review) -- brief seed, not found in mined sources, verify independently",
+    "Papamakarios & Murray 2016 / Greenberg+2019 (NPE/APT) -- brief seed, not found by name in mined sources",
+    "Tejero-Cantero+2020 (sbi package) -- methodologically confirmed: sbi package used directly in lightcone_cl_sbi.py, wl_latent_sbi.py, sobol_perhalo_sbi.py",
+    "Talts+2018 (SBC) -- methodologically confirmed: sbc_ranks / rank-histogram calibration used in wl_latent_sbi.py and sobol_sbi.ipynb",
+    "Cheng+2020 (WST) -- methodologically confirmed: bind.inference.stats WST via kymatio (WORKLOG 2026-06-23)",
+    "CCA / canonical correlation standard ref -- methodologically confirmed: sklearn.cross_decomposition.CCA used in wl_stat_latents.py",
+    "Villaescusa-Navarro+2021 (CAMELS) -- brief seed, standard suite reference, not spelled out by name in Paper-III-specific sources",
+    "Gatti+2021/Pandey+2022 (DES x ACT shear x y) -- CONFIRMED author names in desact_sheary_realfit.py docstring ('Pandey/Gatti+'), data file shivampcosmo/ACTxDESY3 DES_ACT.fits; verify exact year(s)",
+    "Troster+2021 (KiDS x Planck y) -- brief seed, not found in mined sources, verify independently",
+    "Hill & Spergel 2014 -- brief seed, not found in mined sources, verify independently",
+    "Battaglia+2012 (pressure profile) -- brief seed, not found in Paper-III-scoped sources (Paper-IV-adjacent files reference a different GNFW profile, Hadzhiyska+26), verify independently",
+    "Amodeo+2021 -- found in Paper-IV-adjacent profiles.py docstring ('ACTxDESI / Schaan+21 / Amodeo+21'), relevant only if this paper borrows the profile-shape framing",
+    "Additional unverified bib keys harvested from wl-tsz-bridge/examples/draft.tex: Martinet2021peaks, Gatti2022HOScos, Zurcher2022MFs, Marques2024HSC, FLAMINGOscattering2025, Gatti2023maplevel, BigwoodAmon2024, DESACTTSZWL2025, Pandey2022joint, vanDaalen2020, VN2021fieldemulator, Schaye2023FLAMINGO, Schneider2022clusters, Siegel2025, Siegeletal2025mnras, Arico2024, Fong2021TNGbaryons, MartinezConcepcion2024baryons, Amonetal2023, LeeAmon2026, BindPaper1 -- none cross-checked against arXiv/ADS by this mining pass",
+    "Papers I/II/IV = in prep, per PLAN.md convention"
+  ]
+}

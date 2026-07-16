@@ -1,0 +1,67 @@
+[
+ {
+  "file": "cell003_out0.png",
+  "cell": 3,
+  "heading": "1. Baseline: linear scree vs. the information curve",
+  "source_head": [
+   "from sklearn.decomposition import PCA",
+   "pca = PCA().fit(fs.X)",
+   "evr = np.cumsum(pca.explained_variance_ratio_)",
+   "",
+   "# IOB on the observables themselves (X -> X): intrinsic dimension of the manifold.",
+   "iob_x = S.IOB(d_in=fs.D, d_out=fs.D, latent=12, seed=0).fit(fs.X, fs.X, epochs=500)"
+  ]
+ },
+ {
+  "file": "cell005_out0.png",
+  "cell": 5,
+  "heading": "2. Effective number of *feedback* dimensions  (\u03b8 \u2192 observables)",
+  "source_head": [
+   "iob = S.IOB(d_in=fs.THETA.shape[1], d_out=fs.D, latent=12, seed=0).fit(",
+   "    fs.THETA, fs.X, epochs=800)",
+   "ic = iob.information_curve()",
+   "eff = S.effective_dimension(ic, frac=0.95)",
+   "",
+   "fig, ax = plt.subplots(figsize=(7,4.2))"
+  ]
+ },
+ {
+  "file": "cell007_out0.png",
+  "cell": 7,
+  "heading": "3. The degeneracy distillery \u2014 active subspace",
+  "source_head": [
+   "sur = S.Surrogate(d_in=fs.THETA.shape[1], d_out=fs.D, seed=0).fit(fs.THETA, fs.X, epochs=800)",
+   "w, V = S.active_subspace(sur, fs.THETA)",
+   "",
+   "fig, ax = plt.subplots(figsize=(7,4))",
+   "ax.semilogy(np.arange(1,len(w)+1), w, \"o-\")",
+   "ax.set(xlabel=\"active-subspace direction\", ylabel=\"eigenvalue (sensitivity$^2$)\","
+  ]
+ },
+ {
+  "file": "cell008_out0.png",
+  "cell": 8,
+  "heading": "3. The degeneracy distillery \u2014 active subspace",
+  "source_head": [
+   "# Loadings: the top stiff (constrained) directions and the sloppiest (degenerate) one.",
+   "names = S.ASTRO_NAMES",
+   "show = [0, 1, 2, len(w)-1]                       # 3 stiffest + the single sloppiest",
+   "labels = [\"stiff #1 (best measured)\", \"stiff #2\", \"stiff #3\", \"sloppiest (degenerate)\"]",
+   "M = np.column_stack([V[:, i] for i in show]).T",
+   ""
+  ]
+ },
+ {
+  "file": "cell010_out0.png",
+  "cell": 10,
+  "heading": "4. Topology of the feedback manifold",
+  "source_head": [
+   "from sklearn.manifold import Isomap",
+   "Z = iob.encode(fs.THETA)                          # info-ordered latent coords",
+   "emb = Isomap(n_neighbors=12, n_components=2).fit_transform(Z)",
+   "",
+   "stiff_coord = fs.THETA @ V[:, 0]                  # projection on the stiffest direction",
+   "drv = names.index(\"VariableWindVelFactor\") if \"VariableWindVelFactor\" in names else 0"
+  ]
+ }
+]

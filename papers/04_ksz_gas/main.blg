@@ -1,0 +1,50 @@
+This is BibTeX, Version 0.99d (TeX Live 2024 - Spack)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+The style file: plainnat.bst
+Database file #1: references.bib
+Warning--empty journal in kszpartII
+Warning--empty journal in kszpartI
+Warning--empty journal in siegel25
+You've used 15 entries,
+            2773 wiz_defined-function locations,
+            673 strings with 9520 characters,
+and the built_in function-call counts, 10347 in all, are:
+= -- 779
+> -- 1105
+< -- 1
++ -- 372
+- -- 357
+* -- 1011
+:= -- 1748
+add.period$ -- 48
+call.type$ -- 15
+change.case$ -- 155
+chr.to.int$ -- 15
+cite$ -- 33
+duplicate$ -- 303
+empty$ -- 522
+format.name$ -- 372
+if$ -- 2019
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 14
+newline$ -- 86
+num.names$ -- 60
+pop$ -- 289
+preamble$ -- 1
+purify$ -- 140
+quote$ -- 0
+skip$ -- 298
+stack$ -- 0
+substring$ -- 168
+swap$ -- 11
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 165
+warning$ -- 3
+while$ -- 55
+width$ -- 0
+write$ -- 200
+(There were 3 warnings)

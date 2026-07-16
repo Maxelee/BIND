@@ -1,0 +1,955 @@
+% Preprint template for the BIND Lightcone Suite drafts.
+% Copy to papers/<id>/main.tex and fill. Keep the preamble minimal —
+% it must compile with a plain TeX Live install (pdflatex + bibtex).
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage[round,authoryear]{natbib}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{xcolor}
+
+% ---- shared macros (use these; the coherence pass checks for them) ----
+\newcommand{\bind}{\textsc{bind}}
+\newcommand{\Sell}{S(\ell)}                    % WL suppression S(l) = Cl_baryon/Cl_DMO
+\newcommand{\kappay}{\kappa\times y}
+\newcommand{\fgas}{f_{\rm gas}}
+\newcommand{\Msun}{{\rm M}_\odot}
+\newcommand{\Mhalo}{M_{200c}}
+\newcommand{\zs}{z_{\rm s}}
+\newcommand{\sez}{S(\ell, z_{\rm s})}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\Rnu}{R(\nu)}
+
+\title{The BIND Lightcone Suite I: Baryon-Painted Weak-Lensing and\\
+Sunyaev--Zel'dovich Lightcones from Dark-Matter-Only Simulations}
+\author{%
+  Max E.\ Lee$^{1,2}$ \todo{author list to be finalized}\\[2pt]
+  \small $^1$Department of Astronomy, Columbia University, New York, NY, USA\\
+  \small $^2$Center for Computational Astrophysics, Flatiron Institute, New York, NY, USA
+}
+\date{Draft: \today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Baryonic feedback is now the dominant systematic limiting small-scale weak-lensing (WL)
+and thermal Sunyaev--Zel'dovich (tSZ) cosmology, and existing correction schemes force a
+choice between physical fidelity (full hydrodynamical simulations, computationally
+prohibitive at survey volume) and speed (analytic baryon correction models, which impose
+spherically symmetric, deterministic halo profiles). We present \bind{}, a conditional
+flow-matching emulator trained on the CAMELS-TNG suite that paints stochastic,
+multi-channel baryonic fields (gas and stellar density, Compton-$y$, temperature,
+entropy, electron pressure) onto individual dark-matter-only (DMO) halos, and describe
+its extension to a full cosmological lightcone: per-snapshot painting of TNG300-Dark
+halos, circular-aperture compositing, lens-plane construction, and multi-plane
+ray-tracing that produces convergence $\kappa(\zs)$, Compton-$y$, and kinetic-SZ optical
+depth $\tau$ maps self-consistently from a single painted density field. At fiducial
+CAMELS parameters, the \bind{} lightcone reproduces the true TNG300 hydrodynamical
+lightcone's WL power spectrum and Minkowski functionals to a few percent
+($C_\ell^{\kappa\kappa,{\rm BIND}}/C_\ell^{\kappa\kappa,{\rm hydro}}\approx1.00$;
+$\Rnu_{\rm BIND}/\Rnu_{\rm hydro}=0.98$--$1.06$), with peak and minimum counts agreeing
+within their (larger, small-number-dominated) sampling scatter in the sparsely populated
+tails, and halo-level $Y$--$M$ and pressure-profile statistics agreeing within overlapping
+intrinsic-scatter bands. % src: narrowed to match Results~1 (Section~\ref{subsec:res1}); peak/min-count residuals reach ~+-15% (N_peak) and ~+-7% (N_min), not "a few percent"
+We show
+that the peak-stacked ratio $\Rnu\equiv\langle y\rangle/\langle\kappa\rangle$ is not a
+pure gas fraction but a specific-thermal-energy proxy, $\Rnu\propto\fgas\,T_{\rm mw}$
+(Pearson $r=0.79$), and we establish a direct, quantitative bridge between per-halo gas
+astrophysics and field-level WL observables: the background-subtracted group-scale gas
+fraction predicts the lightcone power-spectrum suppression $\Sell$ with $r=0.91$, and the
+integrated Compton-$Y_{500c}$ is an even tighter predictor ($r=0.93$). We characterize the
+completeness of the reuse-based low-mass ($10^{12}$--$10^{13}\,\Msun/h$) extension and
+lay out the mass-resolution validation program still required before extrapolating beyond
+the TNG300-Dark training resolution. This pipeline, its released weights, and the
+validated map products form the methodological foundation for the feedback-response,
+data-application, kinetic-SZ, and field-level-anisotropy studies presented in the
+companion papers of this series.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+
+Weak gravitational lensing (WL) and the thermal Sunyaev--Zel'dovich (tSZ) effect are two
+of the most direct cosmological probes of the matter and thermal-energy distribution in
+the late-time Universe, and both are increasingly limited not by statistical power but by
+our ignorance of baryonic feedback. Active galactic nucleus (AGN) and stellar-driven winds
+evacuate gas from galaxy-group and cluster halos, redistributing mass on scales up to
+several virial radii and suppressing the nonlinear matter power spectrum by tens of
+percent at $k\gtrsim1\,h\,{\rm Mpc}^{-1}$ relative to a dark-matter-only (DMO) universe
+\citep{vanDaalen2011,vanDaalen2020}. Recent multi-wavelength observations sharpen the
+concern that current-generation hydrodynamical simulations under-predict the strength of
+this feedback: joint kinetic-SZ (kSZ) and X-ray analyses find that real group-scale halos
+expel gas more efficiently, and to larger radii, than simulations such as
+\textsc{flamingo} predict \citep{Siegel2025}, and the cross-correlation of DES Year-3
+shear with ACT tSZ maps is detected at high significance with evidence for reduced
+thermal pressure in halos below $M\sim10^{14}\,\Msun\,h^{-1}$
+\citep{DESACTTSZWL2025,BigwoodAmon2024}. Analytic baryon correction models (BCMs), long
+used to marginalize this systematic for two-point cosmic-shear analyses at the
+$\sim$percent level \citep{SchneiderTeyssier2015,Chisari2019,Mead2021}, are only as good
+as the parametric, spherically symmetric halo profiles they assume.
+
+The problem sharpens further once Stage-IV surveys (LSST, \textit{Euclid}, the
+\textit{Roman Space Telescope}) move beyond the power spectrum to exploit the
+non-Gaussian information encoded in the WL convergence field --- peak and minimum counts,
+Minkowski functionals, and the one-point PDF, which can improve cosmological constraining
+power by factors of several \citep{Martinet2021peaks,Gatti2022HOScos,Zurcher2022MFs}.
+Baryonic corrections to these statistics are not simple rescalings of the power-spectrum
+suppression: peaks are dominated by the cores of massive halos, where AGN feedback creates
+pressure cavities, while the power spectrum and minima are controlled by group-scale
+halos and large-scale gas redistribution. A systematic study of BCM-corrected peak counts
+against matched hydrodynamical simulations found that BCMs make two compensating errors
+--- underpredicting core masses while overpredicting large-radius suppression --- that
+bias cosmological inference even when the power spectrum is fit correctly, and that this
+failure sets in already by moderate peak significance \citep{LeePeakBCM2022}. No existing
+framework simultaneously captures this halo-scale stochasticity and produces
+self-consistent multi-probe (WL + tSZ) lightcones.
+
+Field-level baryonification and machine-learned emulators close part of this gap.
+Neural-network field-level inference trained on CAMELS hydrodynamical simulations can
+robustly marginalize over baryonic uncertainty when extracting cosmological parameters
+from mass maps \citep{VN2021fieldemulator}, and baryonification-calibrated emulators such
+as BACCO reach percent-level accuracy on the matter power spectrum, though calibrated on a
+dedicated baryonification-algorithm suite rather than trained on CAMELS
+\citep{Arico2021}; % src: WebFetch of arXiv:2109.10360 abstract (parameter-inference/marginalization, not field painting, no matter-power-spectrum accuracy number quoted) and arXiv:2011.15018/BACCO description (baryonification-calibrated, own 15-dim training suite, no CAMELS)
+map-level baryonification has also been extended to jointly paint WL and tSZ fields on the
+full sky within a BCM framework \citep{AnbajaganeMaplevel2024}. These
+approaches, however, either remain tied to a 2-point or halo-profile representation of the
+correction, or do not natively produce a stochastic, per-halo realization with the full
+thermodynamic channel set (density, temperature, entropy, pressure) needed to jointly
+predict $\kappa$, $y$, and kSZ observables from one consistent painted field. \bind{}
+closes this gap: a conditional flow-matching model, trained end-to-end on CAMELS-TNG
+halos with a 35-dimensional subgrid-physics parameterization
+\citep[SB35;][]{VillaescusaNavarro2023}, that paints stochastic multi-channel baryonic
+fields onto individual DMO halos and can therefore be applied, halo-by-halo, to an
+arbitrary DMO lightcone at negligible marginal cost per feedback variation
+\citep{BindModelPaper}.
+
+This paper is the first in a five-part series and establishes the pipeline that the rest
+of the series builds on. It is deliberately narrow in scope: we describe the \bind{}
+lightcone construction end-to-end (Section~\ref{sec:methods}), validate the resulting
+$\kappa$, Compton-$y$, and $\tau$ maps against the true TNG300 hydrodynamical lightcone at
+fixed (fiducial) subgrid parameters (Section~\ref{sec:results}, Results~1), diagnose what
+the tSZ-to-WL peak ratio $\Rnu$ physically measures (Results~2), and establish the
+quantitative bridge linking per-halo gas content to the field-level WL suppression
+(Results~3), which is the load-bearing result the companion papers use to translate
+observational gas-fraction constraints into WL systematics and vice versa. We close with
+a characterization of the pipeline's completeness at group and sub-group halo mass
+(Results~4) and an honest accounting of its current limitations (Section~\ref{sec:discussion}).
+We do not attempt, in this paper, the systematic feedback-parameter study, the survey-data
+application, the velocity-resolved kSZ extension, or the field-level anisotropy analysis
+that the companion papers \citep[Papers~II--V]{bindII,bindIII,bindIV,bindV} build on this foundation.
+
+\section{Methods}\label{sec:methods}
+
+\subsection{The \bind{} emulator}\label{subsec:bind_recap}
+
+\bind{} is a conditional flow-matching generative model that maps a DMO density cutout
+around an individual halo, together with a 35-dimensional vector of cosmological and
+subgrid-physics parameters drawn from the CAMELS-TNG SB35 design
+\citep{VillaescusaNavarro2023}, to the corresponding hydrodynamical fields at that halo:
+dark-matter response, gas density, and stellar density, plus (in the configuration used
+throughout this paper) four gas-thermodynamic channels --- Compton-$y$, temperature,
+entropy, and electron pressure --- trained jointly with the mass channels.\footnote{The
+model architecture, training procedure, and per-halo validation against held-out CAMELS
+hydrodynamical realizations are described in the companion model paper
+\citep{BindModelPaper}; we summarize only what is needed to understand the lightcone
+pipeline.} Conditional flow matching \citep{LipmanEtAl} learns a continuous,
+noise-to-data velocity field rather than a fixed deterministic mapping, so that repeated
+draws from the same conditioning (DMO halo + parameters) sample the physical
+halo-to-halo scatter present in the training simulations, rather than returning a single
+mean profile as a BCM would. Because the conditioning vector spans the full SB35 subgrid
+design, the emulator can be evaluated at any point in that 35-dimensional feedback space
+without re-running a hydrodynamical simulation, which is what makes a systematic,
+per-parameter lightcone study \citep[Paper~II]{bindII} computationally feasible in the first
+place. \bind{} operates on 2D projected $128\times128$ halo cutouts; the lightcone
+extension described below applies this halo-by-halo painting to full-box DMO snapshots
+and assembles the result into a ray-traced sky.
+
+\subsection{Lightcone construction}\label{subsec:lightcone}
+
+The lightcone pipeline (\texttt{src/bind/inference/\{science,pipeline,lensplane,
+truth\_lightcone\}.py}) builds a \bind{}-painted, multi-plane-ray-traced sky from the
+\textsc{TNG300-Dark} DMO simulation (box size $205\,h^{-1}{\rm Mpc}$) in six stages.
+
+\begin{enumerate}
+\item \textbf{Per-snapshot projection (Stage 1).} Twenty TNG300-Dark snapshots, chosen to
+  tile the observer's past lightcone from low to high redshift, are each projected into
+  comoving $z$-slabs, and every friends-of-friends (FoF) halo above the painting mass
+  floor is cut out as a DMO patch. Twenty snapshots are used,\footnote{Snapshot indices 96,
+  90, 85, 80, 76, 71, 67, 63, 59, 56, 52, 49, 46, 43, 41, 38, 35, 33, 31, 29, ordered
+  low-$z$ first.} % src: src/bind/inference/science.py:34 (worktree lightcone)
+  and the resulting twenty comoving shells span
+  $z=0.034$--$2.444$. % src: WORKLOG 2026-06-29 "§6 of paper_lightcone_figs2.ipynb fixed" (line 58): "20 shells z=0.034–2.444"
+\item \textbf{Halo-by-halo painting (Stage 2).} \bind{} generates the multi-channel hydro
+  patch for each halo cutout conditioned on the fiducial (or varied) 35-parameter vector,
+  producing a stochastic per-halo realization of gas, stars, DM response, and
+  gas-thermodynamic fields.
+\item \textbf{Compositing.} Painted patches are pasted back into the full-box projected
+  slab with a circular, Hann-tapered aperture of radius $4\times R_{200c}$, the pipeline
+  default (\texttt{r200\_factor=4.0}), rather than the legacy square taper, which smears
+  flux across halo boundaries. % src: src/bind/inference/schemas.py:50, pipeline.py:732-741 (worktree lightcone)
+\item \textbf{Lens planes.} The composited mass slabs are converted to lens planes via a
+  2D Poisson solve in Fourier space that exactly reproduces the convention used by the
+  external ray-tracer \texttt{lux}, so that lens planes written by this pipeline are
+  drop-in replacements for planes \texttt{lux} would generate from a native
+  hydrodynamical run.
+\item \textbf{Multi-plane ray tracing.} \texttt{lux} ray-traces the stack of lens planes to
+  produce the convergence $\kappa(\zs)$ at each of five tomographic source planes. The
+  tSZ Compton-$y$ field is \emph{also} sampled at the deflected ray position on each plane
+  (not simply summed along the undeflected line of sight), so the tSZ lightcone is
+  genuinely ray-traced, not a Born-approximation slab sum.
+\item \textbf{Truth lightcone and paired DMO trace.} For validation, the identical pipeline
+  is run on the true IllustrisTNG hydrodynamical fields (DM response, gas, stars, and the
+  four thermo channels) at the \emph{same} DMO-FoF halo positions and under the
+  \emph{same} lightcone geometry, producing a \texttt{truth} composite that is a drop-in
+  replacement for the \bind{} composite in the downstream recomposite $\to$ lens-plane
+  $\to$ ray-trace $\to$ statistics chain. A paired DMO-only trace (no baryonic painting) is
+  built from the same Stage-1 maps for use as the common-mode reference in suppression
+  ratios $\Sell$ (Section~\ref{subsubsec:map_suite}).
+\end{enumerate}
+
+The field of view is $5\times5\,{\rm deg}^2$ by default. % src: src/bind/inference/stats.py power_spectrum() fov_deg=5.0; confirmed in demo_maps.png/fig_skymaps.pdf axes
+Our fiducial-closure test (Results~\ref{subsec:res1}) uses 50 independent lightcone
+realizations at identical geometry to characterize the sample-variance envelope. % src: WORKLOG 2026-06-10 "BIND validated vs hydro..." "50 realizations, identical geometry"
+
+\textbf{Optical depth / electron column.} The kSZ optical-depth (equivalently, the
+fast-radio-burst dispersion measure, up to a constant) plane is built by the same
+ray-tracing machinery as the $y$-plane, additively accumulating $\tau = \sigma_T\, x_e\,
+\Sigma_{\rm gas}/m_p$ along the deflected ray, with no lensing kernel (optical depth is
+not a lensing observable). % src: src/bind/inference/lightcone_maps.py module docstring + constants block
+This is a genuinely velocity-free electron-column estimate: it does not include the
+kinematic (velocity-weighted) kSZ temperature decrement, which requires a gas-velocity
+field \bind{} does not currently paint (Section~\ref{subsec:caveats}). The choice is
+deliberate and matches the way the kSZ observable is actually extracted from survey data:
+the velocity dependence factorizes out of the standard pairwise/stacked kSZ estimator, so
+that the quantity a lightcone pipeline needs to predict at fixed halo mass is precisely
+the optical-depth (gas-column) profile \citep{Schaan2021,Hadzhiyska2024,RiedGuachalla2025}.
+
+\subsection{Map suite}\label{subsubsec:map_suite}
+
+The pipeline produces, from a single painted lightcone, three co-registered observable
+planes: (i) tomographic convergence $\kappa(\zs)$ at five source redshifts,
+$\zs=0.5,1.0,1.5,2.0,2.44$; % src: fiducial_lightcone_stats.ipynb Z_S legend (cell013_out0.png); lightcone_maps.py docstring
+(ii) the Compton-$y$ (tSZ) map; and (iii) the electron-column / kSZ optical depth
+$\tau$ map, equivalently a fast-radio-burst dispersion measure up to the constant
+$\mathrm{DM}=\tau/\mathrm{TAU\_PER\_DM}$ (Section~\ref{subsec:lightcone}). Figure~\ref{fig:map_gallery}
+shows the BIND $\kappa(\zs=1)$, the paired DMO-only $\kappa$, and the BIND Compton-$y$ map
+from the same fiducial realization: the baryonified field is visually distinct from its
+DMO progenitor, most apparent as an overall smoothing of the diffuse small-scale texture
+across the field (the DMO panel is visibly grainier) rather than a localized change at any
+individual peak, consistent with feedback redistributing mass broadly rather than only at
+halo centers; the $y$ map traces halo cores with the expected compact morphology. % src: direct visual inspection of figs/fig01_map_gallery.png -- the two kappa panels are peak-for-peak nearly indistinguishable, the visible difference is field-wide texture/smoothness, not a localized collapsed-structure effect
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig01_map_gallery.png}
+\caption{Fiducial \bind{} lightcone maps over the full $5\times5\,{\rm deg}^2$ field of
+view. % src: src/bind/inference/stats.py fov_deg=5.0 default; demo_maps.png/fig_skymaps.pdf axes
+\textit{Left:} \bind{} convergence $\kappa$ at source redshift $\zs=1.0$.
+\textit{Middle:} the paired DMO-only convergence at identical geometry, used as the
+common-mode reference for all suppression ratios in this paper. \textit{Right:} the
+\bind{} Compton-$y$ map from the same realization. The painted field is visually distinct
+from the DMO progenitor as an overall smoothing of the field-wide small-scale texture
+(most apparent in the diffuse, non-halo regions) rather than a localized change at
+individual peaks, and the $y$ map traces halo cores with compact, feedback-sculpted
+morphology --- the qualitative signature the quantitative validation in
+Figure~\ref{fig:validation_field} confirms statistically.} % src: direct visual inspection of figs/fig01_map_gallery.png
+\label{fig:map_gallery}
+\end{figure}
+
+\subsection{Statistics pipeline}\label{subsec:stats_pipeline}
+
+Field-level statistics are computed with a common module
+(\texttt{src/bind/inference/stats.py}) applied identically to \bind{}, truth, and DMO
+lightcones so that all comparisons are same-pipeline ratios. The statistic set comprises:
+the tomographic angular power spectrum $C_\ell$ (auto and cross, including
+$\kappay$ and the tSZ auto-spectrum $C_\ell^{yy}$) and the derived suppression
+$\Sell=C_\ell^{\rm BIND}/C_\ell^{\rm DMO}$; peak and minimum counts as a function of
+signal-to-noise threshold $\nu$ (8-neighbour local-extremum definition, with optional
+Gaussian shape noise added before smoothing); non-Gaussian statistics (the one-point PDF,
+variance/skewness/kurtosis, and the three Minkowski functionals $V_0$ (area), $V_1$
+(perimeter), $V_2$ (genus) as functions of threshold); the peak-stacked ratio
+$\Rnu=\langle y\rangle/\langle\kappa\rangle$ at WL peaks (Section~\ref{subsec:res2}); and
+per-halo scaling relations ($Y_{500c}$, $\fgas$, $f_\star$, mass-weighted temperature
+$T_{\rm mw}$). The same per-halo machinery additionally yields three mass-binned
+diagnostics used in Section~\ref{subsec:res1} and Figure~\ref{fig:validation_halo}: the
+stacked electron-column ratio $\tau_{\rm BIND}/\tau_{\rm hydro}$, the radially-resolved
+projected pressure profile $y(r)/y(r_{500c})$ compared against the Arnaud et al.\
+universal profile \citep{Arnaud2010}, and the per-halo scatter $\sigma(\log Y\,|\,M)$ at
+fixed halo mass. % src: statistics actually plotted/quoted in Results~1 (Section~\ref{subsec:res1}) and Figure~\ref{fig:validation_halo}, not previously listed in this Methods inventory
+Angular power spectra are computed with a CIC-based mass-assignment
+estimator (Pylians \texttt{Pk\_plane}/\texttt{XPk\_plane}) using the field-of-view in
+radians as the box size, so that the returned Fourier wavenumber is directly the
+multipole $\ell$. Signal-to-noise bins extend to $\nu=12$ (extended from an earlier
+$\nu\le6$ cutoff that discarded the highest-significance peaks). % src: bind.inference.stats module docstring; WORKLOG 2026-06-11 "WL×tSZ publication plan"
+
+Raw CIC mass assignment introduces a well-known aliasing artifact that appears as a
+spurious upturn in $C_\ell^{\kappa\kappa}$ at high multipole; an optional interlacing +
+deconvolution correction (\texttt{mas\_correct=True}) is unit-validated (on synthetic test
+data, not yet directly on the TNG300 lightcone maps) to remove it to $0.4\%$ out to
+$0.8\,k_{\rm Nyquist}$, but is not applied by default because the artifact is common-mode
+between the \bind{} and DMO (or truth) pipelines and cancels in every ratio-based
+statistic used in this paper (Section~\ref{subsec:caveats}). % src: WORKLOG 2026-06-09 "diagnosed the convergence-power 'upturn'..."; pixelize_z_projection(mas_correct=True)
+
+\section{Results}\label{sec:results}
+
+\subsection{Fiducial validation: \bind{} vs.\ TNG300 hydrodynamical truth}\label{subsec:res1}
+
+The central validation test compares the \bind{}-painted lightcone against the true
+TNG300 hydrodynamical lightcone, built by the identical pipeline from the same halos
+under the same lightcone geometry (Section~\ref{subsec:lightcone}), at fixed fiducial
+CAMELS-SB35 parameters. Figure~\ref{fig:validation_field} shows the field-level
+comparison across all six statistics in the pipeline (Section~\ref{subsec:stats_pipeline}):
+the convergence power spectrum, peak counts, minimum counts, and the three Minkowski
+functionals, each with a residual sub-panel. The power-spectrum and Minkowski-functional
+residuals are flat to within a few percent across the full range plotted
+($10^2\lesssim\ell\lesssim10^4$); % src: WORKLOG 2026-06-10 "BIND-vs-hydro validation notebook..." §Notebook Part II; fig_validation_field.pdf / cell006_out1.png
+peak counts are noisier, with residuals reaching $\sim\pm15\%$ in the sparsely populated
+high-$\nu$ tail, while minimum-count residuals stay within $\sim\pm7\%$ over their full
+plotted range; both are consistent with small-number statistics rather than a systematic
+mismatch. % src: direct pixel inspection of figs/fig02_validation_field.png residual sub-panels (N_peak reaches ~+15% near nu~5.3-5.5; N_min stays within ~+-6-7%)
+Averaged over 50 independent realizations at identical
+geometry, the convergence power ratio is $C_\ell^{\kappa\kappa,{\rm
+BIND}}/C_\ell^{\kappa\kappa,{\rm hydro}}\approx1.00$, the baryonic suppression tracks the
+hydrodynamical suppression curve, the peak-stacked ratio $\Rnu_{\rm BIND}/\Rnu_{\rm
+hydro}=0.98$--$1.06$ (rising by a factor of $\sim2$ over the plotted $\nu$ range, in both
+BIND and truth), and the $y$-profile stacked at WL peaks matches to $\sim5\%$. % src: WORKLOG 2026-06-10 "BIND validated vs hydro + R(ν) gas-fraction deep-dive"
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig02_validation_field.png}
+\caption{Field-level fiducial closure: \bind{} (solid) vs.\ TNG300 hydrodynamical truth
+(dashed) for the convergence power spectrum $C_\ell^{\kappa\kappa}$, peak counts
+$N_{\rm peak}(\nu)$, minimum counts $N_{\rm min}(\nu)$, and the three Minkowski
+functionals $V_0,V_1,V_2(\nu)$, with fractional residuals (shaded $\pm$ band) in the
+lower row. $C_\ell^{\kappa\kappa}$ and the Minkowski functionals agree to within a few
+percent across the full range shown; % src: WORKLOG 2026-06-10; fig_validation_field.pdf
+peak counts show larger ($\sim\pm15\%$) but statistically consistent scatter in their
+sparsely populated high-$\nu$ tail, while minimum counts stay within $\sim\pm7\%$ across
+their full range. % src: direct pixel inspection of the N_peak/N_min residual sub-panels in this figure
+This is the headline result of the paper: at fixed subgrid parameters, the \bind{}
+lightcone is statistically indistinguishable from the true hydrodynamical lightcone
+across the full non-Gaussian statistic set used by Stage-IV WL analyses.}
+\label{fig:validation_field}
+\end{figure}
+
+Halo-level thermodynamic closure is shown in Figure~\ref{fig:validation_halo}. The
+$Y$--$M$ relation tracks the TNG300 hydrodynamical relation across $\Mhalo=10^{13}$--
+$10^{14.5}\,\Msun/h$ with overlapping intrinsic-scatter bands. % src: WORKLOG 2026-06-10; figs_raw/paper_lightcone_figs/cell005_out1.png
+The stacked electron-column ratio $\tau_{\rm BIND}/\tau_{\rm hydro}$ is $\sim1.05$--$1.15$
+for the two lowest $\Mhalo$ bins ($10^{13.0}$--$10^{13.5}$ and $10^{13.5}$--$10^{14.0}$)
+and closer to unity for the highest bin, % src: figs_raw/paper_lightcone_figs/cell005_out1.png; corroborated by electron_column.py "BIND/truth validation (groups +11%)", WORKLOG 2026-06-16
+consistent with an independently computed group-scale offset of $+11\%$ reported from the
+electron-column validation script. % src: examples/electron_column.py, WORKLOG 2026-06-16 "pivot off Fisher..." item (c)
+Projected pressure profiles $y(r)/y(r_{500c})$ in four mass bins spanning
+$10^{13.0}$--$10^{14.2}\,\Msun/h$ match the Arnaud et al.\ universal pressure profile
+\citep{Arnaud2010} to $\sim2\,r_{500c}$, diverging at larger radius where the profile
+comparison is dominated by small-number and outer-radius noise. % src: figs_raw/paper_lightcone_figs/cell005_out1.png
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig03_validation_halo.png}
+\caption{Halo-level thermodynamic closure at snapshot 96 ($z\approx0.03$).
+\textit{Left:} the $Y_{500c}$--$\Mhalo$ relation, \bind{} (solid) vs.\ TNG300 hydrodynamical
+truth (dashed), with $1\sigma$ intrinsic-scatter bands overlapping across
+$10^{13}$--$10^{14.5}\,\Msun/h$. % src: figs_raw/paper_lightcone_figs/cell005_out1.png
+\textit{Middle:} the stacked electron-column ratio $\tau_{\rm BIND}/\tau_{\rm hydro}$ by
+mass bin, $\sim1.05$--$1.15$ at group scale and closer to unity at the highest mass bin
+shown. % src: figs_raw/paper_lightcone_figs/cell005_out1.png
+\textit{Right:} projected pressure profiles $y(r)/y(r_{500c})$ in four mass bins compared
+to the Arnaud et al.\ universal profile \citep{Arnaud2010}, matching to $\sim2\,r_{500c}$.}
+\label{fig:validation_halo}
+\end{figure}
+
+The mass-condensation channel also reproduces per-halo gas-fraction and stochasticity
+statistics. \bind{} matches the truth $\fgas(\Mhalo)$ relation to $2$--$11\%$; % src: WORKLOG 2026-06-10, same entry as R(nu)
+at group scale ($\Mhalo>5\times10^{13}\,\Msun/h$), $f_{{\rm gas},500}^{\rm BIND}=0.137$ vs.\
+$f_{{\rm gas},500}^{\rm truth}=0.132$ ($\sim4\%$ offset). % src: WORKLOG 2026-06-15pm "per-halo baryon-feedback atlas"
+The per-halo scatter in $\log Y$ at fixed mass is $0.23$--$0.44$ dex in \bind{} vs.\
+$0.24$--$0.41$ dex in the hydrodynamical truth (a $3$--$6\%$ excess at group scale,
+matched at cluster scale), % src: WORKLOG 2026-06-11 "WL×tSZ publication plan + three findings"
+while the scatter in $\log\fgas$ at fixed mass is statistically identical between \bind{}
+and truth. A separate, per-halo-atlas measurement at $R_{500c}$ (rather than the
+map-level peak-stacking used above) finds a smaller scatter range, $\sigma(\log
+Y|M)=0.12$--$0.22$ dex, consistent with a mildly over-dispersed generative model at
+group scale; % src: WORKLOG 2026-06-15pm "per-halo baryon-feedback atlas" -- distinct provenance/aperture from the 0.23-0.44 dex figure above, reported separately per dossier flag
+we report both numbers with their distinct provenance (map-level peak-stacking vs.\
+per-halo $R_{500c}$ atlas) rather than merging them, since they are not measuring
+identical apertures. In either case the generative model reproduces --- rather than
+suppresses --- the halo-to-halo scatter that a deterministic BCM profile cannot capture
+by construction, which is the qualitative differentiator motivating a stochastic,
+per-halo emulator over a parametric correction.
+
+Finally, Figure~\ref{fig:cross_spectra} shows the tomographic $\kappay$ cross-spectrum and
+the tSZ auto-spectrum $C_\ell^{yy}$ at fiducial parameters across all five source
+redshifts, demonstrating that the ray-traced multi-probe map suite
+(Section~\ref{subsubsec:map_suite}) produces well-behaved cross-statistics suitable for
+joint WL$\,\times\,$tSZ analysis (the subject of \citet[Paper~II]{bindII}). We revisit the known
+$\sim$$-12\%$ deficit in $C_\ell^{yy}$ relative to observed mean-$y$ amplitudes in
+Section~\ref{subsec:caveats}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig04_cross_spectra.png}
+\caption{Tomographic cross- and auto-power spectra at fiducial parameters.
+\textit{Left:} $\ell(\ell+1)|C_\ell^{\kappa y}|/2\pi$ for all five source-redshift bins,
+$\zs=0.5,1.0,1.5,2.0,2.44$. % src: fiducial_lightcone_stats.ipynb §6 "tSZ × WL cross-correlation (1a)"; cell013_out0.png legend
+\textit{Right:} the tSZ auto-spectrum $\ell(\ell+1)C_\ell^{yy}/2\pi$. Both spectra are
+computed with the ray-traced (deflected-ray) $y$-plane, not a Born-approximation slab
+sum (Section~\ref{subsec:lightcone}).}
+\label{fig:cross_spectra}
+\end{figure}
+
+\subsection{$\Rnu$ tracks specific thermal energy, not gas fraction alone}\label{subsec:res2}
+
+The peak-stacked ratio $\Rnu=\langle y\rangle/\langle\kappa\rangle$ was originally
+motivated as a projected gas-fraction proxy at WL peaks, since $y\propto$ pressure
+integrates gas mass and temperature while $\kappa$ integrates total (mostly dark-matter)
+mass. The pipeline's own documentation makes the more precise statement explicit: since
+$Y\propto\fgas\, M\, T_{\rm mw}$ at fixed halo mass, $\Rnu\propto\fgas\,T_{\rm mw}$ is a
+\emph{specific-thermal-energy} proxy, not a pure gas fraction. We confirm this
+quantitatively: the correlation between the per-halo $\Rnu$-analog and the product
+$\fgas\cdot T_{\rm mw}$ is $r=0.79$, % src: WORKLOG 2026-06-10 "BIND validated vs hydro..."; stats.py docstring; wl_tsz_plan.md §0.1
+leaving a non-negligible residual driven by the temperature term. The physical mechanism
+is mostly self-similar: at fixed halo mass, $T\propto M^{2/3}$ under gravitational
+collapse alone, so a large part of the factor-of-$\sim2$ rise in $\Rnu$ over the plotted
+$\nu$ range (Section~\ref{subsec:res1}) is simply hotter, more massive halos, not
+preferentially higher gas content. % src: WORKLOG 2026-06-10 only records "rises x2 with nu", no specific nu bounds; the source R(nu) notebook itself is missing (Section~\ref{subsec:res2}), so we do not assert specific nu endpoints AGN feedback complicates the picture further by moving
+$\fgas$ down and $T$ up simultaneously, with partial cancellation in the product; this
+partial cancellation is exactly why $\Rnu$ alone cannot cleanly isolate the gas-ejection
+signal that most directly suppresses $\kappa$, and it is the physical motivation for
+pairing $y$ with the density-weighted $\tau$ probe (Section~\ref{subsec:lightcone}) so
+that $(\kappa,\tau,y)$ at peaks jointly constrain $(M,\fgas,T)$ --- the thermodynamic
+decomposition developed in \citep[Paper~II]{bindII}.
+
+We do not have, in the present source material, a standalone figure of $\Rnu$ plotted
+directly against a feedback parameter; \todo{locate or regenerate the $\Rnu(\nu)$
+deep-dive figure from \texttt{lightcone\_comparison.ipynb}, which produced the summary
+numbers quoted above but was not found in the working tree at draft time}. We instead use
+Figure~\ref{fig:bridge_hero}, discussed in the next section, which plots the closely
+related per-peak ejection--heating decomposition that motivates the same physical
+argument.
+
+\subsection{The halo$\leftrightarrow$field bridge}\label{subsec:res3}
+
+The central deliverable of this paper is a direct, quantitative link between per-halo gas
+astrophysics --- the quantity X-ray and kSZ observations constrain --- and the field-level
+WL power-spectrum suppression that Stage-IV surveys must marginalize or correct. We
+establish this bridge at three levels: per-peak, per-run (group-averaged), and across the
+full one-parameter (1P) and Sobol feedback designs.
+
+\textbf{Per-peak.} Figure~\ref{fig:bridge_hero} (left) shows the WL peak-height excursion
+$\Delta\kappa/\kappa$ against the per-halo gas-mass excursion $\Delta\ln M_{\rm gas}$
+(relative to the fiducial atlas value), for individual peaks (grey) and for
+run-averaged means (blue) across the 1P feedback suite. The best-fit slope is
+$0.080\approx\fgas^{\rm proj}$ --- i.e., the slope of this relation \emph{is} the
+projected gas-fraction coefficient, since gas constitutes roughly $8\%$ of the projected
+lensing mass at these halos. % src: WORKLOG 2026-06-15pm "halo↔field bridge"; examples/bind_bridge.py; bind_bridge_hero.png
+The per-peak Pearson correlation is $r=0.50$, reflecting that individual peaks carry
+substantial variance from field morphology and multi-halo line-of-sight projection; the
+run-averaged (population-level) relation recovers the clean $8\%$ slope, so the bridge at
+this level is a statement about the ensemble, not about any single peak. %
+src: WORKLOG 2026-06-15pm; the per-peak scatter dominates individual-object variance per dossier note
+Figure~\ref{fig:bridge_hero} (right) decomposes the same runs in the
+ejection--heating plane, $\Delta\ln M_{\rm gas}$ (what $\kappa$ sees) against $\Delta\ln
+T=\Delta\ln Y-\Delta\ln M_{\rm gas}$ (the residual heating $y$ sees beyond mass loss),
+color-coded by $\Delta\ln Y$: this is the map-level realization of the $\Rnu$ decomposition
+argument from Section~\ref{subsec:res2}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig05_bridge_hero.png}
+\caption{The per-halo $\to$ per-peak bridge, 1P feedback suite. \textit{Left:} WL peak
+height excursion $\Delta\kappa/\kappa$ vs.\ the per-halo gas-mass excursion $\Delta\ln
+M_{\rm gas}$; grey points are individual peaks, blue points are per-run means. The
+best-fit slope, $0.080$, matches the projected gas fraction of these halos; the per-peak
+correlation is $r=0.50$, while the run-averaged relation is clean. % src: WORKLOG 2026-06-15pm "halo↔field bridge"
+\textit{Right:} the ejection--heating plane, $\Delta\ln M_{\rm gas}$ (ejection, what
+$\kappa$ probes) vs.\ $\Delta\ln T$ (heating, the residual $y$ probes beyond mass loss),
+colored by $\Delta\ln Y$ (the total tSZ observable). This is the map-level realization of
+the $\Rnu=\fgas\cdot T$ decomposition of Section~\ref{subsec:res2}.}
+\label{fig:bridge_hero}
+\end{figure}
+
+\textbf{Group-scale, van-Daalen-style.} Figure~\ref{fig:bridge_fgas} (right) shows the
+sharper, group-averaged version of the bridge: the background-subtracted group-scale gas
+fraction ($\Mhalo=1$--$3\times10^{13}\,\Msun/h$, measured within $R_{500c}$) against the
+measured lightcone power-spectrum suppression at $\ell\sim1500$, across 57 feedback
+lightcones (of a 60-run 1P design, colored by feedback family: 20 AGN, 25 SN/wind, 12
+other). % src: WORKLOG 2026-06-15pm "halo↔field bridge"; bind_bridge_fgas_sofl.png; paper_decomp_figs.ipynb §7.3 (WORKLOG 2026-06-18)
+The correlation is $r=0.91$, with best-fit relation $\Sell\approx0.57\,\fgas+0.95$; % src: WORKLOG 2026-06-15pm; paper_decomp_figs.ipynb §7.3, quoted WORKLOG 2026-06-18
+the fiducial run has $\fgas=0.086$, with the 1P design spanning $0.056$--$0.137$. % src: WORKLOG 2026-06-15pm "halo↔field bridge"
+This is, to our knowledge, the direct WL analog of the van Daalen relation between
+baryon fraction and power-spectrum suppression \citep{vanDaalen2020}, and it holds because
+the lightcone's suppression signal is group-dominated (the sky is covered predominantly by
+group-mass, not cluster-mass, halos). Figure~\ref{fig:bridge_fgas} (left) also makes the
+CIC aliasing artifact of Section~\ref{subsec:stats_pipeline} explicit: the suppression
+curves spike upward at $\ell\gtrsim2\times10^4$, a common-mode feature we discuss further
+in Section~\ref{subsec:caveats}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig06_bridge_fgas.png}
+\caption{The group-scale, van-Daalen-style bridge. \textit{Left:} $\Sell$ suppression
+curves for the fiducial, lowest-$\fgas$, and highest-$\fgas$ 1P runs, showing the
+CIC-aliasing upturn at $\ell\gtrsim2\times10^4$ discussed in Section~\ref{subsec:caveats}.
+\textit{Right:} $\Sell(\ell\sim1500)$ vs.\ background-subtracted group gas fraction
+($\Mhalo=1$--$3\times10^{13}\,\Msun/h$, $R_{500c}$) for 57 feedback-varied lightcones,
+colored by feedback family (AGN, SN/wind, other). The correlation is $r=0.91$. % src: WORKLOG 2026-06-15pm; bind_bridge_fgas_sofl.png
+This is the direct analog, at the field level, of the van Daalen baryon-fraction--suppression
+relation \citep{vanDaalen2020}.}
+\label{fig:bridge_fgas}
+\end{figure}
+
+\textbf{Which halo-level quantity is the tightest predictor?} Figure~\ref{fig:bridge_response}
+shows that $\fgas$ is not a special case: the absolute correlation of essentially every
+field-level observable with the group-scale $\Delta\fgas$ across the 57-run 1P suite is
+large --- $\Sell$: $0.92$, $\Rnu$: $0.92$, $N_{\rm min}$: $0.90$, $C_{\kappa y}$: $0.87$,
+$V_1$: $0.83$, $V_2$: $0.82$ --- with the sole exception of the raw peak count $N_{\rm
+pk}$, whose correlation is only $0.28$ because peak counts are dominated by shot noise at
+the halo masses accessible in a single $205\,h^{-1}{\rm Mpc}$ box. % src: WORKLOG 2026-06-15pm "halo↔field bridge", Fig 3 correlation bars; bind_bridge_response.png
+However, gas fraction is not the sole, or even the tightest, halo-level predictor of the
+suppression: Figure~\ref{fig:bridge_compton_y} shows that the integrated Compton-$Y_{500c}$
+is a tighter predictor of $\Sell$ than $\fgas$ alone, $r=0.93$ vs.\ $r=0.91$, and a
+partial-correlation decomposition shows that $Y$ effectively subsumes the $\fgas$
+information ($r[\fgas,\Sell\,|\,Y]\approx0$) while retaining residual predictive power
+beyond $\fgas$ ($r[Y,\Sell\,|\,\fgas]\approx0.48$, the additional ``heating leg'' of the
+$Y=\fgas\cdot T$ decomposition). % src: fig10_bridge_compton_y.pdf panel (c), read directly off the bar label (0.48); supersedes the WORKLOG 2026-06-18 prose rounding of "≈0.49" for internal consistency with the cited, reader-facing figure
+We emphasize that this Compton-$Y$--$\Sell$ relation ($r=0.93$--$0.935$) is a distinct
+statement from the per-peak $\Delta\kappa/\kappa$-vs.-$\Delta\ln M_{\rm gas}$ relation of
+Figure~\ref{fig:bridge_hero} ($r=0.50$): both involve a gas quantity and a WL observable,
+but at different levels of aggregation (group-averaged suppression vs.\ individual peak
+height) and with different predictors ($Y_{500c}$ vs.\ $M_{\rm gas}$ excursion). We do not
+conflate the two.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig07_bridge_response.png}
+\caption{The bridge generalizes across the statistic set. \textit{Left:} absolute
+correlation of each field-level statistic with the group-scale $\Delta\fgas$ across the
+57-run 1P suite: $\Sell$ $0.92$, $\Rnu$ $0.92$, $N_{\rm min}$ $0.90$, $C_{\kappa y}$
+$0.87$, $V_1$ $0.83$, $V_2$ $0.82$, and $N_{\rm pk}$ $0.28$ (shot-noise dominated). % src: WORKLOG 2026-06-15pm "halo↔field bridge", Fig 3 correlation bars
+\textit{Right:} the $\Rnu$-vs.-$\fgas$ scatter underlying the $\Rnu$ bar above,
+$r=0.92$.}
+\label{fig:bridge_response}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig10_bridge_compton_y.pdf}
+\caption{The Compton-$Y$ bridge resolves the tightest single-quantity predictor of the
+field-level suppression. \textit{(a)} $\Sell(\ell\sim1500)$ vs.\ $\log_{10}Y_{500c}^{\rm
+group}$, $r=0.93$. % src: WORKLOG 2026-06-18 "anatomy of the f_gas→S(ℓ) bridge", item 3; fig_bridge_compton_y.pdf
+\textit{(b)} $Y_{500c}^{\rm group}$ vs.\ group $\fgas$, $r=0.98$ --- the two are nearly
+degenerate at fixed mass and redshift. \textit{(c)} raw and partial correlations with
+$\Sell$: $\fgas$ $0.91$, $\log Y$ $0.93$, $\log T$ $0.85$, $Y\,|\,\fgas$ (partial) $0.48$,
+$\fgas\,|\,Y$ (partial) $\approx0$ --- $Y$ subsumes essentially all of the predictive
+power of $\fgas$ alone.} % src: WORKLOG 2026-06-18, item 3
+\label{fig:bridge_compton_y}
+\end{figure}
+
+\textbf{Mass dependence and why it breaks.} The bridge is not scale-free: fit separately
+in three mass bins (Figure~\ref{fig:bridge_mass}), the correlation loosens toward cluster
+scale even as the slope
+steepens (group: $r=0.91$, slope $\alpha=0.59$; intermediate: $r=0.84$, $\alpha=0.86$;
+cluster: $r=0.59$, $\alpha=1.12$), consistent with the lightcone's suppression signal
+being group-dominated (the ``sweet spot'') while cluster-scale halos, being individually
+rarer and more stochastic, contribute more scatter than signal. % src: WORKLOG 2026-06-18 "anatomy of the f_gas→S(ℓ) bridge", item 2; fig_bridge_mass.pdf (copied to figs/fig12_bridge_mass.pdf)
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig12_bridge_mass.pdf}
+\caption{The bridge fit separately in three $M_{200c}$ bins (group, intermediate,
+cluster). \textit{(a)} $\Sell(\ell\sim1500)$ vs.\ group $\fgas$ per mass bin.
+\textit{(b)} Pearson $r$ and best-fit slope $\alpha=\partial S/\partial\fgas$ vs.\ mass-bin
+center. \textit{(c)} $r[\fgas,\Sell]$ vs.\ $\ell$ per mass bin. The correlation loosens
+toward cluster scale even as the slope steepens, consistent with the group-dominated
+suppression signal discussed in the text.} % src: WORKLOG 2026-06-18 item 2; fig_bridge_mass.pdf
+\label{fig:bridge_mass}
+\end{figure}
+
+The single-predictor bridge also degrades with scale: below $\ell\sim1500$ thermal
+quantities ($Y$, entropy $K$) remain the best predictors of the residual, while above that
+scale structural quantities (DM and gas concentration, and the stellar fraction, which
+alone reaches $r=0.93$) take over; a two-variable bridge combining $\fgas$ and the DM
+concentration $c_{\rm DM}$ restores the correlation from $r=0.75$ to $r=0.92$ at
+$\ell\sim8000$ (Figure~\ref{fig:bridge_residual}, panels a--b). % src: WORKLOG 2026-06-18, item 4; fig_bridge_residual.pdf (copied to figs/fig13_bridge_residual.pdf)
+The sign of the residual after subtracting the single-predictor bridge is itself a
+feedback-mode diagnostic: AGN-feedback runs sit systematically above the bridge and
+SN/wind runs below it at high $\ell$ (Figure~\ref{fig:bridge_residual}, panel c),
+suggesting that the residual encodes information
+about \emph{which} feedback channel is acting, beyond the amount of gas removed.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig13_bridge_residual.pdf}
+\caption{When and why the single-predictor bridge breaks down. \textit{(a)} Partial
+correlation of each halo-level quantity with $\Sell$ (at fixed $\fgas$) vs.\ $\ell$:
+thermal quantities ($c_{\rm gas}$, $\log Y$, $\log K$) dominate below $\ell\sim1500$,
+structural quantities ($c_{\rm DM}$, $f_\star$) above. \textit{(b)} The two-variable
+$\fgas+c_{\rm DM}$ bridge (green) restores the correlation with $\Sell$ relative to the
+$\fgas$-only bridge (black), especially at high $\ell$.
+\textit{(c)} The mean residual $S-{\rm bridge}(\fgas)$ by feedback family, showing AGN
+runs above and SN/wind runs below the bridge at high $\ell$. % src: WORKLOG 2026-06-18, item 4; fig_bridge_residual.pdf
+\todo{this figure's own family-classification legend (AGN $n=18$, SN/wind $n=31$, other
+$n=8$) does not match the classification used in Figure~\ref{fig:bridge_fgas} (AGN $20$,
+SN/wind $25$, other $12$) for the apparently identical 57-run 1P design; we have not been
+able to reconcile which classification script is authoritative from the source material
+available, and flag this discrepancy explicitly rather than silently pick one.}}
+\label{fig:bridge_residual}
+\end{figure}
+
+\textbf{Why the relation looks linear: the van Daalen saturation regime.}
+Figure~\ref{fig:vandaalen} places the full TNG-CAMELS feedback design on the van Daalen
+et al.\ functional form for the renormalized baryon fraction $\tilde f_{\rm
+bar}=(M_{\rm gas}+M_\star)/M_{500c}/(\Omega_b/\Omega_m)$ versus power-spectrum
+suppression \citep{vanDaalen2020}. The TNG-CAMELS design spans only
+$\tilde f_{\rm bar}\approx0.81$--$0.98$ --- the flat, saturated top of the global
+exponential relation --- and cannot reach either the steep transition region or the
+observationally preferred band ($\tilde f_{\rm bar}\approx0.55$--$0.76$). % src: WORKLOG 2026-06-18, item 5; fig_bridge_vandaalen.pdf
+This is precisely why every relation quoted above looks close to linear: we are sampling
+the linear tail of an intrinsically nonlinear, saturating curve. Within this sampled
+range, the WL suppression relation is tight, with $r\sim0.96,0.94,0.87$ at
+$\ell=1000,3000,6000$ respectively, and steepens toward smaller scales, eventually
+crossing from suppression into enhancement at high $\ell$ (a regime the original van
+Daalen relation, defined for suppression only, does not cover). % src: fig_bridge_vandaalen.pdf (panel b, r values read from legend)
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig08_vandaalen_analog.pdf}
+\caption{The TNG-CAMELS design samples only the saturated top of the global
+baryon-fraction--suppression relation. \textit{(a)} $\Delta P/P_{\rm DMO}$ vs.\ the
+renormalized baryon fraction $\tilde f_{\rm bar,500c}$, van Daalen et al.\ functional
+form \citep{vanDaalen2020} (dashed), with the TNG-CAMELS 1P range (blue band,
+$\tilde f_{\rm bar}\approx0.81$--$0.98$) shown against the observationally preferred
+group-scale band (green). % src: WORKLOG 2026-06-18, item 5
+\textit{(b)} the WL suppression relation $\Delta C_\ell/C_\ell^{\rm DMO}$ vs.\
+$\tilde f_{\rm bar,500c}$ at three multipoles, $r=0.96,0.94,0.87$ at
+$\ell=1000,3000,6000$.} % src: fig_bridge_vandaalen.pdf legend
+\label{fig:vandaalen}
+\end{figure}
+
+\textbf{Robustness from 1P corners to the full Sobol cloud.} All of the above uses the 1P
+(one-parameter-at-a-time) design, which by construction probes only the extremes and
+fiducial point of the feedback space. Figure~\ref{fig:cl_envelope} extends the same
+$f_{\rm gas}$--$\Sell$ bridge to the full 256-node Sobol quasi-random feedback design (253
+usable lightcones plus the fiducial, spanning $\sim34{,}000$ halos per run over the same
+20 comoving shells, $z=0.034$--$2.444$). % src: WORKLOG 2026-06-29 §6 fix, line 58: "253 runs + fid, ~34k halos/run over 20 shells z=0.034–2.444"
+The Pearson correlation between group $\fgas$ and $\Sell$ peaks at $r\approx0.86$--$0.91$
+near $\ell\sim1000$--$1500$ for both the 1P and Sobol designs (inset: Sobol scatter at
+$\ell=1037$, $r=0.86$), % src: WORKLOG 2026-06-18/06-29; fig_cl.pdf inset annotation "Sobol scatter at ℓ=1037, r=0.86"
+confirming that the bridge established on the 1P corners is not an artifact of the
+extreme, one-parameter-at-a-time design but persists across the much larger, jointly
+varying Sobol cloud. This establishes the canonical suite size used for the
+feedback-response study in \citep[Paper~II]{bindII}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig09_cl_envelope.pdf}
+\caption{The bridge is robust from the 1P corners to the full Sobol design.
+\textit{Left:} $\Sell$ envelopes for the fiducial run, the 1P design ($n=57$), and the
+Sobol design ($n=253$), % src: WORKLOG 2026-06-29 §6, "253 runs + fid"
+with LSST-Y10 and Euclid shape-noise bands for reference. \textit{Right:} Pearson
+correlation $r[\fgas^{\rm group},\Sell]$ vs.\ $\ell$ for both designs, peaking at
+$r\approx0.86$--$0.91$ near $\ell\sim1000$--$1500$; inset shows the Sobol scatter at
+$\ell=1037$ ($r=0.86$).} % src: fig_cl.pdf inset annotation
+\label{fig:cl_envelope}
+\end{figure}
+
+\subsection{Completeness: low-mass reuse and the resolution gate}\label{subsec:res4}
+
+\bind{} paints halos above the FoF mass floor $\Mhalo\gtrsim10^{13}\,\Msun/h$ directly
+(Section~\ref{subsec:lightcone}); building a dedicated $10^{11}$--$10^{13}\,\Msun/h$
+generative extension is not currently feasible without a $\sim78\times$ increase in
+training-patch storage. We instead ask what fraction of the $10^{12}$--$10^{13}\,\Msun/h$
+halo population is already \emph{implicitly} captured within the existing
+$\ge10^{13}\,\Msun/h$ patches, since a $6.25\,h^{-1}{\rm Mpc}$ training cutout around a
+massive halo can contain smaller neighboring halos by construction. Within the production
+$4\times R_{200c}$ circular paste aperture (median radius $1.76\,h^{-1}{\rm Mpc}$), $28.7\%$
+of the $10^{12}$--$10^{13}\,\Msun/h$ population is captured; widening the footprint to the
+full $6.25\,h^{-1}{\rm Mpc}$ training patch raises this to $51.6\%$, with the remaining
+$\sim48\%$ being field halos too far from any massive halo to fall within any patch. % src: WORKLOG 2026-06-25 "low-mass (10¹²–10¹³) baryons via reuse-only, not new generation"; examples/lightcone_lowmass_reuse.py module docstring
+We adopt the reuse-only strategy (no dedicated low-mass generation, no full-box tiling),
+accepting an effective low-mass completeness the WORKLOG records as $\sim49\%$ in its own
+rounding of the more precisely measured $51.6\%$ full-patch figure. % src: WORKLOG 2026-06-25 decision line "accept ~49%" vs. measured 51.6% -- reported per dossier flag, treating 51.6% as the precise figure
+On the captured low-mass population at snapshot 96, \bind{} reproduces the truth gas mass
+to $1.034\times$ ($0.074$ dex scatter) and the truth $Y$ to $0.986\times$ ($0.223$ dex
+scatter), well recovered even though these halos sit off-center in their host patch (median
+host distance $1.87\,h^{-1}{\rm Mpc}$); the stellar channel is offset ($0.75\times$,
+$0.54$ dex), an expected consequence of the two-head occupancy-gated stellar
+parameterization (Section~\ref{subsec:bind_recap}) that is not relevant to the mass or
+tSZ maps used in this paper. % src: WORKLOG 2026-06-25; per-halo BIND-vs-truth on captured population
+At the map level, widening the paste footprint (\texttt{r200\_factor=99}, i.e.\ using the
+full training patch) increases the total tSZ signal by $+4.0\%$ identically in both \bind{}
+and truth, and the \bind{}/truth $y$-map ratio is $0.963$ at \emph{both} footprints, so
+widening introduces no new low-mass-specific bias; because the underlying patch mass is
+unchanged between footprints (only the paste radius differs), the completeness gain is
+invisible in the raw matter map and lives entirely in the power-spectrum redistribution
+that only the ray-traced statistics resolve. % src: WORKLOG 2026-06-25 map-level widened-footprint result
+
+We did not locate a dedicated figure for this completeness result in the source material
+searched; \todo{completeness schematic figure --- generate a simple capture-fraction bar
+or radial-profile panel from the numbers above, or omit if no suitable source figure is
+found before submission}.
+
+\textbf{The resolution gate.} A separate, planned validation step is designed but not yet
+executed: paint the $8\times$-coarser TNG300-2-Dark and $64\times$-coarser TNG300-3-Dark
+simulations (which share initial phases with TNG300-1-Dark, enabling halo-matched
+comparison) and test whether \bind{}, trained at TNG300-1-Dark mass resolution, degrades
+gracefully at coarser particle mass, with a pass criterion of a few-percent median bias in
+$M_{\rm gas}$ and $Y$ for $\Mhalo>10^{13.5}\,\Msun/h$. This script
+(\texttt{examples/resolution\_gate.py}) is fully specified but has not been run; no
+resolution-gate numbers exist to report, and we state this explicitly as an open,
+planned validation step rather than a completed result. A related, resolved feasibility
+finding is that a Quijote-class box (1 comoving Gpc$/h$ at $1024^3$ particles, particle
+mass $m_p\approx8\times10^{10}\,\Msun/h$) is ruled out as the substrate for a bigger-volume
+extension: at this resolution a $10^{13}\,\Msun/h$ halo comprises only $\sim120$
+particles, and the fine DMO conditioning channel becomes shot-noise-dominated, far outside
+the distribution \bind{} was trained on. % src: docs/wl_tsz_plan.md §3.6
+
+\section{Discussion}\label{sec:discussion}\label{subsec:caveats}
+
+\textbf{TNG-only prior.} \bind{} is trained exclusively on CAMELS-TNG hydrodynamical
+realizations, so every result in this paper --- and every number quoted above --- reflects
+the IllustrisTNG feedback model's response surface, not an ensemble over different galaxy
+formation implementations (e.g.\ SIMBA, Astrid). This limitation is explicit in our own
+validation checklist and is not yet resolved; retraining on other CAMELS suites is future
+work.
+
+\textbf{Mass floor and the low-mass extension.} Direct, generative painting is validated
+only for $\Mhalo\gtrsim10^{13}\,\Msun/h$, the training mass floor. The
+$10^{12}$--$10^{13}\,\Msun/h$ band is populated by reuse of existing massive-halo patches
+rather than dedicated generation (Section~\ref{subsec:res4}), which captures $28.7$--
+$51.6\%$ of that population depending on aperture, and by construction misses field halos
+far from any massive structure; these low-mass, field halos are assigned cosmic baryon
+fraction in the DMO-derived electron-column proxy until a dedicated low-mass extension is
+trained.
+
+\textbf{$\tau$ is a velocity-free electron column, not the kinematic kSZ signal.} As
+described in Section~\ref{subsec:lightcone}, the $\tau$ (and equivalently, up to a
+constant, the fast-radio-burst dispersion measure) plane integrates gas column density
+along the deflected ray with no velocity weighting. \bind{} does not currently paint a gas
+velocity field, so the velocity-weighted kinematic-kSZ temperature decrement is not yet
+built; a DMO-velocity surrogate for the internal (feedback-driven) gas kinematics is
+required and is deferred to the velocity-resolved kSZ extension of this pipeline
+\citep[Paper~IV]{bindIV}. We stress that this is not merely a simplification for convenience:
+the tier-1 kSZ observable that current stacked/pairwise estimators actually extract from
+survey data is the optical-depth profile, with the velocity dependence factored out
+\citep{Schaan2021,Hadzhiyska2024,RiedGuachalla2025}, so the $\tau$-only product presented
+here is directly usable for that class of comparison; only genuinely velocity-resolved
+statistics (e.g.\ a kSZ auto-spectrum from patchy/OV contributions) require the future
+extension.
+
+\textbf{CIC aliasing at high $\ell$.} The raw particle-to-grid CIC mass assignment used to
+build lens planes introduces a spurious upturn in the convergence power spectrum at
+$\ell\gtrsim2\times10^4$ (visible directly in Figure~\ref{fig:bridge_fgas}, left panel).
+This is a projection artifact present identically in the \bind{}, truth, and DMO
+pipelines, not a physical feature of the painted field, and it cancels in every ratio
+statistic used in this paper ($\Sell$, peak/minimum counts relative to DMO, and all bridge
+correlations). An interlacing-plus-deconvolution correction is available
+(\texttt{mas\_correct=True}) and unit-validated to $0.4\%$ accuracy out to $0.8\,k_{\rm
+Nyquist}$ on synthetic test data (not yet directly validated against the TNG300 lightcone
+maps), but is opt-in and unnecessary for any ratio-based science in this paper; it is
+needed only for absolute $\kappa$-vs.-external-survey validation, which we do not attempt
+here.
+
+\textbf{Painting is 2D projected, not a 3D field.} \bind{} generates $128\times128$
+projected patches conditioned on a projected DMO cutout (Section~\ref{subsec:bind_recap}),
+and the lightcone pipeline assembles these into 2D projected comoving slabs
+(Section~\ref{subsec:lightcone}). This follows directly from the model architecture rather
+than being an explicit design choice stated elsewhere in our working notes, and we flag it
+here as an inference from the pipeline description rather than a directly documented
+caveat: any application requiring a genuine 3D gas/pressure field (e.g.\ line-of-sight
+velocity decomposition beyond the deflected-ray $y$/$\tau$ treatment already used) would
+require a 3D-native extension, which exists as a separate development track
+(\texttt{feature/3d-cube}) but is not used in this paper.
+
+\textbf{The tSZ auto-spectrum deficit.} $C_\ell^{yy}$ at fiducial parameters sits
+$\sim$$-12\%$ below the level we would infer from the true mean Compton-$y$ amplitude;
+this is an open item in our validation checklist rather than a resolved result. A leading
+candidate cause is completeness: the mean \bind{} $y$ amplitude is $1.05\times10^{-6}$
+against a Planck-based estimate of $\sim1.6\times10^{-6}$, and roughly $35\%$ of the
+Planck-level $\langle y\rangle$ budget is expected to come from halos below
+$\Mhalo=10^{13}\,\Msun/h$ and diffuse, unbound gas that this pipeline's mass floor does not
+capture. % src: docs/wl_tsz_plan.md §3.3 "mean-y 1.05e-6 vs Planck ~1.6e-6 (≈35% of ⟨y⟩ from M<1e13 + unbound gas)" -- checklist row 1 "Cℓyy −12% open"
+We have not yet isolated whether the remainder of the deficit is due to this
+completeness effect alone or additionally reflects paste-radius truncation of the
+pressure-profile wings; this is stated as an open validation item, not a resolved
+number.\todo{cross-check the exact Planck y-map reference (2015 XXII vs.\ a later release) before citing a specific paper for the $1.6\times10^{-6}$ comparison value}
+
+\textbf{The eROSITA gas-fraction tension: a corrected framing.} An early measurement of
+the fiducial group-scale gas fraction used a raw aperture average that we later found to
+be contaminated by a cosmic-baryon-fraction line-of-sight background from gas well outside
+the halo (the aperture column integrates through the full projected slab, and the
+background plateaus to the cosmic value by $\sim2.5\,h^{-1}{\rm Mpc}$). After a
+background-subtraction correction (using an outer annulus at $2.5$--$3\,h^{-1}{\rm Mpc}$),
+the fiducial group-scale ($M_{500c}\sim1.3\times10^{13}\,\Msun/h$, $z<0.2$) gas fraction
+is $f_{{\rm gas},500}^{\rm BIND}=0.076$ (this measurement uses $M_{500c}\sim1.3\times
+10^{13}\,\Msun/h$ at $z<0.2$, a narrower mass/redshift cut than the $\Mhalo=1$--
+$3\times10^{13}\,\Msun/h$, $R_{500c}$ bin used for the $r=0.91$ bridge value $\fgas=0.086$
+of Section~\ref{subsec:res3}; both are background-subtracted measurements of the same
+underlying population, and we report each with its own provenance rather than merge
+them), matching the true TNG value and mainstream X-ray
+determinations (Eckert et al.) to $\sim9\%$, but sitting $2.9\times$ above the contested
+eROSITA-low (Popesso et al.) value, declining to $\sim1.2\times$ at cluster scale; the
+single strongest 1P feedback knob reaches $\fgas=0.047$ ($1.8\times$ eROSITA-low). Taking
+the gap to the eROSITA-low band as $0.076-0.026=0.050$ and the knob excursion as closing
+$0.076-0.047=0.029$ of it, the strongest single knob closes $\sim58\%$ of the gap (not
+the $\sim40\%$ figure recorded in an earlier WORKLOG pass, which we find on
+recomputation to have inverted the closed/remaining fraction). % src: recomputed directly from the three WORKLOG-sourced numbers (0.076, 0.047, 0.026) quoted in WORKLOG 2026-06-15pm "eROSITA f_gas confrontation + projection-contamination fix"; 0.029/0.050=0.58, consistent with the companion Fig.~11 "closes roughly half" statement for the analogous 0.081/0.051/0.026 numbers below
+A separate measurement using a different mass bin and aperture ($\Mhalo=1$--
+$2\times10^{13}\,\Msun/h$), shown in Figure~\ref{fig:fgas_saturation}, gives a consistent
+picture: fiducial group $\fgas=0.081$ against
+an X-ray-standard band of $0.06$--$0.10$ and an eROSITA-low value of $0.026$
+\citep{Popesso2024}, with the minimum single-knob excursion reaching $\fgas=0.051$. % src: paper_lightcone_figs.ipynb §6.1 printed cell output; fig_siegel.pdf
+We explicitly flag that an earlier, uncorrected version of this measurement reported the
+strongest single-parameter depletion as reaching ``$41\%$ of the cosmic baryon
+fraction,'' a number since superseded by the background-subtraction fix described above;
+we do not use the $41\%$ figure as a result in this paper, and report only the corrected
+values. % src: WORKLOG 2026-06-15pm, two same-day entries; the raw/uncorrected number is explicitly retracted in the second entry
+No single-parameter TNG-family excursion reaches the eROSITA-low band; combined,
+jointly-varying feedback knobs (the Sobol design) or a non-TNG feedback model may be
+required, which is a central question for \citep[Paper~II]{bindII}.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figs/fig11_fgas_saturation.pdf}
+\caption{The corrected eROSITA gas-fraction tension. Sorted group-scale ($\Mhalo=1$--
+$2\times10^{13}\,\Msun/h$) $\fgas$ across the 1P feedback suite, against the X-ray-standard
+band ($0.06$--$0.10$) and the eROSITA-low value \citep[$0.026$;][]{Popesso2024}. The
+\bind{} fiducial value ($0.081$) sits within the X-ray-standard band; the minimum
+single-knob excursion ($0.051$) closes roughly half the gap to the X-ray band but does not
+reach eROSITA-low. % src: paper_lightcone_figs.ipynb §6.1; fig_siegel.pdf
+This figure supersedes an earlier, LOS-contaminated ``$41\%$ of cosmic'' saturation claim
+(see Section~\ref{subsec:caveats}).}
+\label{fig:fgas_saturation}
+\end{figure}
+
+\textbf{Untested extrapolation and response closure.} Two further validation items remain
+open and are not addressed by the fiducial-closure test of Section~\ref{subsec:res1}.
+First, the training data (CAMELS-50-class boxes) tops out at halo masses of a few
+$\times10^{14}\,\Msun/h$, and we have not yet audited whether the highest-mass end of the
+TNG300 halo population is a safe extrapolation. Second, and more fundamentally, we have
+validated \bind{} at fixed (fiducial) subgrid parameters, but have not yet validated that
+the \emph{parametric response} --- i.e.\ that the emulator's derivative with respect to a
+feedback parameter matches the true derivative from an independent, matched-parameter
+CAMELS hydrodynamical run. This response-closure test is, in our own accounting, the
+credibility test that distinguishes ``the emulator reproduces one point'' from ``the
+emulator's response to feedback is physics,'' and it remains an open item ahead of the
+systematic feedback study in \citep[Paper~II]{bindII}.
+
+\section{Conclusions}\label{sec:conclusions}
+
+We have presented the \bind{} lightcone pipeline: a conditional flow-matching emulator,
+trained on CAMELS-TNG halos across a 35-dimensional subgrid-physics design, extended
+halo-by-halo to a full TNG300-Dark dark-matter-only lightcone via circular-aperture
+compositing, lens-plane construction, and multi-plane ray tracing, producing
+self-consistent convergence, Compton-$y$, and kSZ optical-depth maps. At fixed fiducial
+parameters, the resulting lightcone reproduces the true TNG300 hydrodynamical lightcone's
+weak-lensing power spectrum and Minkowski functionals to a few percent, with peak and
+minimum counts and halo-level $Y$--$M$ and pressure-profile statistics agreeing within
+their respective (larger, small-number- or scatter-dominated) uncertainties
+(Section~\ref{subsec:res1}). We showed that the tSZ-to-WL peak ratio $\Rnu$ is a
+specific-thermal-energy proxy rather than a pure gas-fraction indicator
+(Section~\ref{subsec:res2}), and established a quantitative bridge between per-halo gas
+content and field-level WL suppression that holds from individual peaks through
+group-averaged statistics to the full 253-point Sobol feedback design, with the
+background-subtracted group gas fraction and the integrated Compton-$Y$ both strong,
+near-degenerate predictors of the power-spectrum suppression ($r=0.91$ and $r=0.93$
+respectively; Section~\ref{subsec:res3}). We characterized the completeness of the
+reuse-based low-mass extension and laid out --- without yet executing --- the
+mass-resolution validation program needed before extrapolating this pipeline beyond its
+current training resolution (Section~\ref{subsec:res4}).
+
+This paper is deliberately a foundation, not a science result: the pipeline, the
+validated fiducial closure, and the halo$\leftrightarrow$field bridge established here are
+the shared substrate for four companion analyses. \citet[Paper~II]{bindII} uses the full 1P and
+Sobol feedback designs developed here to systematically decompose weak-lensing statistics
+into gas-ejection and gas-heating contributions and to forecast Stage-IV constraining
+power. \citet[Paper~III]{bindIII} extends the pipeline to survey-data applications and,
+separately, to a cosmology-varying lightcone grid. \citet[Paper~IV]{bindIV} builds the
+velocity-resolved kSZ extension that the $\tau$-only product of this paper deliberately
+does not attempt. \citet[Paper~V]{bindV} is a focused study of the field-level anisotropy of
+the baryonic correction relative to spherically symmetric baryon correction models. Maps,
+released model weights, and the pipeline code are made public alongside this paper
+(Section~\ref{subsec:data_avail}).
+
+\subsection*{Data and code availability}\label{subsec:data_avail}
+The \bind{} pipeline is released as an installable Python package
+(\texttt{pip install -e .}, importing as \texttt{bind}), with source at the project
+GitHub repository. \todo{insert final GitHub URL/tag at release} Trained model weights are
+distributed via the Hugging Face repository \texttt{mel2260/BIND}, retrievable with the
+bundled \texttt{bind-download-weights} command-line tool; \todo{confirm the exact released
+weight identifier for the lightcone/thermo-conditioned checkpoint used in this paper
+(candidate default \texttt{weights/fm\_redshift\_thermo} found in the pipeline source, not
+yet cross-verified against the public Hugging Face listing) before final submission}. The
+multi-plane ray-tracing code \texttt{lux} used to produce the lightcone maps in this paper
+is maintained as a separate repository. \todo{GPU-hour cost comparison between a \bind{}
+lightcone and an equivalent full TNG300 hydrodynamical run --- no number located in our
+working notes; fill in before submission or remove the comparison}
+
+\section*{Acknowledgments}
+The CAMELS project and the IllustrisTNG collaboration provided the training
+and target simulations. This work used computing resources of the Flatiron
+Institute, a division of the Simons Foundation. \todo{finalize}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
+
+% ============================================================
+% Verification log (FIX pass, adversarial-verifier findings)
+% ============================================================
+% Applied (high):
+% - HF weights repo: Maxelee/BIND2 -> mel2260/BIND (WORKLOG.md:1996-1997 explicit correction).
+% - r[Y,S(l)|f_gas]: 0.49 -> 0.48 to match fig10_bridge_compton_y.pdf panel (c) bar label
+%   (the reader-facing figure, not the WORKLOG prose rounding).
+% - Peak/minimum-count residual claim (abstract, Results~1 body, Fig.~2 caption): split the
+%   single "~+-15-20%" figure into N_peak ~+-15% / N_min ~+-7%, per direct pixel inspection
+%   of fig02_validation_field.png residual sub-panels.
+% - Abstract/Conclusions "to a few percent" narrowed to the statistics that actually support
+%   it (Cl_kappakappa, Minkowski functionals); peak/min counts and Y-M/pressure-profile
+%   statistics now described by their own (looser) agreement language.
+% - Intro citation \citep{VN2021fieldemulator,Arico2021}: split and recharacterized -- VN2021
+%   is field-level parameter-inference/marginalization (not DMO-to-hydro field painting, no
+%   matter-power-spectrum accuracy number), Arico2021/BACCO is baryonification-calibrated on
+%   its own suite (not trained on CAMELS); verified via WebFetch of both arXiv abstracts.
+% - eROSITA single-knob gap-closing fraction: recomputed from the three sourced numbers
+%   (0.076, 0.047, 0.026) already in the text -- ~58% closed, not the earlier "~40%" (which
+%   inverted the closed/remaining fraction); leftovers.md updated to match.
+% Applied (medium):
+% - fig_bridge_mass.pdf and fig_bridge_residual.pdf, previously on disk but silently unused,
+%   copied into figs/ (fig12, fig13) and cited in the mass-dependence / bridge-breakdown
+%   paragraph (Section~\ref{subsec:res3}); fig13's own family-classification legend
+%   (AGN n=18/SN n=31/other n=8) conflicts with Fig.~6's (20/25/12) for the same 57-run
+%   design -- flagged explicitly with a \todo rather than silently picking one, since
+%   reconciling the two classification scripts requires re-running analysis code, which is
+%   out of scope for this fix pass.
+% - nu=1-to-nu=5 specific R(nu) bounds (Results~2) removed -- WORKLOG only records "rises x2
+%   with nu", no endpoints, and the source R(nu) notebook is itself missing; reworded to
+%   "over the plotted nu range" (matching the sourced phrasing already used in Results~1).
+% - Cross-referenced the three distinct fiducial group f_gas values (0.086 Sec.~4 r=0.91
+%   bridge / 0.076 Discussion eROSITA / 0.081 Fig.~11) with their differing mass
+%   definition/bin/redshift-cut provenance, rather than leaving the discrepancy unexplained.
+% - Methods Sec.~2.4 statistic inventory extended to name the pressure-profile, tau-ratio,
+%   and sigma(logY|M) diagnostics that Results~1/Fig.~3 already use but Methods didn't list.
+% - Bib keys LeeAmon2026 -> LeePeakBCM2022 and Gatti2023maplevel -> AnbajaganeMaplevel2024
+%   (neither Amon nor Gatti is a co-author on these papers; verified author lists and
+%   published-print years via crossref API against the DOIs already in references.bib --
+%   LeePeakBCM's year field was already correct at 2022, contrary to one verifier's claimed
+%   "2023 MNRAS-assigned year," which crossref does not support: published-print 2022-12-16).
+% Applied (low, trivial):
+% - mas_correct 0.4%-out-to-0.8 k_Nyquist figure: added "on synthetic test data" qualifier in
+%   both occurrences (Methods Sec.~2.4, Discussion CIC-aliasing paragraph); WORKLOG.md:1974
+%   states this was unit-validated on synthetic data, not the TNG300 lightcone maps directly.
+% - Fig.~1 caption/body: softened "visually distinct... around collapsed structures" to
+%   describe the actual visible difference (field-wide texture/smoothness, not a localized
+%   collapsed-structure effect), per direct inspection of fig01_map_gallery.png.
+% Skipped / not independently actionable:
+% - None of the findings were skipped outright; the one genuinely unresolved item (the
+%   fig13 family-count mismatch) is disclosed via \todo rather than silently resolved, since
+%   fixing it would require regenerating a figure from analysis code, which this FIX pass is
+%   not permitted to run.
+% ============================================================

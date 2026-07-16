@@ -1,0 +1,227 @@
+{
+  "results": [
+    {
+      "claim": "256-node Sobol design; canonical usable-run count",
+      "numbers": "256-node design, 253 usable runs (final); individual analyses run at intermediate counts 96/99/216/237 as the array completed",
+      "provenance": "WORKLOG 2026-06-29 '§6 fix' entry (253 runs + fid); WORKLOG 2026-06-26 kSZ-field entry (253 nodes in emulator_dataset.npz); cosmo_bias_capstone.py docstring (216); lightcone_beyond2pt.py/lightcone_shear_forecast.py docstrings (237)",
+      "section": "Methods"
+    },
+    {
+      "claim": "Paired DMO trace cancels cosmic variance in the suppression ratio S(l,z_s)",
+      "numbers": "map correlation r≈0.983-0.986 (also stated as r~0.98)",
+      "provenance": "WORKLOG:897-916 (2026-06-22 Step 1 entry); lightcone_transfer.py docstring",
+      "section": "Methods"
+    },
+    {
+      "claim": "Cosmology-derivative theory validated against sim DMO Cl",
+      "numbers": "2-5% agreement, ell=200-4000, all 5 source planes",
+      "provenance": "WORKLOG:873-896 (2026-06-22 Step 2 entry)",
+      "section": "Methods"
+    },
+    {
+      "claim": "LSST-Y10 survey spec used for significance",
+      "numbers": "f_sky=0.4, n_gal=27/arcmin^2, sigma_e=0.26",
+      "provenance": "lightcone_cosmo_bias.py constants F_SKY/N_GAL_TOT/SIGMA_E; WORKLOG:882",
+      "section": "Methods"
+    },
+    {
+      "claim": "LSST-Y1 survey spec (Robertson Tbl 1) and flat-LCDM priors (Robertson Tbl 2) used for the full-likelihood forecast",
+      "numbers": "12,300 deg^2 -> f_sky=0.298, n_eff=9.78/arcmin^2, sigma_e=0.26; priors Om in [0.20,0.46], s8 in [0.39,1.01], h in [0.65,0.78], ns in [0.95,0.99]",
+      "provenance": "lightcone_shear_forecast.py code/constants (F_SKY, N_GAL_TOT, SIGMA_E, PRIORS); no WORKLOG entry",
+      "section": "Methods"
+    },
+    {
+      "claim": "Transfer-function ensemble brackets both suppression and enhancement",
+      "numbers": "S(l) spans ~0.80-1.24 at z_s=0.5 over 2e3<l<1e4; 59% of runs enhance WL power at l~500-2000",
+      "provenance": "WORKLOG:897-916 (2026-06-22 Step 1), verified against transfer_function_ensemble.png",
+      "section": "Results-1"
+    },
+    {
+      "claim": "Clean redshift dilution of the suppression",
+      "numbers": "median band-suppression 0.938->0.982 from z_s=0.5->2.44",
+      "provenance": "WORKLOG:897-916 (Step 1)",
+      "section": "Results-1"
+    },
+    {
+      "claim": "Group f_gas only moderately orders S(l)",
+      "numbers": "Spearman rho +0.27 to +0.34",
+      "provenance": "WORKLOG:897-916 (Step 1)",
+      "section": "Results-1"
+    },
+    {
+      "claim": "Baryonic bias is a tight 1-D locus in (dOmega_m, dS8); fraction of runs with significant bias grows steeply with ell_max",
+      "numbers": "slope dS8/dOm 0.4-0.67; frac |dS8|>2sigma = 1%/9%/22% at ell_max=2000/3000/5000; max 6sigma; dS8 95% CI +-0.01-0.014; Spearman rho(f_gas,dS8) +0.51-0.58",
+      "provenance": "WORKLOG:873-896 (2026-06-22 Step 2, 96-run), figure cosmo_bias.png (99-run refresh)",
+      "section": "Results-2"
+    },
+    {
+      "claim": "Ignoring baryons biases S8 by up to 2.0/3.6/6.0 sigma at ell_max=2000/3000/5000 (LSST-Y10), N=0 template case, 216 runs",
+      "numbers": "max |dS8|/sigma = 2.003 / 3.590 / 6.028 at ell_max=2000/3000/5000",
+      "provenance": "WORKLOG:571-589 (2026-06-24 capstone entry); INDEPENDENTLY VERIFIED by loading examples/figures_lightcone/cosmo_bias_capstone.npz directly (ratio_<ellmax>_0 arrays)",
+      "section": "Results-2"
+    },
+    {
+      "claim": "N=1 template insufficient; N=2 sufficient; manifold is 2D; cost grows monotonically with N",
+      "numbers": "N=1 max residual 0.674 sigma (ell_max=5000); N=2 max residual 0.073 sigma in-sample (216 runs, ell_max=5000), <=0.08 sigma held-out validated (WORKLOG text only); manifold PC1 88.6-92.5%, PC2 5.2-10.0%, PC3 0.5-1.0% across ell_max=2000/3000/5000; cost N=2 = 2.95-3.39x (~3x), N=6 = 3.86-4.79x, N=10 = 5.20-5.77x",
+      "provenance": "WORKLOG:571-589 (2026-06-24 capstone entry); INDEPENDENTLY VERIFIED by loading examples/figures_lightcone/cosmo_bias_capstone.npz (ratio_*, sig_*, sig0_*, evr_* arrays) for all three ell_max cuts",
+      "section": "Results-3"
+    },
+    {
+      "claim": "Full-likelihood LSST-Y1 confirmation: N=2 data-driven templates recover S8 with small residual bias at modest marginalisation cost",
+      "numbers": "input S8=0.827914, recovered S8=0.824004 +/- 0.010631, bias=-0.368 sigma (~-0.37 sigma), no-baryon floor sigma(S8)=0.009601, cost=sigma_marg/sigma_floor=1.107x (~1.11x); script prints comparison 'Robertson HMCODE Y1: ~1.8x; capstone Fisher N=2: ~3x'",
+      "provenance": "lightcone_shear_forecast.py code/docstring; NO MATCHING WORKLOG ENTRY (gap, despite brief instructing to search WORKLOG for 'Robertson'/'beyond2pt'/'shear_forecast'); numbers obtained by directly loading examples/figures_lightcone/shear_forecast_y1.npz (S8, S8_in, sig_marg, sig_floor, truth arrays)",
+      "section": "Results-4"
+    },
+    {
+      "claim": "Companion 'both-compare' sweep (12-run local subset) is consistent with the Y1 headline cost",
+      "numbers": "templates-model recovered sigma range 0.01021-0.01070 vs local no-baryon floor 0.009300 -> cost ~1.10-1.15x",
+      "provenance": "examples/figures_lightcone/shear_sweep.npz, loaded directly; lightcone_shear_sweep.py docstring; full 237-run sweep + 34-d emulator arm NOT run (deferred to sbatch per its own docstring)",
+      "section": "Results-4"
+    },
+    {
+      "claim": "All well-measured WL/SZ statistics live on a <=2-3D feedback manifold; peaks/minima are noise- not dimensionality-limited",
+      "numbers": "10 statistics reach >=0.99 cumulative feedback-manifold variance by N=2-3 templates except kappa peaks/minima (noise-limited, ~0.80-0.88 by N=10)",
+      "provenance": "lightcone_beyond2pt.py (237 runs); figure beyond2pt_manifold.png opened directly; no WORKLOG entry",
+      "section": "Results-5"
+    },
+    {
+      "claim": "Minkowski functionals/moments are the most complementary (least aligned) statistics to kappa C_ell; tSZ probes sharpen but don't expand the accessible directions",
+      "numbers": "kappa Cl vs MFs/moments alignment 0.58-0.82 (lowest in the matrix, e.g. V0<->peaks=0.58, PDF<->V1=0.59); kappa Cl vs tSZ-y peaks=0.90, vs kappa x y cross=0.96",
+      "provenance": "beyond2pt_manifold.png right panel, opened directly; cross-referenced with WORKLOG:590-623 (WL feedback latents entry: 'orthogonal tSZ probes don't expand the dimensionality... but sharpen and rotate')",
+      "section": "Results-5"
+    },
+    {
+      "claim": "Top knobs driving the WL cosmology bias",
+      "numbers": "IMFslope (S_T~=0.36) and BlackHoleRadiativeEfficiency (S_T~=0.32) ~2/3 of total variance together; then RadioFeedbackReorientationFactor (~0.17), WindEnergyIn1e51erg (~0.09); surrogate GB CV R^2=0.38 (99 runs, 0.34 at 96 runs); strong interaction component S_Ti~=2xS_i",
+      "provenance": "WORKLOG:848-871 (2026-06-22 Step 3, both 96- and 99-run); figure bias_sensitivity.png opened directly, matches ranking exactly",
+      "section": "Results-6"
+    },
+    {
+      "claim": "CORRECTED: tomography DOES self-calibrate baryons (supersedes the original rank-1 Step-4 claim that it barely does)",
+      "numbers": "baryon bias z-signature declines 83% from z_s=0.5 to 2.44 (a true S8 shift is flat); 1 bin: sigma(S8) degrades x2.37, r(S8,A)=-0.91; >=2 well-separated bins: degradation x1.01, r->+0.12; residual feedback SHAPE mode (2nd PCA mode, beyond the mean template) costs x3.4 in sigma(S8) even with 5-bin tomography",
+      "provenance": "WORKLOG:779-800 (2026-06-22 CORRECTION entry, explicitly supersedes WORKLOG:827-846); figure selfcal.png opened directly",
+      "section": "Results-6"
+    },
+    {
+      "claim": "SUPERSEDED (do not use as headline): original Step-4 claim that WL tomography barely self-calibrates baryons because z-evolution is rank-1",
+      "numbers": "PC1=99.7% of the z-evolution variance; bias dilutes with source z, median +0.0019->+0.0011 from z_s=0.5->2.44",
+      "provenance": "WORKLOG:827-846 (2026-06-22 Step 4 entry, pre-correction); figure bias_tomography.png (99 runs) opened directly, confirms PC1~1.0 on log-y rank plot",
+      "section": "Results-6-superseded"
+    },
+    {
+      "claim": "Analytic 1-param baryon models (van Daalen/SP(k)) do not span the BIND ensemble; multi-param BCM/BCemu cover more but miss the enhancement corner",
+      "numbers": "van Daalen/SP(k) 1-param spans only ~22-54% of BIND runs; BCM/BCemu cover 60-96% but top out at S~=1.01-1.05 vs BIND's S~=1.10-1.21 enhancement",
+      "provenance": "WORKLOG:802-826 (2026-06-22 Step 5 entry); figure model_comparison.png opened directly, confirms BIND upper envelope exceeds BCM/BCemu upper bounds at ell~1e3 for z_s=0.5,1.0",
+      "section": "Results-6"
+    },
+    {
+      "claim": "WL analogue of Lin+2026's 2D latent, independently corroborating the N=2 template result",
+      "numbers": "Latent 0 = BH axis (BHRadEff -0.43), acts ~uniformly across z_s; Latent 1 = SN/wind axis (VarWindVel -0.46, WindEnergy, IMFslope), evolves with z_s; canon corr ~1.0 for the shared first latent across all WL summary statistics; orthogonal tSZ probes align 0.9-0.98 with the WL 2D subspace but sharpen axes (IMFslope 0.33->0.56->0.64)",
+      "provenance": "WORKLOG:590-623 (2026-06-24 'WL feedback latents' entry); cites Lin+2026 arXiv:2509.01881 and Chen+2019 (beta-TCVAE)",
+      "section": "Discussion"
+    },
+    {
+      "claim": "AW10 rescaling of TNG300-Dark: identity exact, typical SB35 draws small error, one open corner",
+      "numbers": "identity target rms=0 exactly; representative SB35 draws rms(sigma) 0.03-2%; extreme corner Om=0.10 AND s8=1.00 pins s at bound s=5.0, mass x40, rms~=7%",
+      "provenance": "docs/cosmo_rescaling_plan.md section 4; WORKLOG 2026-07-03 entry; examples/cosmo_rescale.py",
+      "section": "Appendix-A"
+    },
+    {
+      "claim": "128-draw Sobol error scan over the SB35 cosmology box",
+      "numbers": "s in [0.68,5] at z'=0 ([0.44,5] at z'=1); 6/128 draws pin s=5 bound (all Om<=0.13); rms(sigma)<3% for 86/128 draws at z'=0, 120/128 at z'=1",
+      "provenance": "docs/cosmo_rescaling_plan.md section 4; examples/rescale_sobol_scan.py",
+      "section": "Appendix-A"
+    },
+    {
+      "claim": "Real-data validation on TNG300-3-Dark: mild targets validate well, halofit D(k) predicts the per-run error point-by-point",
+      "numbers": "mild target (Om=0.35,s8=0.75): max P(k) error k<1 = 3.4%, P(k) err k in [0.3,1] <=1.2%, HMF vs control 0.96/0.97 at 1e13/1e14; low-Om target (Om=0.20,s8=0.95): max P(k) err 26% (BAO spike), HMF 0.92/0.92; corner-hi (Om=0.10,s8=1.00, s pinned at 5.0): P(k) breakdown >50%; halofit D(k) matches particle-level error point-by-point (k=0.11: +25.5% predicted vs +26.3% measured; k=1.5: -19.1% vs -19.2% measured)",
+      "provenance": "docs/cosmo_rescaling_plan.md section 4 table; examples/rescale_validation.py; figure examples/rescale_validation.png opened directly, confirms all three rows",
+      "section": "Appendix-A"
+    }
+  ],
+  "figures": [
+    {
+      "path": "examples/figures_lightcone/transfer_function_ensemble.png",
+      "shows": "5-panel spaghetti plot of S(ell) per source-plane z_s, 99 SB35 Sobol runs colored by group f_gas, median + 95% envelope overlaid",
+      "section": "Results-1"
+    },
+    {
+      "path": "examples/figures_lightcone/transfer_function_tomography.png",
+      "shows": "2-panel: median S(ell) per z_s bin with 16-84% band (left); run-to-run sigma[S(ell)] vs ell per z_s (right)",
+      "section": "Results-1"
+    },
+    {
+      "path": "examples/figures_lightcone/cosmo_bias.png",
+      "shows": "2-panel: (dOmega_m,dS8) bias scatter colored by f_gas with 1-sigma LSST-Y10 error cross (left); histogram of dS8/sigma at 3 ell_max cuts (right); 99 runs",
+      "section": "Results-2"
+    },
+    {
+      "path": "examples/figures_lightcone/cosmo_bias_capstone.png",
+      "shows": "2-panel headline figure: residual |dS8|/sigma vs N templates (median+95th percentile, 3 ell_max curves, log-y, N=2 marked) (left); sigma_S8 inflation vs N templates (right); 216 runs",
+      "section": "Results-3"
+    },
+    {
+      "path": "examples/figures_lightcone/beyond2pt_manifold.png",
+      "shows": "2-panel: cumulative feedback-manifold variance vs number of baryon-template modes for 10 WL/SZ statistics, most reaching >=0.99 by N=2-3 (left); 10x10 subspace-alignment matrix relative to kappa C_ell (right); 237 runs",
+      "section": "Results-5 / Discussion"
+    },
+    {
+      "path": "examples/figures_lightcone/bias_sensitivity.png",
+      "shows": "2-panel: ranked Sobol total/first-order sensitivity indices of dS8 over top 12 astro params, IMFslope and BlackHoleRadiativeEfficiency dominant (left); scatter of dS8 vs IMFslope colored by f_gas (right); 99 runs, ell_max=3000",
+      "section": "Results-6"
+    },
+    {
+      "path": "examples/figures_lightcone/selfcal.png",
+      "shows": "2-panel CORRECTED self-calibration result: per-plane bias amplitude declining with z_s vs a flat pure-S8-shift reference line (left); sigma(S8) degradation from marginalising the baryon amplitude vs number of tomographic bins, dropping to ~1 by 2 bins (right)",
+      "section": "Results-6"
+    },
+    {
+      "path": "examples/figures_lightcone/model_comparison.png",
+      "shows": "2-panel (z_s=0.5, 1.0): BIND S(ell) median + 95% envelope vs BCM (Schneider15), van Daalen 2019, and BCemu analytic baryon-model spans, all CCL-projected through the same WL kernel; BIND's enhancement bump exceeds all analytic model upper bounds at ell~1e3",
+      "section": "Results-6 / Discussion"
+    },
+    {
+      "path": "examples/rescale_validation.png",
+      "shows": "3x2 grid: P(k)/halofit ratio and N(>M)/Tinker08 ratio for mild / low-Omega_m / corner-hi AW10-rescaled TNG300-3-Dark targets, control (unrescaled vs theory) vs rescaled (vs target theory) curves",
+      "section": "Appendix-A"
+    },
+    {
+      "path": "examples/figures_lightcone/bias_tomography.png",
+      "shows": "3-panel: per-plane dS8(z_s) spaghetti with mean (left); z-shape universality normalized to z_s=1 (middle); SVD rank bar chart showing PC1~=99.7% of z-evolution variance (right). SUPERSEDED by the CORRECTED selfcal.py result -- usable only as a methodological cautionary/footnote figure, never as the paper's self-calibration headline",
+      "section": "Methods/Discussion-footnote-only"
+    }
+  ],
+  "caveats": [
+    "Fixed cosmology (TNG fiducial) across the entire 30-param Sobol suite -- motivates Appendix A",
+    "TNG-only amplitude for all bias/cost numbers; the dimensionality claim (~2 templates) is the argued-robust/general part, corroborated independently by Lin+2026's latent analysis",
+    "ell range / map-resolution limits: ell capped at 1.5e4 in the transfer-function ensemble (CIC aliasing dominates above this); Fisher analyses use ell_max in {2000,3000,5000}",
+    "Step-4 self-calibration CORRECTION: use lightcone_selfcal.py's corrected result, never the original rank-1 bias_tomography.png claim",
+    "Statistical-only/2-param significance (no h, ns, IA, photo-z marginalisation) makes the sigma-significance numbers optimistic; only the dS8 magnitudes are argued robust",
+    "Capstone Fisher result is shear-auto only, Gaussian/linear covariance, assumes P_hydro=P_dmo*T^2 separability",
+    "BCemu's analytic-model coverage was computed varying only its dominant log10Mc parameter -- a lower bound on its true coverage",
+    "HMcode-AGN was not included in the Step-5 analytic-model comparison (toolchain not installed)",
+    "Held-out (even/odd) N=2 validation number (<=0.08 sigma) has no saved artifact on disk -- sourced from WORKLOG text only, unlike the other headline numbers which were independently re-verified against saved .npz files",
+    "No WORKLOG entry exists for the full-likelihood Robertson-style shear forecast despite the brief instructing to search WORKLOG for it -- numbers recovered directly from on-disk .npz outputs instead",
+    "Suite size was in flux across the campaign (96->99->216->237->253 runs); different results in this dossier were computed at different points -- canonical final count is 253/256",
+    "lightcone_shear_sweep.py's full 237-run sweep and 34-d full-emulator nuisance arm were never run (deferred to sbatch per its own docstring); only a 12-run local validation subset exists on disk",
+    "Rescaling appendix is feasibility-only: 'pipeline work not started' per docs/cosmo_rescaling_plan.md; validation gates G1/G2/G2b/G3 are future work"
+  ],
+  "citations": [
+    "Schneider et al. 2020 -- Fisher-bias formalism, explicitly named in lightcone_cosmo_bias.py and cosmo_bias_capstone.py docstrings",
+    "Angulo & White 2010 (arXiv:0912.4277) -- AW10 rescaling method, explicitly named in docs/cosmo_rescaling_plan.md",
+    "Robertson et al. 2026 -- forecast structure being reproduced/extended, explicitly named in lightcone_shear_forecast.py and lightcone_beyond2pt.py docstrings ('Robertson Tbl 1/2'); exact title/venue NOT resolvable from sources, gap for citer agent",
+    "Lin+2026, 'One latent to fit them all', arXiv:2509.01881 -- explicitly named with exact title/ID in WORKLOG 2026-06-24 entry",
+    "Schneider & Teyssier 2015 (BCM) -- used via CCL's BaryonsSchneider15 in lightcone_model_comparison.py",
+    "van Daalen 2019 -- used via CCL's BaryonsvanDaalen19 in lightcone_model_comparison.py (note: a 2020 van Daalen ref also appears elsewhere in the project's WORKLOG for a different figure -- writer should confirm which year applies here)",
+    "CCL / pyccl 3.3.4 -- used throughout (Chisari+2019 is the standard citation per the brief's seed list; the author name itself does not appear in-source)",
+    "emcee (Foreman-Mackey et al. 2013) -- used directly via import emcee / EnsembleSampler in lightcone_shear_forecast.py",
+    "BCemu 2.0.5 -- baryonification emulator, third analytic-model family in Step 5 (not in the brief's seed list)",
+    "Constantine 2015 -- 'linearised active subspace' method, explicitly named in lightcone_beyond2pt.py docstring (not in the brief's seed list)",
+    "Chen et al. 2019 (beta-TCVAE / total correlation) -- explicitly named in WORKLOG 2026-06-24 as the method behind the WL feedback latent (Discussion 'why 2' section; not in the brief's seed list)",
+    "Mead & Peacock 2014a/b (arXiv:1308.5183, 1408.1047) -- cited in the rescaling plan doc for halo-catalogue/concentration AW10 extensions (not in the brief's seed list)",
+    "BACCO project (arXiv:2004.06245) -- cited in the rescaling plan doc as rescaling-emulator precedent (not in the brief's seed list)",
+    "Learning-the-Universe (arXiv:2606.10024) -- cited in the rescaling plan doc as a second rescaling precedent (not in the brief's seed list)",
+    "Tinker et al. 2008 -- halo mass function comparison target in rescale_validation.py, named directly as 'Tinker08' in the plan doc (not in the brief's seed list)",
+    "NOT CORROBORATED in sources (brief's seed citations with zero in-repo evidence -- Intro/background framing, writer must source independently): Eifler+2015, Huang+2019, Amon & Efstathiou 2022, Preston+2023, DES Y3 (Amon+2022/Secco+2022), KiDS-1000 (Asgari+2021), HSC Y3, LSST DESC SRD 2018"
+  ]
+}

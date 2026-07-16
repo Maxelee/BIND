@@ -1,0 +1,93 @@
+[
+ {
+  "file": "cell004_out0.png",
+  "cell": 4,
+  "heading": "1 \u00b7 The three maps at a glance",
+  "source_head": [
+   "SRC = 1                      # z_s = 1.0 bin",
+   "real = 0",
+   "avail = [('kappa', K), ('y', Y)] + ([('tau', T)] if T is not None else [])",
+   "fig, axes = plt.subplots(1, len(avail), figsize=(5.2 * len(avail), 5.0))",
+   "axes = np.atleast_1d(axes)",
+   "for ax, (name, M) in zip(axes, avail):"
+  ]
+ },
+ {
+  "file": "cell006_out0.png",
+  "cell": 6,
+  "heading": "$\\kappa$ across source redshift",
+  "source_head": [
+   "fig, axes = plt.subplots(1, len(ZS), figsize=(3.4 * len(ZS), 3.6))",
+   "s = 3 * np.std(K[0, len(ZS) // 2])",
+   "for j, ax in enumerate(axes):",
+   "    ax.imshow(K[0, j], cmap='RdBu_r', vmin=-s, vmax=s, origin='lower')",
+   "    ax.set_title(ZLAB[j]); ax.set_xticks([]); ax.set_yticks([])",
+   "axes[0].set_ylabel(r'$\\kappa$, realization 0')"
+  ]
+ },
+ {
+  "file": "cell008_out0.png",
+  "cell": 8,
+  "heading": "2 \u00b7 Auto power spectra (tomographic)",
+  "source_head": [
+   "def lcl(ell, cl):",
+   "    return ell * (ell + 1) * cl / (2 * np.pi)",
+   "",
+   "probes_auto = [('kappa', K), ('y', Y)] + ([('tau', T)] if T is not None else [])",
+   "fig, axes = plt.subplots(1, len(probes_auto), figsize=(5.4 * len(probes_auto), 4.2))",
+   "axes = np.atleast_1d(axes)"
+  ]
+ },
+ {
+  "file": "cell010_out0.png",
+  "cell": 10,
+  "heading": "3 \u00b7 Cross-spectra and the correlation coefficient $r_\\ell$",
+  "source_head": [
+   "pairs = []",
+   "if Y is not None: pairs.append((r'$\\kappa\\times y$', K, Y))",
+   "if T is not None: pairs.append((r'$\\kappa\\times\\tau$', K, T))",
+   "if Y is not None and T is not None: pairs.append((r'$y\\times\\tau$', Y, T))",
+   "",
+   "fig, (axc, axr) = plt.subplots(1, 2, figsize=(13, 4.6))"
+  ]
+ },
+ {
+  "file": "cell012_out0.png",
+  "cell": 12,
+  "heading": "$r_\\ell$ tomography",
+  "source_head": [
+   "fig, axes = plt.subplots(1, max(len(pairs), 1), figsize=(4.6 * max(len(pairs), 1), 4.2),",
+   "                         squeeze=False)",
+   "axes = axes[0]",
+   "for ax, (lab, A, B) in zip(axes, pairs):",
+   "    for j in range(len(ZS)):",
+   "        ell, *_x, r = xps(A, B, j)"
+  ]
+ },
+ {
+  "file": "cell017_out0.png",
+  "cell": 17,
+  "heading": "5 \u00b7 How the maps respond to feedback parameters (`twobound`)",
+  "source_head": [
+   "# Ranked bar chart of the bracket response, kappa vs y",
+   "top = rows[:18]",
+   "y_pos = np.arange(len(top))",
+   "fig, ax = plt.subplots(figsize=(8.5, 0.42 * len(top) + 1.2))",
+   "ax.barh(y_pos - 0.2, [d.get('kk', 0) for d in top], height=0.38, label=r'$C_\\ell^{\\kappa\\kappa}$')",
+   "ax.barh(y_pos + 0.2, [d.get('yy', 0) for d in top], height=0.38, label=r'$C_\\ell^{yy}$')"
+  ]
+ },
+ {
+  "file": "cell019_out0.png",
+  "cell": 19,
+  "heading": "Bracket spectra for the strongest parameters",
+  "source_head": [
+   "top_y = [d for d in rows if 'yy' in d][:4]",
+   "fig, axes = plt.subplots(1, len(top_y), figsize=(4.4 * len(top_y), 3.9), squeeze=False)",
+   "for ax, d in zip(axes[0], top_y):",
+   "    bnd = reg[d['idx']]",
+   "    for which, ls, lab in [('lo', '--', 'low'), ('hi', '-', 'high')]:",
+   "        dd = np.load(bnd[which][0] / 'Cl_kappa_y.npz')"
+  ]
+ }
+]

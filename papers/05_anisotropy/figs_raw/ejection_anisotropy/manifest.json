@@ -1,0 +1,93 @@
+[
+ {
+  "file": "cell005_out0.png",
+  "cell": 5,
+  "heading": "Figure 1 \u2014 the radial anisotropy of $\\kappa$ and $y$ (fiducial vs TNG truth)",
+  "source_head": [
+   "truth = reduce_run('truth')",
+   "fig, ax = plt.subplots(1, 2, figsize=(12, 4.6))",
+   "cols = ['tab:blue', 'tab:red']",
+   "for b in range(len(MASS_BINS) - 1):",
+   "    if fid['counts'][b] < 10:",
+   "        continue"
+  ]
+ },
+ {
+  "file": "cell007_out0.png",
+  "cell": 7,
+  "heading": "Figure 2 \u2014 DM-axis-aligned stacks: *is* the ejection bipolar?",
+  "source_head": [
+   "from scipy.ndimage import zoom as ndzoom, rotate as ndrotate",
+   "",
+   "def aligned_stack(run, snap=SNAP, mlo=1e13, mhi=5e13, r200px=16, half=2.5):",
+   "    \"\"\"Stack dKappa and y, each rescaled to r200=r200px pixels and rotated to the DM major axis.\"\"\"",
+   "    rd = run_dir(run); H = int(round(half * r200px))",
+   "    accK = np.zeros((2 * H, 2 * H)); accY = np.zeros((2 * H, 2 * H)); n = 0"
+  ]
+ },
+ {
+  "file": "cell010_out0.png",
+  "cell": 10,
+  "heading": "Systematics & null tests (referee-proofing)",
+  "source_head": [
+   "# Test 1 \u2014 DMO null. q2(kappa_DMO) is the intrinsic DM halo ellipticity (~20-30%, rising",
+   "# outward for NFW). If the baryon residual q2(kappa-kappa_DMO) had the same radial shape it",
+   "# would just be tracing DM shape. Opposite trends => physically distinct signal.",
+   "ph  = reduce_perhalo('fid')",
+   "pht = reduce_perhalo('truth')",
+   "fig, ax = plt.subplots(1, 2, figsize=(12, 4.6))"
+  ]
+ },
+ {
+  "file": "cell011_out0.png",
+  "cell": 11,
+  "heading": "Systematics & null tests (referee-proofing)",
+  "source_head": [
+   "# Test 2 + Test 4a \u2014 which axis drives the quadrupole, with +45deg and random controls.",
+   "# coh_profile projects each halo's complex c2 onto a candidate axis: the axis giving the",
+   "# largest coherent q2 identifies the physical driver. +45deg from DM -> imaginary part",
+   "# (~0 if axis-locked); random axis -> ~0 (noise control).",
+   "ph = reduce_perhalo('fid')",
+   "rng = np.random.default_rng(0)"
+  ]
+ },
+ {
+  "file": "cell012_out0.png",
+  "cell": 12,
+  "heading": "Systematics & null tests (referee-proofing)",
+  "source_head": [
+   "# Test 4c \u2014 environment jackknife: split halos by large-scale overdensity delta_LS",
+   "# (mean DMO surface density in 2-4 r200, relative to the global mean). If the outer",
+   "# quadrupole is LSS-driven, filament (high-delta) halos carry far more of it.",
+   "ph = reduce_perhalo('fid')",
+   "fig, ax = plt.subplots(1, 2, figsize=(12, 4.6))",
+   "for b in range(len(MASS_BINS) - 1):"
+  ]
+ },
+ {
+  "file": "cell017_out0.png",
+  "cell": 17,
+  "heading": "Takeaways (after systematics)",
+  "source_head": [
+   "top = rk_k[:12][::-1]",
+   "y = np.arange(len(top))",
+   "fig, ax = plt.subplots(1, 2, figsize=(14, 6), sharey=True)",
+   "ax[0].barh(y, [t[0] for t in top], color=[FAM_COLOR[t[2]] for t in top], edgecolor='k')",
+   "ax[0].set_yticks(y); ax[0].set_yticklabels([t[1][:30] for t in top], fontsize=8)",
+   "ax[0].axvline(0, c='k', lw=.8); ax[0].set_xlabel(r'$\\partial q_2(\\kappa\\!-\\!\\kappa_{\\rm dmo})/\\partial u$')"
+  ]
+ },
+ {
+  "file": "cell019_out0.png",
+  "cell": 19,
+  "heading": "Figure 4 \u2014 isotropic vs anisotropic: the alignment knob",
+  "source_head": [
+   "rk_a = sorted([(float(np.mean(a[3])), nm, a[0]) for nm, a in agg.items()], key=lambda t: -abs(t[0]))",
+   "top = rk_a[:12][::-1]; y = np.arange(len(top))",
+   "fig, ax = plt.subplots(figsize=(8.5, 6))",
+   "bars = ax.barh(y, [t[0] for t in top], color=[FAM_COLOR[t[2]] for t in top], edgecolor='k')",
+   "for yi, t in zip(y, top):",
+   "    if 'Reiorient' in t[1] or 'Radio' in t[1]:"
+  ]
+ }
+]

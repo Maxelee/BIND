@@ -1,0 +1,247 @@
+[
+ {
+  "file": "cell003_out0.png",
+  "cell": 3,
+  "heading": "1 \u2014 Introduction: a feedback crisis for Stage-IV lensing",
+  "source_head": [
+   "d = np.load(SCI / \"demo_maps.npz\")",
+   "fov, zs = float(d[\"fov_deg\"]), float(d[\"z_source\"])",
+   "fig, ax = plt.subplots(1, 3, figsize=(16, 5.4))",
+   "for a, key, ttl, cm in (",
+   "        (ax[0], \"kappa_dmo\",  r\"$\\kappa$  (DMO input)\",         \"cividis\"),",
+   "        (ax[1], \"kappa_bind\", r\"$\\kappa$  (BIND baryon-painted)\",\"cividis\"),"
+  ]
+ },
+ {
+  "file": "cell005_out0.png",
+  "cell": 5,
+  "heading": "2 \u2014 BIND on the lightcone (methods)",
+  "source_head": [
+   "# tau / electron-column profile validation (display cached: regen needs the raw lightcone roots)",
+   "show(SCI / \"tau_profiles/tau_profiles_snap096.png\")",
+   "gen([\"examples/electron_column.py\", \"--plot\"])",
+   "show(SCI / \"profiles/electron_column.png\")"
+  ]
+ },
+ {
+  "file": "cell005_out3.png",
+  "cell": 5,
+  "heading": "2 \u2014 BIND on the lightcone (methods)",
+  "source_head": [
+   "# tau / electron-column profile validation (display cached: regen needs the raw lightcone roots)",
+   "show(SCI / \"tau_profiles/tau_profiles_snap096.png\")",
+   "gen([\"examples/electron_column.py\", \"--plot\"])",
+   "show(SCI / \"profiles/electron_column.png\")"
+  ]
+ },
+ {
+  "file": "cell006_out2.png",
+  "cell": 6,
+  "heading": "2 \u2014 BIND on the lightcone (methods)",
+  "source_head": [
+   "# pressure (tSZ y) profile + gas-vs-DM extent: BIND vs TNG truth",
+   "gen([\"examples/profiles.py\", \"--plot\"])   # writes gas_vs_dm_extent, pressure_profile, baryon_budget",
+   "show(SCI / \"profiles/pressure_profile.png\",",
+   "     SCI / \"profiles/gas_vs_dm_extent.png\")"
+  ]
+ },
+ {
+  "file": "cell006_out3.png",
+  "cell": 6,
+  "heading": "2 \u2014 BIND on the lightcone (methods)",
+  "source_head": [
+   "# pressure (tSZ y) profile + gas-vs-DM extent: BIND vs TNG truth",
+   "gen([\"examples/profiles.py\", \"--plot\"])   # writes gas_vs_dm_extent, pressure_profile, baryon_budget",
+   "show(SCI / \"profiles/pressure_profile.png\",",
+   "     SCI / \"profiles/gas_vs_dm_extent.png\")"
+  ]
+ },
+ {
+  "file": "cell008_out3.png",
+  "cell": 8,
+  "heading": "3 \u2014 Halo-level baryonic response atlas",
+  "source_head": [
+   "gen([\"examples/halo_atlas.py\", \"--plot\"])     # fgas_atlas_z0 (+ YM_scatter)",
+   "gen([\"examples/halo_atlas.py\", \"--plot_z\"])   # fgas_evolution (+ YM_evolution)",
+   "show(SCI / \"halo_atlas/fgas_atlas_z0.png\",",
+   "     SCI / \"halo_atlas/fgas_evolution.png\")"
+  ]
+ },
+ {
+  "file": "cell008_out4.png",
+  "cell": 8,
+  "heading": "3 \u2014 Halo-level baryonic response atlas",
+  "source_head": [
+   "gen([\"examples/halo_atlas.py\", \"--plot\"])     # fgas_atlas_z0 (+ YM_scatter)",
+   "gen([\"examples/halo_atlas.py\", \"--plot_z\"])   # fgas_evolution (+ YM_evolution)",
+   "show(SCI / \"halo_atlas/fgas_atlas_z0.png\",",
+   "     SCI / \"halo_atlas/fgas_evolution.png\")"
+  ]
+ },
+ {
+  "file": "cell010_out0.png",
+  "cell": 10,
+  "heading": "3.2 Pressure profiles reveal the *mechanism*",
+  "source_head": [
+   "show(SCI / \"profiles/baryon_budget.png\")   # generated above by profiles.py --plot"
+  ]
+ },
+ {
+  "file": "cell012_out2.png",
+  "cell": 12,
+  "heading": "3.3 The feedback-sensitivity model \u2014 *which knob controls what* (key figure)",
+  "source_head": [
+   "gen([\"examples/fgas_fit.py\", \"--fit\"])",
+   "show(SCI / \"halo_atlas/fgas_fit.png\")"
+  ]
+ },
+ {
+  "file": "cell014_out3.png",
+  "cell": 14,
+  "heading": "3.4 Morphology and gas\u2013DM offset (secondary diagnostics)",
+  "source_head": [
+   "gen([\"examples/morphology.py\", \"--plot\"])          # morphology, frb_dm",
+   "gen([\"examples/feedback_response.py\", \"--plot\"])   # feedback_response",
+   "show(SCI / \"morphology/morphology.png\",",
+   "     SCI / \"morphology/frb_dm.png\",",
+   "     SCI / \"morphology/feedback_response.png\")"
+  ]
+ },
+ {
+  "file": "cell014_out4.png",
+  "cell": 14,
+  "heading": "3.4 Morphology and gas\u2013DM offset (secondary diagnostics)",
+  "source_head": [
+   "gen([\"examples/morphology.py\", \"--plot\"])          # morphology, frb_dm",
+   "gen([\"examples/feedback_response.py\", \"--plot\"])   # feedback_response",
+   "show(SCI / \"morphology/morphology.png\",",
+   "     SCI / \"morphology/frb_dm.png\",",
+   "     SCI / \"morphology/feedback_response.png\")"
+  ]
+ },
+ {
+  "file": "cell014_out5.png",
+  "cell": 14,
+  "heading": "3.4 Morphology and gas\u2013DM offset (secondary diagnostics)",
+  "source_head": [
+   "gen([\"examples/morphology.py\", \"--plot\"])          # morphology, frb_dm",
+   "gen([\"examples/feedback_response.py\", \"--plot\"])   # feedback_response",
+   "show(SCI / \"morphology/morphology.png\",",
+   "     SCI / \"morphology/frb_dm.png\",",
+   "     SCI / \"morphology/feedback_response.png\")"
+  ]
+ },
+ {
+  "file": "cell016_out2.png",
+  "cell": 16,
+  "heading": "Connective tissue \u2192 Sec. 4: the atlas spans the *Siegel/eROSITA* regime",
+  "source_head": [
+   "gen([\"examples/halo_atlas.py\", \"--plot_erosita\"])",
+   "show(SCI / \"halo_atlas/fgas_erosita.png\")"
+  ]
+ },
+ {
+  "file": "cell018_out2.png",
+  "cell": 18,
+  "heading": "4 \u2014 Weak-lensing statistics as a function of feedback",
+  "source_head": [
+   "gen([\"examples/bind_bridge.py\", \"--fig\", \"2\"])",
+   "show(SCI / \"bridge/bind_bridge_fgas_sofl.png\")"
+  ]
+ },
+ {
+  "file": "cell020_out2.png",
+  "cell": 20,
+  "heading": "4.2 Peak counts and minima",
+  "source_head": [
+   "gen([\"examples/bind_bridge.py\", \"--fig\", \"1\"])",
+   "show(SCI / \"bridge/bind_bridge_hero.png\")"
+  ]
+ },
+ {
+  "file": "cell022_out2.png",
+  "cell": 22,
+  "heading": "4.3 Which probe constrains which feedback parameter",
+  "source_head": [
+   "gen([\"examples/fisher_probes.py\"])   # writes fisher_probes, fisher_probe_addition, fisher_corner, fisher_corr",
+   "show(SCI / \"synthesis/fisher_probes.png\")"
+  ]
+ },
+ {
+  "file": "cell024_out2.png",
+  "cell": 24,
+  "heading": "4.4 The multi-probe response matrix",
+  "source_head": [
+   "gen([\"examples/bind_bridge.py\", \"--fig\", \"3\"])",
+   "show(SCI / \"bridge/bind_bridge_response.png\")"
+  ]
+ },
+ {
+  "file": "cell026_out2.png",
+  "cell": 26,
+  "heading": "5 \u2014 WL \u00d7 tSZ as a feedback diagnostic",
+  "source_head": [
+   "gen([\"examples/bind_bridge.py\", \"--fig\", \"4\"])",
+   "show(SCI / \"bridge/bind_bridge_decomp.png\")",
+   "# (the ejection-heating plane itself is panel B of bind_bridge_hero.png, shown in 4.2)"
+  ]
+ },
+ {
+  "file": "cell028_out2.png",
+  "cell": 28,
+  "heading": "5.2 / 5.3 Detectability \u2014 adding tSZ breaks the degeneracy",
+  "source_head": [
+   "gen([\"examples/fisher_probes.py\"])       # already run in 4.3; cached",
+   "gen([\"examples/fisher_forecast.py\"])     # writes fisher_forecast, fisher_modes",
+   "show(SCI / \"synthesis/fisher_probe_addition.png\",",
+   "     SCI / \"synthesis/fisher_forecast.png\")"
+  ]
+ },
+ {
+  "file": "cell028_out3.png",
+  "cell": 28,
+  "heading": "5.2 / 5.3 Detectability \u2014 adding tSZ breaks the degeneracy",
+  "source_head": [
+   "gen([\"examples/fisher_probes.py\"])       # already run in 4.3; cached",
+   "gen([\"examples/fisher_forecast.py\"])     # writes fisher_forecast, fisher_modes",
+   "show(SCI / \"synthesis/fisher_probe_addition.png\",",
+   "     SCI / \"synthesis/fisher_forecast.png\")"
+  ]
+ },
+ {
+  "file": "cell030_out0.png",
+  "cell": 30,
+  "heading": "5.4 Feedback degeneracy structure",
+  "source_head": [
+   "show(SCI / \"synthesis/fisher_corr.png\",",
+   "     SCI / \"synthesis/fisher_corner.png\")"
+  ]
+ },
+ {
+  "file": "cell030_out1.png",
+  "cell": 30,
+  "heading": "5.4 Feedback degeneracy structure",
+  "source_head": [
+   "show(SCI / \"synthesis/fisher_corr.png\",",
+   "     SCI / \"synthesis/fisher_corner.png\")"
+  ]
+ },
+ {
+  "file": "cell032_out2.png",
+  "cell": 32,
+  "heading": "6 \u2014 Discussion",
+  "source_head": [
+   "gen([\"examples/synthesis.py\"])",
+   "show(SCI / \"synthesis/bind_story.png\")"
+  ]
+ },
+ {
+  "file": "cell034_out2.png",
+  "cell": 34,
+  "heading": "6 \u2014 Discussion",
+  "source_head": [
+   "gen([\"examples/fisher_scaling.py\"])",
+   "show(SCI / \"synthesis/fisher_scaling.png\")"
+  ]
+ }
+]

@@ -1,0 +1,265 @@
+{
+  "results": [
+    {
+      "claim": "BIND reproduces TNG300 hydro at fiducial parameters across WL and tSZ observables (50 realizations, identical geometry)",
+      "numbers": "Cl^kappakappa BIND/hydro ~= 1.00; R(nu) BIND/hydro = 0.98-1.06 (rises x2 with nu); y-profile-at-peaks ~5%",
+      "provenance": "WORKLOG 2026-06-10 'BIND validated vs hydro + R(nu) gas-fraction deep-dive'",
+      "section": "results-1-fiducial-validation"
+    },
+    {
+      "claim": "Field-level WL statistics (Cl, peaks, minima, Minkowski V0/V1/V2) of the fiducial BIND lightcone match the TNG300 hydro-truth lightcone on identical geometry, residuals within a few percent (with noisier N_peak/N_min tails)",
+      "numbers": "residual panels shown, mostly <a few % ; N_peak/N_min residual up to ~+-15-20% at sparse tail bins",
+      "provenance": "examples/paper_lightcone_figs.ipynb sec2.4 cell6 (fig_validation_field.pdf); WORKLOG 2026-06-10 'BIND-vs-hydro validation notebook + DMO ray-traced baseline'",
+      "section": "results-1-fiducial-validation"
+    },
+    {
+      "claim": "Halo-level thermodynamic closure: Y-M relation, stacked tau profile ratio, and pressure profile vs Arnaud+2010 all match TNG300 hydro",
+      "numbers": "tau_BIND/tau_hydro ~1.05-1.15 for M200c 1e13.0-1e13.5/1e13.5-1e14.0 bins (consistent with electron_column.py 'groups +11%'); pressure profile matches Arnaud+10 to ~2 r500c across 4 mass bins 1e13.0-1e14.2",
+      "provenance": "examples/paper_lightcone_figs.ipynb sec2.4 cell5 (fig_validation_halo, notebook version); examples/electron_column.py per WORKLOG 2026-06-16 'pivot off Fisher...' item (c)",
+      "section": "results-1-fiducial-validation"
+    },
+    {
+      "claim": "Per-halo stochasticity (P(Y|M), P(f_gas|M) scatter) is calibrated close to truth",
+      "numbers": "sigma(logY|M) BIND 0.23-0.44 vs hydro 0.24-0.41 dex (+3-6% at groups, matched at clusters); sigma(f_gas|M) identical to truth. Separately (per-halo atlas R500c apertures): sigma(logY|M) 0.12-0.22 dex, BIND slightly over-dispersed vs deterministic BCMs",
+      "provenance": "WORKLOG 2026-06-11 'WL x tSZ publication plan + three findings' (implemented section); WORKLOG 2026-06-15pm 'per-halo baryon-feedback atlas (Rung 0)'",
+      "section": "results-1-fiducial-validation"
+    },
+    {
+      "claim": "BIND f_gas(M) matches TNG truth closely across mass",
+      "numbers": "2-11% agreement (WORKLOG 06-10); f_gas,500(>5e13) BIND=0.137 vs truth 0.132 (~4%, WORKLOG 06-15pm)",
+      "provenance": "WORKLOG 2026-06-10 'BIND validated vs hydro...'; WORKLOG 2026-06-15pm 'per-halo baryon-feedback atlas'",
+      "section": "results-1-fiducial-validation"
+    },
+    {
+      "claim": "R(nu) = <y>/<kappa> at WL peaks is a specific-thermal-energy proxy, R ~ Y/M ~ f_gas*T_mw, NOT a pure gas fraction",
+      "numbers": "corr(R, f_gas*T) = 0.79",
+      "provenance": "src/bind/inference/stats.py module docstring; WORKLOG 2026-06-10 'BIND validated vs hydro + R(nu) gas-fraction deep-dive'; docs/wl_tsz_plan.md sec0.1",
+      "section": "results-2-R-nu"
+    },
+    {
+      "claim": "The x2 rise of R(nu) over nu=1-5 is mostly self-similar thermometry (T ~ M^(2/3)), not gas content; AGN feedback moves f_gas down and T up with partial cancellation",
+      "numbers": "qualitative mechanism, no additional single number beyond corr=0.79 above",
+      "provenance": "docs/wl_tsz_plan.md sec0.1 (worktree wl-tsz-bridge)",
+      "section": "results-2-R-nu"
+    },
+    {
+      "claim": "Bridge I: per-peak WL response tracks per-halo gas ejection; slope equals the projected gas fraction",
+      "numbers": "Delta-kappa/kappa vs Delta-ln-M_gas slope = 0.080 (~= f_gas^proj); per-run r = 0.50 (per-peak scatter ~100% of variance = latent morphology + multi-halo projection; corrects an earlier stale '19% latent' claim)",
+      "provenance": "WORKLOG 2026-06-15pm 'halo<->field bridge -- 3 figures for the unified BIND-TNG paper'; examples/bind_bridge.py",
+      "section": "results-3-bridge"
+    },
+    {
+      "claim": "Bridge II (van-Daalen-style): group-scale gas fraction predicts field-level WL suppression",
+      "numbers": "r=0.91 (fit S=0.57*f_gas+0.95) at ell~1500, group M200c 1-3e13 R500c bg-subtracted; 57 feedback lightcones (of 60-run twobound OAT design); fiducial f_gas=0.086, lowest 0.056, highest 0.137",
+      "provenance": "WORKLOG 2026-06-15pm 'halo<->field bridge'; WORKLOG 2026-06-18 'split the figure notebook into Paper I / Paper II' sec7.3; figure bind_bridge_fgas_sofl.png",
+      "section": "results-3-bridge"
+    },
+    {
+      "claim": "Compton-Y_500c is an even tighter predictor of S(ell) than f_gas alone (this is the actual source of the 'r=0.93' number, NOT a Delta-nu vs Delta-M_gas relation as the brief's must-appear list implies)",
+      "numbers": "r=0.935 (Y) vs 0.914 (f_gas); partial corr r[f_gas,S|Y]~=0, r[Y,S|f_gas]~=0.49 (the heating leg)",
+      "provenance": "WORKLOG 2026-06-18 'anatomy of the f_gas->S(ell) bridge' item 3 'Compton-Y'; figure fig_bridge_compton_y.pdf",
+      "section": "results-3-bridge"
+    },
+    {
+      "claim": "Bridge III: the per-halo group gas fraction drives essentially every field-level observable except raw peak counts",
+      "numbers": "|corr(probe, halo Delta-f_gas group)| across 57 runs: S(ell) 0.92, R(nu) 0.92, N_min 0.90, C_ell^kappa-y 0.87, V1 0.83, V2 0.82, N_pk 0.28 (exception, noise-dominated)",
+      "provenance": "WORKLOG 2026-06-15pm 'halo<->field bridge' Fig 3; figure bind_bridge_response.png",
+      "section": "results-3-bridge"
+    },
+    {
+      "claim": "The bridge slope steepens and tightness loosens from group to cluster scale",
+      "numbers": "group: r=0.91, slope alpha=0.59; intermediate: r=0.84, alpha=0.86; cluster: r=0.59, alpha=1.12",
+      "provenance": "WORKLOG 2026-06-18 'anatomy of the f_gas->S(ell) bridge' item 2; figure fig_bridge_mass.pdf",
+      "section": "results-3-bridge"
+    },
+    {
+      "claim": "TNG-CAMELS reproduces the van Daalen+2020 functional relation for weak lensing, but only spans the flat saturated top of the curve",
+      "numbers": "f_tilde_bar range ~0.81-0.98 (obs band is 0.55-0.76); WL suppression vs f_tilde tight r~0.95, steepens with ell (r=0.96/0.94/0.87 at ell=1000/3000/6000)",
+      "provenance": "WORKLOG 2026-06-18 item 5; figure fig_bridge_vandaalen.pdf",
+      "section": "results-3-bridge"
+    },
+    {
+      "claim": "The bridge holds from the 1P (n=57) corner design up to the full 256-node Sobol design (n=253 usable runs)",
+      "numbers": "Pearson r[f_gas,S(ell)] peaks ~0.86-0.91 near ell~1000-1500 for both designs; Sobol inset scatter r=0.86 at ell=1037",
+      "provenance": "figure fig_cl.pdf; WORKLOG 2026-06-29 line 58 ('253 runs + fid, ~34k halos/run over 20 shells z=0.034-2.444')",
+      "section": "results-3-bridge"
+    },
+    {
+      "claim": "Low-mass (1e12-1e13 M200c) halos are recovered from the existing 1e13-halo patches via reuse-only, without new generation",
+      "numbers": "28.7% captured within the production 4xR200 circular paste (median 1.76 Mpc/h); 51.6% captured at the full 6.25 Mpc/h patch footprint; ~48% remain uncaptured field halos",
+      "provenance": "WORKLOG 2026-06-25 'low-mass (1e12-1e13) baryons via reuse-only, not new generation'; examples/lightcone_lowmass_reuse.py module docstring",
+      "section": "results-4-completeness"
+    },
+    {
+      "claim": "The captured low-mass population's BIND fields match truth well even off-center",
+      "numbers": "gas 1.034x / 0.074 dex; Y 0.986x / 0.223 dex; stars 0.75x / 0.54 dex (two-head channel, map-irrelevant); median host distance 1.87 Mpc/h",
+      "provenance": "WORKLOG 2026-06-25, same entry",
+      "section": "results-4-completeness"
+    },
+    {
+      "claim": "Widening the paste footprint to capture more low-mass halos boosts total tSZ y identically for BIND and truth, with no new low-mass bias",
+      "numbers": "widening (r200_factor=99, snap_096) boosts total y +4.0% identically for BIND & truth; BIND/truth y ratio = 0.963 at both footprints; matter total unchanged",
+      "provenance": "WORKLOG 2026-06-25, same entry",
+      "section": "results-4-completeness"
+    },
+    {
+      "claim": "A resolution gate (TNG300-2-Dark/-3-Dark matched-halo test) was designed to validate painting at coarser DMO resolution, but was never executed -- no results exist",
+      "numbers": "n/a -- GAP, no numbers",
+      "provenance": "examples/resolution_gate.py docstring (fully specified, unexecuted); docs/wl_tsz_plan.md sec3.6 and sec6 checklist row 6 (marked open); grepped docs/WORKLOG.md for 'resolution gate|TNG300-2-Dark|TNG300-3-Dark' with no results entries found",
+      "section": "results-4-completeness"
+    },
+    {
+      "claim": "Quijote is ruled out as a bigger-box extension because its particle mass is far too coarse for BIND's training distribution",
+      "numbers": "1 Gpc/h @1024^3 -> m_p ~= 8e10 Msun/h -> a 1e13 halo is ~120 particles",
+      "provenance": "docs/wl_tsz_plan.md sec3.6",
+      "section": "results-4-completeness"
+    },
+    {
+      "claim": "CORRECTED (was raw/LOS-contaminated): BIND fiducial group-scale gas fraction closely matches mainstream X-ray data but not the contested eROSITA-low value; the strongest single 1P feedback knob only partially closes the gap",
+      "numbers": "BIND fid f_gas,500=0.076 (bg-subtracted, z<0.2, M500c~1.3e13) ~= TNG truth ~= mainstream X-ray (Eckert) to ~9%; 2.9x above eROSITA-Popesso (declining to ~1.2x at clusters); strongest single knob -> 0.047 (1.8x eROSITA, closes ~40% of the gap). A separate aperture (M200c 1-2e13) gives BIND fiducial=0.081, minimum single-knob=0.051, X-ray-standard band 0.06-0.10, eROSITA-low (Popesso+24)=0.026",
+      "provenance": "WORKLOG 2026-06-15pm 'eROSITA f_gas confrontation + projection-contamination fix' (this is the entry that CORRECTS the raw '41% cosmic' number below); figure fig_siegel.pdf / examples/paper_lightcone_figs.ipynb sec6.1",
+      "section": "discussion-fgas-correction"
+    },
+    {
+      "claim": "SUPERSEDED/RAW claim (do not use as headline): z~0 group f_gas saturates at ~41% of the cosmic baryon fraction across the single-parameter feedback design",
+      "numbers": "cosmic f_b=0.159; BIND fid f_gas=0.093 (58% cosmic) vs truth 0.086 (54%); strongest single-param depletion = 0.065 (41% cosmic, WindFreeTravelDensFac-hi); 'no single-parameter TNG excursion reaches the eROSITA strong-feedback band (~20-40% cosmic)'",
+      "provenance": "WORKLOG 2026-06-15pm 'per-halo baryon-feedback atlas (Rung 0) + z=0 f_gas saturation result' -- explicitly flagged as LOS-contaminated by the immediately following same-day WORKLOG entry ('The earlier raw 41% + raw f_gas-evolution absolutes are LOS-contaminated (relative trends robust)')",
+      "section": "discussion-fgas-correction"
+    },
+    {
+      "claim": "Lightcone geometry: TNG300-Dark box, 20 snapshots low-z first, redshift shells span z=0.034-2.444, 4xR200c circular-taper paste aperture is the production default, 5x5 deg2 field of view",
+      "numbers": "box=205 Mpc/h; LIGHTCONE_SNAPSHOTS has 20 entries (96..29); z=0.034-2.444; r200_factor=4.0 default; fov_deg=5.0 default; 50 fiducial realizations",
+      "provenance": "src/bind/inference/science.py:34 (LIGHTCONE_SNAPSHOTS); WORKLOG 2026-06-21 'SB35 Sobol lightcone pipeline (256 runs)' (box=205); WORKLOG 2026-06-29 (z range); src/bind/inference/schemas.py:50 and pipeline.py:732-741 (r200_factor); src/bind/inference/stats.py power_spectrum() (fov_deg); WORKLOG 2026-06-10 (50 realizations)",
+      "section": "methods-lightcone-construction"
+    },
+    {
+      "claim": "The tSZ (y) lightcone is already fully ray-traced, not a Born approximation -- lux samples y at the deflected ray position using the same machinery as kappa",
+      "numbers": "n/a -- mechanism claim, code lines raytracing.cpp:272 (calc_y) and :876",
+      "provenance": "docs/wl_tsz_plan.md sec0.2",
+      "section": "methods-lightcone-construction"
+    },
+    {
+      "claim": "The kSZ/FRB tau plane is additive along the deflected ray (no lensing kernel), cloned from the y-plane machinery",
+      "numbers": "validated on snap_096: tau_max~=0.018, slab mean~=1.3e-5; TAU_PER_DM = SIGMA_T * PC_CM",
+      "provenance": "WORKLOG 2026-06-18 'lux-RT kSZ/FRB tau plane + per-run Cl_yy'; src/bind/inference/lightcone_maps.py module docstring",
+      "section": "methods-lightcone-construction"
+    },
+    {
+      "claim": "The truth lightcone projects actual TNG300 hydro fields at the same M>=1e13 DMO-FoF halos BIND paints, under the same lightcone transform, as a drop-in comparison target",
+      "numbers": "single-chunk validation: compton_y max 2.5e-4 / mean 3.8e-6, T_mw ~4e7 K",
+      "provenance": "src/bind/inference/truth_lightcone.py module docstring; WORKLOG 2026-06-10 'truth lightcone (TNG300 hydro) for apples-to-apples with BIND'",
+      "section": "methods-lightcone-construction"
+    },
+    {
+      "claim": "The high-ell convergence power upturn is a raw-CIC aliasing artifact in the particle-to-grid projection, present identically in DMO and BIND (common-mode, cancels in same-pipeline ratios); an opt-in correction exists but is not needed for ratio-based science",
+      "numbers": "mas_correct fix validated to 0.4% out to 0.8*k_Nyquist on synthetic data",
+      "provenance": "WORKLOG 2026-06-09 'diagnosed the convergence-power upturn + added anti-aliasing capability'",
+      "section": "discussion-caveats"
+    }
+  ],
+  "figures": [
+    {
+      "path": "/mnt/home/mlee1/BIND/figs/demo_maps.png",
+      "shows": "3-panel BIND kappa (z_s=1), DMO kappa, BIND Compton-y sky maps, 5x5 deg -- the baryonified field is visibly distinct from DMO; y-map traces halo cores",
+      "section": "methods-map-suite / results-1-fiducial-validation (map gallery)"
+    },
+    {
+      "path": "/mnt/home/mlee1/BIND/examples/figures_lightcone/fig_skymaps.pdf",
+      "shows": "3-panel DMO kappa / BIND kappa / residual delta-kappa maps, 5x5 deg",
+      "section": "methods-map-suite (alternative/secondary map gallery)"
+    },
+    {
+      "path": "/mnt/home/mlee1/BIND/examples/figures_lightcone/fig_validation_field.pdf",
+      "shows": "6-panel Cl^kappakappa, N_peak, N_min, V0, V1, V2 with residual sub-panels, BIND vs TNG300 hydro truth, residuals mostly within a shaded percent-level band",
+      "section": "results-1-fiducial-validation (headline closure figure)"
+    },
+    {
+      "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/figs_raw/paper_lightcone_figs/cell005_out1.png",
+      "shows": "3-panel Y-M relation (BIND vs TNG hydro), tau_BIND/tau_hydro ratio by mass bin, pressure profile vs Arnaud+2010 across 4 mass bins -- richer than the on-disk single-panel fig_validation_halo.pdf, which appears stale",
+      "section": "results-1-fiducial-validation (halo-level closure)"
+    },
+    {
+      "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/figs_raw/fiducial_lightcone_stats/cell013_out0.png",
+      "shows": "Cl^kappa-y cross spectrum across 5 tomographic source-redshift bins (z_s=0.5-2.44) and Cl^yy auto spectrum",
+      "section": "methods-map-suite / results-1-fiducial-validation"
+    },
+    {
+      "path": "/mnt/home/mlee1/BIND/figs/bind_bridge_hero.png",
+      "shows": "2-panel: per-peak Delta-kappa/kappa vs Delta-ln-M_gas (slope=0.080, r=0.50) and the ejection-heating plane (Delta-ln-M_gas vs Delta-ln-T, colored by Delta-ln-Y)",
+      "section": "results-2-R-nu / results-3-bridge"
+    },
+    {
+      "path": "/mnt/home/mlee1/BIND/figs/bind_bridge_fgas_sofl.png",
+      "shows": "2-panel: S(ell) suppression curves for fiducial/lowest/highest f_gas runs (left panel visibly shows the CIC-aliasing high-ell upturn) and S(ell~1500) vs group f_gas scatter, r=0.91, 57 runs colored by feedback family",
+      "section": "results-3-bridge (headline van-Daalen-style scatter)"
+    },
+    {
+      "path": "/mnt/home/mlee1/BIND/figs/bind_bridge_response.png",
+      "shows": "Bar chart of |corr(field observable, halo Delta-f_gas)| across 57 runs (S(ell) 0.92, R(nu) 0.92, N_min 0.90, C_kappa-y 0.87, V1 0.83, V2 0.82, N_pk 0.28) plus an R(nu)-vs-f_gas scatter, r=0.92",
+      "section": "results-3-bridge (response matrix)"
+    },
+    {
+      "path": "/mnt/home/mlee1/BIND/examples/figures_lightcone/fig_bridge_vandaalen.pdf",
+      "shows": "2-panel: TNG-CAMELS position on the van Daalen+2020 f_tilde_bar suppression curve (flat saturated top) and the WL suppression relation vs f_tilde_bar at ell=1000/3000/6000",
+      "section": "results-3-bridge (van Daalen analog)"
+    },
+    {
+      "path": "/mnt/home/mlee1/BIND/examples/figures_lightcone/fig_cl.pdf",
+      "shows": "S(ell) envelopes for fiducial, 1P (n=57), and Sobol (n=253) designs with LSST-Y10/Euclid noise bands, plus Pearson r[f_gas,S(ell)] vs ell for both designs (inset scatter, Sobol r=0.86 at ell=1037)",
+      "section": "results-1-fiducial-validation / results-3-bridge (Sobol-scale robustness + suite description)"
+    },
+    {
+      "path": "/mnt/home/mlee1/BIND/examples/figures_lightcone/fig_siegel.pdf",
+      "shows": "Sorted 1P group f_gas bars vs X-ray-standard band (0.06-0.10) and eROSITA-low (Popesso+24, 0.026); BIND fiducial=0.081 line; minimum single-knob=0.051",
+      "section": "discussion-caveats (corrected f_gas / eROSITA tension)"
+    },
+    {
+      "path": "/mnt/home/mlee1/BIND/examples/figures_lightcone/fig_bridge_compton_y.pdf",
+      "shows": "3-panel: S(ell) vs log Y_500c (r=0.93), Y vs f_gas (r=0.98), and a bar chart of raw vs partial correlations with S(ell) (f_gas 0.91, logY 0.93, logT 0.85, Y|f_gas 0.48, f_gas|Y ~=0)",
+      "section": "results-3-bridge (resolves the r=0.93 vs r=0.91 attribution)"
+    }
+  ],
+  "caveats": [
+    "TNG-only prior (docs/wl_tsz_plan.md sec6 checklist row 8, marked open honesty-section item)",
+    "Mass floor: direct painting requires M200c>=1e13; the 1e12-1e13 band is reuse-only, capturing 28.7% (4xR200 paste) / 51.6% (full patch)",
+    "tau is a velocity-free electron column (kSZ observable needs velocity for Delta-T_kSZ; deferred to a later paper) -- src/bind/inference/lightcone_maps.py docstring",
+    "High-ell convergence power upturn is a CIC/aliasing artifact common-mode between DMO and BIND; cancels in same-pipeline ratios used for all science statistics; --mas_correct exists but is only needed for absolute (not ratio) validation",
+    "Painting is 2D projected onto lightcone slabs, not full 3D fields -- inferred from the architecture (bind.model emits 128x128 2D maps per CLAUDE.md); not found as an explicit quoted caveat sentence in the sources, flag as synthesized",
+    "Cl^yy has an open -12% deficit at fiducial vs hydro truth, not yet root-caused (docs/wl_tsz_plan.md sec6 checklist row 1); candidate cause is mean-y completeness (BIND mean-y 1.05e-6 vs Planck ~1.6e-6, ~35% of <y> attributed to M<1e13 halos + unbound gas)",
+    "Response-closure validation (twobound extremes vs independent CAMELS hydro runs at matched theta) is an open/unchecked item (docs/wl_tsz_plan.md sec6 checklist row 2), distinct from the completed fiducial-closure validation",
+    "High-mass extrapolation beyond the CAMELS-50 training range (tops out at a few x 1e14) is unaudited (docs/wl_tsz_plan.md sec3.5, checklist row 6)",
+    "The per-peak bridge (Delta-kappa/kappa vs Delta-ln-M_gas) has ~100% per-peak scatter; only the per-run-averaged r=0.50 recovers a population-level signal -- the bridge is a population, not an individual-halo, statement",
+    "Resolution-gate validation (TNG300-2-Dark/-3-Dark) was planned but never executed; no results exist to report as of this dossier"
+  ],
+  "citations": [
+    "van Daalen+2020 (functional-form fit used quantitatively in fig_bridge_vandaalen.pdf; van Daalen+2011 is a brief seed, not independently confirmed in-repo)",
+    "Schneider & Teyssier 2015 (BCM; named in src/bind/inference/spherical.py context per WORKLOG 2026-06-17)",
+    "Arnaud et al. 2010 (universal pressure profile comparison curve, fig_validation_halo)",
+    "Duffy et al. 2008 (NFW concentration-mass relation, halo_atlas.m500c_from_m200c)",
+    "Popesso et al. 2024 (eROSITA-low f_gas value, fig_siegel.pdf)",
+    "Eckert et al. 2016/2019 (mainstream X-ray f_gas comparison)",
+    "Lovisari et al. 2015 (X-ray f_gas comparison)",
+    "Macquart et al. 2020 (FRB DM mean amplitude 'Macquart term', named in stats.py docstring; matches brief seed)",
+    "Planck y-map (brief seed 'Planck 2015 XXII'; in-repo only a MEMORY note 'validated vs Planck', mean-y 1.6e-6 -- exact Planck paper/release not pinned, needs Cite-step verification)",
+    "arXiv:2506.07432 (DES Y3 x ACT DR6 shear x y, 21-sigma detection)",
+    "arXiv:2512.02954 (strong-feedback consensus)",
+    "arXiv:2509.10455 (X-ray+kSZ+WL gas expulsion)",
+    "arXiv:2410.19905 (FLAMINGO kSZ x GGL)",
+    "arXiv:2309.07959 (FLAMINGO S8)",
+    "arXiv:2503.19441 / 2503.19442 (KiDS-Legacy S8=0.815+-0.02)",
+    "arXiv:2602.10065 (DES Y6 shear)",
+    "arXiv:2602.12238 (S8 status review 2026)",
+    "arXiv:2505.07949 (map-level baryonification HOS)",
+    "arXiv:2406.01672 (Arico & Angulo, BCM+tSZ)",
+    "arXiv:2407.20448 (Stage-IV non-Gaussian baryon correction)",
+    "arXiv:2312.08450 (FLAMINGO peak counts)",
+    "arXiv:2406.08540 (MTNG Born vs ray-traced kappa)",
+    "arXiv:2201.08320 (group's own prior BCM-vs-hydro peaks paper, MNRAS 519,573 -- BCMs hold only to nu<=4; plausibly = draft.tex bibkey LeeAmon2026)",
+    "arXiv:2109.04458 (KiDS x y)",
+    "arXiv:2602.11279 (SPT-3G D1 y-maps)",
+    "arXiv:2201.12591 (thermal-energy census -> WL)",
+    "draft.tex intro bibkeys (unresolved arXiv IDs, lower confidence): Siegel2025, Siegeletal2025mnras, DESACTTSZWL2025 (plausibly =2506.07432), BigwoodAmon2024, Amonetal2023, Salcido2025kSZ, FLAMINGOkSZlensing2024, Martinet2021peaks, Gatti2022HOScos, Zurcher2022MFs, Marques2024HSC, FLAMINGOscattering2025, Fong2021TNGbaryons, MartinezConcepcion2024baryons, HarnoisDeraps2021peaks, Weiss2019MFs, FLAMINGOmps2024, Schaye2023FLAMINGO, Schneider2019BCM, Schneider2025baryonification, Gatti2023maplevel, VN2021fieldemulator (Villaescusa-Navarro, matches brief seed), Arico2024 (matches brief seed Arico+2020/21, check year), Schneider2022clusters, Pandey2022joint, PrestonRogers2025",
+    "kSZ tier-1 literature, named without arXiv ID in docs/wl_tsz_plan.md sec2: Schaan+21, Hadzhiyska+24, Ried Guachalla+25 (relevant to the velocity-free tau caveat)",
+    "BindPaper1 / Lee et al. in prep. (self-citation for the BIND model; per PLAN.md hard rules, cite as in-prep, no fake arXiv ID)"
+  ]
+}

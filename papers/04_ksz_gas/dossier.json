@@ -1,0 +1,303 @@
+{
+  "results": [
+    {
+      "claim": "BIND has no gas velocity field; its 'kSZ' is the velocity-free electron-column optical depth tau, not a literal ΔT_kSZ map.",
+      "numbers": "tau = sigma_T ∫ n_e dl (= FRB dispersion measure)",
+      "provenance": "docs/ksz_desi_act_plan.md §0; WORKLOG 2026-06-24 'P4 kicked off'; memory ksz-p4-tau-not-velocity.md",
+      "section": "Intro/Methods"
+    },
+    {
+      "claim": "bind_sb35 is the TNG300-DM (L205n2500TNG_DM, 205 Mpc/h) 256-node Sobol design, ray-traced to kappa/tau/y with lux.",
+      "numbers": "256 Sobol nodes; 253 valid/usable for ray-traced field-level products",
+      "provenance": "docs/ksz_desi_act_plan.md §0/§2; paper_ksz_field.ipynb §0 ('253 valid Sobol nodes'); papers/PLAN.md cross-paper framing",
+      "section": "Methods"
+    },
+    {
+      "claim": "Per-halo integrated catalog used for the f_gas/Y/T science.",
+      "numbers": "8.6M halo-instances x 256 runs x 20 snaps x 55 columns (f_gas_{200,500}, M_{tot,gas,star,dm}_{200,500}, Y_{200,500}, T_mw_{200,500}, M200, r200, z, a, + 30 astro params)",
+      "provenance": "docs/ksz_desi_act_plan.md §2; examples/ksz_fgas_confront.py docstring; memory ksz-p4-tau-not-velocity.md",
+      "section": "Methods"
+    },
+    {
+      "claim": "0% of the 256-node Sobol design reaches the eROSITA/Popesso+24 strong-feedback f_gas band, even at the strongest-feedback edge.",
+      "numbers": "at logM500~13.5, BIND Sobol band f_gas ≈ 0.11-0.15; 0% of nodes reach the Popesso+24 strong-fb band even at the 2.5% feedback edge",
+      "provenance": "WORKLOG 2026-06-24 'P4 kicked off - D1 done'; docs/ksz_desi_act_plan.md §3 Phase1 D1; examples/ksz_fgas_confront.py; figure f5_fgas_erosita (cell012_out0.png)",
+      "section": "Results (1)"
+    },
+    {
+      "claim": "SUPERSEDED/DO NOT USE: earlier 'z~0 f_gas saturates ~41% cosmic' claim from the 60-run twobound one-at-a-time (OAT) design was a projection/LOS-contamination artifact.",
+      "numbers": "41% cosmic (raw, uncorrected aperture) -- explicitly retracted",
+      "provenance": "WORKLOG 2026-06-15(pm) 'per-halo baryon-feedback atlas (Rung 0)' (original claim) superseded by WORKLOG 2026-06-15(pm) 'eROSITA f_gas confrontation + projection-contamination fix' (same session, later entry); memory baryon-atlas-rung0.md: 'SUPERSEDED: ... ignore it.'",
+      "section": "Results (1) - correction note"
+    },
+    {
+      "claim": "Corrected (background-subtracted) group-scale f_gas result from the twobound OAT design (NOT the 256-node Sobol): BIND fiducial matches mainstream X-ray, not eROSITA-Popesso.",
+      "numbers": "BIND fid f_gas,500 = 0.076 ≈ TNG truth ≈ Eckert+19 mainstream X-ray (~0.070-0.131) to ~9%; 2.9x above eROSITA-Popesso at group scale (M500c~1.3e13), declining to ~1.2x at cluster scale; strongest single OAT-parameter knob reaches f_gas,500=0.047 (1.8x eROSITA, closes ~40% of the gap)",
+      "provenance": "WORKLOG 2026-06-15(pm) 'eROSITA f_gas confrontation + projection-contamination fix'; memory baryon-atlas-rung0.md",
+      "section": "Results (1) - corrected ceiling number"
+    },
+    {
+      "claim": "D2 kSZ tau shape (256 nodes, clean band x=R/r200c in [0.3,1.5]) is consistent with massive BGS and ELG Hadzhiyska/Ried-Guachalla GNFW bins, shallower than steep BGS_all.",
+      "numbers": "BIND beta 4-6 vs data beta 4.5-7.3 (massive BGS M*>11 beta~4.8-5.2, ELG beta~4.5, BGS_all beta=7.3); alpha offset BIND 1-3 vs data ~0.2 (flagged invalid comparison point, near-singular GNFW corner)",
+      "provenance": "WORKLOG 2026-06-24 'P4 D2-D4'; examples/ksz_tau_gnfw.py",
+      "section": "Results (2)"
+    },
+    {
+      "claim": "D3: tSZ pressure y exceeds at ELG-z vs BGS-z at fixed mass; implied electron temperature.",
+      "numbers": "T_e proxy ~ 1-2e7 K (~1-2 keV), declining with radius",
+      "provenance": "WORKLOG 2026-06-24 'P4 D2-D4'; examples/ksz_tau_gnfw.py",
+      "section": "Results (2)"
+    },
+    {
+      "claim": "FINAL corrected CAP-aperture amplitude statement (exact CAP-ratio f~gas = CAP_gas/CAP_mat, Ried Guachalla+25 §III.2.1 observable): fiducial too gas-rich but feedback/data-limited, not '0/256'.",
+      "numbers": "fiducial CAP f~gas(r200) = 0.77 (M*>11.0) / 0.84 (M*>11.25) vs data 0.44 / 0.60 -> ratio 1.76x / 1.40x (~2 sigma); ~20% of 256 nodes consistent within errors (49 nodes at M*>11.0 cut, 65 nodes at M*>11.25 cut); best single node chi^2~0.1",
+      "provenance": "WORKLOG 2026-06-25 'kSZ paper: CAP-aperture reconciliation (headline correction)'; re-confirmed WORKLOG 2026-06-26 'figure-revision pass'; examples/_reduce_fgas_cap.py; figure f6_ksz_confront (cell014_out1.png)",
+      "section": "Results (3)"
+    },
+    {
+      "claim": "RETRACTED precursor CAP/cumulative-aperture claims: '0/256 nodes reach the data', ~2.5-3.1x tension, ~3x pre-DA-bug-fix tension, and a raw CAP-tau '2-6x above data' amplitude comparison.",
+      "numbers": "all superseded by the exact-CAP f~gas result above",
+      "provenance": "WORKLOG 2026-06-25 'P4 notebook refocus' (cumulative aperture + DA bug); WORKLOG 2026-06-25 'CAP-aperture reconciliation' (raw CAP-tau dropped, 'Fig 6 CAP panel DROPPED')",
+      "section": "Results (3) - correction note"
+    },
+    {
+      "claim": "sigma_v-free 3D capstone gas-fraction confrontation (clean, no projection).",
+      "numbers": "BIND clean 3D f~gas(<r500)=0.82, f~gas(<r200)=0.88 vs DESI x ACT BGS data ~0.32 at same aperture -> BIND ~2.7x too gas-rich within r200; data reach BIND's level only at theta~7-8' (~3-4 r200)",
+      "provenance": "WORKLOG 2026-06-24 'P4 D4-D5 - kSZ amplitude resolved'; examples/ksz_fgas_profile.py",
+      "section": "Results (3)"
+    },
+    {
+      "claim": "ELG regime confronted at its own redshift (z=1.16) via patch reuse; tension holds across mass and redshift.",
+      "numbers": "BIND fid f~gas(2.8 r200)=0.88 (truth 0.77) vs ELG data ~0.46 -> ~2x tension at z=1.16",
+      "provenance": "WORKLOG 2026-06-25 'P4 notebook refocus' (d); figure f6b_lowmass (cell018_out2.png)",
+      "section": "Results (3)"
+    },
+    {
+      "claim": "CMB-lensing kappa mass anchor: BIND halo masses are right to ~30%; the f~gas tension is gas, not mass.",
+      "numbers": "BIND kappa ~1.3x the DESI BGSxACT kappa(theta) data at 1-halo scale (theta~2.25'), vs ~2x in the (superseded, cumulative) f~gas metric",
+      "provenance": "WORKLOG 2026-06-25 'P4 notebook refocus' §(f); examples/_reduce_kappa_bgs.py; figure f6c_kappa_mass (cell020_out1.png)",
+      "section": "Results (3)"
+    },
+    {
+      "claim": "GP emulator quality for the CAP amplitude observable is much better than for shape alone; first kSZ feedback posterior.",
+      "numbers": "CV R^2 ~ 0.83 (CAP amplitude) vs 0.4-0.7 (shape-only); single BGS bin: top param UVBHepDeltaz 0.86x prior; joint BGS M*>11.0+11.25: best 0.86->0.77x prior, #params<0.85x prior 0->5 (wind/SN sector: VariableWindVelFactor, WindEnergyIn1e51erg, WindFreeTravelDensFac)",
+      "provenance": "WORKLOG 2026-06-24 'P4 D4-D5'; WORKLOG 2026-06-25 'CAP-aperture reconciliation' §6e",
+      "section": "Results (4)"
+    },
+    {
+      "claim": "Expanding to all DESI x ACT M* cuts widens the constrained parameter set modestly but is latent-limited.",
+      "numbers": "2->5 BGS cuts: 0->6 params <0.85x prior, min ratio 0.87->0.75; +3 ELG cuts (8 pts total) barely moves it further",
+      "provenance": "WORKLOG 2026-06-26 'figure-revision pass' §7; examples/ksz_posterior_allcuts.py; figure f7_posterior (cell026_out0.png)",
+      "section": "Results (4)"
+    },
+    {
+      "claim": "Which feedback parameters fit the CAP-consistent (49-node) subset: only the wind/SN + IMF sector is pulled, as a combination (not individual, naive signs).",
+      "numbers": "49 kSZ-consistent nodes (of 256); ~6-knob combination (VariableWindSpecMomentum, WindEnergyIn1e51erg, IMFslope, VariableWindVelFactor, WindFreeTravelDensFac, WindEnergyReductionFactor, RadioFeedbackFactor, BlackHoleFeedbackFactor, SNII_MinMass_Msun, RadioFeedbackReorientationFactor, MaxSfrTimescale, QuasarThreshold)",
+      "provenance": "WORKLOG 2026-06-26 'figure-revision pass' (f6a); figure f6a_params_fit (cell016_out0.png)",
+      "section": "Results (4)"
+    },
+    {
+      "claim": "MONEY PLOT forecast: future SO/CMB-S4 x DESI kSZ+tSZ jointly pin 2 feedback directions that kSZ or tSZ alone cannot.",
+      "numbers": "joint pins dir1 nu~0.10, dir2 nu~0.16 (nu = posterior/prior variance); best-constrained forecast direction lies 0.81 inside the paper's own latent plane (vs 0.26 random)",
+      "provenance": "WORKLOG 2026-06-24 'D6 MULTI-PROBE'; WORKLOG 2026-06-25 'P4 notebook refocus' §8; figure f8_money_forecast (cell028_out0.png)",
+      "section": "Results (4)"
+    },
+    {
+      "claim": "RETRACTED: the original y=f~gas*kappa*T_e 3-probe thermodynamic closure and its 'too much gas, not too hot' headline.",
+      "numbers": "originally: density 2.0x * mass(kappa) 1.3x * pressure(tSZ) 2.6x => implied T_e~1.0x; RETRACTED after the tSZ 2.6x was found to be a Msun-vs-Msun/h mass-selection bug",
+      "provenance": "WORKLOG 2026-06-25 §6d (original); WORKLOG 2026-06-26 'tSZ mass-selection bug' (retraction, explicit: 'The too much gas not too hot / mildly too hot framings below are RETRACTED'); memory ksz-p4-tau-not-velocity.md",
+      "section": "Results (5) - correction note"
+    },
+    {
+      "claim": "Corrected tSZ pressure leg (mass-corrected at DESI-LRG lensing mass): confirms the kSZ gas excess at a comparable level but is mass-selection-dominated, not a clean feedback probe.",
+      "numbers": "at logM200=13.18 Msun/h (Sailer+24): BIND y-CAP ~= 1.51x the data (fiducial); +/-0.1 dex mass systematic alone spans 1.35-2.05x; kSZ and tSZ now AGREE at the strong-fb edge (implied f~gas ~0.53-0.54, MAP e1~-7)",
+      "provenance": "WORKLOG 2026-06-26 'tSZ mass-selection bug'; examples/_reduce_ycap_lrg.py; figure f6d_tsz_pressure (cell022_out0.png)",
+      "section": "Results (5)"
+    },
+    {
+      "claim": "The 30-d (tau,y) feedback response at the BGS mass bin collapses to a clean 2-D latent manifold, physically labelled as inner-gas vs outer-gas (not a tau-vs-y split).",
+      "numbers": "2 latent components explain 97% of variance (lambda=0.51/0.46, sharp knee); e1=inner gas f_gas(<R500), r=+0.95; e2=outer gas f_gas(R500->R200), r=+0.95; the two zones only r=0.24 correlated (independent); R^2=0.90/0.96 plane reconstruction; halo mass common-mode CV=0.0008",
+      "provenance": "WORKLOG 2026-06-26 'figure-revision pass' (f4); figure f4_latent (cell010_out0.png)",
+      "section": "Results (5)"
+    },
+    {
+      "claim": "An intermediate gas-blind tau-shape-residual labelling of the 2nd latent axis was tested and found to be an overclaim.",
+      "numbers": "gas content & profile concentration ~87% degenerate in TNG; gave only partial r=0.70",
+      "provenance": "WORKLOG 2026-06-26 'figure-revision pass' (f4)",
+      "section": "Results (5) - correction note"
+    },
+    {
+      "claim": "Field-level companion (paper_ksz_field.ipynb) uses the ray-traced multi-plane data the per-halo paper never touches.",
+      "numbers": "253 valid Sobol nodes; tomographic Cl_kappakappa, Cl_kappa_y, Cl_yy, Cl_tautau, suppression S(l,z_s), peaks/PDF/MF/WST from bind_sb35/emulator_dataset.npz",
+      "provenance": "WORKLOG 2026-06-26 'NEW field-level companion paper_ksz_field.ipynb'",
+      "section": "Results (6)"
+    },
+    {
+      "claim": "Field-level feedback response is ~1-D, contrasting with the per-halo CGM's clean 2-D (inner+outer gas) result -- LOS projection washes out the radial 2nd dimension.",
+      "numbers": "lambda_1 ~= 0.95 (field), robust across every probe combination",
+      "provenance": "WORKLOG 2026-06-26 'NEW field-level companion'; figure paper_ksz_field/cell010_out0.png",
+      "section": "Results (6)"
+    },
+    {
+      "claim": "Field-level real-data confrontation: BIND shear x y vs real DES Y3 x ACT.",
+      "numbers": "BIND ~2.5x (DES bin3, z~0.74) / 2.3x (DES bin4, z~0.94) above the data at well-measured scales (8'-40'), with the correct physical ACT DR6 2.4' beam; WORKLOG prose paraphrase rounds this to '~1.5-2x high' in one summary sentence -- use the figure's precise 2.3-2.5x as primary",
+      "provenance": "WORKLOG 2026-06-26 'NEW field-level companion'; figure paper_ksz_field/cell012_out0.png",
+      "section": "Results (6)"
+    },
+    {
+      "claim": "An earlier field-level shear x y draft used an erroneous over-smoothing beam, later corrected.",
+      "numbers": "10' 'effective beam' (wrong) shifted BIND's peak to 11' vs data's 4.5'; replaced with the physical 2.4' ACT beam, exposing that BIND is both too high AND too steep",
+      "provenance": "WORKLOG 2026-06-26 'NEW field-level companion' (user-caught bug)",
+      "section": "Results (6) - correction note"
+    },
+    {
+      "claim": "The kappa x y cross (not the kappa auto) is the field-level feedback driver.",
+      "numbers": "band-integrated response D: y-tau 0.18 > tau-tau 0.16 > y-y 0.135 > kappa-y 0.10 >> kappa-kappa 0.03",
+      "provenance": "WORKLOG 2026-06-26 'NEW field-level companion' §6; figure paper_ksz_field/cell014_out0.png",
+      "section": "Results (6)"
+    },
+    {
+      "claim": "Field-level forecast: LSST x CMB-S4 kappa x y pins the single dominant gas-ejection latent.",
+      "numbers": "dir1 nu~0.05 pinned, dir2 stays wide at nu~0.11 (dir1 << dir2), Fisher boosted 5x vs DES x ACT",
+      "provenance": "WORKLOG 2026-06-26 'NEW field-level companion' §7/§8; figures paper_ksz_field/cell016_out0.png, cell018_out0.png",
+      "section": "Results (6)"
+    },
+    {
+      "claim": "Methods-lesson footnote (not a result): tSZ mass-convention bug.",
+      "numbers": "old host-mass band [13.2,13.5] Msun/h was ~0.2 dex too high vs the correct DESI-LRG lensing mass logM200=13.18 Msun/h (Sailer+24); because Y ~ M^5/3 this alone inflated y-CAP to a spurious 2.6x",
+      "provenance": "WORKLOG 2026-06-26 'tSZ mass-selection bug'",
+      "section": "Methods"
+    },
+    {
+      "claim": "Two further normalization pitfalls documented as methods lessons: local-tau-vs-CAP mismatch (spurious ~30x) and cumulative-vs-compensated aperture (manufactured '0/256').",
+      "numbers": "~30x spurious tension (local tau vs GNFW, wrong observable); DA(z) bug (spurious extra /h) shrank theta(r200) and biased data f~gas(r200) low (0.28 -> corrected 0.44-0.60)",
+      "provenance": "WORKLOG 2026-06-24 'D4 RESOLVED'; WORKLOG 2026-06-25 'P4 notebook refocus' §(f); memory ksz-p4-tau-not-velocity.md",
+      "section": "Methods"
+    }
+  ],
+  "figures": [
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell004_out0.png (on-disk equiv: examples/figures_ksz/f1_lightcone.pdf)",
+      "shows": "3-panel: lightcone snapshot<->redshift coverage (20 slices, z=0.03-2.44) with BGS/ELG snaps marked; 256-node Sobol design in physical log units (ASN1 wind-energy x ASN2 wind-speed) with fiducial star; halo mass function with BGS/LRG/ELG DESI host mass bands vs the BIND 1e13 floor and patch-reuse region",
+      "section": "Intro/Methods (§1 DATA)"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell006_out0.png (on-disk equiv: f2_pipeline.pdf)",
+      "shows": "3-panel: fiducial tau(R/r200c) stacked by mass bin with clean band shaded; M*-matching 2D histogram (BIND SHMR) with the two DESI M* cuts marked, giving mean logM200=13.56/13.81; CAP filter schematic (disk +1 / equal-area ring -1)",
+      "section": "Methods (§2)"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell008_out0.png (on-disk equiv: f3_response_fan.pdf)",
+      "shows": "tau(R) and y(R) profiles for all 256 Sobol nodes colored by f~gas,500, fiducial TNG overlaid in black, bottom row shows node-spread/fiducial vs radius (core-dominated response, ratio 13.4x core/outskirt per WORKLOG)",
+      "section": "Results (2)/(3) - response fan"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell010_out0.png (on-disk equiv: f4_latent.pdf)",
+      "shows": "4-panel: (a) scree plot showing 2 latent components = 97% variance; (b) parameter loading bars for both axes (~9 params each); (c)/(d) the same 2-D latent plane colored by inner-gas f_gas(<R500) and outer-gas f_gas(R500->R200) respectively, both r=0.95",
+      "section": "Results (5) - the 2-D latent"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell012_out0.png (on-disk equiv: f5_fgas_erosita.pdf)",
+      "shows": "f_gas,500 vs M500c: BIND Sobol 16-84% band, median, and strongest-feedback (2.5%) line, all above the Popesso+24 eROSITA strong-feedback curve and mostly above the Eckert+19 mainstream X-ray curve, over M500c=1e13-3e14 Msun/h",
+      "section": "Results (1) - the headline 0% figure"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell014_out1.png (on-disk equiv: f6_ksz_confront.pdf)",
+      "shows": "CAP-ratio f~gas(theta) fiducial curves for the two DESI M* cuts + SB35 16-84% feedback band + best-fit node, vs real DESI x ACT data points with error bars; BIND systematically above the data at small/mid aperture, converging near cosmic (=1) at large theta",
+      "section": "Results (3) - the corrected CAP amplitude"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell016_out0.png (on-disk equiv: f6a_params_fit.pdf)",
+      "shows": "Strip plot of ~12 feedback parameters: all 256 nodes (grey) vs the 49 kSZ-CAP-consistent nodes (red) vs fiducial (star) vs consistent-node median (bar) -- shows only the wind/SN+IMF sector is pulled",
+      "section": "Results (4) - which parameters fit"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell018_out2.png (on-disk equiv: f6b_lowmass.pdf)",
+      "shows": "Two-redshift panel (BGS z=0.18 left, ELG z=1.16 right): f~gas(M200) with the 256 SB35 lines, BIND fiducial, all DESI M* cuts as data points, and the patch-reuse shaded region below the 1e13 floor",
+      "section": "Results (3) - mass and redshift extension"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell020_out1.png (on-disk equiv: f6c_kappa_mass.pdf)",
+      "shows": "CMB-lensing kappa(theta): BIND fiducial + SB35 16-84% band vs DESI BGSxACT kappa(theta) data, per M* cut, with the 1-halo region (theta<3') shaded; BIND ~1.3x the data there",
+      "section": "Results (3) - mass anchor, de-degenerating gas vs mass"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell022_out0.png (on-disk equiv: f6d_tsz_pressure.pdf)",
+      "shows": "2-panel: (a) y-CAP amplitude, all 256 SB35 runs + 49 kSZ-consistent nodes + BIND fiducial vs ACTxDESI LRG data, with a +/-0.1-dex mass-systematic shaded band dominating the 1.5-2.1x visual spread; (b) y-CAP shape normalized at 2.25', showing BIND is more radially extended than the data (peaks at 4.75' vs data 3.5')",
+      "section": "Results (5) - pressure leg / thermo consistency check"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell024_out0.png (on-disk equiv: f6e_latent_data.pdf)",
+      "shows": "2-panel: (a) real DESI x ACT data projected into the (inner-gas e1, outer-gas e2) latent plane, with kSZ-only/tSZ-only/joint 68/95% contours and MAP points, overlaid on all 256 Sobol nodes colored by f~gas; (b) 1-D posterior on the ejection latent e1 for kSZ-only/tSZ-only/joint",
+      "section": "Results (4)/(5) - the data projected into the feedback manifold"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell026_out0.png (on-disk equiv: f7_posterior.pdf)",
+      "shows": "Posterior-sd/prior-sd for ~30 feedback parameters, comparing 3 nested DESI M* cut configurations (2 BGS bins / all 5 BGS cuts / 5 BGS+3 ELG cuts) -- widening the cuts pulls in the wind/SN sector but with diminishing returns",
+      "section": "Results (4) - the posterior using all DESI cuts"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_desi_act/cell028_out0.png (on-disk equiv: f8_money_forecast.pdf)",
+      "shows": "Corner plot: 2 constrained feedback directions under kSZ-only/tSZ-only/joint forecast posteriors (future SO/CMB-S4 x DESI, Fisher-boosted); joint is visibly the tightest, pinning both directions",
+      "section": "Results (4) - forecast money plot"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_field/cell010_out0.png",
+      "shows": "Scree plot of the field-level (tau,y or S(l)+kappa_y) response: component 1 (lambda_1~0.95) already exceeds the 95%-variance line, component 2 flat -- the field response is ~1-D, contrasting with the per-halo 2-D result",
+      "section": "Results (6) - field-level companion, key contrast"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_field/cell012_out0.png",
+      "shows": "2-panel real-data confrontation: BIND shear x y xi_gy(theta) (Sobol 16-84% band + 2.4' beam solid + no-beam dotted) vs real DES Y3 x ACT data, for DES source bins 3 (z~0.74) and 4 (z~0.94); BIND/data ~2.5x and ~2.3x respectively at robust scales (8'-40')",
+      "section": "Results (6) - field-level real-data confrontation"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_field/cell014_out0.png",
+      "shows": "2-panel: (a) band-integrated feedback response ranking by probe: y-tau > tau-tau > y-y > kappa-y >> kappa-kappa (kappa auto is feedback-blind); (b) node-spread/fiducial vs multipole l for each probe",
+      "section": "Results (6) - kappa x y is the feedback driver"
+    },
+    {
+      "path": "papers/04_ksz_gas/figs_raw/paper_ksz_field/cell018_out0.png",
+      "shows": "Forecast ellipse: future LSST x CMB-S4 kappa x y pins the dominant field-level gas-ejection direction (dir1) much tighter than the orthogonal direction (dir2)",
+      "section": "Results (6) - field-level forecast"
+    }
+  ],
+  "caveats": [
+    "Velocity-free tau: BIND's 'kSZ' is the electron-column optical depth, not a velocity-weighted temperature; a real Delta T_kSZ is unbuilt (needs a DMO-velocity surrogate; Phase-3 kill-gate G3, not attempted).",
+    "TNG model space only: the 256-node Sobol design samples TNG-like feedback parametrizations only; the paper's thesis is explicitly about model-space vs parameter-space tension, not a test of non-TNG subgrid physics.",
+    "Mass floor 1e13 for painted halos: the TNG300 lightcone halo catalog floor is M200>=1e13; the DESI ELG-host regime (~1e12.5) sits below it. Low-mass (1e12-1e13) reuse via patch cross-matching recovers only a partial sample (28.7% within the 4xR200 production paste, 51.6% at the full 6.25 Mpc/h patch footprint); the uncaptured ~48% are field halos far from any >=1e13 cluster (captured halos have median host distance 1.87-1.9 Mpc/h, i.e. near-cluster not field), though an environment-bias check found the captured sample's f~gas is representative (near-host vs field 0.408 vs 0.409, <0.3% difference).",
+    "Satellite/miscentering effects: the tSZ y-CAP profile SHAPE (not amplitude) is not compared to data because the real photometric-LRG stack is smoothed by miscentering + photo-z LOS spread + the ACT beam (modelled/marginalised by the survey, not by BIND) -- only the 1-halo y-CAP amplitude is compared. Similarly the kappa comparison is restricted to the 1-halo scale (theta<3') because BIND's isolated per-halo patch carries no 2-halo term.",
+    "y-map normalization is already physical (Compton-y needs no extra 1/a^2 weighting) per standing project convention; not independently re-derived within the ksz-desi-act sources but consistent with all y-map usage in this project.",
+    "Open provenance gap: ksz_fgas_confront.py (the D1 '0% coverage' result) reads f_gas_500 directly from integrated.parquet with no visible background-subtraction step in that file; whether the parquet column already carries the LOS-contamination fix later applied in halo_atlas.py (2026-06-15) could not be confirmed from the sources -- flag for the verifier, do not assert the D1 Sobol-wide numbers (f_gas~0.11-0.15) and the corrected bg-subtracted single-run numbers (f_gas,500=0.076) are on the same footing.",
+    "GNFW (alpha,beta) point comparison is explicitly flagged invalid: alpha~0.2 is a near-singular corner of the fixed gamma=-0.5,x_c=0.7 GNFW form, degenerate with the fixed core; only the profile-overlay + outer slope beta is meaningful.",
+    "The kSZ-inferred f_gas computed by forward-integrating the Hadzhiyska/Ried-Guachalla GNFW density table is unphysical as transcribed (gives BGS_all -> 0); do not reproduce this calculation, use the CAP-ratio comparison or the paper's own reported f_gas table instead.",
+    "The original 3-probe (kappa,tau,y) thermodynamic decomposition and its 'too much gas, not too hot' conclusion is RETRACTED after the tSZ mass-selection bug fix; no valid T_e/heating-vs-ejection decomposition currently exists in the sources.",
+    "Posterior covariances are approximate: the joint multi-M*-bin CAP posterior uses a diagonal covariance treating nested M* bins as independent (optimistic); the multiprobe kSZ+tSZ forecast uses a 'realistic AR(1) aperture covariance' (better, but still not the survey's published bin-bin covariance) -- both flagged as open TODOs.",
+    "Compare like with like: BIND f_gas = total gas; eROSITA = hot X-ray gas; kSZ = total electrons -- the X-ray band is a lower envelope on true gas content, not a literal kSZ target.",
+    "The central-M* selection proxy (painted Stars channel within ~50 kpc/h) has not been independently validated against TNG Subfind stellar mass at fiducial (DMO<->hydro match) -- listed as an open TODO.",
+    "sigma_v=300 km/s (T_CMB sigma_v/c=2727 microK) is used throughout the (now-dropped) raw CAP-tau conversion; an earlier draft used an erroneous 1176 microK from a digitization slip -- moot for the final paper since the raw CAP-tau panel was dropped in favor of the sigma_v-free f~gas ratio, but worth a footnote if any raw tau-CAP number is ever shown."
+  ],
+  "citations": [
+    "Schaan et al. (2021) -- ACT kSZ stacking (earlier stacks); confirmed in notebook closing citation list",
+    "Amodeo et al. (2021) -- confirmed alongside Schaan+2021 as 'earlier stacks'",
+    "Hadzhiyska+26 / Ried Guachalla+25 -- AMBIGUOUS: arXiv:2604.19744 ('Part I', LRG kSZ amplitude table) attributed to Ried Guachalla et al. 2025; arXiv:2604.19745 ('Part II', BGS/ELG GNFW + CAP-ratio definition) attributed inconsistently to BOTH 'Hadzhiyska et al. 2024/2026' (earlier code, 2026-06-24) and 'Ried Guachalla et al. 2025' (later code/WORKLOG, 2026-06-25 onward, including a verbatim quote of section III.2.1). The arXiv prefix 2604 implies an April-2026 submission, inconsistent with both quoted years. MUST be resolved by the CITE step before citing either name/year.",
+    "Bigwood et al. (2025 per notebook closing cell; brief says 2024) -- part of the 'Siegel/Bigwood missing-baryon consensus'; no independent arXiv ID found in the sources (docs/ksz_desi_act_plan.md groups it under the same ID as Siegel, 2509.10455, which is ambiguous/likely wrong for Bigwood specifically)",
+    "Siegel et al. (2025, arXiv:2509.10455) -- confirmed directly in notebook closing citation and docs/ksz_desi_act_plan.md",
+    "Kovac et al. (2025, arXiv:2507.07991) -- confirmed, grouped with the missing-baryon consensus",
+    "Popesso et al. (2024) -- eROSITA strong-feedback f_gas edge; formula f_gas=2.23e-7*M^0.39 confirmed in examples/ksz_fgas_confront.py; Bahar (brief's alternative guess) is NEVER mentioned anywhere in the sources -- do not cite without independent verification",
+    "Eckert et al. (2019) -- mainstream X-ray f_gas weak-feedback edge; formula f_gas=0.131*(M/2e14)^0.21 confirmed in examples/ksz_fgas_confront.py",
+    "DESI Collaboration (2024); Hahn et al. (2023, BGS); Zhou et al. (2023, LRG); Raichoor et al. (2023, ELG) -- confirmed in notebook closing citation list",
+    "van Daalen et al. (2020) -- f_gas-suppression baseline S(l)=Cl_hydro/Cl_DMO; confirmed in field-companion notebook closing citation and §0 setup text",
+    "Battaglia et al. (2012) GNFW -- NOT FOUND anywhere in the sources; the GNFW form actually used is explicitly attributed to the Hadzhiyska+26/Ried-Guachalla+25 paper's own Eq. 26-27 fit, not Battaglia+2012 -- brief's seed is unconfirmed",
+    "CAP filter origin (Ferraro/Schaan) -- NOT FOUND; the code attributes the CAP-ratio definition only to Ried Guachalla+25 section III.2.1; no dedicated CAP-filter-origin citation located -- verify externally",
+    "Sailer et al. (2024) -- DESI-LRG host mass from ACT CMB-lensing, logM200=13.18 Msun/h; confirmed in examples/_reduce_ycap_lrg.py and WORKLOG",
+    "tSZ y-CAP data source, arXiv:2502.08850 (Zenodo 14706729) -- ACT x DESI photometric-LRG Compton-y CAP; author name NOT found in the ksz-desi-act sources (code cites only the arXiv ID) -- CITE step must resolve authorship",
+    "Gatti et al. (2022); Pandey et al. (2022) -- DES Y3 x ACT shear x y (field-level real-data confrontation, §5 of paper_ksz_field.ipynb); confirmed in the field companion notebook's own closing citation list; underlying data file from GitHub shivampcosmo/ACTxDESY3 -> DES_ACT.fits (a repository, not itself a citable reference)",
+    "CAMELS: Villaescusa-Navarro et al. (2021) -- confirmed in both notebooks' closing citation lists",
+    "IllustrisTNG: Weinberger et al. (2017); Pillepich et al. (2018); Nelson et al. (2019, TNG300 public data) -- confirmed in notebook closing citation list",
+    "Lin et al. (2025, arXiv:2509.01881) -- low-dimensional feedback latents; confirmed in both notebooks' closing citations, motivates/parallels the 2-D latent (Results 5) and 1-D field latent (Results 6) findings",
+    "Constantine (2015) -- active subspaces method; confirmed in notebook closing citation list",
+    "Lipman et al. (2023, arXiv:2210.02747); Tong et al. (2023, arXiv:2302.00482) -- BIND's own flow-matching/OT method, relevant if Methods restates the emulator engine; sourced from docs/method.md",
+    "UNVERIFIED LEADS (from project memory, not the ksz-desi-act code itself; search independently before citing): possible additional arXiv IDs 2411.16555 (maybe Popesso+24), 2512.02954 (maybe Bigwood's missing ID), 2407.07152 (maybe an earlier kSZ-stacking paper), 1003.2270 and 2507.16816 (likely out of scope for this paper, tied to a separate gas/DM-shapes and FRB-DM-mass-tension discussion in a different WORKLOG entry) -- from memory baryon-atlas-rung0.md's general lit-review list, dated 2026-06-15, not specific to the P4/kSZ notebooks."
+  ]
+}

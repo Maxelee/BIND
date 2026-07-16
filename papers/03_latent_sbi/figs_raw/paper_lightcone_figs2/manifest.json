@@ -1,0 +1,210 @@
+[
+ {
+  "file": "cell003_out1.png",
+  "cell": 3,
+  "heading": "\u00a71 \u2014 Generating WL maps with BIND",
+  "source_head": [
+   "d = np.load(SCI / \"demo_maps.npz\")",
+   "kdmo, kbind = d[\"kappa_dmo\"], d[\"kappa_bind\"]",
+   "fov = float(d[\"fov_deg\"]); ext = [0, fov, 0, fov]",
+   "sm = 1.0                                                # light cosmetic smoothing (px)",
+   "kd, kb = gaussian_filter(kdmo, sm), gaussian_filter(kbind, sm)",
+   "dk = kb - kd                                            # baryonic imprint on the convergence"
+  ]
+ },
+ {
+  "file": "cell005_out1.png",
+  "cell": 5,
+  "heading": "\u00a72 \u2014 Validation at the fiducial: BIND vs TNG300 hydro",
+  "source_head": [
+   "# ---- \u00a72 validation anchor (condensed): f_gas(<r500c)-M, BIND vs TNG300 hydro ----",
+   "# The gas fraction is the dominant physical lever on the WL response (\u00a76); we anchor it here.",
+   "af, at = np.load(ATLAS / \"fid_snap096.npz\"), np.load(ATLAS / \"truth_snap096.npz\")",
+   "def fgas_relation(dd):",
+   "    M = dd[\"M_fof\"]; fg = dd[\"m_gas_500c_bg\"] / dd[\"m_tot_500c_bg\"]",
+   "    g = (M > 1e13) & np.isfinite(fg) & (dd[\"m_tot_500c_bg\"] > 0)"
+  ]
+ },
+ {
+  "file": "cell006_out1.png",
+  "cell": 6,
+  "heading": "\u00a72 \u2014 Validation at the fiducial: BIND vs TNG300 hydro",
+  "source_head": [
+   "# ---- field-level WL validation: fiducial BIND vs TNG300 hydro lightcone ----",
+   "# Each statistic over its full cached extent, re-aggregated to ~20 bins; residual below.",
+   "fb = RUNS / \"bind/run_0000\"; tr = RUNS / \"truth/run_0000\"",
+   "clb = np.load(fb / \"Cl_kappa.npz\"); clt = np.load(tr / \"Cl_kappa.npz\")",
+   "pkb = np.load(fb / \"peak_counts.npz\"); pkt = np.load(tr / \"peak_counts.npz\")",
+   "ngb = np.load(fb / \"nongaussian_stats.npz\"); ngt = np.load(tr / \"nongaussian_stats.npz\")"
+  ]
+ },
+ {
+  "file": "cell010_out1.png",
+  "cell": 10,
+  "heading": "\u00a73.1 \u2014 The experimental design",
+  "source_head": [
+   "# \u00a73 fig_design \u2014 the experimental design: the 253-run Sobol sweep fills the 30-D astro prior",
+   "# (1-D coverage, left) and the 1P 'twobound' spokes are axis-aligned slices through it (2-D",
+   "# projection of the two top S(l) drivers, right).  X_unit, SPN, DESIGN, _META from preamble.",
+   "Xu = np.asarray(SOBOL[\"X_unit\"])                                  # (n_runs, 30) unit-cube design",
+   "order = E.param_importance(SOBOL, \"suppression\", z_idx=ZIDX)      # rank by |r| with S(l)",
+   "def _u1(name, v):                                                 # native value -> unit coord"
+  ]
+ },
+ {
+  "file": "cell012_out1.png",
+  "cell": 12,
+  "heading": "\u00a74 \u2014 How the WL statistics respond to the physics",
+  "source_head": [
+   "# \u00a74.1 fig_cl \u2014 now spanning all three datasets: the fiducial, the 1P (twobound)",
+   "# spokes, and the prior-filling Sobol sweep.",
+   "band = (ELL >= 1000) & (ELL <= 2000)",
+   "li = int(np.argmin(np.abs(ELL - 1500)))",
+   "",
+   "# survey Gaussian relative error on C_l^kk (full Stage-IV footprint, z_s=1)"
+  ]
+ },
+ {
+  "file": "cell014_out1.png",
+  "cell": 14,
+  "heading": "\u00a74.2 \u2014 Where the bridge lives: $r[f_{\\rm gas},S(\\ell)]$ over (mass, scale)",
+  "source_head": [
+   "# \u00a74.2 \u2014 where the gas fraction is the cleanest lever, for EVERY statistic.  Spearman rank",
+   "# correlation r[f_gas(M-bin), statistic(axis)] across the 253 Sobol runs (no linearity assumed).",
+   "from scipy.stats import rankdata",
+   "valid = np.asarray(SOBOL[\"t__suppression__valid\"], bool)",
+   "mbb = np.asarray(SOBOL[\"a__scaling_f_gas__log_mass_bins\"])",
+   "FG  = np.asarray(SOBOL[\"t__scaling_f_gas__value\"])[valid]                  # (n, 7) per-run f_gas"
+  ]
+ },
+ {
+  "file": "cell016_out1.png",
+  "cell": 16,
+  "heading": "\u00a74.5 \u2014 Redshift evolution of WL statistics",
+  "source_head": [
+   "# \u00a74.5 \u2014 redshift evolution of the suppression for the top 1P drivers (labelled, by family).",
+   "band = (ELL >= 1000) & (ELL <= 2000)",
+   "best = {}",
+   "for d in RUNS_OK:                                       # per parameter, keep its strongest-effect run",
+   "    v = np.nanmax(np.abs(GS[f\"{d['run']}_clk\"])[band])",
+   "    if v > best.get(d[\"name\"], (-1.0,))[0]:"
+  ]
+ },
+ {
+  "file": "cell018_out1.png",
+  "cell": 18,
+  "heading": "\u00a74.6 \u2014 The global feedback response across the Sobol prior",
+  "source_head": [
+   "# \u00a74.6a \u2014 model-free global response: per-bin Spearman r of each WL statistic vs each of",
+   "# the 30 astro params, across the 253-run SB35 Sobol sweep (no emulator in the loop).",
+   "# SOBOL, SPN and the engine E are loaded in the preamble.",
+   "",
+   "STATS  = [\"suppression\", \"peak_counts\", \"minima_counts\", \"mf_v0\", \"mf_v1\", \"mf_v2\"]",
+   "TITLES = {\"suppression\": r\"$S(\\ell)$ suppression\", \"peak_counts\": \"peak counts\","
+  ]
+ },
+ {
+  "file": "cell019_out1.png",
+  "cell": 19,
+  "heading": "\u00a74.6 \u2014 The global feedback response across the Sobol prior",
+  "source_head": [
+   "# \u00a74.6b \u2014 the fiducial (TNG300) inside the Sobol prior-predictive band, with the 1P (twobound)",
+   "# spokes of the top driver.  Shown out to the field Nyquist (1024 px / 5 deg).",
+   "valid = np.asarray(SOBOL[\"t__suppression__valid\"], bool)",
+   "ellS  = np.asarray(SOBOL[\"a__suppression__ell\"])",
+   "Ss    = np.asarray(SOBOL[\"t__suppression__value\"])[valid][:, ZIDX, :]   # S(ell) per Sobol run, z_s=1",
+   "cs    = E.bin_param_correlation(SOBOL, \"suppression\", z_idx=ZIDX)"
+  ]
+ },
+ {
+  "file": "cell022_out1.png",
+  "cell": 22,
+  "heading": "\u00a75.1 \u2014 One plane for both datasets: the 1P spokes inside the Sobol manifold",
+  "source_head": [
+   "# \u00a75.1 \u2014 suppression latent (z_s=1) on the Sobol sweep, with an explicit projector so the",
+   "# 1P spokes can be pushed through the SAME basis.  S_SOBOL, SOB_RID, _sv from the preamble.",
+   "ellS = np.asarray(SOBOL[\"a__suppression__ell\"])",
+   "lcut = (ellS >= 100) & (ellS <= E.ELL_MAX_DEFAULT)",
+   "",
+   "Rs   = np.log10(np.clip(S_SOBOL[:, lcut], 1e-6, None))          # (n, Lc), z_s=1"
+  ]
+ },
+ {
+  "file": "cell024_out1.png",
+  "cell": 24,
+  "heading": "\u00a76 \u2014 The low-dimensional space is physical",
+  "source_head": [
+   "# \u00a75.2 \u2014 map the suppression latent onto the measured physical halo profiles.",
+   "SCAL = [(\"scaling_f_gas\", r\"$f_{\\rm gas}$\", False), (\"scaling_Y\", r\"$Y$\", True),",
+   "        (\"scaling_T\", r\"$T$\", True), (\"scaling_f_star\", r\"$f_\\star$\", True)]",
+   "mbins = np.asarray(SOBOL[\"a__scaling_f_gas__log_mass_bins\"])",
+   "def zc(a): return (a - a.mean(0)) / (a.std(0) + 1e-9)",
+   "def physmat(logf):"
+  ]
+ },
+ {
+  "file": "cell026_out1.png",
+  "cell": 26,
+  "heading": "\u00a76.1 \u2014 The latent plane, read by every measured quantity",
+  "source_head": [
+   "# \u00a76.1 \u2014 fig_latent_colored: the WL-suppression latent plane (as in fig_latent_plane) coloured",
+   "# by every measured halo & field quantity, making explicit which physical number drives which",
+   "# latent direction.  S_SOBOL, _sv, SOB_RID, SOBOL_ATLAS from the preamble.",
+   "ellS = np.asarray(SOBOL[\"a__suppression__ell\"]); lcut = (ellS >= 100) & (ellS <= E.ELL_MAX_DEFAULT)",
+   "Rs = np.log10(np.clip(S_SOBOL[:, lcut], 1e-6, None)); mu, sd = Rs.mean(0), Rs.std(0); sd = np.where(sd > 0, sd, 1.0)",
+   "Rc = (Rs - mu) / sd; Rc = Rc - Rc.mean(0)"
+  ]
+ },
+ {
+  "file": "cell030_out1.png",
+  "cell": 30,
+  "heading": "\u00a76.3 \u2014 Anisotropy is redundant for peaks and Minkowski functionals too",
+  "source_head": [
+   "# \u00a76.3 \u2014 does the halo anisotropy carry independent information for the OTHER statistics",
+   "# (peaks, Minkowski functionals) which, unlike the power spectrum, do NOT azimuthally average?",
+   "# Same redundancy test: held-out R^2 of each statistic's feedback response from the radial set",
+   "# {f_gas, ejection, slope, f_star, T} vs +anisotropy {gas\u2013DM offset, DM & gas ellipticity},",
+   "# with bootstrap errors on the increment.  Driver cache from build_drivers.py.",
+   "DRV = np.load(SCI / \"latent_drivers.npz\")"
+  ]
+ },
+ {
+  "file": "cell034_out1.png",
+  "cell": 34,
+  "heading": "\u00a77 \u2014 Does the physics emulator reach Stage-IV precision?",
+  "source_head": [
+   "# \u00a77 \u2014 does the physics emulator reach Stage-IV precision?  Map N physical numbers -> each WL",
+   "# statistic (5-fold CV, per-fold physical PCA) and compare the held-out MODEL error to the",
+   "# LSST/Euclid MEASUREMENT error, to the field Nyquist.  Sweep N to test if it is dimensionality-",
+   "# limited.  feat_physical / FOLDS are defined here and reused by \u00a78.",
+   "import torch, torch.nn as nn",
+   "dev = \"cuda\" if torch.cuda.is_available() else \"cpu\"; rng = np.random.default_rng(0); torch.manual_seed(0)"
+  ]
+ },
+ {
+  "file": "cell036_out1.png",
+  "cell": 36,
+  "heading": "\u00a77.1 \u2014 What the small scales need: feature completeness, not more simulations",
+  "source_head": [
+   "# \u00a77.1 \u2014 what the small scales need: feature completeness (halo T + concentration + diffuse",
+   "# gas), not more simulations.  Extended physical features from the per-run halo atlas and the",
+   "# y/tau field summaries.  S_SOBOL, _sv, SOB_RID, SOBOL_ATLAS, RUNS from the preamble.",
+   "import torch, torch.nn as nn",
+   "dev = \"cuda\" if torch.cuda.is_available() else \"cpu\"; torch.manual_seed(0)",
+   "NYQ = np.pi / (np.deg2rad(5.0) / 1024)"
+  ]
+ },
+ {
+  "file": "cell038_out1.png",
+  "cell": 38,
+  "heading": "\u00a78 \u2014 Low-dimensional and stable across redshift",
+  "source_head": [
+   "# \u00a78 \u2014 the 2-D description is stable across source redshift: (a) manifold stays 2-D; (b) a",
+   "# 2-physical-number emulator predicts S(ell) on every plane.  feat_physical / FOLDS from \u00a77.",
+   "import torch, torch.nn as nn",
+   "dev = \"cuda\" if torch.cuda.is_available() else \"cpu\"; torch.manual_seed(1)",
+   "sup_all = np.asarray(SOBOL[\"t__suppression__value\"])[_sv]        # (n, 5, 724)",
+   "ZSarr = np.asarray(SOBOL[\"source_redshifts\"])"
+  ]
+ }
+]

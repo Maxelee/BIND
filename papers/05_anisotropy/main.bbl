@@ -1,0 +1,82 @@
+\begin{thebibliography}{9}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Aric{\`o} et~al.(2020)Aric{\`o}, Angulo, Hern{\'a}ndez-Monteagudo,
+  Contreras, Zennaro, Pellejero-Iba{\~n}ez, and Rosas-Guevara]{arico2020}
+Giovanni Aric{\`o}, Raul~E. Angulo, Carlos Hern{\'a}ndez-Monteagudo, Sergio
+  Contreras, Matteo Zennaro, Marcos Pellejero-Iba{\~n}ez, and Yetli
+  Rosas-Guevara.
+\newblock Modelling the large-scale mass density field of the universe as a
+  function of cosmology and baryonic physics.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  495\penalty0 (4):\penalty0 4800--4819, 2020.
+\newblock \doi{10.1093/mnras/staa1478}.
+
+\bibitem[Dai et~al.(2018)Dai, Feng, and Seljak]{dai_feng_seljak2018}
+Biwei Dai, Yu~Feng, and Uro{\v{s}} Seljak.
+\newblock A gradient based method for modeling baryons and matter in halos of
+  fast simulations.
+\newblock \emph{Journal of Cosmology and Astroparticle Physics}, 2018\penalty0
+  (11):\penalty0 009, 2018.
+\newblock \doi{10.1088/1475-7516/2018/11/009}.
+
+\bibitem[Lee(2026{\natexlab{a}})]{bindI}
+Max~E. Lee.
+\newblock The {BIND} lightcone suite {I}: Baryon-painted weak-lensing and
+  sunyaev--zel'dovich lightcones from dark-matter-only simulations.
+\newblock in preparation, 2026{\natexlab{a}}.
+
+\bibitem[Lee(2026{\natexlab{b}})]{bindII}
+Max~E. Lee.
+\newblock The {BIND} lightcone suite {II}: Two nuisance parameters suffice to
+  marginalize baryonic feedback in {LSST}-era cosmic shear.
+\newblock in preparation, 2026{\natexlab{b}}.
+
+\bibitem[Lee et~al.(2023)Lee, Lu, Haiman, Liu, and Osato]{lee2022}
+Max~E. Lee, Tianhuan Lu, Zolt{\'a}n Haiman, Jia Liu, and Ken Osato.
+\newblock Comparing weak lensing peak counts in baryonic correction models to
+  hydrodynamical simulations.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  519\penalty0 (1):\penalty0 573--584, 2023.
+\newblock \doi{10.1093/mnras/stac3592}.
+
+\bibitem[Mead et~al.(2021)Mead, Brieden, Tr{\"o}ster, and Heymans]{mead2021}
+A.~J. Mead, S.~Brieden, T.~Tr{\"o}ster, and C.~Heymans.
+\newblock {HMcode}-2020: improved modelling of non-linear cosmological power
+  spectra with baryonic feedback.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  502\penalty0 (1):\penalty0 1401--1422, 2021.
+\newblock \doi{10.1093/mnras/stab082}.
+
+\bibitem[Osato et~al.(2018)Osato, Nishimichi, Oguri, Takada, and
+  Okumura]{osato_triaxiality}
+Ken Osato, Takahiro Nishimichi, Masamune Oguri, Masahiro Takada, and Teppei
+  Okumura.
+\newblock Strong orientation dependence of surface mass density profiles of
+  dark haloes at large scales.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  477\penalty0 (2):\penalty0 2141--2153, 2018.
+\newblock \doi{10.1093/mnras/sty762}.
+
+\bibitem[Schneider and Teyssier(2015)]{schneider_teyssier2015}
+Aurel Schneider and Romain Teyssier.
+\newblock A new method to quantify the effects of baryons on the matter power
+  spectrum.
+\newblock \emph{Journal of Cosmology and Astroparticle Physics}, 2015\penalty0
+  (12):\penalty0 049, 2015.
+\newblock \doi{10.1088/1475-7516/2015/12/049}.
+
+\bibitem[van Daalen et~al.(2020)van Daalen, McCarthy, and
+  Schaye]{van_daalen2020}
+Marcel~P. van Daalen, Ian~G. McCarthy, and Joop Schaye.
+\newblock Exploring the effects of galaxy formation on matter clustering
+  through a library of simulation power spectra.
+\newblock \emph{Monthly Notices of the Royal Astronomical Society},
+  491\penalty0 (2):\penalty0 2424--2446, 2020.
+\newblock \doi{10.1093/mnras/stz3199}.
+
+\end{thebibliography}

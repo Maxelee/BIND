@@ -21,8 +21,13 @@ projection streams the full hydro snapshot (~600 files) and needs a big-memory
 node — ⛔ Max submits (see run_wp2_truth_validation.sh). Pure orchestration over
 unit-tested building blocks; **do not tune to agree** (plan step 7).
 
-Requires the fiducial paint outputs (run_wp2_fiducial_paint.sh) under
---painted-root, one ``snap_<NNN>/composite_slab*.npz`` per snapshot.
+Painted side: defaults to the EXISTING fiducial paint at ``bind_lightcone_tng``
+(``snap_<NNN>/composite_slab*.npz`` + co-located ``snap_<NNN>/stage1/`` conditions,
+frame-verified identical to the twobound conditions) — so no GPU re-paint is
+needed for the core validation. The painted-side composite/operator path is smoke-
+verified on those real composites for all 4 snaps. Only the >=8-draw multi-sample
+(task 6) needs a fresh paint (``run_wp2_fiducial_paint.sh``), passed via
+``--multisample-root``.
 """
 from __future__ import annotations
 
@@ -64,44 +69,83 @@ from analysis.paper3a.data_vectors.data_vectors import load_ksz_qu2026_lrg_fiduc
 
 # snap -> a-priori z (manifest is authoritative; this is only for labels/logs)
 SNAPS = {96: 0.0337, 71: 0.4200, 67: 0.5030, 63: 0.5985}
-CONDITIONS = "/mnt/home/mlee1/ceph/bind_portable_twobound/conditions"
+
+# Default painted side: the EXISTING fiducial paint (`bind_lightcone_tng`) — the
+# per-halo composites (snap_NNN/composite_slab*.npz) that produced the fiducial
+# lightcone, with their stage-1 conditions co-located under snap_NNN/stage1/.
+# Frame (proj_dir/disp/flip/halo_centers) verified identical to
+# bind_portable_twobound/conditions, so no re-paint is needed for the core
+# validation. NB: that paint used the CAMELS-CV fiducial cosmology (Omega_m=0.3,
+# sigma8=0.8) vs TNG300's Planck-2015 (0.3089/0.8159) — see REPORT caveat; the
+# manifest's Omega_m (0.3089, for angular geometry) is unaffected.
+DEFAULT_PAINTED_ROOT = "/mnt/home/mlee1/ceph/bind_lightcone_tng"
+DEFAULT_CONDITIONS_ROOT = "/mnt/home/mlee1/ceph/bind_lightcone_tng"
+DEFAULT_STAGE1_SUBDIR = "stage1"   # "" for the bind_portable_twobound/conditions layout
 PATCH_PIX = 128
 CUTOUT_PIX = 361  # 17.6 h^-1 Mpc, above the Qu-vector minimum extent at z=0.6
 KSZ_MASS_BIN = (10 ** 13.3, 10 ** 13.6)  # M200c band for the kSZ stack (smoke convention)
 
 
-def _mass_matched_composite(d, box, npix, channel_source):
-    """Paste one channel into an alpha-normalised composite (smoke convention).
+def _cond_dir(conditions_root, snap: int, stage1_subdir: str) -> Path:
+    """Dir holding stage1_manifest.json + stage1_slab*.npz for one snapshot."""
+    d = Path(conditions_root) / f"snap_{snap:03d}"
+    return d / stage1_subdir if stage1_subdir else d
 
-    channel_source(patches) -> (N, 128, 128). Mass channels are rescaled to
-    their DMO condition sums; thermo channels are pasted as-is (already physical
-    per-pixel units).
+
+# Frozen Qu et al. 2026 CAP disk radii [arcmin]. Primary source is the A1 loader,
+# but its data dir lives on rusty ceph; on Popeye (where the truth validation
+# runs) fall back to these hard-coded values (plan task 4: "radii from the A1
+# loaders if the wp1 data dir is absent on Popeye, hard-code the frozen radii").
+QU2026_RADII_ARCMIN = np.array([1.0, 2.25, 3.5, 4.75, 6.0])
+
+
+def _ksz_radii():
+    try:
+        return load_ksz_qu2026_lrg_fiducial().bins
+    except (FileNotFoundError, OSError):
+        print(f"[ksz] A1 data dir absent (rusty path) — using frozen Qu radii {QU2026_RADII_ARCMIN.tolist()}")
+        return QU2026_RADII_ARCMIN
+
+
+def _paste(patches3, centers, r200, box, npix):
+    """Alpha-normalised circular-taper paste (wp2_feasibility_smoke convention).
+
+    ``patches3`` is (N, 3, 128, 128) — paste_halos_2d is hardwired to 3 channels
+    (DM/gas/stars). Returns (canvas (3,npix,npix), alpha (npix,npix)).
     """
-    centers = d["halo_centers"]
-    r200 = d["halo_r200"]
     n = len(r200)
-    patches = channel_source(d).astype(np.float32).copy()
     ppm = npix / box
     halos = [{"halo_center": centers[i], "r200": float(r200[i])} for i in range(n)]
     weights_list = [circular_taper_weight(PATCH_PIX, r_pix=float(r200[i]) * ppm * 4.0, taper_frac=0.15)
                     for i in range(n)]
     sq = square_taper_weight(PATCH_PIX, taper_frac=0.15)
-    # paste_halos_2d expects (N, C, H, W); wrap single channel as C=1
-    canvas, w_accum = paste_halos_2d(npix, box, halos, patches[:, None], sq, weights_list=weights_list)
-    alpha = np.clip(w_accum, 0.0, 1.0)
+    canvas, w_accum = paste_halos_2d(npix, box, halos, patches3, sq, weights_list=weights_list)
+    return canvas, np.clip(w_accum, 0.0, 1.0)
+
+
+def _gas_composite(d, box, npix):
+    """Gas surface-density composite [Msun/h/pix] (mass-matched to DMO cond sums)."""
+    patches = d["generated_patches"].astype(np.float32).copy()  # (N,3,128,128) DM/gas/stars
+    cond_sums = d["condition_sums"]
+    for i in range(len(patches)):                                # match total mass to the DMO condition sum
+        patches[i] *= cond_sums[i] / (patches[i].sum() + 1e-30)
+    canvas, alpha = _paste(patches, d["halo_centers"], d["halo_r200"], box, npix)
+    return alpha * canvas[1]                                     # gas = channel 1
+
+
+def _y_composite(d, box, npix):
+    """Compton-y composite [dimensionless y/pix]; thermo is NOT mass-matched."""
+    N = len(d["halo_r200"])
+    y3 = np.zeros((N, 3, PATCH_PIX, PATCH_PIX), dtype=np.float32)
+    y3[:, 0] = d["thermo_patches"][:, 0]                          # compton_y -> channel 0
+    canvas, alpha = _paste(y3, d["halo_centers"], d["halo_r200"], box, npix)
     return alpha * canvas[0]
 
 
-def _gas_channel(d):
-    return d["generated_patches"][:, 1]  # DM/gas/stars -> gas
-
-
-def _y_channel(d):
-    return d["thermo_patches"][:, 0]  # compton_y/T/K/P_e -> compton_y
-
-
-def process_snapshot(snap: int, painted_root: Path, out_dir: Path, halo_subset: int) -> dict:
-    manifest = ft.load_stage1_manifest(Path(CONDITIONS) / f"snap_{snap:03d}")
+def process_snapshot(snap: int, painted_root: Path, out_dir: Path, halo_subset: int,
+                     conditions_root=DEFAULT_CONDITIONS_ROOT, stage1_subdir=DEFAULT_STAGE1_SUBDIR) -> dict:
+    cond_dir = _cond_dir(conditions_root, snap, stage1_subdir)
+    manifest = ft.load_stage1_manifest(cond_dir)
     box, npix, ppm = manifest.box_size, manifest.npix, manifest.npix / manifest.box_size
     z = manifest.redshift
     geom = PatchGeometry(pixel_mpch=box / npix, z=z, cosmology=FlatLCDM(omega_m=manifest.raw["Omega_m"]))
@@ -112,7 +156,7 @@ def process_snapshot(snap: int, painted_root: Path, out_dir: Path, halo_subset: 
     hydro = tp.load_hydro_halo_catalog(manifest)                  # M500c/R500c source
 
     ksz_cfg = KSZOperatorConfig(
-        radii_arcmin=load_ksz_qu2026_lrg_fiducial().bins,
+        radii_arcmin=_ksz_radii(),
         beam_fwhm_arcmin=1.6, z_eff=z, v_rms_over_c=None,          # tau_CAP only (A5 sets v_rms)
     )
 
@@ -121,13 +165,13 @@ def process_snapshot(snap: int, painted_root: Path, out_dir: Path, halo_subset: 
                            "m500", "xe_true", "xe_assumed", "cyl_gas", "sph_gas",
                            "sph_center", "sph_r500")}
     for si in range(manifest.n_slabs):
-        cf = np.load(Path(CONDITIONS) / f"snap_{snap:03d}" / f"stage1_slab{si:02d}.npz")
-        pf = np.load(painted_root / f"snap_{snap:03d}" / f"composite_slab{si:02d}.npz")
+        cf = np.load(cond_dir / f"stage1_slab{si:02d}.npz")
+        pf = np.load(Path(painted_root) / f"snap_{snap:03d}" / f"composite_slab{si:02d}.npz")
         cond_centers = cf["halo_centers"]; cond_m200 = cf["halo_masses"]
         hidx, matched = tp.match_condition_halos(cond_centers, cond_m200, hydro, box)
 
-        gas_comp_p = _mass_matched_composite(pf, box, npix, _gas_channel)
-        y_comp_p = _mass_matched_composite(pf, box, npix, _y_channel)
+        gas_comp_p = _gas_composite(pf, box, npix)
+        y_comp_p = _y_composite(pf, box, npix)
         gas_slab_t, y_slab_t = truth["gas_sigma"][si], truth["compton_y"][si]
         gxe_slab_t = truth["gas_sigma_xe"][si]
 
@@ -247,7 +291,8 @@ def _calibrate_cyltosph(manifest, rec, depth, halo_subset) -> dict:
             "n_halos": int(good.sum()), "provenance": corr.provenance}
 
 
-def process_multisample(snap: int, multi_root: Path, out_dir: Path) -> dict:
+def process_multisample(snap: int, multi_root: Path, out_dir: Path,
+                        conditions_root=DEFAULT_CONDITIONS_ROOT, stage1_subdir=DEFAULT_STAGE1_SUBDIR) -> dict:
     """Task 6: >=8 fiducial draws at one snapshot -> per-operator sample count.
 
     Expects ``multi_root/snap_<NNN>_s{k}/composite_slab*.npz`` for k=0..K-1.
@@ -256,11 +301,11 @@ def process_multisample(snap: int, multi_root: Path, out_dir: Path) -> dict:
     ``multi_sample_convergence`` — the evidence for how many generative samples
     per halo each operator needs (SHARED_CONTEXT caveat 4).
     """
-    manifest = ft.load_stage1_manifest(Path(CONDITIONS) / f"snap_{snap:03d}")
+    manifest = ft.load_stage1_manifest(_cond_dir(conditions_root, snap, stage1_subdir))
     box, npix, ppm = manifest.box_size, manifest.npix, manifest.npix / manifest.box_size
     geom = PatchGeometry(pixel_mpch=box / npix, z=manifest.redshift,
                          cosmology=FlatLCDM(omega_m=manifest.raw["Omega_m"]))
-    ksz_cfg = KSZOperatorConfig(radii_arcmin=load_ksz_qu2026_lrg_fiducial().bins,
+    ksz_cfg = KSZOperatorConfig(radii_arcmin=_ksz_radii(),
                                 beam_fwhm_arcmin=1.6, z_eff=manifest.redshift, v_rms_over_c=None)
     draws = sorted(Path(multi_root).glob(f"snap_{snap:03d}_s*"))
     if len(draws) < 8:
@@ -275,7 +320,7 @@ def process_multisample(snap: int, multi_root: Path, out_dir: Path) -> dict:
             if not f.exists():
                 continue
             pf = np.load(f)
-            gas_comp = _mass_matched_composite(pf, box, npix, _gas_channel)
+            gas_comp = _gas_composite(pf, box, npix)
             m200 = pf["halo_masses"]; centers = pf["halo_centers"]
             for k in range(len(centers)):
                 if not (KSZ_MASS_BIN[0] <= m200[k] < KSZ_MASS_BIN[1]):
@@ -304,20 +349,27 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--snap", type=int, default=None, help="single snapshot; else use --array-index")
     ap.add_argument("--array-index", type=int, default=None, help="0-3 -> [96,71,67,63]")
-    ap.add_argument("--painted-root", type=Path,
-                    default=Path("/mnt/home/mlee1/ceph/paper3/A/wp2_fiducial/run_0000"))
+    ap.add_argument("--painted-root", type=Path, default=Path(DEFAULT_PAINTED_ROOT),
+                    help="dir with snap_<NNN>/composite_slab*.npz (default: the existing fiducial paint)")
+    ap.add_argument("--conditions-root", type=Path, default=Path(DEFAULT_CONDITIONS_ROOT),
+                    help="dir with snap_<NNN>/<stage1-subdir>/stage1_manifest.json + stage1_slab*.npz")
+    ap.add_argument("--stage1-subdir", type=str, default=DEFAULT_STAGE1_SUBDIR,
+                    help="subdir under snap_<NNN> holding stage1 files ('stage1' for bind_lightcone_tng, "
+                         "'' for bind_portable_twobound/conditions)")
     ap.add_argument("--out-dir", type=Path,
                     default=Path("/mnt/home/mlee1/ceph/paper3/A/wp2_validation"))
     ap.add_argument("--halo-subset", type=int, default=200, help="halos for the CylToSph particle pass")
     ap.add_argument("--multisample-root", type=Path, default=None,
-                    help="root with snap_<NNN>_s{k} draws; triggers task 6 at snap 063")
+                    help="root with snap_<NNN>_s{k} draws; triggers task 6 at snap 063 (needs a fresh 8-draw paint)")
     args = ap.parse_args()
 
     order = [96, 71, 67, 63]
     snap = args.snap if args.snap is not None else order[args.array_index]
-    process_snapshot(snap, args.painted_root, args.out_dir, args.halo_subset)
+    process_snapshot(snap, args.painted_root, args.out_dir, args.halo_subset,
+                     args.conditions_root, args.stage1_subdir)
     if snap == 63 and args.multisample_root is not None:
-        process_multisample(snap, args.multisample_root, args.out_dir)
+        process_multisample(snap, args.multisample_root, args.out_dir,
+                            args.conditions_root, args.stage1_subdir)
 
 
 if __name__ == "__main__":

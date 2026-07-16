@@ -1,15 +1,19 @@
-"""Prepare the WP-A2 fiducial paint run tree (CPU, seconds).
+"""Prepare a WP-A2 fiducial paint run tree (CPU, seconds). OPTIONAL — not on the
+critical path.
 
-The truth validation needs BIND painted at the *fiducial* TNG parameters (the
-cosmology/astro at which TNG300-hydro *is* the ground truth). The DMO conditions
-are shared across theta, so the fiducial paint reuses the existing
-``bind_portable_twobound`` conditions + weights already on Popeye — only the
-35-dim fiducial parameter vector differs. This copies that vector (from the
-Paper-2 fiducial run) into the paint run dir the Slurm paint script expects.
+The core truth validation does NOT need this: the fiducial paint already exists
+at ``/mnt/home/mlee1/ceph/bind_lightcone_tng`` (per-snapshot composites +
+co-located stage1 conditions), and the driver reuses it by default.
 
-    python analysis/paper3a/scripts/make_wp2_fiducial_bundle.py
+This helper is only for a *re-paint* scenario — chiefly if the cosmology of the
+existing paint (CAMELS-CV: Omega_m=0.3, sigma8=0.8) is judged too far from
+TNG300's Planck-2015 (0.3089/0.8159) and Max wants the 4-snap fiducial re-painted
+at the exact TNG cosmology. It copies a chosen 35-dim parameter vector into a
+paint run dir; combine with a 4-snap paint loop (mirror run_wp2_fiducial_paint.sh
+but over snaps 096/071/067/063) and point the validation's --painted-root at it.
 
-Then ⛔ Max submits run_wp2_fiducial_paint.sh.
+    python analysis/paper3a/scripts/make_wp2_fiducial_bundle.py \
+        --fiducial-params /mnt/home/mlee1/ceph/bind_science/runs/fiducial/run_0000/params.npy
 """
 from __future__ import annotations
 

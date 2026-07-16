@@ -19,17 +19,21 @@
 # full TNG300-hydro snapshot (~600 files) into the transformed-frame slab maps
 # and runs the operators truth-vs-painted. NO GPU.
 #
-# Requires the fiducial paint first (run_wp2_fiducial_paint.sh) under
-# --painted-root. Restart-safe at snapshot granularity (each writes its own
-# summary + sigma_model files).
+# NO PAINT NEEDED: the painted side defaults to the EXISTING fiducial paint at
+# bind_lightcone_tng (per-halo composites + co-located stage1 conditions). The
+# painted-side path is smoke-verified on those real composites for all 4 snaps.
+# (A fresh paint is only needed for the >=8-draw multi-sample — task 6 — which is
+# OFF by default here; enable it by setting MULTISAMPLE_ROOT to an 8-draw paint.)
+# Restart-safe at snapshot granularity (each writes its own summary + sigma_model).
 #
-# ⛔ HUMAN CHECKPOINT — Max submits (after the fiducial paint completes):
+# ⛔ HUMAN CHECKPOINT — Max submits:
 #   mkdir -p /mnt/home/mlee1/ceph/logs
 #   sbatch /mnt/home/mlee1/BIND-paper3a/analysis/paper3a/scripts/run_wp2_truth_validation.sh
 #
 # Memory: if 192G is tight (the CylToSph cKDTree pass over full-box gas), the
 # dedicated big-mem node is `--partition=mem` (pcn-8-17). The `cca` general
-# nodes have ample RAM for the projection itself.
+# nodes have ample RAM for the projection itself. This runs in paper3b_popeye
+# (CPU only — no CUDA init, so its cu130 torch is fine here, unlike the paint).
 
 set -euo pipefail
 
@@ -40,14 +44,20 @@ mkdir -p /mnt/home/mlee1/ceph/logs
 REPO=/mnt/home/mlee1/BIND-paper3a
 cd "$REPO"
 
-PAINTED_ROOT=${PAINTED_ROOT:-/mnt/home/mlee1/ceph/paper3/A/wp2_fiducial/run_0000}
+# Painted composites + their stage1 conditions both come from the existing
+# fiducial paint (the driver's defaults); override only to point at a re-paint.
+PAINTED_ROOT=${PAINTED_ROOT:-/mnt/home/mlee1/ceph/bind_lightcone_tng}
+CONDITIONS_ROOT=${CONDITIONS_ROOT:-/mnt/home/mlee1/ceph/bind_lightcone_tng}
 OUT_DIR=${OUT_DIR:-/mnt/home/mlee1/ceph/paper3/A/wp2_validation}
-MULTISAMPLE_ROOT=${MULTISAMPLE_ROOT:-/mnt/home/mlee1/ceph/paper3/A/wp2_fiducial/run_0000}
 
-python -u analysis/paper3a/scripts/run_wp2_truth_validation.py \
-    --array-index "$SLURM_ARRAY_TASK_ID" \
-    --painted-root "$PAINTED_ROOT" \
-    --out-dir "$OUT_DIR" \
-    --multisample-root "$MULTISAMPLE_ROOT"
+ARGS=(--array-index "$SLURM_ARRAY_TASK_ID"
+      --painted-root "$PAINTED_ROOT"
+      --conditions-root "$CONDITIONS_ROOT"
+      --stage1-subdir stage1
+      --out-dir "$OUT_DIR")
+# Opt-in task 6: set MULTISAMPLE_ROOT to a dir with snap_063_s{0..7} draws.
+[[ -n "${MULTISAMPLE_ROOT:-}" ]] && ARGS+=(--multisample-root "$MULTISAMPLE_ROOT")
+
+python -u analysis/paper3a/scripts/run_wp2_truth_validation.py "${ARGS[@]}"
 
 echo "=== WP-A2 truth validation task ${SLURM_ARRAY_TASK_ID} done ==="

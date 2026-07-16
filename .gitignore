@@ -84,3 +84,8 @@ docs/_build/
 # SBI TensorBoard logs + generated DMO accretion-history catalog
 sbi-logs/
 tng300_dm_mass_history.hdf5
+
+# Paper drafts: keep figures + compiled PDFs versioned
+!papers/**/figs/*.png
+!papers/**/figs/*.pdf
+!papers/*/main.pdf

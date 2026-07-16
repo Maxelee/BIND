@@ -35,11 +35,56 @@ from ``observables/__init__.py``; import it explicitly on Popeye.
 from __future__ import annotations
 
 import glob
+import multiprocessing as mp
+import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import h5py
 import numpy as np
+
+# 'spawn', not the Linux-default 'fork': the workers use native libraries
+# (Pylians/MAS_library, HDF5, and the torch that bind.inference.pipeline pulls
+# in at import) that are not fork-safe — forking mid-state segfaults the worker
+# ("BrokenProcessPool"). spawn re-imports cleanly in each worker.
+_MP = mp.get_context("spawn")
+
+
+def _default_workers(n_workers: int | None) -> int:
+    """Resolve the worker count: explicit > SLURM_CPUS_PER_TASK > cpu_count."""
+    if n_workers is not None:
+        return max(1, int(n_workers))
+    slurm = os.environ.get("SLURM_CPUS_PER_TASK")
+    return max(1, int(slurm) if slurm else (os.cpu_count() or 1))
+
+
+def mpi_comm():
+    """COMM_WORLD when running as a multi-rank MPI job, else None.
+
+    Detection is env-based (mpirun sets ``OMPI_COMM_WORLD_SIZE``; srun sets
+    ``PMI_SIZE`` / ``SLURM_STEP_NUM_TASKS``) so single-process runs never
+    import mpi4py and the ProcessPool path stays the default off-MPI. Set
+    ``BIND_NO_MPI=1`` to force the single-process path even under mpirun.
+
+    A multi-task launch whose MPI world failed to wire up (each rank a size-1
+    singleton) raises rather than letting N ranks each run the full job and
+    race on the outputs — launch with ``mpirun`` (or ``srun --mpi=pmix``).
+    """
+    if os.environ.get("BIND_NO_MPI"):
+        return None
+    n_env = (os.environ.get("OMPI_COMM_WORLD_SIZE")
+             or os.environ.get("PMI_SIZE")
+             or os.environ.get("SLURM_STEP_NUM_TASKS"))
+    if n_env is None or int(n_env) < 2:
+        return None
+    from mpi4py import MPI
+    comm = MPI.COMM_WORLD
+    if comm.Get_size() < int(n_env):
+        raise RuntimeError(
+            f"launched with {n_env} tasks but MPI world size is {comm.Get_size()} — "
+            "MPI did not wire up; launch with mpirun (or srun --mpi=pmix)")
+    return comm
 
 from bind.inference.pipeline import (
     GAMMA,
@@ -189,12 +234,20 @@ def project_truth_maps(
     snapshot: int | None = None,
     max_files: int | None = None,
     progress: bool = True,
+    n_workers: int | None = None,
 ) -> dict[str, np.ndarray]:
     """Full transformed-frame truth projection for one snapshot (streamed over files).
 
     ``hydro_snapdir``/``snapshot`` default to the manifest's hydro twin and
     ``snapshot_index``. ``max_files`` truncates the file loop for smoke tests.
-    Returns the ``finalize_truth_maps`` dict (per-slab maps in the stage-1 frame).
+    ``n_workers`` sets the process-pool size (default SLURM_CPUS_PER_TASK or
+    os.cpu_count(); 1 = serial) — the ~600-file loop is a map-reduce, so this
+    scales near-linearly with cores. Returns the ``finalize_truth_maps`` dict.
+
+    Under a multi-rank MPI launch (``mpi_comm()``) this is COLLECTIVE: every
+    rank must call it; ranks stride the file list and the raw maps are
+    MPI-Reduced to rank 0, which returns the finalized dict (other ranks
+    return None). No ProcessPool is used in that mode — one rank per core.
     """
     hydro_snapdir = hydro_snapdir or manifest.hydro_snapdir()
     snapshot = manifest.snapshot_index if snapshot is None else snapshot
@@ -202,24 +255,96 @@ def project_truth_maps(
     if max_files is not None:
         files = files[:max_files]
 
-    pixel_side_m = (manifest.box_size / manifest.npix) / _read_hubble(files[0]) * MPC_IN_M
-    acc = TruthMapAccumulator(
-        n_slabs=manifest.n_slabs,
-        npix=manifest.npix,
-        box_size=manifest.box_size,
-        slab_depth=manifest.slab_depth,
-        pixel_area_m2=pixel_side_m ** 2,
-    )
     h = _read_hubble(files[0])
+    pixel_side_m = (manifest.box_size / manifest.npix) / h * MPC_IN_M
+    pixel_area_m2 = pixel_side_m ** 2
 
+    comm = mpi_comm()
+    if comm is not None:
+        return _project_truth_maps_mpi(comm, files, manifest, snapshot, pixel_area_m2, h, progress)
+
+    W = _default_workers(n_workers)
+
+    def _new_acc():
+        return TruthMapAccumulator(
+            n_slabs=manifest.n_slabs, npix=manifest.npix, box_size=manifest.box_size,
+            slab_depth=manifest.slab_depth, pixel_area_m2=pixel_area_m2,
+        )
+
+    if W <= 1 or len(files) <= 1:
+        acc = _new_acc()
+        _accumulate_files(acc, files, manifest, h, progress, f"truth snap_{snapshot:03d}")
+        return finalize_truth_maps(acc)
+
+    # Parallel map-reduce: split files into W chunks, each worker projects its
+    # chunk into a local accumulator (raw *_m numerators + direct sums, all
+    # additive), then the parent sums the chunk maps and finalizes ONCE. Peak
+    # memory ~ W * (1.7 GB accumulator + ~1 GB transient/file) — size W to the
+    # node (default SLURM_CPUS_PER_TASK; ~32 fits a 192 GB node).
+    chunks = [list(c) for c in np.array_split(np.array(files, dtype=object), W) if len(c)]
+    combined: dict[str, np.ndarray] | None = None
+    done = 0
+    with ProcessPoolExecutor(max_workers=W, mp_context=_MP) as ex:
+        futs = {ex.submit(_project_chunk_worker, ch, manifest, manifest.npix, manifest.box_size,
+                          manifest.n_slabs, manifest.slab_depth, pixel_area_m2, h): i
+                for i, ch in enumerate(chunks)}
+        for fut in as_completed(futs):
+            m = fut.result()
+            if combined is None:
+                combined = m
+            else:
+                for k in combined:
+                    combined[k] += m[k]
+                del m
+            done += 1
+            if progress:
+                print(f"[truth snap_{snapshot:03d}] reduced {done}/{len(chunks)} chunks", flush=True)
+    acc = _new_acc()
+    acc.maps = combined
+    return finalize_truth_maps(acc)
+
+
+def _project_truth_maps_mpi(comm, files, manifest, snapshot, pixel_area_m2, h, progress):
+    """MPI map-reduce: ranks stride the file list, raw maps Reduce-sum to rank 0.
+
+    Collective over ``comm`` — called by ``project_truth_maps`` on every rank
+    of an mpirun launch. Each rank accumulates its files serially (parallelism
+    is one rank per core, no nested pool), so per-rank memory is one ~1.7 GB
+    accumulator + one file transient — the same footprint as a pool worker.
+    Returns the finalized maps dict on rank 0, None on the other ranks.
+    """
+    from mpi4py import MPI
+    rank, size = comm.Get_rank(), comm.Get_size()
+    acc = TruthMapAccumulator(
+        n_slabs=manifest.n_slabs, npix=manifest.npix, box_size=manifest.box_size,
+        slab_depth=manifest.slab_depth, pixel_area_m2=pixel_area_m2,
+    )
+    my_files = files[rank::size]
+    if progress and rank == 0:
+        print(f"[truth snap_{snapshot:03d}] MPI: {size} ranks x ~{len(my_files)} files each", flush=True)
+    _accumulate_files(acc, my_files, manifest, h,
+                      progress=progress and rank == 0, desc=f"truth snap_{snapshot:03d} rank0")
+    # Fixed channel order — collectives must be issued identically on all ranks.
+    for key in (*_WEIGHTED, *_DIRECT):
+        recv = np.empty_like(acc.maps[key]) if rank == 0 else None
+        comm.Reduce(acc.maps[key], recv, op=MPI.SUM, root=0)
+        acc.maps[key] = recv                      # rank 0: combined; workers: free
+    if rank != 0:
+        return None
+    if progress:
+        print(f"[truth snap_{snapshot:03d}] MPI reduce done", flush=True)
+    return finalize_truth_maps(acc)
+
+
+def _accumulate_files(acc, files, manifest, h, progress=False, desc=""):
+    """Serial: read each file's PartType0 gas fields into the accumulator."""
     it = files
     if progress:
         try:
             from tqdm import tqdm
-            it = tqdm(files, desc=f"truth snap_{snapshot:03d}")
+            it = tqdm(files, desc=desc)
         except Exception:
             pass
-
     for fname in it:
         with h5py.File(fname, "r") as f:
             if "PartType0" not in f:
@@ -228,15 +353,19 @@ def project_truth_maps(
             accumulate_gas_chunk(
                 acc,
                 pos_mpch=g["Coordinates"][:].astype(np.float32) / 1000.0,
-                mass_code=g["Masses"][:],
-                density_code=g["Density"][:],
-                u_code=g["InternalEnergy"][:],
-                xe=g["ElectronAbundance"][:],
-                sfr=g["StarFormationRate"][:],
-                manifest=manifest,
-                h=h,
+                mass_code=g["Masses"][:], density_code=g["Density"][:],
+                u_code=g["InternalEnergy"][:], xe=g["ElectronAbundance"][:],
+                sfr=g["StarFormationRate"][:], manifest=manifest, h=h,
             )
-    return finalize_truth_maps(acc)
+
+
+def _project_chunk_worker(files, manifest, npix, box_size, n_slabs, slab_depth, pixel_area_m2, h):
+    """ProcessPool worker: accumulate a file chunk -> raw (pre-finalize) maps dict."""
+    os.environ.setdefault("OMP_NUM_THREADS", "1")  # 1 thread/proc — parallelism is process-level
+    acc = TruthMapAccumulator(n_slabs=n_slabs, npix=npix, box_size=box_size,
+                              slab_depth=slab_depth, pixel_area_m2=pixel_area_m2)
+    _accumulate_files(acc, files, manifest, h, progress=False)
+    return acc.maps
 
 
 def _read_hubble(fname: str) -> float:
@@ -373,48 +502,80 @@ def spherical_gas_mass_from_particles(
     box_size: float,
     max_files: int | None = None,
     progress: bool = True,
+    n_workers: int | None = None,
 ) -> np.ndarray:
     """3D spherical gas mass M_gas(<R500c) [Msun/h] per halo, from particles.
 
     The numerator of the CylToSph correction (plan step 4): the *spherical*
     aperture gas mass that the projected cylinder over-counts. Streamed over the
-    snapshot files; within each chunk a periodic ``cKDTree`` ball query gathers
-    the gas particles inside each halo's R500c and their masses are summed
-    (hot + star-forming both count — a spherical gas mass is the total gas, no
-    SFR cut, unlike the kSZ/thermo projections). Frame-independent, so it uses
-    the *original* (untransformed) halo positions and particle coordinates.
+    snapshot files; per file a periodic ``cKDTree`` ball query gathers the gas
+    particles inside each halo's R500c and their masses are summed (hot +
+    star-forming both count — a spherical gas mass is the total gas, no SFR cut).
+    Frame-independent, so it uses the *original* (untransformed) halo positions
+    and particle coordinates.
 
-    Intended for a bounded halo subset (a few hundred), matching the multi-sample
-    subset — a KDTree per file over ~2.6e7 particles is the cost driver.
+    Parallel over files (each returns a per-halo mass vector, summed) —
+    ``n_workers`` defaults to SLURM_CPUS_PER_TASK / cpu_count. Intended for a
+    bounded halo subset (a few hundred); a KDTree per file over ~2.6e7 particles
+    is the cost driver.
+
+    Under a multi-rank MPI launch (``mpi_comm()``) this is COLLECTIVE: every
+    rank must call it with the SAME centers/r500 (broadcast them first); ranks
+    stride the files and the per-halo vector is Reduce-summed to rank 0, which
+    returns it (other ranks return None).
     """
-    from scipy.spatial import cKDTree
-
     centers = np.ascontiguousarray(np.asarray(centers_xyz_mpch, dtype=np.float64) % box_size)
     r500 = np.asarray(r500c_mpch, dtype=np.float64)
-    m_gas = np.zeros(len(centers), dtype=np.float64)
     files = _snapshot_files(hydro_snapdir, snapshot)
     if max_files is not None:
         files = files[:max_files]
-    it = files
-    if progress:
-        try:
-            from tqdm import tqdm
-            it = tqdm(files, desc=f"sph M_gas snap_{snapshot:03d}")
-        except Exception:
-            pass
-    for fname in it:
-        with h5py.File(fname, "r") as f:
-            if "PartType0" not in f:
-                continue
-            g = f["PartType0"]
-            ppos = (g["Coordinates"][:].astype(np.float64) / 1000.0) % box_size
-            pmass = g["Masses"][:].astype(np.float64) * 1e10  # Msun/h
-        tree = cKDTree(ppos, boxsize=box_size)
-        neigh = tree.query_ball_point(centers, r500)  # list of index arrays, per halo
-        for i, idx in enumerate(neigh):
-            if idx:
-                m_gas[i] += pmass[idx].sum()
+    W = _default_workers(n_workers)
+    m_gas = np.zeros(len(centers), dtype=np.float64)
+
+    comm = mpi_comm()
+    if comm is not None:
+        from mpi4py import MPI
+        rank, size = comm.Get_rank(), comm.Get_size()
+        for fname in files[rank::size]:
+            m_gas += _sph_mass_one_file(fname, centers, r500, box_size)
+        recv = np.empty_like(m_gas) if rank == 0 else None
+        comm.Reduce(m_gas, recv, op=MPI.SUM, root=0)
+        if rank == 0 and progress:
+            print(f"[sph M_gas snap_{snapshot:03d}] MPI reduce over {len(files)} files done", flush=True)
+        return recv if rank == 0 else None
+
+    if W <= 1 or len(files) <= 1:
+        for fname in files:
+            m_gas += _sph_mass_one_file(fname, centers, r500, box_size)
+        return m_gas
+
+    with ProcessPoolExecutor(max_workers=W, mp_context=_MP) as ex:
+        futs = [ex.submit(_sph_mass_one_file, fn, centers, r500, box_size) for fn in files]
+        done = 0
+        for fut in as_completed(futs):
+            m_gas += fut.result()
+            done += 1
+            if progress and done % 50 == 0:
+                print(f"[sph M_gas snap_{snapshot:03d}] {done}/{len(files)} files", flush=True)
     return m_gas
+
+
+def _sph_mass_one_file(fname, centers, r500, box_size):
+    """Per-halo gas mass [Msun/h] inside R500c from ONE snapshot file (periodic)."""
+    os.environ.setdefault("OMP_NUM_THREADS", "1")
+    from scipy.spatial import cKDTree
+    with h5py.File(fname, "r") as f:
+        if "PartType0" not in f:
+            return np.zeros(len(centers), dtype=np.float64)
+        g = f["PartType0"]
+        ppos = (g["Coordinates"][:].astype(np.float64) / 1000.0) % box_size
+        pmass = g["Masses"][:].astype(np.float64) * 1e10  # Msun/h
+    tree = cKDTree(ppos, boxsize=box_size)
+    out = np.zeros(len(centers), dtype=np.float64)
+    for i, idx in enumerate(tree.query_ball_point(centers, r500)):
+        if idx:
+            out[i] = pmass[idx].sum()
+    return out
 
 
 def cut_truth_cutout(

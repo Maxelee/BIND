@@ -17,9 +17,14 @@ maps of the same DMO halos — and persists, per snapshot:
 
 One array task per snapshot (096/071/067/063 = z ~ 0.03/0.42/0.50/0.60, which
 doubles as the z>0 thermo verdict, SHARED_CONTEXT caveat 6). Heavy: the truth
-projection streams the full hydro snapshot (~600 files) and needs a big-memory
-node — ⛔ Max submits (see run_wp2_truth_validation.sh). Pure orchestration over
-unit-tested building blocks; **do not tune to agree** (plan step 7).
+projection streams the full hydro snapshot (~600 files) — ⛔ Max submits (see
+run_wp2_truth_validation.sh). Pure orchestration over unit-tested building
+blocks; **do not tune to agree** (plan step 7).
+
+MPI: launched under mpirun (>=2 ranks) the two file-level map-reduces — the
+truth projection and the CylToSph particle pass — stride their ~600 files
+across all ranks (multi-node) and MPI-Reduce to rank 0; everything else runs
+on rank 0 only. Without mpirun the single-node ProcessPool path is unchanged.
 
 Painted side: defaults to the EXISTING fiducial paint at ``bind_lightcone_tng``
 (``snap_<NNN>/composite_slab*.npz`` + co-located ``snap_<NNN>/stage1/`` conditions,
@@ -144,6 +149,8 @@ def _y_composite(d, box, npix):
 
 def process_snapshot(snap: int, painted_root: Path, out_dir: Path, halo_subset: int,
                      conditions_root=DEFAULT_CONDITIONS_ROOT, stage1_subdir=DEFAULT_STAGE1_SUBDIR) -> dict:
+    comm = tp.mpi_comm()          # not None => multi-rank MPI launch (mpirun)
+    rank = 0 if comm is None else comm.Get_rank()
     cond_dir = _cond_dir(conditions_root, snap, stage1_subdir)
     manifest = ft.load_stage1_manifest(cond_dir)
     box, npix, ppm = manifest.box_size, manifest.npix, manifest.npix / manifest.box_size
@@ -151,8 +158,16 @@ def process_snapshot(snap: int, painted_root: Path, out_dir: Path, halo_subset: 
     geom = PatchGeometry(pixel_mpch=box / npix, z=z, cosmology=FlatLCDM(omega_m=manifest.raw["Omega_m"]))
     depth = manifest.slab_depth_hmpc
 
-    print(f"[snap {snap:03d}] z={z:.4f} depth={depth:.1f} h^-1Mpc — projecting truth ...")
-    truth = tp.project_truth_maps(manifest)                       # per-slab maps
+    if rank == 0:
+        print(f"[snap {snap:03d}] z={z:.4f} depth={depth:.1f} h^-1Mpc — projecting truth ...")
+    truth = tp.project_truth_maps(manifest)                       # per-slab maps (MPI: collective, rank 0 gets them)
+    if rank != 0:
+        # Workers only feed the two MPI map-reduces: the projection above and
+        # the CylToSph particle pass below (its halo list arrives by bcast).
+        # Everything in between — matching, operators, bootstrap, outputs — is
+        # rank-0-serial; workers idle in the bcast until it is issued.
+        _calibrate_cyltosph(manifest, None, depth, halo_subset, comm=comm)
+        return None
     hydro = tp.load_hydro_halo_catalog(manifest)                  # M500c/R500c source
 
     ksz_cfg = KSZOperatorConfig(
@@ -219,7 +234,7 @@ def process_snapshot(snap: int, painted_root: Path, out_dir: Path, halo_subset: 
     print(f"[snap {snap:03d}] matched {n_matched} halos across slabs")
 
     # ---- CylToSph correction on a halo subset (particle sphere / map cylinder) ----
-    cyltosph = _calibrate_cyltosph(manifest, rec, depth, halo_subset)
+    cyltosph = _calibrate_cyltosph(manifest, rec, depth, halo_subset, comm=comm)
 
     # ---- assemble outputs ----
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -265,19 +280,35 @@ def process_snapshot(snap: int, painted_root: Path, out_dir: Path, halo_subset: 
     return summary
 
 
-def _calibrate_cyltosph(manifest, rec, depth, halo_subset) -> dict:
-    """Mean+scatter of M_gas(3D sphere<R500c) / M_gas(cylinder<R500c) on a subset."""
-    if not rec["sph_center"]:
-        return {"factor": None, "note": "no matched halos"}
-    centers = np.array(rec["sph_center"], dtype=float)
-    r500 = np.array(rec["sph_r500"], dtype=float)
-    cyl = np.array(rec["cyl_gas"], dtype=float)
-    n = min(halo_subset, len(centers))
-    sel = np.linspace(0, len(centers) - 1, n).astype(int)  # spread across the mass range
+def _calibrate_cyltosph(manifest, rec, depth, halo_subset, comm=None) -> dict | None:
+    """Mean+scatter of M_gas(3D sphere<R500c) / M_gas(cylinder<R500c) on a subset.
+
+    Under MPI this is COLLECTIVE: rank 0 picks the halo subset from ``rec`` and
+    broadcasts it (workers pass ``rec=None``), then every rank feeds the
+    file-strided particle pass. Rank 0 returns the correction dict; workers
+    return None. A None broadcast (no matched halos) releases the workers
+    without the particle pass.
+    """
+    root = comm is None or comm.Get_rank() == 0
+    payload = None
+    if root and rec["sph_center"]:
+        centers = np.array(rec["sph_center"], dtype=float)
+        r500 = np.array(rec["sph_r500"], dtype=float)
+        n = min(halo_subset, len(centers))
+        sel = np.linspace(0, len(centers) - 1, n).astype(int)  # spread across the mass range
+        payload = (centers[sel], r500[sel], sel)
+    if comm is not None:
+        payload = comm.bcast(payload, root=0)
+    if payload is None:
+        return {"factor": None, "note": "no matched halos"} if root else None
+    centers_sel, r500_sel, sel = payload
     sph = tp.spherical_gas_mass_from_particles(
         manifest.hydro_snapdir(), manifest.snapshot_index,
-        centers[sel], r500[sel], manifest.box_size,
+        centers_sel, r500_sel, manifest.box_size,
     )
+    if not root:
+        return None                       # sph was reduced to rank 0
+    cyl = np.array(rec["cyl_gas"], dtype=float)
     good = (cyl[sel] > 0) & (sph > 0)
     ratio = sph[good] / cyl[sel][good]
     corr = CylToSphCorrection(
@@ -367,9 +398,13 @@ def main():
     snap = args.snap if args.snap is not None else order[args.array_index]
     process_snapshot(snap, args.painted_root, args.out_dir, args.halo_subset,
                      args.conditions_root, args.stage1_subdir)
+    comm = tp.mpi_comm()
     if snap == 63 and args.multisample_root is not None:
-        process_multisample(snap, args.multisample_root, args.out_dir,
-                            args.conditions_root, args.stage1_subdir)
+        if comm is None or comm.Get_rank() == 0:  # composite-only, rank-0 serial
+            process_multisample(snap, args.multisample_root, args.out_dir,
+                                args.conditions_root, args.stage1_subdir)
+    if comm is not None:
+        comm.Barrier()  # workers hold until rank 0 finishes writing -> clean MPI_Finalize
 
 
 if __name__ == "__main__":

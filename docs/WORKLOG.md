@@ -6,6 +6,21 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-16 — Repo triage: 290 uncommitted changes sorted into 6 topic branches + advisor briefing
+
+The June campaign left ~290 uncommitted files. Committed everything by research thread,
+following the CLAUDE.md topic-branch convention. Core engine/infra/validation → `lightcone`
+(engine `67a6ab9`, infra `425ba20`, examples `4c65087`, worklog `ebeeb28`); all topic branches
+fork from `ebeeb28` so each carries the pipeline: `analysis/wl-tsz-bridge` (Paper-I era, Fisher,
+real-data shear×y), `analysis/wl-cosmo-bias` (transfer→capstone→LSST forecast),
+`analysis/sobol-sb35` (atlases, SHMR, latents, SBI, figs2), `analysis/ksz-desi-act` (P4),
+`analysis/wl-anisotropy`, `feature/cosmo-rescale`. Placement was import-graph-driven
+(e.g. `sobol_ml`/`wl_stat_latents`/`halo_atlas` co-located on `sobol-sb35`); root `run_*.sh`
+all on `lightcone`. Gitignored `sbi-logs/` + generated `tng300_dm_mass_history.hdf5`; left
+`examples/merger_tree_11_tng300 (1).ipynb` (stray duplicate) untracked. Nothing pushed.
+Meeting-prep doc with ranked results, dependency map, 60-min agenda, and open decisions:
+`docs/ADVISOR_BRIEFING_2026-07-16.md`.
+
 ## 2026-07-03 — Cosmology rescaling feasibility: 35-dim Sobol via AW10 rescaling of TNG300-Dark
 
 Researched + prototyped extending the Sobol suite from 30 astro params to the full 35 (adding

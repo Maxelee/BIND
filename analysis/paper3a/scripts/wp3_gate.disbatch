@@ -1,0 +1,8 @@
+# WP-A3 gate compute as a disBatch task file — one task per painted design
+# point (0-255 SB35 Sobol, 256-315 twobound 1P extremes, 316 fiducial slot).
+# Each task is independent and ~30 min on ~1 core; the driver skips existing
+# outputs, so re-running only computes what is missing.
+# Launched by run_wp3_gate_disbatch.sh (single-allocation, no 317-task array).
+#DISBATCH PREFIX ( cd /mnt/home/mlee1/vdm_bind2-paper3a && source /mnt/home/mlee1/venvs/torch3/bin/activate && export OMP_NUM_THREADS=1 &&
+#DISBATCH SUFFIX  ) &> /mnt/home/mlee1/ceph/logs/wp3_gate/task_${DISBATCH_REPEAT_INDEX}.log
+#DISBATCH REPEAT 317 python -u analysis/paper3a/scripts/run_gate_operators.py ${DISBATCH_REPEAT_INDEX}

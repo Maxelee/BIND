@@ -11,7 +11,10 @@
 #SBATCH --mail-user=mel2260@columbia.edu
 #SBATCH --mail-type=END,FAIL
 
-# ── WP-A3 gate operator evaluation (rusty, CPU) ──────────────────────────────
+# ── WP-A3 gate operator evaluation (rusty, CPU) — ARRAY FALLBACK ─────────────
+# Prefer run_wp3_gate_disbatch.sh: same work as ONE allocation via disBatch
+# (single node, ~2.5-3 h wall) instead of 317 scheduler tasks. This array
+# variant is kept as a fallback only.
 # One task per painted design point: 256 SB35 Sobol (0-255) + 60 twobound 1P
 # extremes (256-315) + the fiducial (316; skipped harmlessly until its paint
 # lands). Each task pastes gas composites and evaluates the WP-A2 operators

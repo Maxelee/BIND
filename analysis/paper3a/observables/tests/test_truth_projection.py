@@ -125,3 +125,35 @@ def test_slab_routing_by_los():
     assert out["gas_sigma"][1].sum() > 0
     np.testing.assert_allclose(out["gas_sigma"][0].sum(), 1e-4 * 1e10, rtol=2e-4)
     np.testing.assert_allclose(out["gas_sigma"][1].sum(), 1e-4 * 1e10, rtol=2e-4)
+
+
+def test_halo_catalog_carries_original_frame_centers(tmp_path):
+    # Regression: the CylToSph particle pass queries RAW (original-frame)
+    # snapshot coordinates, so the catalog must expose original-frame centers;
+    # feeding it the transformed ones silently measured spheres at unrelated
+    # points (factor ~1e-3, scatter >> mean — the 2026-07-16 production run).
+    import h5py
+
+    from analysis.paper3a.observables.frame_transforms import apply_frame_transform
+    from analysis.paper3a.observables.truth_projection import load_hydro_halo_catalog
+
+    gpos_kpch = np.array([[10.0, 20.0, 30.0], [70.0, 80.0, 90.0]]) * 1e3  # kpc/h
+    with h5py.File(tmp_path / "fof_subhalo_tab_063.0.hdf5", "w") as f:
+        grp = f.create_group("Group")
+        grp["Group_M_Crit200"] = np.array([2e3, 3e3])   # 1e10 Msun/h units -> 2e13, 3e13
+        grp["Group_M_Crit500"] = np.array([1.5e3, 2e3])
+        grp["Group_R_Crit200"] = np.array([500.0, 600.0])
+        grp["Group_R_Crit500"] = np.array([300.0, 400.0])
+        grp["GroupPos"] = gpos_kpch
+
+    manifest = _manifest(proj_dir=1, disp=(12.0, 34.0, 5.0), flip=(True, False, True))
+    cat = load_hydro_halo_catalog(manifest, group_catalog=str(tmp_path), snapshot=63)
+
+    np.testing.assert_allclose(cat.centers_orig, (gpos_kpch / 1e3) % BOX, rtol=1e-12)
+    # transform(centers_orig) must reproduce the transformed-frame (xy, los)
+    tpos = apply_frame_transform(cat.centers_orig, manifest.proj_dir, manifest.disp,
+                                 manifest.flip, manifest.box_size)
+    np.testing.assert_allclose(tpos[:, :2], cat.centers_xy, rtol=1e-12)
+    np.testing.assert_allclose(tpos[:, 2], cat.los, rtol=1e-12)
+    # and the transform is NOT the identity here — the two frames really differ
+    assert not np.allclose(tpos, cat.centers_orig)

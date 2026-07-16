@@ -383,16 +383,20 @@ class HydroHaloCatalog:
 
     ``centers_xy`` (transverse, Mpc/h) and ``los`` (Mpc/h) are in the stage-1
     frame — directly comparable to the condition ``halo_centers``. Masses in
-    Msun/h, radii in Mpc/h.
+    Msun/h, radii in Mpc/h. ``centers_orig`` is the SAME halos' positions in
+    the ORIGINAL (untransformed) frame — the frame the snapshot particle
+    coordinates are in; ``spherical_gas_mass_from_particles`` must be fed
+    these, never the transformed ones.
     """
 
-    centers_xy: np.ndarray  # (M, 2)
-    los: np.ndarray         # (M,)
+    centers_xy: np.ndarray    # (M, 2) stage-1 frame
+    los: np.ndarray           # (M,)   stage-1 frame
+    centers_orig: np.ndarray  # (M, 3) original frame, Mpc/h
     m200c: np.ndarray
     m500c: np.ndarray
     r200c: np.ndarray
     r500c: np.ndarray
-    slab: np.ndarray        # (M,) slab index
+    slab: np.ndarray          # (M,) slab index
 
 
 def load_hydro_halo_catalog(
@@ -445,6 +449,7 @@ def load_hydro_halo_catalog(
     return HydroHaloCatalog(
         centers_xy=tpos[:, :2].astype(np.float64),
         los=tpos[:, 2].astype(np.float64),
+        centers_orig=(pos[keep].astype(np.float64) % manifest.box_size),
         m200c=m200[keep],
         m500c=m500[keep],
         r200c=r200[keep],

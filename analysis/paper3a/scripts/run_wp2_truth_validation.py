@@ -227,7 +227,10 @@ def process_snapshot(snap: int, painted_root: Path, out_dir: Path, halo_subset: 
             rec["xe_assumed"].append(X_E_FULLY_IONIZED * aperture_gas_mass_msunh(gt, geom, r500))
 
             # --- CylToSph: collect this halo's 3D center + R500 for the particle pass ---
-            rec["sph_center"].append([hydro.centers_xy[j][0], hydro.centers_xy[j][1], hydro.los[j]])
+            # ORIGINAL-frame center: the particle pass queries raw snapshot
+            # coordinates. (Transformed centers here silently measured spheres
+            # at unrelated points — factor ~1e-3 with scatter >> mean.)
+            rec["sph_center"].append(hydro.centers_orig[j].tolist())
             rec["sph_r500"].append(r500)
 
     n_matched = len(rec["m500"])

@@ -27,22 +27,28 @@ mkdir -p /mnt/home/mlee1/ceph/logs
 
 DESIGN=${DESIGN:-sobol}
 OUTPUT_ROOT=${OUTPUT_ROOT:-/mnt/home/mlee1/ceph/bind_science}
-N_REAL=${N_REAL:-8}
+N_REAL=${N_REAL:-50}
 LUX_BIN=${LUX_BIN:-/mnt/home/mlee1/lux/lux}
 FOV_DEG=${FOV_DEG:-5.0}
 LP_GRID=${LP_GRID:-4096}
 RT_GRID=${RT_GRID:-1024}
+COMPUTE_TSZ=${COMPUTE_TSZ:-True}      # set False for the DMO baseline (no y-planes)
+COMPUTE_TAU=${COMPUTE_TAU:-True}      # also ray-trace kSZ/FRB electron-column tau-planes
 
 RUN_DIR="$OUTPUT_ROOT/runs/$DESIGN/$(printf 'run_%04d' "$SLURM_ARRAY_TASK_ID")"
 LP_DIR="$RUN_DIR/lensplanes"
 RT_DIR="$RUN_DIR/rt"
 INI="$RUN_DIR/lux.ini"
 mkdir -p "$RT_DIR"
+# lux does NOT create its own run<NNN>/ output dirs — pre-create them or it dies
+# instantly with "file open error!: .../run001/config.dat".
+for i in $(seq 1 "$N_REAL"); do mkdir -p "$RT_DIR/$(printf 'run%03d' "$i")"; done
 
 cat > "$INI" <<EOF
 LP_output_dir = $LP_DIR
 RT_output_dir = $RT_DIR
 tsz_input_dir = $LP_DIR
+tau_input_dir = $LP_DIR
 input_dir = $LP_DIR
 LP_grid = $LP_GRID
 RT_grid = $RT_GRID
@@ -56,7 +62,8 @@ projection_direction = -1
 translation_rotation = False
 RT_random_seed = 1992
 RT_randomization = True
-compute_tsz = True
+compute_tsz = $COMPUTE_TSZ
+compute_tau = $COMPUTE_TAU
 n_realizations = $N_REAL
 verbose = True
 EOF

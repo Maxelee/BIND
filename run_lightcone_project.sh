@@ -3,7 +3,7 @@
 #SBATCH --output=/mnt/home/mlee1/ceph/logs/bind_lc_project_%A_%a.out
 #SBATCH --error=/mnt/home/mlee1/ceph/logs/bind_lc_project_%A_%a.err
 #SBATCH --partition=cca
-#SBATCH --constraint=icelake
+#SBATCH --constraint=cascadelake
 #SBATCH --nodes=4
 #SBATCH --ntasks=64
 #SBATCH --exclusive
@@ -27,7 +27,7 @@
 
 set -euo pipefail
 
-module load python openmpi python-mpi
+# module load openmpi/4.1.8   # mpi4py now lives in the venv (py3.11); python-mpi's py3.10 h5py would clash
 source /mnt/home/mlee1/venvs/BIND_env/bin/activate
 cd /mnt/home/mlee1/BIND
 mkdir -p /mnt/home/mlee1/ceph/logs

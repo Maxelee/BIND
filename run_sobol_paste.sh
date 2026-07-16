@@ -23,7 +23,7 @@
 
 set -euo pipefail
 
-module load python openmpi python-mpi
+# serial CPU (no MPI / no h5py here) — just the venv; do NOT load python-mpi.
 source /mnt/home/mlee1/venvs/BIND_env/bin/activate
 cd /mnt/home/mlee1/BIND
 mkdir -p /mnt/home/mlee1/ceph/logs
@@ -61,8 +61,12 @@ for IDX in $(seq 0 $((N_SNAPS-1))); do
   python -u -m bind.cli.paint_yplane \
       --generate_dir "$TMP/snap_${SNAP3}" --stage1_dir "$S1" --output_dir "$LP_DIR" \
       --lc_snap_idx "$IDX" --lc_n_snaps "$N_SNAPS" --lp_grid "$LP_GRID" --r200_factor "$R200_FACTOR"
+  # 3. tau-planes (kSZ/FRB electron column from the gas channel) for lux compute_tau
+  python -u -m bind.cli.paint_tauplane \
+      --generate_dir "$TMP/snap_${SNAP3}" --stage1_dir "$S1" --output_dir "$LP_DIR" \
+      --lc_snap_idx "$IDX" --lc_n_snaps "$N_SNAPS" --lp_grid "$LP_GRID"
   rm -rf "$TMP/snap_${SNAP3}"
 done
 rmdir "$TMP" 2>/dev/null || true
 
-echo "=== lensplanes + y-planes ready for $RUN_DIR ==="
+echo "=== lensplanes + y-planes + tau-planes ready for $RUN_DIR ==="

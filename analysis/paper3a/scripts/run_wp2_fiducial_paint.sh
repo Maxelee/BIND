@@ -28,11 +28,17 @@
 #   sbatch /mnt/home/mlee1/BIND-paper3a/analysis/paper3a/scripts/run_wp2_fiducial_paint.sh
 #
 # Environment: bind.cli.generate_halos lives on the `lightcone` branch (the
-# redshift-conditioned model). This uses the paper3b_popeye venv (torch/h5py/
-# Pylians) with the lightcone SOURCE shadowed in via PYTHONPATH from a dedicated
-# detached worktree — no dependency on whatever branch /mnt/home/mlee1/BIND is
-# currently on (Max's live checkout is left untouched). Restart-safe: (draw,snap)
-# with an existing composite_slab00.npz are skipped.
+# redshift-conditioned model). Uses the BIND_env venv (torch 2.6.0 / CUDA 12.5,
+# which MATCHES Popeye's GPU driver ~12.6 and is the env that painted the
+# twobound bundle) with the lightcone SOURCE shadowed in via PYTHONPATH from a
+# dedicated detached worktree — so no dependency on whatever branch
+# /mnt/home/mlee1/BIND is on (Max's live checkout untouched). Restart-safe:
+# (draw,snap) with an existing composite_slab00.npz are skipped.
+#
+# ⚠ Do NOT use paper3b_popeye here: its torch is 2.13+cu130 (CUDA 13.0), too new
+# for the Popeye driver -> "NVIDIA driver too old (found 12060)" and the paint
+# dies before generating (this is exactly why job 2451133 failed 2026-07-16).
+# The truth-validation driver (CPU, no CUDA) still runs in paper3b_popeye.
 #
 # GPU note: Popeye a100 node is pcn-16-06 (6× a100-pcie-40gb, 1024 GB RAM). If
 # the a100 constraint queues too long, v100s-pcie-32gb also fits (drop
@@ -40,7 +46,7 @@
 
 set -euo pipefail
 
-VENV=${VENV:-/mnt/home/mlee1/venvs/paper3b_popeye}
+VENV=${VENV:-/mnt/home/mlee1/venvs/BIND_env}
 LIGHTCONE_SRC=${LIGHTCONE_SRC:-/mnt/home/mlee1/BIND-lightcone/src}
 source "$VENV/bin/activate"
 export PYTHONPATH="$LIGHTCONE_SRC${PYTHONPATH:+:$PYTHONPATH}"

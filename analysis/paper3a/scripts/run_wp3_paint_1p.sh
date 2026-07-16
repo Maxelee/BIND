@@ -31,18 +31,22 @@
 #   mkdir -p /mnt/home/mlee1/ceph/logs
 #   sbatch /mnt/home/mlee1/vdm_bind2-paper3a/analysis/paper3a/scripts/run_wp3_paint_1p.sh
 #
-# Environment/repo note: this intentionally mirrors run_sb35_generate.sh
-# (BIND_env venv + /mnt/home/mlee1/vdm_bind2 checkout) — the exact
-# combination that painted the 256-run Sobol bundle on 2026-06-18/19.
-# bind.cli.generate_halos does not exist on the analysis/paper3a-gas-
-# calibration topic branch (built from main); do not "fix" this script to
-# run from the worktree. Restart-safe: (run, snap) pairs with an existing
-# composite_slab00.npz are skipped.
+# Environment/repo note (updated 2026-07-16 after job 6624841 failed):
+# bind.cli.generate_halos exists ONLY on the `lightcone` branch. The June
+# Sobol run worked because /mnt/home/mlee1/vdm_bind2 happened to be on
+# `lightcone` then; it is now on `feature/wl-emu`, so BIND_env's editable
+# install no longer sees the module. Fix: a dedicated read-only worktree
+# `/mnt/home/mlee1/vdm_bind2-lightcone` (branch `lightcone`, 6a38e18 — the
+# June generation vintage) put ahead of the editable install via PYTHONPATH.
+# Max's active checkout is never touched, and this script no longer depends
+# on whatever branch it happens to be on. Restart-safe: (run, snap) pairs
+# with an existing composite_slab00.npz are skipped.
 
 set -euo pipefail
 
 source /mnt/home/mlee1/venvs/BIND_env/bin/activate
-cd /mnt/home/mlee1/vdm_bind2
+cd /mnt/home/mlee1/vdm_bind2-lightcone
+export PYTHONPATH=/mnt/home/mlee1/vdm_bind2-lightcone/src${PYTHONPATH:+:$PYTHONPATH}
 mkdir -p /mnt/home/mlee1/ceph/logs
 
 BUNDLE=${BUNDLE:-/mnt/home/mlee1/ceph/bind_sb35}

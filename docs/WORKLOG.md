@@ -6,6 +6,23 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-16 — The BIND Lightcone Suite: 5 paper drafts produced on branch `papers`
+
+Turned the June-campaign branches into five compiled preprint drafts under `papers/`
+(branch `papers`, off `lightcone`): I pipeline+validation+bridge (20pp, merges `lightcone`
++ `wl-tsz-bridge`), II two-template cosmo bias + rescaling appendix (23pp), III feedback
+latent + SBI (28pp, includes the `wl-tsz-bridge` κ×y/shear×y engines), IV kSZ/eROSITA
+(20pp), V anisotropy letter (10pp). Two Sonnet workflows (75 agents, 0 errors): text
+pipeline (mine→draft→cite→3-lens adversarial verify→fix→coherence; every number carries a
+`% src:` provenance comment, bibs verified against arXiv/ADS/crossref, 60 findings applied
+incl. re-derived HMF ratios and the "N≥6 pure cost"→"diminishing returns" downgrade at
+ℓmax=5000) and figure overhaul (48/51 figures regenerated as standalone scienceplots
+scripts in `fig_scripts/` from cached arrays only — standards in
+`papers/_tools/FIGURE_STYLE.md` + `paper_style.py`; 3 honest placeholders need engine
+re-runs, `\todo`'d). Index with per-paper abstracts + TODO lists: `papers/README.md`.
+Overleaf zips regenerable via `zip -r <id>_overleaf.zip main.tex references.bib figs/`.
+Remaining human work: resolve ~44 `\todo`s, author list, journal formatting.
+
 ## 2026-07-16 — Repo triage: 290 uncommitted changes sorted into 6 topic branches + advisor briefing
 
 The June campaign left ~290 uncommitted files. Committed everything by research thread,

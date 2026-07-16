@@ -10,21 +10,22 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=128G
 #SBATCH --time=08:00:00
-#SBATCH --array=0-30
+#SBATCH --array=0-0
 #SBATCH --mail-user=mel2260@columbia.edu
 #SBATCH --mail-type=END,FAIL
 
-# ── WP-A3 1P trajectory paint (rusty GPU) ─────────────────────────────────────
-# Paints the gate's 1P runs (fiducial + 6 feedback params x 5 levels = 31 runs,
-# see manifest.json) over the same 20 TNG300 lightcone snapshots as the SB35
-# Sobol bundle, with identical conditions, weights, and sampler settings, so
-# Sobol envelope and 1P trajectories are directly comparable.
+# ── WP-A3 fiducial paint (rusty GPU) ──────────────────────────────────────────
+# 2026-07-16: the painted 1P extremes already exist (bind_portable_twobound,
+# 30 params x 2 bounds x 20 snaps — Max), so the only gap for the A3 gate is
+# the TNG-fiducial run: one array task over the same 20 TNG300 lightcone
+# snapshots with identical conditions/weights/sampler settings as the Sobol
+# and twobound bundles.
 #
 # Prepare the run tree first (CPU, seconds; prints the manifest + array range):
-#   python analysis/paper3a/scripts/make_wp3_1p_bundle.py
-# then review the printed parameter list before submitting (the "6 key
-# feedback params" default is WP-A3's proposal — edit with --params ... if
-# you want a different set).
+#   python analysis/paper3a/scripts/make_wp3_1p_bundle.py --fiducial-only
+# (Without --fiducial-only it builds 5-level trajectories for 6 feedback
+# params = 31 runs, kept in reserve if the gate needs finer 1P sampling —
+# then set --array=0-30.)
 #
 # ⛔ HUMAN CHECKPOINT — Max submits:
 #   mkdir -p /mnt/home/mlee1/ceph/logs

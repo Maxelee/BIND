@@ -9,13 +9,15 @@ out a run tree that run_wp3_paint_1p.sh (same machinery as
 run_sb35_generate.sh) can paint.
 
 Usage (CPU, seconds):
-    python analysis/paper3a/scripts/make_wp3_1p_bundle.py [--params NAME [NAME ...]]
+    python analysis/paper3a/scripts/make_wp3_1p_bundle.py [--fiducial-only] [--params NAME [NAME ...]]
 
-The default parameter set below is WP-A2/A3's proposal for "the 6 key
-feedback params" (plan leaves them unnamed): the CAMELS-TNG ASN1/ASN2
-analogs for the wind (ejection) axis and the four AGN-side dials for the
-heating axis. Max confirms or edits at submission time — the Slurm script
-prints the manifest before painting anything.
+2026-07-16 update: Max pointed out the painted 1P *extremes* already exist —
+/mnt/home/mlee1/ceph/bind_portable_twobound/runs/ holds all 30 params x 2
+bounds (60 runs, 20 snapshots, same npz format incl. thermo). Only the
+TNG-fiducial run is unpainted on rusty, so the expected invocation is now
+``--fiducial-only`` (1 run; sbatch --array=0-0). The 5-level trajectory
+build below is kept for the case where the gate finds two bounds too coarse
+along some parameter direction.
 """
 
 from __future__ import annotations
@@ -42,8 +44,12 @@ DEFAULT_PARAMS = [
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--params", nargs="+", default=DEFAULT_PARAMS)
+    ap.add_argument("--fiducial-only", action="store_true",
+                    help="build only the fiducial run (the 1P extremes already exist in bind_portable_twobound)")
     ap.add_argument("--out_root", type=Path, default=OUT_ROOT)
     args = ap.parse_args()
+    if args.fiducial_only:
+        args.params = []
 
     meta = json.loads((BUNDLE / "design" / "astro_params_1P_meta.json").read_text())
     table = np.load(BUNDLE / "design" / "astro_params_1P.npy")

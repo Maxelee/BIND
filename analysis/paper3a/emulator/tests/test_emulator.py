@@ -89,6 +89,33 @@ def test_xi_lin_positive_and_decaying(lv):
     assert np.all(xi > 0) and np.all(np.diff(xi) < 0)
 
 
+# ------------------------------------------------------ per-theta CylToSph ---
+
+def test_cyltosph_theta_model():
+    from analysis.paper3a.emulator.cyltosph_theta import MODEL_NPZ, CylToSphTheta
+
+    if not MODEL_NPZ.exists():
+        pytest.skip("cyltosph_theta_model.npz not on this system")
+    m = CylToSphTheta()
+    i = pm.ASTRO_NAMES.index("WindEnergyIn1e51erg")
+    assert m.slopes[i, 0] > 0.2          # wind sector dominates, positive sign
+    u_fid = pm.astro_physical_to_unit(pm.ASTRO_FIDUCIAL)
+    from analysis.paper3a.gate.aggregate import cyltosph_for_snap
+
+    base, _ = cyltosph_for_snap("096")
+    f_fid = m.factors(u_fid, "096")
+    assert np.allclose(f_fid, base)      # trend is 1 at the fiducial
+    u_weak = u_fid.copy()
+    u_weak[i] = 0.0
+    u_strong = u_fid.copy()
+    u_strong[i] = 1.0
+    f_w = m.factors(u_weak, "096")[0]
+    f_s = m.factors(u_strong, "096")[0]
+    assert f_w < f_fid[0] < f_s          # weak wind -> lower spherical conversion
+    padded = m.factors_full_bins(u_fid, "096")
+    assert padded.shape == (5,) and np.allclose(padded[3:], padded[2])
+
+
 # ------------------------------------------------ fit + predict integration --
 
 def _synthetic_dataset(n_runs: int = 24, seed: int = 0) -> dict:

@@ -104,15 +104,30 @@ class ForwardModel:
 
     # ------------------------------------------------------------- f_gas ----
 
-    def fgas_sph(self, params, snap: str, cyltosph: float | None = None,
+    def fgas_sph(self, params, snap: str, cyltosph=None,
                  cyltosph_sys_frac: float = 0.0) -> dict:
         """Spherical-equivalent f_gas medians (and scatters) per gate mass
-        bin at true mass. ``cyltosph_sys_frac`` widens the result by the
-        (currently unmeasured) feedback dependence of the factor."""
+        bin at true mass.
+
+        ``cyltosph``: None -> the theta-dependent factors from the CAMELS-1P
+        measurement when its model file exists (mandatory component #2),
+        else the fixed wp2 snap factor; or pass a scalar/per-bin array.
+        ``cyltosph_sys_frac`` adds a further fractional systematic band.
+        """
         if cyltosph is None:
-            cyltosph, src = cyltosph_for_snap(snap)
+            try:
+                from .cyltosph_theta import CylToSphTheta
+
+                c2s_model = getattr(self, "_c2s_model", None) or CylToSphTheta()
+                self._c2s_model = c2s_model
+                u, single = self.emu._resolve_params(params)
+                cyltosph = c2s_model.factors_full_bins(u if not single else u[0], snap)
+                src = "CylToSphTheta (CAMELS L50n512/1P trend x wp2 anchor)"
+            except (FileNotFoundError, OSError):
+                cyltosph, src = cyltosph_for_snap(snap)
         else:
             src = "caller"
+        cyltosph = np.asarray(cyltosph, float)
         pred = self.emu.predict(params, snap)
         med = pred["fgas_med"] * cyltosph
         return {

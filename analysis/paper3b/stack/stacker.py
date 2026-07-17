@@ -58,21 +58,52 @@ class PeakStackResult:
 
 def run_peak_stack(ymap, ra_deg, dec_deg, nu, label: str,
                    nu_edges: np.ndarray = NU_STACK_EDGES,
-                   cap_radii=CAP_RADII_ARCMIN) -> PeakStackResult:
-    """The frozen chain: thumbnails -> per-peak CAP -> nu-binned jackknife stats."""
+                   cap_radii=CAP_RADII_ARCMIN, comm=None) -> PeakStackResult | None:
+    """The frozen chain: thumbnails -> per-peak CAP -> nu-binned jackknife stats.
+
+    ``comm``: an MPI communicator makes the heavy part (thumbnail extraction +
+    per-peak CAP) COLLECTIVE — ranks stride the peak list, the per-peak table
+    is gathered and the per-bin thumbnail sums reduced to rank 0, which alone
+    computes the (fast) jackknife/profiles and returns the result; other ranks
+    return None. ``comm=None`` (the default, and what B4's mock loop uses) is
+    the identical single-process chain — same code path, same numbers.
+    """
     ra_deg, dec_deg, nu = (np.asarray(a, dtype=np.float64) for a in (ra_deg, dec_deg, nu))
     sel = (nu >= nu_edges[0]) & (nu < nu_edges[-1])
     ra_deg, dec_deg, nu = ra_deg[sel], dec_deg[sel], nu[sel]
 
-    thumbs = np.asarray(extract_thumbnails(ymap, ra_deg, dec_deg,
-                                           THUMB_R_ARCMIN, THUMB_RES_ARCMIN),
-                        dtype=np.float64)
-    per_peak_y = cap_filter_multi(thumbs, cap_radii, THUMB_RES_ARCMIN)
-    ids8 = patch_ids(ra_deg, dec_deg, NSIDE_JK_DEFAULT)
+    rank, size = (comm.Get_rank(), comm.Get_size()) if comm is not None else (0, 1)
+    my = np.arange(len(nu))[rank::size]
+
+    thumbs_local = np.asarray(extract_thumbnails(ymap, ra_deg[my], dec_deg[my],
+                                                 THUMB_R_ARCMIN, THUMB_RES_ARCMIN),
+                              dtype=np.float64)
+    y_local = cap_filter_multi(thumbs_local, cap_radii, THUMB_RES_ARCMIN)
 
     nbin, nrad = len(nu_edges) - 1, len(cap_radii)
     binof = np.digitize(nu, nu_edges) - 1
-    n_per_bin = np.zeros(nbin, dtype=int)
+    ny, nx = thumbs_local.shape[-2:] if thumbs_local.size else (61, 61)
+    thumb_sums = np.zeros((nbin, ny, nx))
+    for b in range(nbin):
+        m = binof[my] == b
+        if m.any():
+            thumb_sums[b] = thumbs_local[m].sum(axis=0)
+
+    if comm is not None and size > 1:
+        from mpi4py import MPI
+        all_idx = comm.gather(my, root=0)
+        all_y = comm.gather(y_local, root=0)
+        thumb_sums = comm.reduce(thumb_sums, op=MPI.SUM, root=0)
+        if rank != 0:
+            return None
+        per_peak_y = np.empty((len(nu), nrad))
+        for idx, yv in zip(all_idx, all_y):
+            per_peak_y[idx] = yv
+    else:
+        per_peak_y = y_local
+
+    ids8 = patch_ids(ra_deg, dec_deg, NSIDE_JK_DEFAULT)
+    n_per_bin = np.bincount(binof, minlength=nbin).astype(int)
     y_mean = np.full((nbin, nrad), np.nan)
     y_cov = np.full((nbin, nrad, nrad), np.nan)
     n_patches = np.zeros(nbin, dtype=int)
@@ -82,12 +113,11 @@ def run_peak_stack(ymap, ra_deg, dec_deg, nu, label: str,
     r_prof = None
     for b in range(nbin):
         m = binof == b
-        n_per_bin[b] = int(m.sum())
         if n_per_bin[b] == 0:
-            stacked.append(np.zeros(thumbs.shape[-2:], dtype=np.float32))
+            stacked.append(np.zeros((ny, nx), dtype=np.float32))
             profiles.append(np.full(int(THUMB_R_ARCMIN), np.nan))
             continue
-        st = thumbs[m].mean(axis=0)
+        st = thumb_sums[b] / n_per_bin[b]
         stacked.append(st.astype(np.float32))
         r_prof, prof = radial_profile(st, THUMB_RES_ARCMIN, 1.0, THUMB_R_ARCMIN)
         profiles.append(prof)

@@ -24,7 +24,6 @@ _repo = Path(__file__).resolve().parents[3]
 import sys
 sys.path.insert(0, str(_repo))
 
-from analysis.paper3b.maps import load_act_ymap  # noqa: E402
 from analysis.paper3b.stack import (  # noqa: E402
     FIDUCIAL_RADIUS_INDEX,
     NU_STACK_EDGES,
@@ -32,6 +31,7 @@ from analysis.paper3b.stack import (  # noqa: E402
     save_result,
 )
 from analysis.paper3b.stack.covariance import jackknife_mean_cov, patch_ids  # noqa: E402
+from analysis.paper3b.stack.mpiutil import mpi_comm  # noqa: E402
 
 WP1 = Path("/mnt/home/mlee1/ceph/paper3/B/wp1_maps")
 YMAP_DIR = Path("/mnt/home/mlee1/ceph/paper3/B/downloads/act_dr6_planck_ymap")
@@ -87,10 +87,16 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--variants", nargs="+", default=["wiener", "glimpse"])
     ap.add_argument("--ymaps", nargs="+", default=["fid", "deprojcib"])
-    ap.add_argument("--with-null", action="store_true", default=True)
+    ap.add_argument("--skip-null", action="store_true")
+    ap.add_argument("--max-peaks", type=int, default=None, help="truncate catalogs (smoke)")
+    ap.add_argument("--out-dir", type=Path, default=None, help="override archive dir (smoke)")
     args = ap.parse_args()
 
     from pixell import enmap
+
+    comm = mpi_comm()          # not None => multi-rank MPI launch (mpirun)
+    rank = 0 if comm is None else comm.Get_rank()
+    save_kw = {} if args.out_dir is None else {"out_dir": args.out_dir}
 
     summary = {"nu_edges": NU_STACK_EDGES.tolist(), "footprint_deg2": FOOTPRINT_DEG2,
                "fiducial_radius_arcmin": 4.0, "runs": {}}
@@ -99,10 +105,15 @@ def main() -> None:
         for variant in args.variants:
             cat = np.load(WP1 / f"peaks_{variant}_sm2am.npz")
             ra, dec, nu = cat["ra_deg"], cat["dec_deg"], cat["nu"]
+            if args.max_peaks:
+                ra, dec, nu = ra[:args.max_peaks], dec[:args.max_peaks], nu[:args.max_peaks]
             label = f"{variant}_sm2am_{ytag}"
-            print(f"[b2] stacking {label}: {len(ra)} peaks ...", flush=True)
-            res = run_peak_stack(ymap, ra, dec, nu, label=label)
-            save_result(res)
+            if rank == 0:
+                print(f"[b2] stacking {label}: {len(ra)} peaks ...", flush=True)
+            res = run_peak_stack(ymap, ra, dec, nu, label=label, comm=comm)
+            if rank != 0:
+                continue
+            save_result(res, **save_kw)
             sel = (nu >= NU_STACK_EDGES[0]) & (nu < NU_STACK_EDGES[-1])
             sig8 = res.y_err
             drift = {ns: np.nanmax(np.abs(res.y_sigma_stability[ns] / sig8 - 1.0))
@@ -121,15 +132,21 @@ def main() -> None:
             print(f"[b2] {label}: S/N per bin = "
                   f"{np.round(res.significance(), 1).tolist()}", flush=True)
 
-        if ytag == "fid" and args.with_null:
+        if ytag == "fid" and not args.skip_null:
             for variant in args.variants:
                 cat = np.load(WP1 / f"peaks_{variant}_sm2am.npz")
                 nu = np.random.default_rng(7).permutation(cat["nu"])
+                if args.max_peaks:
+                    nu = nu[:args.max_peaks]
+                # seeded + deterministic -> every MPI rank derives IDENTICAL positions
                 ra, dec = _random_in_binary(len(nu), seed=11)
                 label = f"{variant}_sm2am_nullpos"
-                print(f"[b2] null {label}: {len(ra)} positions ...", flush=True)
-                res = run_peak_stack(ymap, ra, dec, nu, label=label)
-                save_result(res)
+                if rank == 0:
+                    print(f"[b2] null {label}: {len(ra)} positions ...", flush=True)
+                res = run_peak_stack(ymap, ra, dec, nu, label=label, comm=comm)
+                if rank != 0:
+                    continue
+                save_result(res, **save_kw)
                 summary["runs"][label] = {
                     "n_per_bin": res.n_per_bin.tolist(),
                     "Y_nu_4am": res.y_mean[:, J].tolist(),
@@ -139,10 +156,13 @@ def main() -> None:
                 print(f"[b2] {label}: S/N per bin = "
                       f"{np.round(res.significance(), 1).tolist()}", flush=True)
 
-    out = Path("/mnt/home/mlee1/ceph/paper3/B/wp2_measurement")
-    out.mkdir(parents=True, exist_ok=True)
-    (out / "measurement_summary.json").write_text(json.dumps(summary, indent=2))
-    print(f"[b2] wrote {out}/measurement_summary.json", flush=True)
+    if rank == 0:
+        out = args.out_dir or Path("/mnt/home/mlee1/ceph/paper3/B/wp2_measurement")
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "measurement_summary.json").write_text(json.dumps(summary, indent=2))
+        print(f"[b2] wrote {out}/measurement_summary.json", flush=True)
+    if comm is not None:
+        comm.Barrier()  # workers hold until rank 0 finishes writing
 
 
 if __name__ == "__main__":

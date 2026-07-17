@@ -157,3 +157,20 @@ def test_halo_catalog_carries_original_frame_centers(tmp_path):
     np.testing.assert_allclose(tpos[:, 2], cat.los, rtol=1e-12)
     # and the transform is NOT the identity here — the two frames really differ
     assert not np.allclose(tpos, cat.centers_orig)
+
+
+def test_pixel_area_is_proper_not_comoving():
+    # Regression for the (1+z)^2 z>0 thermo "excess" (REPORT ## BLOCKED,
+    # resolved 2026-07-17): truth compton_y must be normalized by the PROPER
+    # pixel area (comoving side * a), matching both the physical definition of
+    # y and the fm_redshift_thermo training-map convention
+    # (process_simulations_multiz.py). Comoving area at z>0 under-normalizes
+    # truth y by a^2, faking a (1+z)^2 painted/truth ratio.
+    from analysis.paper3a.observables.truth_projection import _pixel_area_m2
+
+    m = _manifest()                    # scale_factor = 0.625 (z = 0.6)
+    comoving = ((BOX / NPIX) / H * MPC_IN_M) ** 2
+    np.testing.assert_allclose(_pixel_area_m2(m, H), comoving * 0.625 ** 2, rtol=1e-12)
+    # y_map ~ 1/area: the comoving-convention map is a^2 x the proper one —
+    # the measured painted/truth excess is exactly 1/a^2 = (1+z)^2
+    np.testing.assert_allclose(comoving / _pixel_area_m2(m, H), (1 + 0.6) ** 2, rtol=1e-3)

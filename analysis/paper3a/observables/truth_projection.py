@@ -218,6 +218,23 @@ def finalize_truth_maps(acc: TruthMapAccumulator) -> dict[str, np.ndarray]:
     return out
 
 
+def _pixel_area_m2(manifest: Stage1Manifest, h: float) -> float:
+    """PROPER pixel area [m^2] — the physical Compton-y normalization.
+
+    y is dimensionless: sum(per-particle y_int [m^2]) / (PROPER transverse
+    pixel area). The z~0 builder (`add_gas_thermo_maps.py` /
+    `pipeline.project_thermo_fullbox`) uses the comoving side, correct only
+    because a(z~0)=1; the multi-z training-map builder
+    (`data_generation/process_simulations_multiz.py`, feature/redshift — the
+    fm_redshift_thermo targets) uses the proper side explicitly
+    (``pixel_side * a``). Using the comoving area at z>0 under-normalizes
+    truth y by a^2 — the exact (1+z)^2 painted/truth excess the 2026-07-16
+    validation measured (A/wp2 REPORT ## BLOCKED; audit 2026-07-17). Only the
+    ``compton_y`` channel consumes this area.
+    """
+    return ((manifest.box_size / manifest.npix) / h * MPC_IN_M * manifest.scale_factor) ** 2
+
+
 def _snapshot_files(hydro_snapdir: str, snapshot: int) -> list[str]:
     d = Path(hydro_snapdir)
     files = sorted(glob.glob(str(d / f"snap_{snapshot:03d}.*.hdf5")))
@@ -256,8 +273,7 @@ def project_truth_maps(
         files = files[:max_files]
 
     h = _read_hubble(files[0])
-    pixel_side_m = (manifest.box_size / manifest.npix) / h * MPC_IN_M
-    pixel_area_m2 = pixel_side_m ** 2
+    pixel_area_m2 = _pixel_area_m2(manifest, h)
 
     comm = mpi_comm()
     if comm is not None:

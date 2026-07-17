@@ -137,6 +137,7 @@ def main() -> None:
                     }
                     print(f"[b3] shift {variant} {dlt:+g}deg (ret {ret:.2f}): S/N = "
                           f"{np.round(res.significance(), 1).tolist()}", flush=True)
+        del act_hp  # ~100 MB/rank
 
     # ---- §3 B-mode peaks ---------------------------------------------------
     if not args.skip_bmode:
@@ -163,6 +164,11 @@ def main() -> None:
 
     # ---- §4 CIB band -------------------------------------------------------
     if not args.skip_cib:
+        # Free the fiducial map before loading variants — holding both was
+        # 2 x 1.78 GB/rank x 48 ranks = 170 GB and OOM-killed job 2451392;
+        # the CIB section only needs the variant maps (fid Y values come from
+        # the B2 archive).
+        del fid
         cib_files = sorted(YMAP_DIR.glob("ilc_actplanck_ymap_deproj_*.fits"))
         for variant in VARIANTS:
             ra, dec, nu = _cat(variant)

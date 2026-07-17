@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=48
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=240G
+#SBATCH --mem=360G
 #SBATCH --time=04:00:00
 #SBATCH --mail-user=mel2260@columbia.edu
 #SBATCH --mail-type=END,FAIL

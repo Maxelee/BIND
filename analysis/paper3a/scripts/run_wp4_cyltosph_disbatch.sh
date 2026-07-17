@@ -6,15 +6,15 @@
 #SBATCH --exclusive
 #SBATCH --ntasks-per-node=32
 #SBATCH --cpus-per-task=2
-#SBATCH --time=04:00:00
+#SBATCH --time=06:00:00
 #SBATCH --mail-user=mel2260@columbia.edu
 #SBATCH --mail-type=END,FAIL
 
 # ── WP-A4 CylToSph feedback dependence via disBatch ─────────────────────────
 # 177 tasks (one per CAMELS L50n512/1P sim), each streaming ~16 snapshot
 # chunks (~8 GB total read, few hundred MB resident) for per-halo
-# sphere/cylinder gas sums at z=0. 32 slots x 2 cpus keeps the I/O and
-# memory comfortable; expect well under the walltime.
+# sphere/cylinder gas sums at z=0. Fiducial smoke on a rusty worker:
+# ~25 min/sim (ceph-I/O bound) -> 177 tasks / 32 slots ~ 6 waves ~ 2.5-3 h.
 #
 # ⛔ HUMAN CHECKPOINT — Max submits:
 #   mkdir -p /mnt/home/mlee1/ceph/logs/wp4_cyltosph

@@ -40,3 +40,11 @@ X_E_FULLY_IONIZED = (X_H + 0.5 * (1.0 - X_H)) / X_H  # = 1.1578...
 # with this as the default rather than hard-coding it downstream.
 TNG_OMEGA_M = 0.3089
 TNG_H = 0.6774
+TNG_OMEGA_B = 0.0486
+
+# Critical density today in h-units: 2.775e11 (Msun/h)/(Mpc/h)^3 (comoving,
+# h-independent in these units). Used for the cosmic-mean gas surface-density
+# background that composite gas maps need for compensated-aperture work
+# (2026-07-17 gate dry-run finding: without it, CAP annuli compensate
+# against zeros between pasted apertures).
+RHO_CRIT0_MSUNH_PER_MPCH3 = 2.775e11

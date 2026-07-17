@@ -27,6 +27,7 @@ sys.path.insert(0, str(_repo / "src"))
 from analysis.paper3a.gate import GateConfig, process_run_snapshot  # noqa: E402
 
 SB35 = Path("/mnt/ceph/users/mlee1/bind_sb35")
+SB35_EXT = Path("/mnt/ceph/users/mlee1/bind_sb35_ext")   # Sobol points 256-511 (WP-A4 densification)
 TWOBOUND = Path("/mnt/home/mlee1/ceph/bind_portable_twobound")
 FIDUCIAL = Path("/mnt/ceph/users/mlee1/paper3/A/wp3_gate/1p_runs")
 OUT = Path("/mnt/ceph/users/mlee1/paper3/A/wp3_gate/operator_tables_v3")
@@ -43,7 +44,12 @@ def resolve(index: int) -> tuple[str, Path]:
         return "twobound", TWOBOUND / "runs" / f"run_{index - 256:04d}"
     if index == 316:
         return "fiducial", FIDUCIAL / "run_0000"
-    raise SystemExit(f"index {index} out of range [0, 316]")
+    if 317 <= index < 573:
+        # extension design points: bundle name stays "sb35" so the table
+        # files (sb35_run_0256.. run_0511) merge seamlessly into the same
+        # glob the aggregation and emulator dataset already use
+        return "sb35", SB35_EXT / "runs" / f"run_{index - 61:04d}"
+    raise SystemExit(f"index {index} out of range [0, 572]")
 
 
 def snap_redshift(snap: str) -> float:

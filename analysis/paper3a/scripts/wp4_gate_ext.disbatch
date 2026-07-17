@@ -1,0 +1,9 @@
+# WP-A4 v3 operator evaluation for the 256 extension design points
+# (Sobol sequence indices 256-511, driver indices 317-572 -> tables
+# sb35_run_0256..0511 in operator_tables_v3/, merging into the same glob
+# as the original 256). Same per-task shape as wp3_gate_v3.disbatch;
+# resumable (driver skips existing outputs and missing snaps).
+# Launched by run_wp4_ext_ops_disbatch.sh.
+#DISBATCH PREFIX ( cd /mnt/home/mlee1/vdm_bind2-paper3a && module load gcc && source /mnt/home/mlee1/venvs/torch3/bin/activate && export OMP_NUM_THREADS=1 &&
+#DISBATCH SUFFIX  ) &> /mnt/home/mlee1/ceph/logs/wp4_ext_ops/task_${DISBATCH_REPEAT_INDEX}.log
+#DISBATCH REPEAT 256 start 317 python -u analysis/paper3a/scripts/run_gate_operators.py ${DISBATCH_REPEAT_INDEX}

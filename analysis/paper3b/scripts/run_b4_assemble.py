@@ -55,6 +55,10 @@ def main() -> None:
     args = ap.parse_args()
     out = Path(args.out)
     grid_dir = out / args.grid_subdir
+    # products carry the grid variant in their name (grid_tfwiener -> _tfwiener)
+    tag = "" if args.grid_subdir == "grid" else "_" + args.grid_subdir.removeprefix("grid_")
+    model_grid_path = out / f"model_grid{tag}.npz"
+    summary_path = out / f"b4_summary{tag}.json"
 
     files = sorted(grid_dir.glob("*.npz"))
     if not files:
@@ -87,7 +91,7 @@ def main() -> None:
     tb = sorted(k for k in rows if k.startswith("twobound/"))
     if tb:
         first = rows[tb[0]]
-        np.savez(out / "model_grid.npz",
+        np.savez(model_grid_path,
                  run_names=np.array(tb),
                  params=np.stack([rows[k]["params"] for k in tb]),
                  y_mean=np.stack([rows[k]["y_mean"] for k in tb]),
@@ -111,7 +115,14 @@ def main() -> None:
                               + (t["y_mc_err"] / t["y_mean"]) ** 2)
         occupied = (t["n_per_bin"] > 50) & (b["n_per_bin"] > 50)
         dev = np.abs(ratio[occupied] - 1.0)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            dev_sigma = np.abs(ratio - 1.0) / rel_err
         summary["r2_selection_validation"] = {
+            # significance-aware companion to the fixed tolerance: on low-count
+            # chains (tf grids) the per-cell MC error (~9%) makes the fixed 10%
+            # trip statistically; report both, never silently relax either
+            "max_dev_sigma_occupied": float(np.nanmax(dev_sigma[occupied]))
+                                      if occupied.any() else None,
             "ratio_bind_over_truth": np.where(np.isfinite(ratio), ratio, None).tolist(),
             "ratio_mc_rel_err": np.where(np.isfinite(rel_err), rel_err, None).tolist(),
             "occupied_bins": occupied.tolist(),
@@ -141,10 +152,10 @@ def main() -> None:
     except Exception as e:                                # frozen archive absent
         summary["mc_budget"] = {"error": str(e)}
 
-    with open(out / "b4_summary.json", "w") as fh:
+    with open(summary_path, "w") as fh:
         json.dump(summary, fh, indent=2)
     print(json.dumps(summary, indent=2))
-    print("wrote", out / "model_grid.npz", "and", out / "b4_summary.json")
+    print("wrote", model_grid_path, "and", summary_path)
 
 
 if __name__ == "__main__":

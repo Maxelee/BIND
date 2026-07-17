@@ -26,12 +26,20 @@
 # ⛔ HUMAN CHECKPOINT — submit by hand:
 #   sbatch /mnt/home/mlee1/BIND-paper3b/analysis/paper3b/scripts/run_b4_grid_tf.sh
 #
-# AFTER this grid: variants below (bind fiducial only, cheap — quantify the
+# 2026-07-17 (post first tf run, PRE any central-value look): the comparison
+# grid is re-run at n_seeds=32 — the 8-seed tf run measured worst
+# MC/sigma_stat = 1.42 in the nu 4-12 bin (median 272 peaks/unit) and its
+# ~9%/cell MC noise made the fixed R2 tolerance trip statistically (max
+# 1.74 sigma over 25 cells — no significant deviation). x4 patches at ~27 ->
+# ~100 min/unit still fits 03:00. The 8-seed run's record is kept in
+# MODEL_FREEZE.md as interim.
+#   sbatch ... run_b4_grid_tf.sh --n-seeds 32 --overwrite
+# AFTER that grid: variants below (bind fiducial only, cheap — quantify the
 # plane-weight systematic and the GLIMPSE-transfer scale ON THE COMPARISON
 # CHAIN), then finalize MODEL_FREEZE.md:
-#   sbatch ... run_b4_grid_tf.sh --categories bind --weight-scheme variant8
-#   sbatch ... run_b4_grid_tf.sh --categories bind --weight-scheme plain
-#   sbatch ... run_b4_grid_tf.sh --categories bind truth --transfer glimpse
+#   sbatch ... run_b4_grid_tf.sh --n-seeds 32 --categories bind --weight-scheme variant8
+#   sbatch ... run_b4_grid_tf.sh --n-seeds 32 --categories bind --weight-scheme plain
+#   sbatch ... run_b4_grid_tf.sh --n-seeds 32 --categories bind truth --transfer glimpse
 # (the last overrides --transfer; GLIMPSE is a qualitative cross-check only —
 # a linear T cannot mimic the sparsity prior, validated in
 # b5_transfer_summary.json: tfglimpse mock 0.022 vs data 0.061 nu>=4/deg2.)

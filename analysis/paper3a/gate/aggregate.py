@@ -40,34 +40,47 @@ from analysis.paper3a.observables.constants import T_CMB_UK, TNG_H
 
 TABLES = Path("/mnt/ceph/users/mlee1/paper3/A/wp3_gate/operator_tables_v2")
 
-# Popeye wp2 truth validation, session-3 re-run (job 2451211), snaps
-# 096/071/067/063 — provenance: projectA/wp2-observable-matching/REPORT.md
-# "Session 3" table (private plans repo). INTERIM quote pending the
-# wp2_validation npz pull (WS2); the mean factor is stable across z.
+# wp2 truth-validation artifacts pulled to rusty (final vintage = the
+# run-2451362 confirming run; transfer logged in POPEYE_ASSETS). The INTERIM
+# dict is only a fallback for environments without the ceph mount.
+WP2_VALIDATION = Path("/mnt/ceph/users/mlee1/paper3/A/wp2_validation")
 CYLTOSPH_INTERIM = {"096": 0.528, "071": 0.507, "067": 0.518, "063": 0.513}
 CYLTOSPH_SCATTER = 0.13  # representative per-halo rms (0.11-0.15 across snaps)
 
+_SNAP_Z = {"096": 0.034, "071": 0.420, "067": 0.503, "063": 0.599,
+           "056": 0.791, "049": 1.036, "059": 0.700, "052": 0.923}
+_VALIDATED_SNAPS = ("096", "071", "067", "063")
+
+
+def load_wp2_summary(snap: str) -> dict | None:
+    """The final wp2 validation summary for one snapshot, or None if absent."""
+    p = WP2_VALIDATION / f"summary_snap{snap}.json"
+    return json.loads(p.read_text()) if p.exists() else None
+
 
 def cyltosph_for_snap(snap: str) -> tuple[float, str]:
-    """(factor, provenance) — validated snaps directly; others take the
-    nearest-z validated factor (defensible at gate level: the factor is
-    stable, 0.507-0.528, over z = 0.03-0.60), flagged as extrapolated."""
-    if snap in CYLTOSPH_INTERIM:
-        return CYLTOSPH_INTERIM[snap], "validated (wp2 session 3)"
-    validated = {"096": 0.034, "071": 0.420, "067": 0.503, "063": 0.599}
-    all_z = {"096": 0.034, "071": 0.420, "067": 0.503, "063": 0.599,
-             "056": 0.791, "049": 1.036, "059": 0.700, "052": 0.923}
-    z = all_z.get(snap)
+    """(factor, provenance) — the final wp2 summary when on disk; otherwise
+    the nearest-z validated snapshot's factor (defensible at gate level:
+    stable 0.507-0.528 over z = 0.03-0.60), flagged as extrapolated."""
+    s = load_wp2_summary(snap)
+    if s is not None:
+        return s["cyltosph"]["factor"], f"wp2_validation/summary_snap{snap}.json (run 2451362 final)"
+    z = _SNAP_Z.get(snap)
     if z is None:
         raise KeyError(f"snap {snap}: no redshift on record for CylToSph extrapolation")
-    nearest = min(validated, key=lambda s: abs(validated[s] - z))
-    return CYLTOSPH_INTERIM[nearest], f"EXTRAPOLATED from snap {nearest} (nearest validated z)"
+    nearest = min(_VALIDATED_SNAPS, key=lambda k: abs(_SNAP_Z[k] - z))
+    near = load_wp2_summary(nearest)
+    if near is not None:
+        return (near["cyltosph"]["factor"],
+                f"EXTRAPOLATED from wp2_validation/summary_snap{nearest}.json (nearest validated z)")
+    return CYLTOSPH_INTERIM[nearest], f"EXTRAPOLATED from snap {nearest} (interim quote — no summaries on disk)"
 
 NOMINAL_VRMS_OVER_C = 1.06e-3  # placeholder normalization; sigma_true(z) = A5 to-do
 
 ANNOTATIONS = {
     "y_convention": "painted y = proper-pixel-area convention (audit 2026-07-17); no rescale applied",
-    "cyltosph": "interim wp2 session-3 values (see CYLTOSPH_INTERIM provenance); swap for npz on arrival",
+    "cyltosph": "final run-2451362 factors loaded from wp2_validation summaries on rusty (fallback: interim quotes)",
+    "wp2_fgas_model_bias": "painted f_gas runs 7.4-10.8% HIGH vs truth (wp2 summaries per snap) — carried as a systematic band, not corrected",
     "ksz_norm": f"tau_CAP -> T_kSZ via NOMINAL v_rms/c = {NOMINAL_VRMS_OVER_C}; per-bin sigma_true pending (A5)",
     "ksz_outer_radii": "outer radii (>=4.75') at z>0.4 are Sigma_model-dominated (wp2 session 3)",
     "ksz_NOT_DATA_COMPARABLE": (
@@ -173,10 +186,16 @@ def fgas_envelope(tables: dict, snap: str) -> dict:
     """Spherical-equivalent f_gas(M500) bands across the design, + bin centers."""
     cyl2sph, cyl2sph_src = cyltosph_for_snap(snap)
     sobol = np.array([t.fgas_median_by_massbin(cyl2sph) for t in tables[snap].get("sb35", [])])
+    summary = load_wp2_summary(snap)
     result = {
         "logm500_centers_msunh": 0.5 * (LOGM500_BIN_EDGES[1:] + LOGM500_BIN_EDGES[:-1]),
         "cyltosph_applied": cyl2sph,
         "cyltosph_source": cyl2sph_src,
+        # painted-vs-truth fractional bias of the f_gas operator (wp2 final):
+        # a systematic band for the overlay/memo, NOT applied as a correction.
+        "wp2_fgas_frac_bias": (
+            float(np.atleast_1d(summary["fgas_cyl_frac_bias"])[0]) if summary else np.nan
+        ),
         "sobol_band": band(sobol),
     }
     result["twobound"] = {

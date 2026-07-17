@@ -28,7 +28,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .gasemu import LOG_BLOCKS, GasEmulator, _matern25
+from .gasemu import GasEmulator, _matern25, is_log_block
 
 
 # ------------------------------------------------------------------ data -----
@@ -58,7 +58,9 @@ class GasTable:
 
     def transform(self, Yp: np.ndarray) -> np.ndarray:
         Yt = np.array(Yp, np.float64, copy=True)
-        for b in LOG_BLOCKS:
+        for b in self.block_names:
+            if not is_log_block(b):
+                continue
             s = self.block_slices[b]
             Yt[..., s] = np.log10(np.maximum(Yp[..., s], 1e-300))
         return Yt

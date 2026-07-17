@@ -49,16 +49,37 @@ DATASET = OUT_DIR / "gasemu_dataset.npz"
 SNAPS = ("096", "071", "067", "063", "056", "049")
 BLOCKS = ("fgas_med", "fgas_scat", "ym", "ksz0", "ksz1")
 BLOCK_SIZES = {"fgas_med": 5, "fgas_scat": 5, "ym": 3, "ksz0": 9, "ksz1": 9}
+# v3 tables additionally carry the own-patch CAP stacks and the stacked
+# Sigma(R) profiles the decorrelation forward model consumes; when present
+# they become extra emulated blocks (block name -> table key).
+V3_BLOCK_KEYS = {
+    "ksz0_own": "ksz_bin0_stack_own", "ksz1_own": "ksz_bin1_stack_own",
+    "ksz0_sr": "ksz_bin0_sigma_r", "ksz1_sr": "ksz_bin1_sigma_r",
+    "ksz0_sr_own": "ksz_bin0_sigma_r_own", "ksz1_sr_own": "ksz_bin1_sigma_r_own",
+}
 D_TOT = sum(BLOCK_SIZES.values())
 N_BOOT = 100
 MIN_HALOS_PER_BIN = 5
 
 
-def block_slices() -> dict[str, slice]:
+def detect_blocks(table: dict) -> tuple[tuple[str, ...], dict[str, int]]:
+    """Block layout for a loaded table: the v2 base, plus the v3 columns
+    when the table carries them."""
+    blocks, sizes = list(BLOCKS), dict(BLOCK_SIZES)
+    for name, key in V3_BLOCK_KEYS.items():
+        if key in table:
+            blocks.append(name)
+            sizes[name] = len(np.atleast_1d(table[key]))
+    return tuple(blocks), sizes
+
+
+def block_slices(blocks: tuple[str, ...] = BLOCKS,
+                 sizes: dict[str, int] | None = None) -> dict[str, slice]:
+    sizes = sizes or BLOCK_SIZES
     out, d0 = {}, 0
-    for b in BLOCKS:
-        out[b] = slice(d0, d0 + BLOCK_SIZES[b])
-        d0 += BLOCK_SIZES[b]
+    for b in blocks:
+        out[b] = slice(d0, d0 + sizes[b])
+        d0 += sizes[b]
     return out
 
 
@@ -75,11 +96,14 @@ def _fgas_bin_stats(logm500: np.ndarray, fgas: np.ndarray) -> tuple[np.ndarray, 
     return med, scat
 
 
-def _row_from_table(d: dict, rng: np.random.Generator | None) -> tuple[np.ndarray, np.ndarray]:
+def _row_from_table(d: dict, rng: np.random.Generator | None,
+                    blocks: tuple[str, ...] = BLOCKS,
+                    sizes: dict[str, int] | None = None) -> tuple[np.ndarray, np.ndarray]:
     """(observable vector, bootstrap SEM) for one loaded table."""
-    sl = block_slices()
-    y = np.full(D_TOT, np.nan)
-    sem = np.full(D_TOT, np.nan)
+    sl = block_slices(blocks, sizes)
+    d_tot = sum((sizes or BLOCK_SIZES)[b] for b in blocks)
+    y = np.full(d_tot, np.nan)
+    sem = np.full(d_tot, np.nan)
 
     logm500 = np.log10(d["m500_msunh"])
     fgas = d["fgas_cyl_r500"]
@@ -88,6 +112,9 @@ def _row_from_table(d: dict, rng: np.random.Generator | None) -> tuple[np.ndarra
     y[sl["ym"]] = [f.alpha, f.beta, f.scatter_dex]
     y[sl["ksz0"]] = d["ksz_bin0_stack"]
     y[sl["ksz1"]] = d["ksz_bin1_stack"]
+    for name in blocks:
+        if name in V3_BLOCK_KEYS:
+            y[sl[name]] = d[V3_BLOCK_KEYS[name]]
 
     if rng is not None:
         n = len(fgas)
@@ -120,9 +147,14 @@ def _git_sha() -> str:
 
 def build(tables_dir: Path = TABLES, out_path: Path = DATASET,
           n_boot: int = N_BOOT, verbose: bool = True) -> dict:
+    first = sorted(tables_dir.glob(f"sb35_run_*_snap{SNAPS[0]}.npz"))
+    if not first:
+        raise FileNotFoundError(f"no sb35 tables under {tables_dir}")
+    blocks, sizes = detect_blocks(dict(np.load(first[0], allow_pickle=False)))
+    d_tot = sum(sizes[b] for b in blocks)
     arrays: dict = {
-        "block_names": np.array(BLOCKS),
-        "block_sizes": np.array([BLOCK_SIZES[b] for b in BLOCKS]),
+        "block_names": np.array(blocks),
+        "block_sizes": np.array([sizes[b] for b in blocks]),
         "snaps": np.array(SNAPS),
         "snap_z": np.array([_SNAP_Z[s] for s in SNAPS]),
         "logm500_bin_edges": LOGM500_BIN_EDGES,
@@ -146,9 +178,11 @@ def build(tables_dir: Path = TABLES, out_path: Path = DATASET,
                     arrays["radii_arcmin"] = d["radii_arcmin"]
                     arrays["ksz_bin0_range"] = d["ksz_bin0_range"]
                     arrays["ksz_bin1_range"] = d["ksz_bin1_range"]
+                    if "sigma_r_centers_mpch" in d:
+                        arrays["sigma_r_centers_mpch"] = d["sigma_r_centers_mpch"]
                     radii_written = True
                 rng = np.random.default_rng(abs(hash((p.stem, "boot"))) % 2**32)
-                yv, sem = _row_from_table(d, rng if n_boot else None)
+                yv, sem = _row_from_table(d, rng if n_boot else None, blocks, sizes)
                 X.append(pm.table_params_to_unit(d["params"]))
                 Y.append(yv)
                 SEM.append(sem)
@@ -168,11 +202,12 @@ def build(tables_dir: Path = TABLES, out_path: Path = DATASET,
             nv = int(arrays[f"snap{snap}_valid"].sum())
             print(f"snap {snap}: sb35 {arrays[f'snap{snap}_Y_sb35'].shape}, "
                   f"twobound {arrays[f'snap{snap}_Y_twobound'].shape}, "
-                  f"valid dims {nv}/{D_TOT}", flush=True)
+                  f"valid dims {nv}/{d_tot}", flush=True)
 
     arrays["provenance"] = np.array(json.dumps({
         "created": datetime.date.today().isoformat(),
-        "tables_dir": str(tables_dir), "table_version": 2,
+        "tables_dir": str(tables_dir),
+        "table_version": 3 if any(b in V3_BLOCK_KEYS for b in blocks) else 2,
         "n_boot": n_boot, "git_sha": _git_sha(),
         "frame": ("painted observables: cylindrical f_gas (no CylToSph), "
                   "tau_CAP arcmin^2 (no velocity decorrelation / normalization); "

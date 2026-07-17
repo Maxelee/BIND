@@ -25,6 +25,13 @@ DEFAULT_ARTIFACT = Path("/mnt/ceph/users/mlee1/paper3/A/wp4_emulator/gasemu_gp.n
 
 LOG_BLOCKS = {"fgas_med", "fgas_scat", "ksz0", "ksz1"}  # strictly positive, emulated as log10
 
+
+def is_log_block(name: str) -> bool:
+    """Every block except the Y-M fit parameters (mixed sign) is a strictly
+    positive quantity emulated as log10 — including the v3 sigma_r profile
+    blocks, which this predicate covers without a registry update."""
+    return name != "ym"
+
 _SQRT5 = np.sqrt(5.0)
 
 
@@ -175,14 +182,14 @@ class GasEmulator:
             pos = {c: j for j, c in enumerate(cols)}
             idx = [pos[c] for c in range(s.start, s.stop) if m.valid[c]]
             vals = Y_t[:, idx]
-            if b in LOG_BLOCKS:
+            if is_log_block(b):
                 out_vals = 10.0 ** vals
             else:
                 out_vals = vals
             vec[:, np.flatnonzero(bm) + s.start] = out_vals
             if return_std:
                 sd = sd_t[:, idx]
-                if b in LOG_BLOCKS:
+                if is_log_block(b):
                     sd = np.abs(out_vals) * np.log(10.0) * sd
                 sd_full[:, np.flatnonzero(bm) + s.start] = sd
         if single:

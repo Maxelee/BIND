@@ -36,6 +36,7 @@ from analysis.paper3b.mocks.shape_noise import (
     ShapeNoiseConfig,
 )
 from analysis.paper3b.mocks.smoothing import FIDUCIAL_SMOOTHING_ARCMIN, SmoothingConfig
+from analysis.paper3b.mocks.transfer import load_transfer
 from analysis.paper3b.stack.mpiutil import mpi_comm
 
 RUNS_ROOT = Path("/mnt/home/mlee1/ceph/bind_science/runs")
@@ -64,7 +65,7 @@ def load_weighting(weights_npz: Path, scheme: str) -> SourcePlaneWeighting:
 
 def process_unit(cat: str, run: str, weighting: SourcePlaneWeighting,
                  n_seeds: int, seed0: int, unit_idx: int, out_dir: Path,
-                 scheme: str) -> dict:
+                 scheme: str, transfer=None, transfer_name: str = "none") -> dict:
     t0 = time.time()
     rd = RUNS_ROOT / cat / run
     kz = np.load(rd / "kappa_maps.npz")
@@ -90,7 +91,8 @@ def process_unit(cat: str, run: str, weighting: SourcePlaneWeighting,
         for s in range(n_seeds):
             rng = np.random.default_rng((seed0, unit_idx, r, s))
             acc.add(measure_mock_patch(planes, ymap, weighting, noise_cfg,
-                                       smooth_cfg, beam_cfg, rng, geom=geom))
+                                       smooth_cfg, beam_cfg, rng, geom=geom,
+                                       transfer=transfer))
             real_idx.append(r)
             seed_idx.append(s)
 
@@ -100,6 +102,7 @@ def process_unit(cat: str, run: str, weighting: SourcePlaneWeighting,
     out_dir.mkdir(parents=True, exist_ok=True)
     np.savez(out_dir / f"{cat}_{run}.npz",
              category=cat, run=run, params=params,
+             transfer=transfer_name,
              weight_scheme=scheme, weights=weighting.weights,
              n_seeds=n_seeds, seed0=seed0, unit_idx=unit_idx,
              neff_arcmin2=DESY3_NEFF_TOTAL_ARCMIN2, sigma_e=DESY3_SIGMA_E,
@@ -123,6 +126,13 @@ def main() -> None:
     ap.add_argument("--n-seeds", type=int, default=DEFAULT_N_SEEDS)
     ap.add_argument("--seed0", type=int, default=DEFAULT_SEED0)
     ap.add_argument("--out", default=str(DEFAULT_OUT))
+    ap.add_argument("--transfer", default="none",
+                    choices=["none", "wiener", "glimpse"],
+                    help="reconstruction transfer T(ell) applied to noisy mock "
+                         "kappa (B5 design decision); 'none' = intrinsic "
+                         "convention (the pre-decision grid)")
+    ap.add_argument("--transfer-npz", default=str(DEFAULT_OUT / "transfer_desy3.npz"),
+                    help="persisted output of build_b5_transfer.py")
     ap.add_argument("--overwrite", action="store_true")
     args = ap.parse_args()
 
@@ -135,12 +145,17 @@ def main() -> None:
                          "build_b4_weights.py first (no silently recomputed weights)")
     weighting = load_weighting(weights_npz, args.weight_scheme)
 
+    transfer = None
+    if args.transfer != "none":
+        transfer = load_transfer(args.transfer_npz, args.transfer)
+
     units = unit_list(args.categories)
-    suffix = "" if args.weight_scheme == "default" else f"_{args.weight_scheme}"
+    suffix = "" if args.transfer == "none" else f"_tf{args.transfer}"
+    suffix += "" if args.weight_scheme == "default" else f"_{args.weight_scheme}"
     out_dir = Path(args.out) / f"grid{suffix}"
     if rank == 0:
         print(f"[b4-grid] {len(units)} units, {size} ranks, scheme={args.weight_scheme}, "
-              f"n_seeds={args.n_seeds}, out={out_dir}", flush=True)
+              f"transfer={args.transfer}, n_seeds={args.n_seeds}, out={out_dir}", flush=True)
 
     for u in range(rank, len(units), size):
         cat, run = units[u]
@@ -148,7 +163,8 @@ def main() -> None:
             print(f"[rank {rank}] skip {cat}/{run} (exists)", flush=True)
             continue
         info = process_unit(cat, run, weighting, args.n_seeds, args.seed0, u,
-                            out_dir, args.weight_scheme)
+                            out_dir, args.weight_scheme,
+                            transfer=transfer, transfer_name=args.transfer)
         print(f"[rank {rank}] {info['unit']}: {info['n_patches']} patches, "
               f"{info['n_peaks']} peaks, {info['minutes']:.1f} min", flush=True)
 

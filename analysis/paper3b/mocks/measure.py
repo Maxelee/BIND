@@ -47,6 +47,7 @@ from .nz import SourcePlaneWeighting
 from .patch import DEFAULT_PAD_PIX, PatchGeometry, find_peaks_flat, patch_to_enmap, peak_sky_coords
 from .shape_noise import ShapeNoiseConfig, noise_map
 from .smoothing import SmoothingConfig, smooth_flat_sky
+from .transfer import TransferFunction
 
 __all__ = [
     "CAP_RADII_ARCMIN", "FIDUCIAL_RADIUS_INDEX", "NU_STACK_EDGES",
@@ -89,15 +90,22 @@ def measure_mock_patch(kappa_planes: np.ndarray, y_total: np.ndarray,
                        geom: PatchGeometry = PatchGeometry(),
                        nu_edges: np.ndarray = NU_STACK_EDGES,
                        cap_radii=CAP_RADII_ARCMIN,
-                       pad_pix: int = DEFAULT_PAD_PIX) -> MockPatchResult:
+                       pad_pix: int = DEFAULT_PAD_PIX,
+                       transfer: TransferFunction | None = None) -> MockPatchResult:
     """Run the full frozen chain (module docstring) on one atlas patch.
 
     kappa_planes: (K, npix, npix) single realization, all source planes.
     y_total: (npix, npix) cumulative Compton-y to the deepest plane (the
     matched convention for the full-column ACT y map).
+    transfer: optional reconstruction transfer T(ell) (B5 design decision) —
+    applied to the NOISY kappa before smoothing, matching where the data's
+    Wiener/GLIMPSE reconstruction acts (on noisy shear, before B1's
+    smoothing). None = the unfiltered "intrinsic" convention.
     """
     kappa_eff = weighting.effective_map(kappa_planes, plane_axis=0)
     kappa_n = kappa_eff + noise_map(kappa_eff.shape, noise_cfg, rng=rng)
+    if transfer is not None:
+        kappa_n = transfer.apply(kappa_n, geom.fov_deg)
     ksm = smooth_flat_sky(kappa_n, smoothing_cfg)
     sigma = float(ksm.std()) + 1e-30                    # nu_norm="map"
     nu_map = (ksm - ksm.mean()) / sigma
@@ -126,14 +134,23 @@ class MockEnsembleAccumulator:
     Keeps the per-patch (counts, y_sums) tables so the assembly step can form
     both the pooled peak-weighted mean (the data-estimator match) and the
     between-patch Monte-Carlo error, plus per-bin abundances per patch area.
+
+    With ``keep_peaks`` (default True since the B5 filter decision) the raw
+    per-peak (nu, CAP-Y) tables are also kept, concatenated across patches —
+    ~40 MB/unit — so ANY later re-binning / re-thresholding (quantile
+    diagnostics, finer nu bins) is possible without re-running the grid.
     """
 
     nu_edges: np.ndarray = field(default_factory=lambda: np.asarray(NU_STACK_EDGES, dtype=float))
     nrad: int = len(CAP_RADII_ARCMIN)
+    keep_peaks: bool = True
     counts: list = field(default_factory=list)     # each (nbin,)
     y_sums: list = field(default_factory=list)     # each (nbin, nrad)
     sigma_kappa: list = field(default_factory=list)
     n_peaks_all: list = field(default_factory=list)
+    peak_nu: list = field(default_factory=list)    # each (npk,)
+    peak_y: list = field(default_factory=list)     # each (npk, nrad)
+    peak_patch: list = field(default_factory=list)  # each (npk,) patch index
 
     def add(self, res: MockPatchResult) -> None:
         c, s = res.bin_table(self.nu_edges)
@@ -141,10 +158,15 @@ class MockEnsembleAccumulator:
         self.y_sums.append(s)
         self.sigma_kappa.append(res.sigma_kappa_sm)
         self.n_peaks_all.append(res.n_peaks_all)
+        if self.keep_peaks:
+            ipatch = len(self.counts) - 1
+            self.peak_nu.append(np.asarray(res.per_peak_nu, dtype=np.float64))
+            self.peak_y.append(np.asarray(res.per_peak_y, dtype=np.float64))
+            self.peak_patch.append(np.full(len(res.per_peak_nu), ipatch, dtype=np.int64))
 
     def arrays(self) -> dict:
         """Stacked per-patch arrays for the per-θ npz bundle."""
-        return {
+        out = {
             "nu_edges": self.nu_edges,
             "cap_radii_arcmin": np.asarray(CAP_RADII_ARCMIN, dtype=float),
             "counts": np.asarray(self.counts, dtype=np.int64),          # (npatch, nbin)
@@ -152,6 +174,15 @@ class MockEnsembleAccumulator:
             "sigma_kappa": np.asarray(self.sigma_kappa, dtype=np.float64),
             "n_peaks_all": np.asarray(self.n_peaks_all, dtype=np.int64),
         }
+        if self.keep_peaks:
+            nrad = self.nrad if not self.peak_y else self.peak_y[0].shape[1]
+            out["peak_nu"] = (np.concatenate(self.peak_nu) if self.peak_nu
+                              else np.zeros(0))
+            out["peak_y"] = (np.concatenate(self.peak_y) if self.peak_y
+                             else np.zeros((0, nrad)))
+            out["peak_patch"] = (np.concatenate(self.peak_patch) if self.peak_patch
+                                 else np.zeros(0, dtype=np.int64))
+        return out
 
     def summary(self) -> dict:
         """Pooled mean + between-patch MC error of the mean, per (bin, radius).

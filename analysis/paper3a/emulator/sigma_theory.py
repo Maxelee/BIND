@@ -50,8 +50,8 @@ class SigmaTheory:
     """Callable per-snapshot diagonal theory covariance."""
 
     def __init__(self, emulator: GasEmulator | None = None,
-                 kfold_path: Path = WP4 / "gasemu_kfold.npz",
-                 dataset_path: Path = WP4 / "gasemu_dataset.npz"):
+                 kfold_path: Path = WP4 / "gasemu_kfold_v3.npz",
+                 dataset_path: Path = WP4 / "gasemu_dataset_v3.npz"):
         self.emu = emulator or GasEmulator.load()
         kf = np.load(kfold_path, allow_pickle=False)
         snaps = [str(s) for s in kf["snaps"]]
@@ -73,7 +73,9 @@ class SigmaTheory:
         stoch_var = np.where(np.isfinite(sem), sem**2, 0.0)
         sys_var = np.zeros_like(mean)
         for b, sl in self.emu.block_slices.items():
-            sys_var[..., sl] = (WP2_FRAC_SYS[b] * np.abs(mean[..., sl])) ** 2
+            # v3 profile/own blocks are kSZ-derived: same conversion systematic
+            frac = WP2_FRAC_SYS.get(b, WP2_FRAC_SYS["ksz0"])
+            sys_var[..., sl] = (frac * np.abs(mean[..., sl])) ** 2
         total = np.sqrt(emu_var + stoch_var + sys_var)
         return {
             "mean": mean,

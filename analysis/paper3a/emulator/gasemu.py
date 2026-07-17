@@ -21,7 +21,11 @@ import numpy as np
 
 from . import params_meta as pm
 
-DEFAULT_ARTIFACT = Path("/mnt/ceph/users/mlee1/paper3/A/wp4_emulator/gasemu_gp.npz")
+# v3: trained on operator_tables_v3 (adds own-patch CAP stacks + the
+# Sigma(R) profile blocks the decorrelation forward model consumes);
+# validated 2026-07-17 (validation_summary_v3.json). v2 artifact kept
+# alongside for provenance.
+DEFAULT_ARTIFACT = Path("/mnt/ceph/users/mlee1/paper3/A/wp4_emulator/gasemu_gp_v3.npz")
 
 LOG_BLOCKS = {"fgas_med", "fgas_scat", "ksz0", "ksz1"}  # strictly positive, emulated as log10
 

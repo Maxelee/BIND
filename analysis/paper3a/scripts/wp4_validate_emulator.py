@@ -295,11 +295,18 @@ def decorrelation_figure(smoke_path: Path):
 
 
 def main():
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--suffix", default="", help='e.g. "_v3" to validate the v3 fit')
+    args = ap.parse_args()
+    sfx = args.suffix
+
     FIGS.mkdir(parents=True, exist_ok=True)
-    kf = dict(np.load(WP4 / "gasemu_kfold.npz", allow_pickle=False))
-    od = dict(np.load(WP4 / "gasemu_outdesign.npz", allow_pickle=False))
-    ds = dict(np.load(WP4 / "gasemu_dataset.npz", allow_pickle=False))
-    emu = GasEmulator.load(WP4 / "gasemu_gp.npz")
+    kf = dict(np.load(WP4 / f"gasemu_kfold{sfx}.npz", allow_pickle=False))
+    od = dict(np.load(WP4 / f"gasemu_outdesign{sfx}.npz", allow_pickle=False))
+    ds = dict(np.load(WP4 / f"gasemu_dataset{sfx}.npz", allow_pickle=False))
+    emu = GasEmulator.load(WP4 / f"gasemu_gp{sfx}.npz")
 
     tables = kfold_tables(kf)
     summary = {
@@ -316,10 +323,10 @@ def main():
                  "f5bec188-4cfe-4a1c-9062-4919e088c70d/scratchpad/v3b_smoke_run0000_snap063.npz")
     if smoke.exists():
         decorrelation_figure(smoke)
-    (WP4 / "validation_summary.json").write_text(json.dumps(summary, indent=2))
+    (WP4 / f"validation_summary{sfx}.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps({k: v for k, v in summary.items()
                       if k in ("kfold_frac_err_by_snap_block", "wind_response")}, indent=2))
-    print(f"wrote {WP4}/validation_summary.json and figures/")
+    print(f"wrote {WP4}/validation_summary{sfx}.json and figures/")
 
 
 if __name__ == "__main__":

@@ -74,3 +74,23 @@ def test_null_ensemble_stats_validates_jackknife():
     st = null_ensemble_stats(means, jk)
     assert np.all(np.abs(np.array(st["jk_validation_ratio"]) - 1.0) < 0.3)
     assert np.all(np.abs(st["mean_over_2err"]) < 2.5)
+
+
+def test_frozen_loader_verifies_and_loads():
+    # Integration guard for the SIGNED freeze (2026-07-17): one call loads the
+    # vector + total covariance, and any post-freeze change to the data files
+    # raises on the hash check. Skipped where the ceph archive is absent.
+    from pathlib import Path
+
+    from analysis.paper3b.stack.frozen import B_ROOT, load_frozen
+
+    if not (B_ROOT / "wp2_measurement/stack_wiener_sm2am_fid.npz").exists():
+        pytest.skip("frozen archive not mounted")
+    fm = load_frozen("wiener")
+    assert fm.y.shape == (4,) and fm.cov_total.shape == (4, 4)
+    assert np.all(np.diff(fm.y) > 0)                      # monotonic in nu
+    assert np.all(np.linalg.eigvalsh(fm.cov_total) > 0)   # positive definite
+    ev = np.linalg.eigvalsh
+    assert ev(fm.cov_total).sum() > ev(fm.cov_stat).sum() # sys adds variance
+    with pytest.raises(ValueError):
+        load_frozen("ks")

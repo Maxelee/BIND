@@ -44,10 +44,38 @@ from analysis.paper3a.observables import (
     stack_profiles,
     y_aperture_mpc2,
 )
+from analysis.paper3a.observables.constants import (
+    RHO_CRIT0_MSUNH_PER_MPCH3,
+    TNG_OMEGA_B,
+)
 
 # ACT DR6 hILC effective beam, confirmed against all four kSZ papers
 # (WP-A1 freeze doc section 6a, audit 2026-07-16).
 HILC_BEAM_FWHM_ARCMIN = 1.6
+
+
+def cosmic_mean_gas_per_pixel(slab_depth_hmpc: float, pixel_mpch: float,
+                              omega_b: float = TNG_OMEGA_B) -> float:
+    """Cosmic-mean gas surface mass per pixel [Msun/h] for a slab projection.
+
+    Sigma_bar = Omega_b * rho_crit * depth * pix_area (comoving h-units;
+    diffuse baryons outside halos are essentially all gas, so no stellar
+    correction). This is the background the composite gas map blends in
+    where alpha < 1 — the 2026-07-17 dry-run finding: without it the CAP
+    annulus compensates against zeros between pasted apertures and the
+    filter's background rejection is broken.
+    """
+    return omega_b * RHO_CRIT0_MSUNH_PER_MPCH3 * slab_depth_hmpc * pixel_mpch**2
+
+
+def blend_gas_background(gas_canvas: np.ndarray, alpha: np.ndarray, sigma_bar_pix: float) -> np.ndarray:
+    """gas = alpha * painted + (1 - alpha) * cosmic-mean background.
+
+    A painted map that equals the background everywhere comes out exactly
+    uniform regardless of alpha, so CAP filters it to zero — restoring the
+    compensation property the kSZ operator relies on.
+    """
+    return alpha * gas_canvas + (1.0 - alpha) * sigma_bar_pix
 
 # Mass bins for the kSZ stacks: the two above-floor Qu et al. 2026 quartile
 # ticks (log10 M200c = 13.43, 14.57) get a bin each.
@@ -163,7 +191,9 @@ def process_run_snapshot(
             for i in range(n)
         ]
         canvas, w_accum = paste_halos_2d(canvas_pix, box_size, halos, pmatch, sq, weights_list=weights_list)
-        gas_map = np.clip(w_accum, 0.0, 1.0) * canvas[1]
+        alpha = np.clip(w_accum, 0.0, 1.0)
+        sigma_bar = cosmic_mean_gas_per_pixel(box_size / int(slab["n_slabs"]), box_size / canvas_pix)
+        gas_map = blend_gas_background(canvas[1], alpha, sigma_bar)
 
         for bi, (lo, hi) in enumerate(config.ksz_mass_bins):
             sel = np.where((masses >= 10**lo) & (masses < 10**hi))[0][: config.max_halos_per_bin]
@@ -189,7 +219,13 @@ def process_run_snapshot(
                 "output": "tau_CAP arcmin^2" if config.v_rms_over_c is None else "T_kSZ muK arcmin^2",
                 "r500_m500": f"NFW c200={config.c200_for_apertures} rescaling of catalog R200c/M200c (gate approximation)",
                 "fgas_y": "cylindrical, bare un-rescaled patches; CylToSph correction applied downstream",
-                "ksz": "composite cutouts, mass-matched circular-taper paste (Paper-2 standard)",
+                "ksz": (
+                    "composite cutouts, mass-matched circular-taper paste (Paper-2 "
+                    "standard) + cosmic-mean gas background where alpha<1 "
+                    "(v2, 2026-07-17 — restores CAP background compensation); "
+                    "velocity decorrelation of the LOS column still pending (A4)"
+                ),
+                "table_version": 2,
             }
         ),
     }

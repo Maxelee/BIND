@@ -29,7 +29,7 @@ from analysis.paper3a.gate import GateConfig, process_run_snapshot  # noqa: E402
 SB35 = Path("/mnt/ceph/users/mlee1/bind_sb35")
 TWOBOUND = Path("/mnt/home/mlee1/ceph/bind_portable_twobound")
 FIDUCIAL = Path("/mnt/ceph/users/mlee1/paper3/A/wp3_gate/1p_runs")
-OUT = Path("/mnt/ceph/users/mlee1/paper3/A/wp3_gate/operator_tables")
+OUT = Path("/mnt/ceph/users/mlee1/paper3/A/wp3_gate/operator_tables_v2")
 
 # Gate snapshots: z~0 anchor (eROSITA regime) + the LRG range the kSZ bins
 # actually occupy. Snapshot redshifts come from the conditions manifests.

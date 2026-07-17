@@ -38,7 +38,7 @@ import numpy as np
 
 from analysis.paper3a.observables.constants import T_CMB_UK, TNG_H
 
-TABLES = Path("/mnt/ceph/users/mlee1/paper3/A/wp3_gate/operator_tables")
+TABLES = Path("/mnt/ceph/users/mlee1/paper3/A/wp3_gate/operator_tables_v2")
 
 # Popeye wp2 truth validation, session-3 re-run (job 2451211), snaps
 # 096/071/067/063 — provenance: projectA/wp2-observable-matching/REPORT.md

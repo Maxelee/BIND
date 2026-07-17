@@ -81,6 +81,26 @@ def blend_gas_background(gas_canvas: np.ndarray, alpha: np.ndarray, sigma_bar_pi
 # ticks (log10 M200c = 13.43, 14.57) get a bin each.
 DEFAULT_KSZ_MASS_BINS = ((13.2, 13.7), (13.7, 15.5))
 
+# radial bin width (canvas pixels) of the stacked Sigma(R) profiles (v3):
+# the azimuthal-mean gas surface density around stacked halos, kept so the
+# A4 forward model can weight the excess profile by the transverse-radius-
+# dependent velocity decorrelation before projecting to CAP space.
+SIGMA_R_BIN_PIX = 2.0
+
+
+def radial_mean_profile(map2d: np.ndarray, bin_width_pix: float = SIGMA_R_BIN_PIX) -> np.ndarray:
+    """Azimuthal mean of a square map about its geometric center, out to
+    half the map size; returns (n_bins,) with n_bins = floor(half/width)."""
+    n = map2d.shape[0]
+    c = (n - 1) / 2.0
+    yy, xx = np.mgrid[0:n, 0:n]
+    rr = np.hypot(yy - c, xx - c)
+    n_bins = int((n // 2) / bin_width_pix)
+    idx = np.minimum((rr / bin_width_pix).astype(int), n_bins)
+    sums = np.bincount(idx.ravel(), weights=map2d.ravel(), minlength=n_bins + 1)[:n_bins]
+    counts = np.bincount(idx.ravel(), minlength=n_bins + 1)[:n_bins]
+    return sums / np.maximum(counts, 1)
+
 
 def r500c_from_r200c(r200c: np.ndarray, c200: float = 5.0) -> np.ndarray:
     """R500c from R200c for an NFW halo with concentration c200.
@@ -161,6 +181,9 @@ def process_run_snapshot(
     logm200, fgas_cyl, y_cyl, m500 = [], [], [], []
     # kSZ stacks per mass bin, accumulated across slabs
     ksz_profiles: dict[int, list[np.ndarray]] = {i: [] for i in range(len(config.ksz_mass_bins))}
+    ksz_profiles_own: dict[int, list[np.ndarray]] = {i: [] for i in range(len(config.ksz_mass_bins))}
+    sigma_r: dict[int, list[np.ndarray]] = {i: [] for i in range(len(config.ksz_mass_bins))}
+    sigma_r_own: dict[int, list[np.ndarray]] = {i: [] for i in range(len(config.ksz_mass_bins))}
 
     for slab in slabs:
         patches = slab["generated_patches"].astype(np.float32)
@@ -195,6 +218,14 @@ def process_run_snapshot(
         sigma_bar = cosmic_mean_gas_per_pixel(box_size / int(slab["n_slabs"]), box_size / canvas_pix)
         gas_map = blend_gas_background(canvas[1], alpha, sigma_bar)
 
+        # single-halo isolated maps for the velocity-decorrelation split
+        # (v3): the same halo pasted alone on the cosmic-mean background.
+        # tau_own/tau_tot feeds forward.ForwardModel.ksz_tksz's own_frac —
+        # own + neighbors != total only where overlapping tapers renormalize
+        # each other (approximation documented in emulator/forward.py).
+        box_mini = config.cutout_pix / ppm
+        c_mini = int(config.cutout_pix // 2)
+
         for bi, (lo, hi) in enumerate(config.ksz_mass_bins):
             sel = np.where((masses >= 10**lo) & (masses < 10**hi))[0][: config.max_halos_per_bin]
             for i in sel:
@@ -202,6 +233,17 @@ def process_run_snapshot(
                 cy = int(centers[i][1] * ppm) % canvas_pix
                 cut = extract_periodic_cutout(gas_map, cx, cy, config.cutout_pix)
                 ksz_profiles[bi].append(ksz_cap_profile(cut, geom, ksz_cfg))
+                sigma_r[bi].append(radial_mean_profile(cut))
+
+                halo_mini = [{"halo_center": np.array([c_mini / ppm, c_mini / ppm, 0.0]),
+                              "r200": float(r200[i])}]
+                canvas_own, w_own = paste_halos_2d(
+                    config.cutout_pix, box_mini, halo_mini, pmatch[i:i + 1], sq,
+                    weights_list=[weights_list[i]])
+                gas_own = blend_gas_background(canvas_own[1], np.clip(w_own, 0.0, 1.0), sigma_bar)
+                cut_own = extract_periodic_cutout(gas_own, c_mini, c_mini, config.cutout_pix)
+                ksz_profiles_own[bi].append(ksz_cap_profile(cut_own, geom, ksz_cfg))
+                sigma_r_own[bi].append(radial_mean_profile(cut_own))
 
     result = {
         "run": run_dir.name,
@@ -223,9 +265,11 @@ def process_run_snapshot(
                     "composite cutouts, mass-matched circular-taper paste (Paper-2 "
                     "standard) + cosmic-mean gas background where alpha<1 "
                     "(v2, 2026-07-17 — restores CAP background compensation); "
-                    "velocity decorrelation of the LOS column still pending (A4)"
+                    "v3 adds ksz_binN_stack_own: each halo pasted alone on the "
+                    "background — the own/neighbor split the A4 velocity-"
+                    "decorrelation forward model weights (emulator/forward.py)"
                 ),
-                "table_version": 2,
+                "table_version": 3,
             }
         ),
     }
@@ -234,6 +278,14 @@ def process_run_snapshot(
         result[f"ksz_bin{bi}_range"] = np.array([lo, hi])
         result[f"ksz_bin{bi}_nhalos"] = np.array(len(profs))
         result[f"ksz_bin{bi}_stack"] = stack_profiles(profs) if len(profs) else np.full(len(config.radii_arcmin), np.nan)
+        profs_own = np.array(ksz_profiles_own[bi])
+        result[f"ksz_bin{bi}_stack_own"] = (
+            stack_profiles(profs_own) if len(profs_own) else np.full(len(config.radii_arcmin), np.nan))
+        for key, acc in ((f"ksz_bin{bi}_sigma_r", sigma_r), (f"ksz_bin{bi}_sigma_r_own", sigma_r_own)):
+            arr = np.array(acc[bi])
+            result[key] = stack_profiles(arr) if len(arr) else np.full(0, np.nan)
+    n_sig = int((config.cutout_pix // 2) / SIGMA_R_BIN_PIX)  # radial_mean_profile bin count
+    result["sigma_r_centers_mpch"] = (np.arange(n_sig) + 0.5) * SIGMA_R_BIN_PIX * (box_size / canvas_pix)
 
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,11 @@
+# WP-A4 v3 operator recompute as a disBatch task file — identical task
+# structure to wp3_gate.disbatch (one task per design point, 0-255 Sobol,
+# 256-315 twobound, 316 fiducial). v3 adds the ksz_binN_stack_own columns
+# (single-halo isolated maps for the velocity-decorrelation split) and
+# writes to operator_tables_v3/; v2 stays untouched for provenance.
+# `module load gcc` makes bind's pandas import robust off-Slurm too
+# (GLIBCXX from the system gcc-8 is too old for the nix pandas build).
+# Launched by run_wp4_v3_disbatch.sh.
+#DISBATCH PREFIX ( cd /mnt/home/mlee1/vdm_bind2-paper3a && module load gcc && source /mnt/home/mlee1/venvs/torch3/bin/activate && export OMP_NUM_THREADS=1 &&
+#DISBATCH SUFFIX  ) &> /mnt/home/mlee1/ceph/logs/wp4_v3/task_${DISBATCH_REPEAT_INDEX}.log
+#DISBATCH REPEAT 317 python -u analysis/paper3a/scripts/run_gate_operators.py ${DISBATCH_REPEAT_INDEX}

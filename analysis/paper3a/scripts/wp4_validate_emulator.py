@@ -86,8 +86,12 @@ def kfold_tables(kf) -> dict:
 
 
 def acceptance_fgas(kf, emu) -> dict:
-    """fgas_med bins vs 1/3 of the eRASS1 fractional errors, z~0 snapshot."""
-    dv = load_egas_erass1("primary")
+    """fgas_med bins vs 1/3 of the eRASS1 stacked-median fractional errors,
+    z~0 snapshot. Data medians/errors binned exactly as in gate_overlay
+    (per-cluster catalog, h-free masses -> Msun/h, MAD/sqrt(n))."""
+    from analysis.paper3a.observables.constants import TNG_H
+
+    egas = load_egas_erass1("primary")
     c2s, _ = cyltosph_for_snap(SNAP_FOR_Z0)
     slices = _slices(kf)
     zi = [str(s) for s in kf["snaps"]].index(SNAP_FOR_Z0)
@@ -96,15 +100,25 @@ def acceptance_fgas(kf, emu) -> dict:
     p = kf["pred"][:, zi, sl].astype(float)
     emu_frac = np.nanmedian(np.abs(p - t) / np.abs(t), axis=0)     # per gate bin
 
-    centers = 0.5 * (emu.logm500_bin_edges[1:] + emu.logm500_bin_edges[:-1])
+    known = egas.mass_known_mask()
+    logm_h = egas.log10_m500_msun[known] + np.log10(TNG_H)
+    fg = egas.f_gas500[known]
+    edges = emu.logm500_bin_edges
+    centers = 0.5 * (edges[1:] + edges[:-1])
     rows = []
     for i, cen in enumerate(centers):
-        j = int(np.argmin(np.abs(np.log10(dv.bins) - cen)))         # nearest data mass
-        data_frac = float(dv.errors[j] / dv.values[j])
+        sel = (logm_h >= edges[i]) & (logm_h < edges[i + 1]) & np.isfinite(fg)
+        if sel.sum() < 10 or not np.isfinite(emu_frac[i]):
+            rows.append({"logm500_center": float(cen), "n_data": int(sel.sum()),
+                         "pass": None})
+            continue
+        med = np.median(fg[sel])
+        err = 1.4826 * np.median(np.abs(fg[sel] - med)) / np.sqrt(sel.sum())
+        data_frac = float(err / med)
         rows.append({
-            "logm500_center": float(cen),
+            "logm500_center": float(cen), "n_data": int(sel.sum()),
             "emulation_frac_err": float(emu_frac[i]),
-            "data_frac_err_nearest": data_frac,
+            "data_frac_err": data_frac,
             "ratio_vs_third": float(emu_frac[i] / (data_frac / 3.0)),
             "pass": bool(emu_frac[i] <= data_frac / 3.0),
         })

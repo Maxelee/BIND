@@ -81,6 +81,11 @@ def main() -> None:
                       allow_pickle=False)
         ell = np.asarray(raw["a__suppression__ell"], float)
         q = arrays["suppression__q"].astype(float)      # (5q, 5z, 724)
+        # DEFINITION MATCH: wlemu's R is Cl(theta)/Cl(theta_fid); the
+        # statsemu `suppression` target is Cl^painted/Cl^dmo. Divide the
+        # statsemu envelope by its own fiducial prediction (ratio of
+        # ratios — the DMO reference cancels) before comparing.
+        fid = arrays["suppression__fid"].astype(float)  # (5z, 724)
         rows = []
         for le, rm, r16, r84 in zip(wl["ell"], wl["R_median"],
                                     wl["R_16"], wl["R_84"]):
@@ -90,10 +95,15 @@ def main() -> None:
                 "ell_statsemu": float(ell[j]),
                 "wlemu_median": float(rm),
                 "wlemu_68": [float(r16), float(r84)],
-                "statsemu_median": float(q[2, iz, j]),
-                "statsemu_68": [float(q[1, iz, j]), float(q[3, iz, j])],
+                "statsemu_median": float(q[2, iz, j] / fid[iz, j]),
+                "statsemu_68": [float(q[1, iz, j] / fid[iz, j]),
+                                float(q[3, iz, j] / fid[iz, j])],
             })
         summary["wlemu_crosscheck_zs1"] = rows
+        summary["wlemu_crosscheck_note"] = (
+            "statsemu values are re-normalized to its own TNG-fiducial "
+            "prediction (ratio of ratios) to match wlemu's R definition; "
+            "the raw statsemu suppression target is painted/DMO.")
 
     out = WP6 / "a6_posterior_stats.npz"
     np.savez_compressed(out, **arrays)

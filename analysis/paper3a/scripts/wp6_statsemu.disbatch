@@ -1,0 +1,30 @@
+# WP-A6 statsemu training fan-out: one task per statistics target
+# (production fit + 8-fold CV each, ~30 min/task single-core). Parts land
+# in wp6_propagation/statsemu_parts/; the sbatch driver merges them and
+# runs the A5-posterior push-through. Resumable per part.
+#DISBATCH PREFIX ( cd /mnt/home/mlee1/vdm_bind2-paper3a && module load gcc && source /mnt/home/mlee1/venvs/torch3/bin/activate && export OMP_NUM_THREADS=2 && P=/mnt/ceph/users/mlee1/paper3/A/wp6_propagation/statsemu_parts && T=
+#DISBATCH SUFFIX  && python -u -m analysis.paper3a.emulator.statsemu fit --targets $T --kfold 8 --artifact-out $P/$T.npz ) &> /mnt/home/mlee1/ceph/logs/wp6_statsemu/task_${DISBATCH_TASKID}.log
+#DISBATCH PERENGINE START mkdir -p /mnt/home/mlee1/ceph/logs/wp6_statsemu /mnt/ceph/users/mlee1/paper3/A/wp6_propagation/statsemu_parts
+cl_kappa
+cl_kappa_y
+cl_yy
+cl_kappa_tau
+cl_tt
+cl_yt
+peak_counts
+minima_counts
+pdf
+mf_v0
+mf_v1
+mf_v2
+moments
+wst
+dm_pdf
+dm_moments
+peak_R
+peak_y
+scaling_Y
+scaling_f_gas
+scaling_f_star
+scaling_T
+suppression

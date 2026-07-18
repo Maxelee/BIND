@@ -21,10 +21,18 @@ byte-identical to the validated emulators).
 Targets with fewer valid runs (wst: 40, dm_*: 177) train on their own
 valid subset; `train_rows` is stored per target.
 
-Training::
+Training (serial or disBatch fan-out — one task per target + merge)::
 
     python -m analysis.paper3a.emulator.statsemu fit \
-        [--holdout 32] [--kfold 8] [--targets suppression,cl_kappa_y,...]
+        [--holdout 32 | --kfold 8] [--targets suppression,cl_kappa_y,...] \
+        [--artifact-out parts/suppression.npz]
+    python -m analysis.paper3a.emulator.statsemu merge \
+        --parts-dir <dir of per-target part npz> [--artifact-out ...]
+
+``--kfold K`` replaces the quick holdout with a full K-fold CV over the
+target's valid runs (out-of-fold predictions for every run), reporting
+both the median fractional error and the SEM-relative error (the wlemu
+noise-floor acceptance frame).
 
 Prediction (numpy-only)::
 
@@ -207,13 +215,84 @@ def _frac_err(truth: np.ndarray, pred: np.ndarray) -> float:
     return float(np.median((np.abs(pred - truth) / scale)[ok]))
 
 
+def _predict_physical(Xq: np.ndarray, table: TargetTable, model: _SnapModel) -> np.ndarray:
+    mean_s, _ = model.posterior(Xq, False)
+    Y_t = (mean_s * model.c_sd) @ model.components + model.pca_mean
+    Y_t = Y_t * model.y_sd + model.y_mu
+    return _invert_transform(Y_t, table.transform)
+
+
+def _validation_entry(f, table: TargetTable, rows_mask: np.ndarray,
+                      pred: np.ndarray) -> dict:
+    """Score out-of-sample predictions (rows_mask selects the scored runs)."""
+    truth = table.Y_phys[rows_mask][:, table.valid_dims]
+    entry = {"n_scored": int(rows_mask.sum()),
+             "frac_err_med": _frac_err(truth, pred)}
+    err_key = f"t__{table.name}__err"
+    if err_key in f:
+        sem = np.asarray(f[err_key], np.float64).reshape(len(table.Y_phys), -1)
+        sem = sem[rows_mask][:, table.valid_dims]
+        ok = np.isfinite(truth) & np.isfinite(pred) & (sem > 0)
+        if ok.any():
+            # The dataset mixes err conventions: the C_ell family /
+            # peak_counts / wst carry LINEAR (value-unit) realization SEMs,
+            # while the binned scaling_* errs are dex-scale numbers from the
+            # assembler (scaling_T err ~0.08 vs value ~1e7 K). Only compute
+            # the noise-floor metric where err is plausibly in value units;
+            # otherwise flag it for confirmation against
+            # bind.cli.emulator_assemble (Popeye) instead of guessing.
+            ratio_med = float(np.median((sem / np.maximum(np.abs(truth), 1e-300))[ok]))
+            if 1e-6 < ratio_med < 3.0:
+                # wlemu acceptance frame: out-of-sample residual in units of
+                # the realization SEM (the noise floor any emulator of these
+                # maps is judged against)
+                entry["err_rel_med"] = float(
+                    np.median((np.abs(pred - truth) / sem)[ok]))
+            else:
+                entry["err_units_flag"] = (
+                    f"median err/|value| = {ratio_med:.2e} — err not in value "
+                    "units (likely dex); convention unresolved, confirm in "
+                    "bind.cli.emulator_assemble")
+    return entry
+
+
+def _validate_target(f, table: TargetTable, X: np.ndarray, args, i: int) -> dict:
+    R = len(X)
+    rng = np.random.default_rng(args.seed + 7000 + i)
+    if args.kfold > 0:
+        vr = rng.permutation(np.flatnonzero(table.valid_runs))
+        pred = np.full((R, int(table.valid_dims.sum())), np.nan)
+        for j, fold in enumerate(np.array_split(vr, args.kfold)):
+            mask = np.zeros(R, bool)
+            mask[fold] = True
+            d = _fit_target(X, table, table.train_rows & ~mask, args.n_pca,
+                            args.iters, args.lr,
+                            args.seed + 1000 + 100 * i + j, args.device)
+            model = _SnapModel(X[table.train_rows & ~mask], d)
+            pred[mask] = _predict_physical(X[mask], table, model)
+        entry = _validation_entry(f, table, table.valid_runs,
+                                  pred[table.valid_runs])
+        entry["kfold"] = args.kfold
+        return entry
+    vr = np.flatnonzero(table.valid_runs)
+    n_hold = min(args.holdout, max(4, len(vr) // 5))
+    hold_mask = np.zeros(R, bool)
+    hold_mask[rng.choice(vr, size=n_hold, replace=False)] = True
+    d = _fit_target(X, table, table.train_rows & ~hold_mask, args.n_pca,
+                    args.iters, args.lr, args.seed + 1000 + i, args.device)
+    model = _SnapModel(X[table.train_rows & ~hold_mask], d)
+    entry = _validation_entry(f, table, hold_mask,
+                              _predict_physical(X[hold_mask], table, model))
+    entry["holdout"] = int(n_hold)
+    return entry
+
+
 def fit_main(args) -> None:
     f, manifest = _load_dataset(Path(args.dataset))
     X = np.asarray(f["X_unit"], np.float64)
     R = len(X)
     names = (args.targets.split(",") if args.targets
              else list(manifest["targets"]))
-    rng = np.random.default_rng(args.seed)
 
     arrays = {
         "targets": np.array(names),
@@ -236,48 +315,19 @@ def fit_main(args) -> None:
         print(f"[fit] {name}: D={table.Y.shape[1]} runs={table.train_rows.sum()} "
               f"pca={d['pca_components'].shape[0]}", flush=True)
 
-        if args.holdout > 0:
-            vr = np.flatnonzero(table.valid_runs)
-            n_hold = min(args.holdout, max(4, len(vr) // 5))
-            hold = rng.choice(vr, size=n_hold, replace=False)
-            hold_mask = np.zeros(R, bool)
-            hold_mask[hold] = True
-            dh = _fit_target(X, table, table.train_rows & ~hold_mask,
-                             args.n_pca, args.iters, args.lr,
-                             args.seed + 1000 + i, args.device)
-            model = _SnapModel(X[table.train_rows & ~hold_mask], dh)
-            mean_s, _ = model.posterior(X[hold_mask], False)
-            Y_t = (mean_s * model.c_sd) @ model.components + model.pca_mean
-            Y_t = Y_t * model.y_sd + model.y_mu
-            pred = _invert_transform(Y_t, table.transform)
-            truth = table.Y_phys[hold_mask][:, table.valid_dims]
-            truth = _invert_transform(
-                _apply_transform(truth, table.transform), table.transform)
-            validation[name] = {
-                "n_holdout": int(n_hold),
-                "frac_err_med": _frac_err(truth, pred),
-            }
-            err_key = f"t__{name}__err"
-            if err_key in f:
-                sem = np.asarray(f[err_key], np.float64).reshape(R, -1)
-                sem = sem[hold_mask][:, table.valid_dims]
-                ok = np.isfinite(truth) & np.isfinite(pred) & (sem > 0)
-                if ok.any():
-                    # wlemu acceptance frame: holdout residual in units of
-                    # the 50-realization SEM (the noise floor any emulator
-                    # of these maps is judged against)
-                    validation[name]["err_rel_med"] = float(
-                        np.median((np.abs(pred - truth) / sem)[ok]))
-            print(f"[holdout] {name}: frac_err_med = "
-                  f"{validation[name]['frac_err_med']:.4f}"
-                  + (f", err_rel_med = {validation[name]['err_rel_med']:.2f}x SEM"
-                     if "err_rel_med" in validation[name] else ""), flush=True)
+        if args.holdout > 0 or args.kfold > 0:
+            validation[name] = _validate_target(f, table, X, args, i)
+            v = validation[name]
+            print(f"[validate] {name}: frac_err_med = {v['frac_err_med']:.4f}"
+                  + (f", err_rel_med = {v['err_rel_med']:.2f}x SEM"
+                     if "err_rel_med" in v else ""), flush=True)
 
     arrays["provenance"] = np.array(json.dumps({
         "created": datetime.datetime.now().isoformat(timespec="seconds"),
         "dataset": str(args.dataset),
         "settings": {"n_pca": args.n_pca, "iters": args.iters, "lr": args.lr,
-                     "seed": args.seed, "holdout": args.holdout},
+                     "seed": args.seed, "holdout": args.holdout,
+                     "kfold": args.kfold},
         "recipe": "per-target PCA + batched ARD Matern-5/2 GP "
                   "(wlemu/gasemu construction)",
     }))
@@ -286,26 +336,69 @@ def fit_main(args) -> None:
     np.savez_compressed(out, **arrays)
     print(f"wrote {out}")
     if validation:
-        vpath = out.parent / "statsemu_validation.json"
+        vpath = out.with_name(out.stem + "_validation.json")
+        vpath.write_text(json.dumps(validation, indent=2))
+        print(f"wrote {vpath}")
+
+
+def merge_main(args) -> None:
+    """Merge per-target part artifacts (disBatch fan-out) into one."""
+    parts = sorted(Path(args.parts_dir).glob("*.npz"))
+    if not parts:
+        raise SystemExit(f"no part npz files in {args.parts_dir}")
+    arrays, targets, validation, provs = {}, [], {}, []
+    for p in parts:
+        d = dict(np.load(p, allow_pickle=False))
+        for t in [str(x) for x in d["targets"]]:
+            targets.append(t)
+            for k, v in d.items():
+                if k.startswith(t + "__"):
+                    arrays[k] = v
+        for k in ("param_names", "source_redshifts", "X_unit", "run_ids"):
+            arrays.setdefault(k, d[k])
+        provs.append(json.loads(str(d["provenance"])))
+        vp = p.with_name(p.stem + "_validation.json")
+        if vp.exists():
+            validation.update(json.loads(vp.read_text()))
+    arrays["targets"] = np.array(targets)
+    arrays["provenance"] = np.array(json.dumps({
+        "created": datetime.datetime.now().isoformat(timespec="seconds"),
+        "merged_from": [str(p) for p in parts],
+        "part_settings": provs[0].get("settings"),
+        "dataset": provs[0].get("dataset"),
+        "recipe": provs[0].get("recipe"),
+    }))
+    out = Path(args.artifact_out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(out, **arrays)
+    print(f"merged {len(targets)} targets from {len(parts)} parts -> {out}")
+    if validation:
+        vpath = out.with_name(out.stem + "_validation.json")
         vpath.write_text(json.dumps(validation, indent=2))
         print(f"wrote {vpath}")
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", choices=["fit"])
+    ap.add_argument("mode", choices=["fit", "merge"])
     ap.add_argument("--dataset", default=str(DATASET))
     ap.add_argument("--artifact-out", default=str(ARTIFACT))
+    ap.add_argument("--parts-dir", default=str(WP6 / "statsemu_parts"))
     ap.add_argument("--targets", default=None,
                     help="comma list; default = every manifest target")
     ap.add_argument("--holdout", type=int, default=32)
+    ap.add_argument("--kfold", type=int, default=0,
+                    help="K-fold CV over valid runs (replaces --holdout)")
     ap.add_argument("--n-pca", type=int, default=16)
     ap.add_argument("--iters", type=int, default=600)
     ap.add_argument("--lr", type=float, default=0.08)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--device", default=None)
     args = ap.parse_args(argv)
-    fit_main(args)
+    if args.mode == "merge":
+        merge_main(args)
+    else:
+        fit_main(args)
 
 
 if __name__ == "__main__":

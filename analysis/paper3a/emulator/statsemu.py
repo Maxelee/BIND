@@ -257,8 +257,21 @@ def fit_main(args) -> None:
                 "n_holdout": int(n_hold),
                 "frac_err_med": _frac_err(truth, pred),
             }
+            err_key = f"t__{name}__err"
+            if err_key in f:
+                sem = np.asarray(f[err_key], np.float64).reshape(R, -1)
+                sem = sem[hold_mask][:, table.valid_dims]
+                ok = np.isfinite(truth) & np.isfinite(pred) & (sem > 0)
+                if ok.any():
+                    # wlemu acceptance frame: holdout residual in units of
+                    # the 50-realization SEM (the noise floor any emulator
+                    # of these maps is judged against)
+                    validation[name]["err_rel_med"] = float(
+                        np.median((np.abs(pred - truth) / sem)[ok]))
             print(f"[holdout] {name}: frac_err_med = "
-                  f"{validation[name]['frac_err_med']:.4f}", flush=True)
+                  f"{validation[name]['frac_err_med']:.4f}"
+                  + (f", err_rel_med = {validation[name]['err_rel_med']:.2f}x SEM"
+                     if "err_rel_med" in validation[name] else ""), flush=True)
 
     arrays["provenance"] = np.array(json.dumps({
         "created": datetime.datetime.now().isoformat(timespec="seconds"),

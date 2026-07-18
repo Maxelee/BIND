@@ -118,6 +118,43 @@ def threshold_recut_test(per_peak_y: np.ndarray, nu: np.ndarray,
     return out
 
 
+# -------------------------------- 7/8. star/PSF hotspot + dust covariates
+#
+# Both deferred tests (NULL_CRITERIA.md §7/§8) reuse the exact machinery
+# above: `proximity_tercile_test` is already generic in its covariate (it
+# only ever calls it `dist_deg`), and `covariate_excision_test` below is
+# `threshold_recut_test` generalized from a fixed ACT-weight cut to an
+# arbitrary per-peak covariate + percentile cut. No forked code (plan task 1).
+
+def covariate_excision_test(per_peak_y: np.ndarray, nu: np.ndarray,
+                            covariate: np.ndarray, patch8: np.ndarray,
+                            y_mean_ref: np.ndarray, y_err_ref: np.ndarray,
+                            keep_below_percentile: float = 90.0,
+                            nu_edges: np.ndarray = NU_STACK_EDGES) -> dict:
+    """Excise the highest-covariate peaks (e.g. E(B-V), star/PSF hotspot
+    density); |delta<Y>| vs 0.5 sigma_stat, same rule as NULL_CRITERIA §6."""
+    from .covariance import jackknife_mean_cov
+
+    thresh = float(np.percentile(covariate, keep_below_percentile))
+    keep = covariate <= thresh
+    binof = np.digitize(nu, nu_edges) - 1
+    out = {"keep_below_percentile": keep_below_percentile, "threshold": thresh,
+           "kept_fraction": float(keep.mean())}
+    for b in range(len(nu_edges) - 1):
+        m = (binof == b) & keep
+        if m.sum() < 30:
+            out[f"bin{b}"] = {"n": int(m.sum()), "verdict": "too few peaks"}
+            continue
+        mean, cov, _ = jackknife_mean_cov(per_peak_y[m][:, [J]], patch8[m])
+        d = float(mean[0] - y_mean_ref[b])
+        out[f"bin{b}"] = {
+            "n": int(m.sum()), "y_mean_excised": float(mean[0]),
+            "delta": d, "delta_over_sigma_stat": d / float(y_err_ref[b]),
+            "pass_0p5sig": bool(abs(d) < 0.5 * float(y_err_ref[b])),
+        }
+    return out
+
+
 # --------------------------------------------------- 4. CIB band assembly
 
 def cib_band(y_by_variant: dict[str, np.ndarray], sigma_stat: np.ndarray) -> dict:

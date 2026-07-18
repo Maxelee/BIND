@@ -13,6 +13,7 @@ from analysis.paper3b.stack.battery import (  # noqa: E402
     proximity_tercile_test,
     shift_catalog_ra,
 )
+from analysis.paper3b.stack.covariance import patch_ids  # noqa: E402
 
 NSIDE = 64
 NPIX = hp.nside2npix(NSIDE)
@@ -74,6 +75,39 @@ def test_null_ensemble_stats_validates_jackknife():
     st = null_ensemble_stats(means, jk)
     assert np.all(np.abs(np.array(st["jk_validation_ratio"]) - 1.0) < 0.3)
     assert np.all(np.abs(st["mean_over_2err"]) < 2.5)
+
+
+def test_covariate_excision_test_stable_null_vs_planted_shift():
+    from analysis.paper3b.stack.battery import covariate_excision_test
+
+    rng = np.random.default_rng(11)
+    n = 2000
+    ra = rng.uniform(0, 10, n)
+    dec = rng.uniform(-10, 0, n)
+    patch8 = patch_ids(ra, dec, 8)
+    covariate = rng.uniform(0, 1, n)             # e.g. E(B-V) or star density
+    nu = np.full(n, 2.5)                          # all peaks in bin 2 (nu 2-3)
+    y_null = np.zeros((n, 5))
+    y_null[:, 2] = rng.normal(1.0, 0.1, n)         # J=2 is the fiducial radius
+    y_mean_ref = np.array([0, 0, 1.0, 0, 0])
+    y_err_ref = np.array([1, 1, 0.02, 1, 1])
+    out_null = covariate_excision_test(y_null, nu, covariate, patch8,
+                                       y_mean_ref, y_err_ref,
+                                       keep_below_percentile=90.0)
+    assert out_null["bin2"]["pass_0p5sig"]
+    assert out_null["kept_fraction"] == pytest.approx(0.9, abs=0.02)
+
+    y_shift = y_null.copy()
+    y_shift[covariate > 0.9, 2] += 5.0            # contaminate the excised tail
+    out_shift = covariate_excision_test(y_shift, nu, covariate, patch8,
+                                        y_mean_ref, y_err_ref,
+                                        keep_below_percentile=90.0)
+    assert out_shift["bin2"]["pass_0p5sig"]        # excision removes the tail
+    # without excision (percentile=100), the contamination shows up
+    out_unexcised = covariate_excision_test(y_shift, nu, covariate, patch8,
+                                            y_mean_ref, y_err_ref,
+                                            keep_below_percentile=100.0)
+    assert not out_unexcised["bin2"]["pass_0p5sig"]
 
 
 def test_frozen_loader_verifies_and_loads():

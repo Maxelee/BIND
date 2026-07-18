@@ -1,0 +1,14 @@
+# WP-A5 probe-subset data fits: 8 tasks = {kszonly, joint} x 4 seeds,
+# convergence-grade (DE moves, 128 walkers x 30k). Each task re-checks the
+# recovery gate itself (refuses to fit if the battery json is missing or
+# FAILED), so running this file before the batteries assemble is safe.
+#DISBATCH PREFIX ( cd /mnt/home/mlee1/vdm_bind2-paper3a && module load gcc && source /mnt/home/mlee1/venvs/torch3/bin/activate && export OMP_NUM_THREADS=6 &&
+#DISBATCH SUFFIX  ) &> /mnt/home/mlee1/ceph/logs/a5_subsets/fit_${DISBATCH_TASKID}.log
+python -u analysis/paper3a/scripts/run_a5_subsets.py --which kszonly --seed 0
+python -u analysis/paper3a/scripts/run_a5_subsets.py --which kszonly --seed 1
+python -u analysis/paper3a/scripts/run_a5_subsets.py --which kszonly --seed 2
+python -u analysis/paper3a/scripts/run_a5_subsets.py --which kszonly --seed 3
+python -u analysis/paper3a/scripts/run_a5_subsets.py --which joint --seed 0
+python -u analysis/paper3a/scripts/run_a5_subsets.py --which joint --seed 1
+python -u analysis/paper3a/scripts/run_a5_subsets.py --which joint --seed 2
+python -u analysis/paper3a/scripts/run_a5_subsets.py --which joint --seed 3

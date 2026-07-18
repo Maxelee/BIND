@@ -114,6 +114,19 @@ class ForwardModel:
         self.lv = velocity or LinearVelocity()
         self._w_nbr = self.lv.slab_mean_rv(SLAB_DEPTH_HMPC)
         self._dilution_cache: dict[tuple, np.ndarray] = {}
+        self._tw_cache: dict[bytes, np.ndarray] = {}
+
+    def _transverse_weight(self, r_centers_mpch: np.ndarray) -> np.ndarray:
+        """`transverse_weight` cached on the r-grid — it is theta- and
+        z-independent (linear xi + r_v only), and dominates the per-call cost
+        of the profile forward model when recomputed."""
+        r = np.asarray(r_centers_mpch, float)
+        key = r.tobytes()
+        w = self._tw_cache.get(key)
+        if w is None:
+            w = transverse_weight(self.lv, r)
+            self._tw_cache[key] = w
+        return w
 
     # ------------------------------------------------------------- f_gas ----
 
@@ -167,7 +180,7 @@ class ForwardModel:
         """
         sigma_r = np.asarray(sigma_r, float)
         floor = float(np.mean(sigma_r[-n_floor_bins:]))
-        w = transverse_weight(self.lv, r_centers_mpch)
+        w = self._transverse_weight(r_centers_mpch)
         sigma_w = floor + w * (sigma_r - floor)
 
         geom = PatchGeometry(pixel_mpch=CANVAS_PIXEL_MPCH, z=z,
@@ -198,7 +211,8 @@ class ForwardModel:
     def _dilution_ratio(self, sigma_r: np.ndarray, r_centers_mpch: np.ndarray,
                         z: float, radii_arcmin: np.ndarray, sat_config: MockSampleConfig,
                         n_mc: int, seed: int, n_floor_bins: int,
-                        cosmology: FlatLCDM | None) -> np.ndarray:
+                        cosmology: FlatLCDM | None,
+                        supersample: int = 2) -> np.ndarray:
         """Per-aperture (diluted / on-center) CAP ratio for one reference
         profile, Monte-Carlo averaged over `sat_config`'s offset draws.
 
@@ -211,13 +225,14 @@ class ForwardModel:
         """
         key = (sat_config.logm200c_mean, sat_config.logm200c_sigma, sat_config.f_mis,
                sat_config.sigma_mis_hmpc, sat_config.f_sat, sat_config.r_sat_hmpc,
-               float(z), tuple(np.round(np.asarray(radii_arcmin, float), 6)), n_mc, seed)
+               float(z), tuple(np.round(np.asarray(radii_arcmin, float), 6)), n_mc, seed,
+               supersample)
         cached = self._dilution_cache.get(key)
         if cached is not None:
             return cached
 
         floor = float(np.mean(sigma_r[-n_floor_bins:]))
-        w = transverse_weight(self.lv, r_centers_mpch)
+        w = self._transverse_weight(r_centers_mpch)
         sigma_w = floor + w * (sigma_r - floor)
 
         geom = PatchGeometry(pixel_mpch=CANVAS_PIXEL_MPCH, z=z,
@@ -231,7 +246,28 @@ class ForwardModel:
         rr_mpch = np.hypot(yy - c, xx - c) * CANVAS_PIXEL_MPCH
         m = np.interp(rr_mpch, r_centers_mpch, sigma_w, left=sigma_w[0], right=floor)
 
-        on_center = ksz_cap_profile(m, geom, cfg)
+        # beam-convolved tau map is offset-independent: convolve ONCE, then
+        # only the CAP photometry moves with each MC center draw — same math
+        # as ksz_cap_profile called per offset, minus the redundant per-call
+        # convolutions. The per-offset aperture masks use a reduced
+        # ``supersample`` (default 2, not the map-measurement 8): each unique
+        # offset center defeats the weight-map cache and a supersample-8
+        # build costs ~0.4 s x n_mc x n_radii. In the diluted/on-center
+        # RATIO (same supersample in both) the pixelization error cancels to
+        # first order, and the MC offsets dither the aperture edges, so the
+        # residual aliasing is well below the MC noise.
+        from analysis.paper3a.observables.filters import (
+            cap_photometry, gaussian_beam_convolve,
+        )
+        from analysis.paper3a.observables.ksz import tau_map_from_gas
+
+        tau = tau_map_from_gas(m, geom, x_e=cfg.x_e)
+        tau = gaussian_beam_convolve(tau, cfg.beam_fwhm_arcmin / geom.arcmin_per_pixel())
+        theta_d_pix = geom.arcmin_to_pixels(cfg.radii_arcmin)
+        pix_area = geom.pixel_area_arcmin2()
+
+        on_center = cap_photometry(tau, (c, c), theta_d_pix, pixel_area=pix_area,
+                                   supersample=supersample)
         if sat_config.f_sat <= 0.0 and sat_config.f_mis <= 0.0:
             ratio = np.ones_like(on_center)
         else:
@@ -240,7 +276,9 @@ class ForwardModel:
             offsets_pix = offsets_hmpc / CANVAS_PIXEL_MPCH
             tau_caps = np.empty((n_mc, len(cfg.radii_arcmin)))
             for i, (dy, dx) in enumerate(offsets_pix):
-                tau_caps[i] = ksz_cap_profile(m, geom, cfg, center=(c + dy, c + dx))
+                tau_caps[i] = cap_photometry(tau, (c + dy, c + dx), theta_d_pix,
+                                             pixel_area=pix_area,
+                                             supersample=supersample)
             diluted = tau_caps.mean(axis=0)
             ratio = np.where(np.abs(on_center) > 0, diluted / on_center, 1.0)
 

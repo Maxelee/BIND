@@ -139,8 +139,12 @@ class FgasBlock:
         return np.atleast_2d(pred["fgas_med"]) * c2s / PAINT_BIAS
 
     def predict(self, u: np.ndarray) -> np.ndarray:
-        """(N, B) predictions in the observed-bin frame (PDF-convolved)."""
-        u = np.atleast_2d(np.asarray(u, float))
+        """(N, B) predictions in the observed-bin frame (PDF-convolved).
+
+        Only the first 30 columns (the SB35 unit cube) are used — wider
+        chains carrying nuisance dimensions (e.g. the kSZ f_sat in column
+        30) pass through unchanged."""
+        u = np.atleast_2d(np.asarray(u, float))[:, :30]
         f5 = self._fsph_bins(u)                                # (N, 5)
         x = self.model_centers
         g = self.data.logm_grid

@@ -1,0 +1,40 @@
+# WP-A5 probe-subset recovery batteries: 32 independent single-core tasks
+# (16 kszonly + 16 joint injections). Each task runs one inject-and-recover
+# MCMC (64 walkers x 1500 steps) and writes a parts json; the sbatch driver
+# assembles + scores after the disBatch returns. Resumable at the parts
+# level (re-running a task overwrites its own json only).
+#DISBATCH PREFIX ( cd /mnt/home/mlee1/vdm_bind2-paper3a && module load gcc && source /mnt/home/mlee1/venvs/torch3/bin/activate && export OMP_NUM_THREADS=1 &&
+#DISBATCH SUFFIX  ) &> /mnt/home/mlee1/ceph/logs/a5_subsets/battery_${DISBATCH_TASKID}.log
+#DISBATCH PERENGINE START mkdir -p /mnt/home/mlee1/ceph/logs/a5_subsets
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 0
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 1
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 2
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 3
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 4
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 5
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 6
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 7
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 8
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 9
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 10
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 11
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 12
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 13
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 14
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which kszonly --inject-index 15
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 0
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 1
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 2
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 3
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 4
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 5
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 6
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 7
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 8
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 9
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 10
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 11
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 12
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 13
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 14
+python -u analysis/paper3a/scripts/run_a5_recovery_subsets.py --which joint --inject-index 15

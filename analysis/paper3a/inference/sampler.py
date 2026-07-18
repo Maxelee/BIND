@@ -50,11 +50,12 @@ def split_rhat(chain: np.ndarray) -> np.ndarray:
 
 def run_mcmc(blocks, n_walkers: int = 64, n_steps: int = 3000,
              n_burn: int = 500, seed: int = 0, label: str = "fit",
-             archive: bool = True) -> dict:
+             archive: bool = True, ndim: int = 30) -> dict:
+    """ndim = 30 for theta-only likelihoods; 31 when a block carries the
+    f_sat nuisance in column 30 (see `inference.ksz.KszBlock`)."""
     import emcee
 
     rng = np.random.default_rng(seed)
-    ndim = 30
     p0 = rng.uniform(0.02, 0.98, size=(n_walkers, ndim))
     sampler = emcee.EnsembleSampler(n_walkers, ndim, log_prob_factory(blocks),
                                     vectorize=True)

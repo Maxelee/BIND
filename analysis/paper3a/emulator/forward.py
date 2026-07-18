@@ -43,6 +43,14 @@ kSZ (Qu et al. frame) — the velocity-decorrelation forward model (fix b)
 
 Pre-v3 fallback: :meth:`ksz_tksz_bracket` brackets the emulated v2 CAP
 profile between all-decorrelated and all-co-moving scalings.
+
+kSZ sample model (WP-A5 task 5 prerequisite)
+    :meth:`ksz_tksz_sample_model` wraps `ksz_tksz_from_profile` with the
+    galaxy-sample selection effects Bigwood et al. 2025 identify as
+    mandatory for a like-for-like sim-vs-data kSZ comparison: satellite
+    dilution (galaxies offset from the halo center) and mis-centering, per
+    `observables.mock_sample.MockSampleConfig`. This is what un-disables the
+    kSZ block in the A5 likelihood (previously blocked pending this model).
 """
 
 from __future__ import annotations
@@ -59,6 +67,10 @@ from analysis.paper3a.observables import (
     ksz_cap_profile,
 )
 from analysis.paper3a.observables.constants import T_CMB_UK
+from analysis.paper3a.observables.mock_sample import (
+    MockSampleConfig,
+    draw_center_offsets_hmpc,
+)
 
 from .gasemu import GasEmulator
 from .velocity import LinearVelocity
@@ -101,6 +113,7 @@ class ForwardModel:
         self.emu = emulator
         self.lv = velocity or LinearVelocity()
         self._w_nbr = self.lv.slab_mean_rv(SLAB_DEPTH_HMPC)
+        self._dilution_cache: dict[tuple, np.ndarray] = {}
 
     # ------------------------------------------------------------- f_gas ----
 
@@ -180,6 +193,89 @@ class ForwardModel:
             tksz_raw=norm * _cap(sigma_r),
             sigma_v_over_c=svc,
             weight_at_r=w,
+        )
+
+    def _dilution_ratio(self, sigma_r: np.ndarray, r_centers_mpch: np.ndarray,
+                        z: float, radii_arcmin: np.ndarray, sat_config: MockSampleConfig,
+                        n_mc: int, seed: int, n_floor_bins: int,
+                        cosmology: FlatLCDM | None) -> np.ndarray:
+        """Per-aperture (diluted / on-center) CAP ratio for one reference
+        profile, Monte-Carlo averaged over `sat_config`'s offset draws.
+
+        Cached per (sat_config value, z, radii, n_mc, seed): the offset
+        geometry is theta_TNG-independent (mass/feedback params only rescale
+        the profile *amplitude*, not the miscentering/satellite kinematics),
+        so this ratio is computed once against a reference profile and then
+        applied multiplicatively to any emulated profile at the same
+        (z, radii) -- keeping the A5 likelihood's per-eval cost unchanged.
+        """
+        key = (sat_config.logm200c_mean, sat_config.logm200c_sigma, sat_config.f_mis,
+               sat_config.sigma_mis_hmpc, sat_config.f_sat, sat_config.r_sat_hmpc,
+               float(z), tuple(np.round(np.asarray(radii_arcmin, float), 6)), n_mc, seed)
+        cached = self._dilution_cache.get(key)
+        if cached is not None:
+            return cached
+
+        floor = float(np.mean(sigma_r[-n_floor_bins:]))
+        w = transverse_weight(self.lv, r_centers_mpch)
+        sigma_w = floor + w * (sigma_r - floor)
+
+        geom = PatchGeometry(pixel_mpch=CANVAS_PIXEL_MPCH, z=z,
+                             cosmology=cosmology or FlatLCDM())
+        cfg = KSZOperatorConfig(radii_arcmin=np.asarray(radii_arcmin, float),
+                               beam_fwhm_arcmin=HILC_BEAM_FWHM_ARCMIN,
+                               z_eff=z, v_rms_over_c=None)
+        n = CUTOUT_PIX
+        c = (n - 1) / 2.0
+        yy, xx = np.mgrid[0:n, 0:n]
+        rr_mpch = np.hypot(yy - c, xx - c) * CANVAS_PIXEL_MPCH
+        m = np.interp(rr_mpch, r_centers_mpch, sigma_w, left=sigma_w[0], right=floor)
+
+        on_center = ksz_cap_profile(m, geom, cfg)
+        if sat_config.f_sat <= 0.0 and sat_config.f_mis <= 0.0:
+            ratio = np.ones_like(on_center)
+        else:
+            rng = np.random.default_rng(seed)
+            offsets_hmpc = draw_center_offsets_hmpc(n_mc, sat_config, rng)
+            offsets_pix = offsets_hmpc / CANVAS_PIXEL_MPCH
+            tau_caps = np.empty((n_mc, len(cfg.radii_arcmin)))
+            for i, (dy, dx) in enumerate(offsets_pix):
+                tau_caps[i] = ksz_cap_profile(m, geom, cfg, center=(c + dy, c + dx))
+            diluted = tau_caps.mean(axis=0)
+            ratio = np.where(np.abs(on_center) > 0, diluted / on_center, 1.0)
+
+        self._dilution_cache[key] = ratio
+        return ratio
+
+    def ksz_tksz_sample_model(self, sigma_r: np.ndarray, r_centers_mpch: np.ndarray,
+                              z: float, radii_arcmin: np.ndarray,
+                              sat_config: MockSampleConfig,
+                              n_floor_bins: int = 10, n_mc: int = 512, seed: int = 0,
+                              cosmology: FlatLCDM | None = None) -> KszForwardResult:
+        """WP-A5 kSZ sample model: `ksz_tksz_from_profile` diluted by the
+        observed-sample's satellite fraction / mis-centering
+        (`sat_config`, `observables.mock_sample.MockSampleConfig` --
+        literature priors in that module's `SIEGEL_GGL_LOGM500_TARGETS` /
+        `BIGWOOD_SATELLITE_FRACTION_RANGE`, per Bigwood et al. 2025).
+
+        The dilution ratio (diluted-CAP / on-center-CAP per aperture) is
+        computed once (Monte Carlo over `sat_config`'s offset draws, cached
+        by `_dilution_ratio`) against the reference profile and applied
+        multiplicatively to the theta-dependent, velocity-decorrelated
+        profile from `ksz_tksz_from_profile` -- valid because the offset
+        kinematics do not depend on theta_TNG, only the profile amplitude
+        emulated per theta does.
+        """
+        central = self.ksz_tksz_from_profile(sigma_r, r_centers_mpch, z, radii_arcmin,
+                                              n_floor_bins=n_floor_bins, cosmology=cosmology)
+        ratio = self._dilution_ratio(sigma_r, r_centers_mpch, z, radii_arcmin, sat_config,
+                                     n_mc, seed, n_floor_bins, cosmology)
+        return KszForwardResult(
+            radii_arcmin=central.radii_arcmin,
+            tksz=central.tksz * ratio,
+            tksz_raw=central.tksz_raw,
+            sigma_v_over_c=central.sigma_v_over_c,
+            weight_at_r=central.weight_at_r,
         )
 
     def ksz_tksz_bracket(self, params, snap: str, mass_bin: int) -> dict:

@@ -27,6 +27,57 @@ from dataclasses import dataclass
 
 import numpy as np
 
+# GGL-calibrated mean host-halo masses per DESI+ACT kSZ sample bin, from
+# Siegel et al. 2025 (arXiv:2509.10455), as quoted in prose (not the garbled
+# table conversion) by Bigwood et al. 2025 (arXiv:2510.15822): Sec 4.2
+# "log10(<M500[Msun]>) = 13.31 for the BGS sample and 13.30 for the LRG
+# sample"; Sec 4.3 "log10(<M500[Msun]>) = 12.91, 13.16" for LRG M1/M2; Sec 4.2
+# discussion (Appendix B lead-in) "log10(<M500[Msun]>) = 13.41, 13.57, 13.81
+# ... for LRG M3, LRG M3 Photo-z, ... and LRG M4". Verified against the arXiv
+# HTML full text 2026-07-18 (WP-A5 kSZ sample-model task). These are M500,
+# GGL-selected -- NOT the abundance-matching-derived M200c "ticks" WP-A1
+# recorded from Qu et al. 2026's own release (11.86/12.49/13.43/14.57): the
+# two methodologies disagree by up to several tenths of a dex at the high-mass
+# end (WP1/METHODS.md Sec 2); this is the R4/tension caveat, not a bug to
+# reconcile silently. Only bins whose target sits inside the emulator's kSZ
+# range (logM500 in [13.2, 15.5], `gasemu.logm500_bin_edges` via
+# `ksz_bin{0,1}_range`) are usable by the A5 forward model; LRG M1 (12.91) and
+# M2 (13.16) fall below/at the group-bin floor -- informational only, do not
+# feed them into the likelihood without a documented extrapolation.
+SIEGEL_GGL_LOGM500_TARGETS = {
+    "bgs": 13.31,
+    "lrg_full": 13.30,
+    "lrg_m1": 12.91,          # sub-floor: informational only
+    "lrg_m2": 13.16,          # below the emulator's 13.2 group-bin edge
+    "lrg_m3_spec": 13.41,
+    "lrg_m3_photo": 13.57,
+    "lrg_m4": 13.81,
+}
+
+# Satellite fraction: Bigwood et al. 2025 Sec 3.5 states the GGL-matched
+# simulated samples carry satellite fractions "of ~10-30%" (a qualitative
+# range confirmed in the paper's prose; the per-simulation/per-bin table in
+# the same section did not survive the arXiv HTML table conversion cleanly
+# enough to trust individual digits, so no precise per-bin numbers are
+# hard-coded here -- only the range the text itself commits to). The paper
+# also notes real DESI-sample satellite fractions are themselves uncertain
+# ("there remains uncertainty in the satellite fractions of the observed DESI
+# samples"). Treat as a uniform PRIOR range for `f_sat`, mass-independent by
+# default (the qualitative trend is a *decrease* toward higher mass bins per
+# Sec 4.3, but that trend was not quantified in verifiable prose).
+BIGWOOD_SATELLITE_FRACTION_RANGE = (0.10, 0.30)
+
+# Mis-centering: Bigwood et al. 2025 Sec 3.6 finds mis-centering is "not a
+# major source of concern" for hydro-sim-vs-data comparison (self-consistent
+# sims already place galaxies realistically relative to the hot gas); the one
+# quantified test displaces the CAP center by a *uniform* draw of width 0.5'
+# (the ACT map's pixel size) in each sky coordinate and finds "a negligible
+# impact on the shape of the inner kSZ profile". Default f_mis = 0 here; the
+# 0.5' pixel-quantization scale is exposed as `PIXEL_QUANT_SIGMA_MIS_ARCMIN`
+# for callers who want to bound the (expected-negligible) systematic
+# explicitly rather than assume it away.
+PIXEL_QUANT_SIGMA_MIS_ARCMIN = 0.5
+
 
 @dataclass(frozen=True)
 class MockSampleConfig:

@@ -10,6 +10,7 @@ import pytest
 from analysis.paper3a.emulator import params_meta as pm
 from analysis.paper3a.emulator.gasemu import GasEmulator
 from analysis.paper3a.emulator.velocity import LinearVelocity
+from analysis.paper3a.observables.mock_sample import MockSampleConfig
 
 
 # ------------------------------------------------------------ params_meta ----
@@ -114,6 +115,64 @@ def test_cyltosph_theta_model():
     assert f_w < f_fid[0] < f_s          # weak wind -> lower spherical conversion
     padded = m.factors_full_bins(u_fid, "096")
     assert padded.shape == (5,) and np.allclose(padded[3:], padded[2])
+
+
+# --------------------------------------------------- kSZ sample model (A5) ---
+
+def _synthetic_ksz_profile():
+    """A smoothly declining Sigma(R) stack + its r-grid, matching the v3
+    operator's ``sigma_r_centers_mpch`` convention (SIGMA_R_BIN_PIX=2 canvas
+    pixels, CANVAS_PIXEL_MPCH = 205/4198)."""
+    from analysis.paper3a.emulator.forward import CANVAS_PIXEL_MPCH
+
+    n_bins = 90
+    r = (np.arange(n_bins) + 0.5) * 2.0 * CANVAS_PIXEL_MPCH
+    floor = 5e6
+    sigma_r = floor + 5e8 / (1.0 + (r / 0.6) ** 2)
+    return sigma_r, r
+
+
+def test_ksz_sample_model_matches_central_when_undiluted():
+    from analysis.paper3a.emulator.forward import ForwardModel
+
+    sigma_r, r = _synthetic_ksz_profile()
+    fm = ForwardModel(velocity=LinearVelocity())
+    radii = np.array([1.0, 2.0, 3.0, 4.0, 6.0])
+    z = 0.5
+    central = fm.ksz_tksz_from_profile(sigma_r, r, z, radii)
+    cfg = MockSampleConfig(logm200c_mean=13.3, logm200c_sigma=0.2, f_mis=0.0, f_sat=0.0)
+    sampled = fm.ksz_tksz_sample_model(sigma_r, r, z, radii, cfg, n_mc=32)
+    assert np.allclose(sampled.tksz, central.tksz)
+
+
+def test_ksz_sample_model_satellite_dilution_shrinks_signal():
+    from analysis.paper3a.emulator.forward import ForwardModel
+
+    sigma_r, r = _synthetic_ksz_profile()
+    fm = ForwardModel(velocity=LinearVelocity())
+    radii = np.array([1.0, 2.0, 3.0, 4.0, 6.0])
+    z = 0.5
+    central = fm.ksz_tksz_from_profile(sigma_r, r, z, radii)
+    cfg = MockSampleConfig(logm200c_mean=13.3, logm200c_sigma=0.2,
+                           f_sat=0.25, r_sat_hmpc=0.5)
+    sampled = fm.ksz_tksz_sample_model(sigma_r, r, z, radii, cfg, n_mc=1024, seed=1)
+    # a centrally-peaked profile loses amplitude once a fraction of the
+    # stack is recentered away from the peak -> dilution ratio in (0, 1]
+    assert np.all(sampled.tksz <= central.tksz + 1e-12)
+    assert np.all(sampled.tksz > 0)
+
+
+def test_ksz_sample_model_dilution_cached():
+    from analysis.paper3a.emulator.forward import ForwardModel
+
+    sigma_r, r = _synthetic_ksz_profile()
+    fm = ForwardModel(velocity=LinearVelocity())
+    radii = np.array([1.0, 2.0, 3.0, 4.0, 6.0])
+    cfg = MockSampleConfig(logm200c_mean=13.3, logm200c_sigma=0.2, f_sat=0.2, r_sat_hmpc=0.5)
+    fm.ksz_tksz_sample_model(sigma_r, r, 0.5, radii, cfg, n_mc=64, seed=3)
+    assert len(fm._dilution_cache) == 1
+    fm.ksz_tksz_sample_model(sigma_r, r, 0.5, radii, cfg, n_mc=64, seed=3)
+    assert len(fm._dilution_cache) == 1          # same key -> no recompute
 
 
 # ------------------------------------------------ fit + predict integration --

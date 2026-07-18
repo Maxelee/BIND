@@ -89,10 +89,15 @@ class TargetTable:
     over the target's own valid+train rows (no leakage)."""
 
     def __init__(self, f: dict, name: str, manifest: dict,
-                 train_rows: np.ndarray):
+                 train_rows: np.ndarray, transform_override: str | None = None):
         spec = manifest["targets"][name]
         self.name = name
-        self.transform = spec["transform"]
+        # An override replaces the manifest transform (recorded in the
+        # artifact provenance); dims that a log override cannot represent
+        # (any nonpositive training value) are masked invalid below —
+        # e.g. cl_kappa_y is >0 on 97.4% of dims, and the log dynamic-range
+        # compression is the candidate fix for its GP roughness.
+        self.transform = transform_override or spec["transform"]
         val = np.asarray(f[f"t__{name}__value"], np.float64)
         self.feature_shape = val.shape[1:]
         Y = val.reshape(len(val), -1)
@@ -301,10 +306,17 @@ def fit_main(args) -> None:
         "X_unit": X,
         "run_ids": f["run_ids"],
     }
+    overrides = {}
+    if getattr(args, "transform_override", None):
+        for item in args.transform_override.split(","):
+            t, tr = item.split("=")
+            overrides[t] = tr
+
     validation = {}
     all_rows = np.ones(R, bool)
     for i, name in enumerate(names):
-        table = TargetTable(f, name, manifest, all_rows)
+        table = TargetTable(f, name, manifest, all_rows,
+                            transform_override=overrides.get(name))
         d = _fit_target(X, table, table.train_rows, args.n_pca, args.iters,
                         args.lr, args.seed + i, args.device)
         arrays[f"{name}__train_rows"] = table.train_rows
@@ -327,7 +339,8 @@ def fit_main(args) -> None:
         "dataset": str(args.dataset),
         "settings": {"n_pca": args.n_pca, "iters": args.iters, "lr": args.lr,
                      "seed": args.seed, "holdout": args.holdout,
-                     "kfold": args.kfold},
+                     "kfold": args.kfold,
+                     "transform_override": overrides or None},
         "recipe": "per-target PCA + batched ARD Matern-5/2 GP "
                   "(wlemu/gasemu construction)",
     }))
@@ -386,6 +399,10 @@ def main(argv=None):
     ap.add_argument("--parts-dir", default=str(WP6 / "statsemu_parts"))
     ap.add_argument("--targets", default=None,
                     help="comma list; default = every manifest target")
+    ap.add_argument("--transform-override", default=None,
+                    help="e.g. 'cl_kappa_y=log,cl_yy=log' — replaces the "
+                         "manifest transform for those targets (recorded "
+                         "in provenance)")
     ap.add_argument("--holdout", type=int, default=32)
     ap.add_argument("--kfold", type=int, default=0,
                     help="K-fold CV over valid runs (replaces --holdout)")

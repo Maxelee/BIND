@@ -113,12 +113,14 @@ def grid_loglike(y_data: np.ndarray, cov_base: np.ndarray,
 
 def fit_frozen_data(emulator: GridEmulator, variant: str = "wiener",
                     window=DEFAULT_WINDOW, n=161,
-                    with_selection: bool = True) -> tuple[B5Posterior, dict]:
+                    with_selection: bool = True,
+                    sel_summary_json: Path = WP4 / "b4_summary_tfwiener.json",
+                    ) -> tuple[B5Posterior, dict]:
     """THE data fit. Only call after recovery tests pass (plan rule)."""
     from ..stack.frozen import load_frozen                    # data path: here only
 
     f = load_frozen(variant)
-    sel = selection_residual_ratios() if with_selection else None
+    sel = selection_residual_ratios(sel_summary_json) if with_selection else None
     post = grid_loglike(f.y, f.cov_total, emulator, sel_ratios=sel,
                         window=window, n=n)
     m, c = post.mean_and_cov()

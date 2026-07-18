@@ -43,6 +43,21 @@
 # (the last overrides --transfer; GLIMPSE is a qualitative cross-check only —
 # a linear T cannot mimic the sparsity prior, validated in
 # b5_transfer_summary.json: tfglimpse mock 0.022 vs data 0.061 nu>=4/deg2.)
+#
+# 2026-07-18 (B5 audit, AUDIT_NOTES_2026-07-18.md upheld #2): the position-
+# only --quantize-nside1024 fix is INCOMPLETE — data peaks are FOUND on
+# 3.44' HEALPix pixels (merging nearby maxima, ~1.3-1.8x abundance-channel
+# bias), not just located there after the fact. `mocks.patch.
+# coarse_grid_peaks` / `measure_mock_patch(peak_grid_block=...)` implement
+# the coarse-grid peak-FINDING convention that supersedes it (block=12 ->
+# ~3.516' coarse pitch, block-averaged, non-periodic, strict 8-neighbour).
+# The FINAL q-grid re-run command is now:
+#
+# ⛔ HUMAN CHECKPOINT — submit by hand:
+#   sbatch /mnt/home/mlee1/BIND-paper3b/analysis/paper3b/scripts/run_b4_grid_tf.sh --n-seeds 32 --peak-grid-1024
+#
+# (--quantize-nside1024 stays available for comparison only; do not pass it
+# for the frozen chain.) Output -> ~/ceph/paper3/B/wp4_mocks/grid_tfwiener_pg1024/.
 
 set -euo pipefail
 

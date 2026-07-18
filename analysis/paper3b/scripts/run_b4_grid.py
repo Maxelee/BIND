@@ -29,7 +29,7 @@ import numpy as np
 from analysis.paper3b.mocks.beam import ACT_DR6_YMAP_FWHM_ARCMIN, BeamConfig
 from analysis.paper3b.mocks.measure import MockEnsembleAccumulator, measure_mock_patch
 from analysis.paper3b.mocks.nz import SourcePlaneWeighting
-from analysis.paper3b.mocks.patch import PatchGeometry
+from analysis.paper3b.mocks.patch import PatchGeometry, effective_patch_area_deg2
 from analysis.paper3b.mocks.shape_noise import (
     DESY3_NEFF_TOTAL_ARCMIN2,
     DESY3_SIGMA_E,
@@ -66,7 +66,8 @@ def load_weighting(weights_npz: Path, scheme: str) -> SourcePlaneWeighting:
 def process_unit(cat: str, run: str, weighting: SourcePlaneWeighting,
                  n_seeds: int, seed0: int, unit_idx: int, out_dir: Path,
                  scheme: str, transfer=None, transfer_name: str = "none",
-                 quantize_arcmin: float | None = None) -> dict:
+                 quantize_arcmin: float | None = None,
+                 peak_grid_block: int | None = None) -> dict:
     t0 = time.time()
     rd = RUNS_ROOT / cat / run
     kz = np.load(rd / "kappa_maps.npz")
@@ -94,7 +95,8 @@ def process_unit(cat: str, run: str, weighting: SourcePlaneWeighting,
             acc.add(measure_mock_patch(planes, ymap, weighting, noise_cfg,
                                        smooth_cfg, beam_cfg, rng, geom=geom,
                                        transfer=transfer,
-                                       quantize_arcmin=quantize_arcmin))
+                                       quantize_arcmin=quantize_arcmin,
+                                       peak_grid_block=peak_grid_block))
             real_idx.append(r)
             seed_idx.append(s)
 
@@ -102,10 +104,13 @@ def process_unit(cat: str, run: str, weighting: SourcePlaneWeighting,
     params = np.load(params_file) if params_file.exists() else np.array([])
     summ = acc.summary()
     out_dir.mkdir(parents=True, exist_ok=True)
+    patch_area_deg2 = effective_patch_area_deg2(geom, peak_grid_block)
     np.savez(out_dir / f"{cat}_{run}.npz",
              category=cat, run=run, params=params,
              transfer=transfer_name,
              quantize_arcmin=(0.0 if quantize_arcmin is None else quantize_arcmin),
+             peak_grid_block=(0 if peak_grid_block is None else peak_grid_block),
+             patch_area_deg2=patch_area_deg2,
              weight_scheme=scheme, weights=weighting.weights,
              n_seeds=n_seeds, seed0=seed0, unit_idx=unit_idx,
              neff_arcmin2=DESY3_NEFF_TOTAL_ARCMIN2, sigma_e=DESY3_SIGMA_E,
@@ -140,7 +145,17 @@ def main() -> None:
                     help="snap mock peak positions to the Nside=1024 pixel "
                          "pitch (3.435') — the DATA side's position "
                          "quantization (B5 matched-convention fix); output "
-                         "dir gains suffix _q1024")
+                         "dir gains suffix _q1024. SUPERSEDED by "
+                         "--peak-grid-1024 for the frozen chain; kept for "
+                         "comparison only")
+    ap.add_argument("--peak-grid-1024", action="store_true",
+                    help="find peaks on the coarse (block=12, ~3.516') "
+                         "block-averaged grid instead of snapping positions "
+                         "after native-grid finding — models the DATA side's "
+                         "coarse-grid peak-FINDING convention (merges nearby "
+                         "maxima, ~1.3-1.8x abundance effect), superseding "
+                         "--quantize-nside1024; output dir gains suffix "
+                         "_pg1024")
     ap.add_argument("--overwrite", action="store_true")
     args = ap.parse_args()
 
@@ -159,10 +174,12 @@ def main() -> None:
 
     from analysis.paper3b.mocks.patch import HEALPIX_NSIDE1024_PIX_ARCMIN
     quant = HEALPIX_NSIDE1024_PIX_ARCMIN if args.quantize_nside1024 else None
+    peak_grid_block = 12 if args.peak_grid_1024 else None
 
     units = unit_list(args.categories)
     suffix = "" if args.transfer == "none" else f"_tf{args.transfer}"
     suffix += "_q1024" if quant is not None else ""
+    suffix += "_pg1024" if peak_grid_block is not None else ""
     suffix += "" if args.weight_scheme == "default" else f"_{args.weight_scheme}"
     out_dir = Path(args.out) / f"grid{suffix}"
     if rank == 0:
@@ -177,7 +194,8 @@ def main() -> None:
         info = process_unit(cat, run, weighting, args.n_seeds, args.seed0, u,
                             out_dir, args.weight_scheme,
                             transfer=transfer, transfer_name=args.transfer,
-                            quantize_arcmin=quant)
+                            quantize_arcmin=quant,
+                            peak_grid_block=peak_grid_block)
         print(f"[rank {rank}] {info['unit']}: {info['n_patches']} patches, "
               f"{info['n_peaks']} peaks, {info['minutes']:.1f} min", flush=True)
 

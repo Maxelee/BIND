@@ -74,14 +74,21 @@ def main() -> None:
         d = np.load(f, allow_pickle=True)
         cat, run = str(d["category"]), str(d["run"])
         npatch = int(d["counts"].shape[0])
+        # patch_area_deg2 is written by run_b4_grid.py per unit (25.0 for the
+        # native 5x5 deg FOV; the cropped coarse-grid area when --peak-grid-1024
+        # was used, e.g. (1008*5/1024)^2). Older grid npzs predate the field —
+        # fall back to the hard-coded default.
+        patch_area_deg2 = (float(d["patch_area_deg2"]) if "patch_area_deg2" in d.files
+                           else PATCH_AREA_DEG2)
         entry = {
             "params": np.asarray(d["params"], dtype=float),
             "y_mean": np.asarray(d["y_mean"], dtype=float),
             "y_mc_err": np.asarray(d["y_mc_err"], dtype=float),
             "n_per_bin": np.asarray(d["n_per_bin"], dtype=float),
             "abundance_per_deg2": np.asarray(d["n_per_bin"], dtype=float)
-                                  / (npatch * PATCH_AREA_DEG2),
+                                  / (npatch * patch_area_deg2),
             "n_patches": npatch,
+            "patch_area_deg2": patch_area_deg2,
         }
         if cat == "twobound":
             entry["coords"] = halo_coordinates(RUNS_ROOT / cat / run, fid)

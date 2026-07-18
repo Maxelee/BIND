@@ -44,7 +44,15 @@ from ..stack.stacker import (
 )
 from .beam import BeamConfig, apply_beam
 from .nz import SourcePlaneWeighting
-from .patch import DEFAULT_PAD_PIX, PatchGeometry, find_peaks_flat, patch_to_enmap, peak_sky_coords
+from .patch import (
+    DEFAULT_PAD_PIX,
+    PatchGeometry,
+    coarse_grid_peaks,
+    effective_patch_area_deg2,
+    find_peaks_flat,
+    patch_to_enmap,
+    peak_sky_coords,
+)
 from .shape_noise import ShapeNoiseConfig, noise_map
 from .smoothing import SmoothingConfig, smooth_flat_sky
 from .transfer import TransferFunction
@@ -63,6 +71,11 @@ class MockPatchResult:
     per_peak_y: np.ndarray           # (npk, nrad) CAP Y [y arcmin^2]
     sigma_kappa_sm: float            # the "map" nu normalization actually used
     n_peaks_all: int                 # peaks before the nu-range cut
+    patch_area_deg2: float           # effective peak-finding area (deg^2);
+                                      # the full atlas FOV^2, or (with
+                                      # peak_grid_block set) the cropped
+                                      # coarse-grid area (patch.py
+                                      # effective_patch_area_deg2)
 
     def bin_table(self, nu_edges: np.ndarray = NU_STACK_EDGES
                   ) -> tuple[np.ndarray, np.ndarray]:
@@ -92,7 +105,8 @@ def measure_mock_patch(kappa_planes: np.ndarray, y_total: np.ndarray,
                        cap_radii=CAP_RADII_ARCMIN,
                        pad_pix: int = DEFAULT_PAD_PIX,
                        transfer: TransferFunction | None = None,
-                       quantize_arcmin: float | None = None) -> MockPatchResult:
+                       quantize_arcmin: float | None = None,
+                       peak_grid_block: int | None = None) -> MockPatchResult:
     """Run the full frozen chain (module docstring) on one atlas patch.
 
     kappa_planes: (K, npix, npix) single realization, all source planes.
@@ -102,31 +116,55 @@ def measure_mock_patch(kappa_planes: np.ndarray, y_total: np.ndarray,
     applied to the NOISY kappa before smoothing, matching where the data's
     Wiener/GLIMPSE reconstruction acts (on noisy shear, before B1's
     smoothing). None = the unfiltered "intrinsic" convention.
+    peak_grid_block: if set, peaks are FOUND on the coarse block-averaged
+    grid (`patch.coarse_grid_peaks`, block=`peak_grid_block`) instead of the
+    native smoothed-map grid — the coarse-grid peak-FINDING convention that
+    supersedes `quantize_arcmin` (which only snaps positions *after* finding
+    and cannot merge nearby maxima). nu is then computed on the COARSE map
+    (its own mean/std), matching the DATA convention where nu is normalized
+    on the same grid peaks are found on (the Nside=1024 smoothed map).
+    Coarse cell centers are mapped back to native-pixel indices so the
+    downstream enmap/thumbnail code is unchanged. None (default) is
+    bit-identical to the pre-existing native-grid behavior.
     """
     kappa_eff = weighting.effective_map(kappa_planes, plane_axis=0)
     kappa_n = kappa_eff + noise_map(kappa_eff.shape, noise_cfg, rng=rng)
     if transfer is not None:
         kappa_n = transfer.apply(kappa_n, geom.fov_deg)
     ksm = smooth_flat_sky(kappa_n, smoothing_cfg)
-    sigma = float(ksm.std()) + 1e-30                    # nu_norm="map"
-    nu_map = (ksm - ksm.mean()) / sigma
 
-    pi, pj = find_peaks_flat(ksm)
-    pnu = nu_map[pi, pj]
-    n_all = len(pnu)
-    sel = (pnu >= nu_edges[0]) & (pnu < nu_edges[-1])
-    pi, pj, pnu = pi[sel], pj[sel], pnu[sel]
+    if peak_grid_block is not None:
+        ci, cj, coarse = coarse_grid_peaks(ksm, block=peak_grid_block)
+        sigma = float(coarse.std()) + 1e-30              # nu_norm="map", coarse grid
+        nu_coarse = (coarse - coarse.mean()) / sigma
+        pnu = nu_coarse[ci, cj]
+        n_all = len(pnu)
+        sel = (pnu >= nu_edges[0]) & (pnu < nu_edges[-1])
+        ci, cj, pnu = ci[sel], cj[sel], pnu[sel]
+        pi = ci * peak_grid_block + peak_grid_block // 2
+        pj = cj * peak_grid_block + peak_grid_block // 2
+        patch_area_deg2 = effective_patch_area_deg2(geom, peak_grid_block)
+    else:
+        sigma = float(ksm.std()) + 1e-30                    # nu_norm="map"
+        nu_map = (ksm - ksm.mean()) / sigma
+        pi, pj = find_peaks_flat(ksm)
+        pnu = nu_map[pi, pj]
+        n_all = len(pnu)
+        sel = (pnu >= nu_edges[0]) & (pnu < nu_edges[-1])
+        pi, pj, pnu = pi[sel], pj[sel], pnu[sel]
+        patch_area_deg2 = effective_patch_area_deg2(geom, None)
 
     y_beamed = apply_beam(np.asarray(y_total, dtype=np.float64), beam_cfg)
     if len(pnu) == 0:
-        return MockPatchResult(pnu, np.zeros((0, len(cap_radii))), sigma, n_all)
+        return MockPatchResult(pnu, np.zeros((0, len(cap_radii))), sigma, n_all,
+                               patch_area_deg2)
     emap = patch_to_enmap(y_beamed, geom, pad_pix)
     ra, dec = peak_sky_coords(pi, pj, emap, pad_pix,
                               quantize_arcmin=quantize_arcmin)
     thumbs = np.asarray(extract_thumbnails(emap, ra, dec, THUMB_R_ARCMIN,
                                            THUMB_RES_ARCMIN), dtype=np.float64)
     per_peak_y = cap_filter_multi(thumbs, cap_radii, THUMB_RES_ARCMIN)
-    return MockPatchResult(pnu, per_peak_y, sigma, n_all)
+    return MockPatchResult(pnu, per_peak_y, sigma, n_all, patch_area_deg2)
 
 
 @dataclass

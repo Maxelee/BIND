@@ -91,7 +91,8 @@ def measure_mock_patch(kappa_planes: np.ndarray, y_total: np.ndarray,
                        nu_edges: np.ndarray = NU_STACK_EDGES,
                        cap_radii=CAP_RADII_ARCMIN,
                        pad_pix: int = DEFAULT_PAD_PIX,
-                       transfer: TransferFunction | None = None) -> MockPatchResult:
+                       transfer: TransferFunction | None = None,
+                       quantize_arcmin: float | None = None) -> MockPatchResult:
     """Run the full frozen chain (module docstring) on one atlas patch.
 
     kappa_planes: (K, npix, npix) single realization, all source planes.
@@ -120,7 +121,8 @@ def measure_mock_patch(kappa_planes: np.ndarray, y_total: np.ndarray,
     if len(pnu) == 0:
         return MockPatchResult(pnu, np.zeros((0, len(cap_radii))), sigma, n_all)
     emap = patch_to_enmap(y_beamed, geom, pad_pix)
-    ra, dec = peak_sky_coords(pi, pj, emap, pad_pix)
+    ra, dec = peak_sky_coords(pi, pj, emap, pad_pix,
+                              quantize_arcmin=quantize_arcmin)
     thumbs = np.asarray(extract_thumbnails(emap, ra, dec, THUMB_R_ARCMIN,
                                            THUMB_RES_ARCMIN), dtype=np.float64)
     per_peak_y = cap_filter_multi(thumbs, cap_radii, THUMB_RES_ARCMIN)

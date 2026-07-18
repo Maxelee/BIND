@@ -92,8 +92,32 @@ def patch_to_enmap(patch: np.ndarray, geom: PatchGeometry = PatchGeometry(),
 
 
 def peak_sky_coords(pi: np.ndarray, pj: np.ndarray, emap,
-                    pad_pix: int = DEFAULT_PAD_PIX) -> tuple[np.ndarray, np.ndarray]:
-    """(ra_deg, dec_deg) on `emap` for unpadded-patch pixel indices (pi, pj)."""
+                    pad_pix: int = DEFAULT_PAD_PIX,
+                    quantize_arcmin: float | None = None,
+                    ) -> tuple[np.ndarray, np.ndarray]:
+    """(ra_deg, dec_deg) on `emap` for unpadded-patch pixel indices (pi, pj).
+
+    quantize_arcmin: if set, snap positions to a square grid of that pitch —
+    the matched-convention model of the DATA side's peak-position
+    quantization (B1 peaks live on the Nside=1024 HEALPix grid, mean pixel
+    side ~3.435', and thumbnails are extracted at pixel centers; the mock's
+    0.293' grid is effectively continuous). Measured effect (2026-07-18
+    experiment, bind fiducial): suppresses <Y_CAP> by ~30%/15%/<10% at
+    2'/4'/6-8' — a real chain asymmetry, found during the B5 radius
+    diagnostic and promoted to a chain convention (see the B5 REPORT
+    'ordering' note: the fix models a data-side property, it is not a
+    fitted parameter).
+    """
     pix = np.stack([np.asarray(pi) + pad_pix, np.asarray(pj) + pad_pix])
     dec, ra = np.rad2deg(emap.pix2sky(pix))
-    return np.asarray(ra, dtype=np.float64), np.asarray(dec, dtype=np.float64)
+    ra = np.asarray(ra, dtype=np.float64)
+    dec = np.asarray(dec, dtype=np.float64)
+    if quantize_arcmin is not None:
+        q = quantize_arcmin / 60.0
+        ra, dec = np.round(ra / q) * q, np.round(dec / q) * q
+    return ra, dec
+
+
+# mean HEALPix pixel side at the B1 catalog resolution (Nside=1024)
+HEALPIX_NSIDE1024_PIX_ARCMIN: float = float(
+    np.sqrt(4.0 * np.pi / (12 * 1024 ** 2)) * 180.0 / np.pi * 60.0)

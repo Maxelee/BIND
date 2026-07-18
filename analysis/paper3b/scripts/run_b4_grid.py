@@ -65,7 +65,8 @@ def load_weighting(weights_npz: Path, scheme: str) -> SourcePlaneWeighting:
 
 def process_unit(cat: str, run: str, weighting: SourcePlaneWeighting,
                  n_seeds: int, seed0: int, unit_idx: int, out_dir: Path,
-                 scheme: str, transfer=None, transfer_name: str = "none") -> dict:
+                 scheme: str, transfer=None, transfer_name: str = "none",
+                 quantize_arcmin: float | None = None) -> dict:
     t0 = time.time()
     rd = RUNS_ROOT / cat / run
     kz = np.load(rd / "kappa_maps.npz")
@@ -92,7 +93,8 @@ def process_unit(cat: str, run: str, weighting: SourcePlaneWeighting,
             rng = np.random.default_rng((seed0, unit_idx, r, s))
             acc.add(measure_mock_patch(planes, ymap, weighting, noise_cfg,
                                        smooth_cfg, beam_cfg, rng, geom=geom,
-                                       transfer=transfer))
+                                       transfer=transfer,
+                                       quantize_arcmin=quantize_arcmin))
             real_idx.append(r)
             seed_idx.append(s)
 
@@ -103,6 +105,7 @@ def process_unit(cat: str, run: str, weighting: SourcePlaneWeighting,
     np.savez(out_dir / f"{cat}_{run}.npz",
              category=cat, run=run, params=params,
              transfer=transfer_name,
+             quantize_arcmin=(0.0 if quantize_arcmin is None else quantize_arcmin),
              weight_scheme=scheme, weights=weighting.weights,
              n_seeds=n_seeds, seed0=seed0, unit_idx=unit_idx,
              neff_arcmin2=DESY3_NEFF_TOTAL_ARCMIN2, sigma_e=DESY3_SIGMA_E,
@@ -133,6 +136,11 @@ def main() -> None:
                          "convention (the pre-decision grid)")
     ap.add_argument("--transfer-npz", default=str(DEFAULT_OUT / "transfer_desy3.npz"),
                     help="persisted output of build_b5_transfer.py")
+    ap.add_argument("--quantize-nside1024", action="store_true",
+                    help="snap mock peak positions to the Nside=1024 pixel "
+                         "pitch (3.435') — the DATA side's position "
+                         "quantization (B5 matched-convention fix); output "
+                         "dir gains suffix _q1024")
     ap.add_argument("--overwrite", action="store_true")
     args = ap.parse_args()
 
@@ -149,8 +157,12 @@ def main() -> None:
     if args.transfer != "none":
         transfer = load_transfer(args.transfer_npz, args.transfer)
 
+    from analysis.paper3b.mocks.patch import HEALPIX_NSIDE1024_PIX_ARCMIN
+    quant = HEALPIX_NSIDE1024_PIX_ARCMIN if args.quantize_nside1024 else None
+
     units = unit_list(args.categories)
     suffix = "" if args.transfer == "none" else f"_tf{args.transfer}"
+    suffix += "_q1024" if quant is not None else ""
     suffix += "" if args.weight_scheme == "default" else f"_{args.weight_scheme}"
     out_dir = Path(args.out) / f"grid{suffix}"
     if rank == 0:
@@ -164,7 +176,8 @@ def main() -> None:
             continue
         info = process_unit(cat, run, weighting, args.n_seeds, args.seed0, u,
                             out_dir, args.weight_scheme,
-                            transfer=transfer, transfer_name=args.transfer)
+                            transfer=transfer, transfer_name=args.transfer,
+                            quantize_arcmin=quant)
         print(f"[rank {rank}] {info['unit']}: {info['n_patches']} patches, "
               f"{info['n_peaks']} peaks, {info['minutes']:.1f} min", flush=True)
 

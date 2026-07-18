@@ -21,11 +21,10 @@ import numpy as np
 
 from . import params_meta as pm
 
-# v3: trained on operator_tables_v3 (adds own-patch CAP stacks + the
-# Sigma(R) profile blocks the decorrelation forward model consumes);
-# validated 2026-07-17 (validation_summary_v3.json). v2 artifact kept
-# alongside for provenance.
-DEFAULT_ARTIFACT = Path("/mnt/ceph/users/mlee1/paper3/A/wp4_emulator/gasemu_gp_v3.npz")
+# v4: the 512-run generation (Sobol points 0-511, a verified sequence
+# continuation) on operator_tables_v3 columns; validated 2026-07-18
+# (validation_summary_v4.json). v2/v3 artifacts kept for provenance.
+DEFAULT_ARTIFACT = Path("/mnt/ceph/users/mlee1/paper3/A/wp4_emulator/gasemu_gp_v4.npz")
 
 LOG_BLOCKS = {"fgas_med", "fgas_scat", "ksz0", "ksz1"}  # strictly positive, emulated as log10
 

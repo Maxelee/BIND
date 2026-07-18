@@ -50,8 +50,8 @@ class SigmaTheory:
     """Callable per-snapshot diagonal theory covariance."""
 
     def __init__(self, emulator: GasEmulator | None = None,
-                 kfold_path: Path = WP4 / "gasemu_kfold_v3.npz",
-                 dataset_path: Path = WP4 / "gasemu_dataset_v3.npz"):
+                 kfold_path: Path = WP4 / "gasemu_kfold_v4.npz",
+                 dataset_path: Path = WP4 / "gasemu_dataset_v4.npz"):
         self.emu = emulator or GasEmulator.load()
         kf = np.load(kfold_path, allow_pickle=False)
         snaps = [str(s) for s in kf["snaps"]]

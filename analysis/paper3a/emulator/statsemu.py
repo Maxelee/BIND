@@ -377,7 +377,8 @@ def merge_main(args) -> None:
     arrays["provenance"] = np.array(json.dumps({
         "created": datetime.datetime.now().isoformat(timespec="seconds"),
         "merged_from": [str(p) for p in parts],
-        "part_settings": provs[0].get("settings"),
+        "part_settings_by_part": {p.stem: prov.get("settings")
+                                  for p, prov in zip(parts, provs)},
         "dataset": provs[0].get("dataset"),
         "recipe": provs[0].get("recipe"),
     }))

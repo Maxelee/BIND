@@ -40,6 +40,14 @@ from analysis.paper3b.mocks.transfer import load_transfer
 from analysis.paper3b.stack.mpiutil import mpi_comm
 
 RUNS_ROOT = Path("/mnt/home/mlee1/ceph/bind_science/runs")
+# the SB35 Sobol suite lives under a different ceph root (2026-07-18,
+# manifold-coverage extension: 253 space-filling design points, same
+# shared-DMO skeleton + map schema as the twobound atlas)
+CATEGORY_ROOTS = {"sb35": Path("/mnt/home/mlee1/ceph/bind_sb35/runs")}
+
+
+def cat_root(cat: str) -> Path:
+    return CATEGORY_ROOTS.get(cat, RUNS_ROOT / cat)
 DEFAULT_OUT = Path("/mnt/home/mlee1/ceph/paper3/B/wp4_mocks")
 DEFAULT_N_SEEDS = 8
 DEFAULT_SEED0 = 20260717
@@ -48,7 +56,7 @@ DEFAULT_SEED0 = 20260717
 def unit_list(categories) -> list[tuple[str, str]]:
     units: list[tuple[str, str]] = []
     for cat in categories:
-        base = RUNS_ROOT / cat
+        base = cat_root(cat)
         runs = sorted(p.name for p in base.iterdir()
                       if p.is_dir() and (p / "kappa_maps.npz").exists()
                       and (p / "y_maps.npz").exists())
@@ -69,7 +77,7 @@ def process_unit(cat: str, run: str, weighting: SourcePlaneWeighting,
                  quantize_arcmin: float | None = None,
                  peak_grid_block: int | None = None) -> dict:
     t0 = time.time()
-    rd = RUNS_ROOT / cat / run
+    rd = cat_root(cat) / run
     kz = np.load(rd / "kappa_maps.npz")
     kappa = kz["kappa"]                                   # (n_real, K, n, n) f32
     source_z = np.asarray(kz["source_redshifts"], dtype=float)

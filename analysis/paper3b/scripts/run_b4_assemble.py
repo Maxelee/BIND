@@ -28,6 +28,11 @@ from pathlib import Path
 import numpy as np
 
 RUNS_ROOT = Path("/mnt/home/mlee1/ceph/bind_science/runs")
+CATEGORY_ROOTS = {"sb35": Path("/mnt/home/mlee1/ceph/bind_sb35/runs")}
+
+
+def cat_root(cat: str) -> Path:
+    return CATEGORY_ROOTS.get(cat, RUNS_ROOT / cat)
 DEFAULT_OUT = Path("/mnt/home/mlee1/ceph/paper3/B/wp4_mocks")
 MASS_MIN = 10 ** 13.5          # Msun; peak-relevant halo mass floor (provisional)
 PATCH_AREA_DEG2 = 25.0         # 5 deg x 5 deg
@@ -91,7 +96,7 @@ def main() -> None:
             "patch_area_deg2": patch_area_deg2,
         }
         if cat == "twobound":
-            entry["coords"] = halo_coordinates(RUNS_ROOT / cat / run, fid)
+            entry["coords"] = halo_coordinates(cat_root(cat) / run, fid)
         rows[f"{cat}/{run}"] = entry
 
     # ── model grid table (twobound runs) ─────────────────────────────────────

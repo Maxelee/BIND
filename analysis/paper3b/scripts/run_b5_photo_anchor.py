@@ -156,6 +156,23 @@ def main() -> None:
     for b in (1, 2, 3, 4):
         sel = np.where(pzb == b)[0]
         n_avail = sel.size
+        ck = OUT / f"photo_anchor_bin{b}.npz"
+        if ck.exists():
+            d = np.load(ck)
+            if int(d["n_stacked"]) >= args.n_per_bin:
+                mean, err = d["y_cap"], d["y_cap_err"]
+                curves[b] = (mean, err)
+                row = {"n_available": int(n_avail), "n_stacked": int(d["n_stacked"]),
+                       "y_cap": mean.tolist(), "y_cap_err": err.tolist(),
+                       "resumed_from_checkpoint": True}
+                if liu is not None:
+                    row["ratio_to_liu_series"] = (mean / liu["y"]).tolist()
+                    row["chi2_vs_liu_series"] = float(
+                        (((mean - liu["y"]) ** 2) / (err ** 2 + liu["err"] ** 2)).sum())
+                summary["bins"][f"pz{b}"] = row
+                print(f"[anchor] pz{b}: resumed from checkpoint "
+                      f"(n={int(d['n_stacked']):,})", flush=True)
+                continue
         if n_avail > args.n_per_bin:
             sel = rng.choice(sel, args.n_per_bin, replace=False)
         per_obj = np.empty((sel.size, len(LIU_RADII)))

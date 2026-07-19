@@ -95,13 +95,19 @@ def main() -> None:
     cat = cat[keep]
     print(f"[anchor] {keep.sum():,} LRGs after pz-bin + White+22 cuts "
           f"({nraw:,} raw)", flush=True)
+    # keep only the three needed columns (memory: the full recarray is GBs
+    # and the session cgroup is tight — the first 120k run died on pz4)
+    ra_all = np.ascontiguousarray(cat["RA"], dtype=np.float64)
+    dec_all = np.ascontiguousarray(cat["DEC"], dtype=np.float64)
+    pzb_all = np.ascontiguousarray(cat["pz_bin"], dtype=np.int16)
+    del cat
 
     ymap = load_act_ymap()
     mask = load_act_mask()
 
     # footprint + aperture-clean: apodized mask ~1 at the centre and on the
     # largest-aperture circle (8 azimuthal probes)
-    ra, dec = np.asarray(cat["RA"], float), np.asarray(cat["DEC"], float)
+    ra, dec = ra_all, dec_all
     mval = mask.at(np.deg2rad(np.stack([dec, ra])), order=1)
     ok = mval >= 0.99
     ang = np.linspace(0, 2 * np.pi, 8, endpoint=False)
@@ -128,7 +134,7 @@ def main() -> None:
     print(f"[anchor] {ok.sum():,} after DR5 SNR>6 cluster veto "
           f"({int(near.sum()):,} vetoed)", flush=True)
 
-    cat, ra, dec = cat[ok], ra[ok], dec[ok]
+    ra, dec, pzb = ra[ok], dec[ok], pzb_all[ok]
     rng = np.random.default_rng(args.seed)
 
     liu = None
@@ -148,7 +154,7 @@ def main() -> None:
                "bins": {}}
     curves = {}
     for b in (1, 2, 3, 4):
-        sel = np.where(cat["pz_bin"] == b)[0]
+        sel = np.where(pzb == b)[0]
         n_avail = sel.size
         if n_avail > args.n_per_bin:
             sel = rng.choice(sel, args.n_per_bin, replace=False)
@@ -167,6 +173,10 @@ def main() -> None:
             boot[k] = per_obj[rng.integers(0, sel.size, sel.size)].mean(axis=0)
         err = boot.std(axis=0)
         curves[b] = (mean, err)
+        np.savez(OUT / f"photo_anchor_bin{b}.npz", n_stacked=sel.size,
+                 radii_arcmin=LIU_RADII, y_cap=mean, y_cap_err=err)
+        print(f"[anchor] pz{b} y_cap: " + " ".join(f"{v:.3e}" for v in mean), flush=True)
+        print(f"[anchor] pz{b} err  : " + " ".join(f"{v:.3e}" for v in err), flush=True)
         row = {"n_available": int(n_avail), "n_stacked": int(sel.size),
                "y_cap": mean.tolist(), "y_cap_err": err.tolist()}
         if liu is not None:

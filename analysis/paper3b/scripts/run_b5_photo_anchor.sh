@@ -14,9 +14,11 @@
 # ── WP-B5 ladder item 5: photometric anchor stack (DESI Main LRG x DR6 y) ────
 # 120k galaxies/bin x 4 photo-z bins through the frozen thumbnail+CAP chain.
 # Per-bin checkpoints (photo_anchor_bin<b>.npz) → resumable: bins already
-# completed by any previous run (interactive or batch) are skipped, so this
-# is safe to submit while an interactive run is mid-flight and safe to
-# resubmit after a timeout. Outputs ->
+# completed by any previous run are skipped, so this is safe to RESUBMIT
+# after a timeout/crash. Do NOT deliberately run two instances at once —
+# an in-flight bin would be double-computed and the summary json is
+# last-writer-wins (2026-07-18 validation; checkpoints are now atomic and
+# corrupt-tolerant, and each bin has an independent rng stream). Outputs ->
 # ~/ceph/paper3/B/wp5_inference/photo_anchor/{photo_anchor_summary.json,png}
 #
 # ⛔ HUMAN CHECKPOINT — submit by hand:

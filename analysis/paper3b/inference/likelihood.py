@@ -30,7 +30,7 @@ from .gridmodel import B5_BINS, RAD_IDX, GridEmulator
 WP4 = Path("/mnt/home/mlee1/ceph/paper3/B/wp4_mocks")
 
 # evaluation window: generous around the twobound cloud
-# (mgas in [-0.17, +0.07], t in [-0.006, +0.037]) so edge-piling is visible
+# (mgas in [-0.17, +0.10], t in [-0.014, +0.037]) so edge-piling is visible
 DEFAULT_WINDOW = ((-0.35, 0.15), (-0.03, 0.06))
 
 

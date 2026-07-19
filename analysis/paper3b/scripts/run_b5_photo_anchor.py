@@ -26,6 +26,19 @@ rely on the released wide mask (wExtended) + aperture-clean cut; they stack
 the full masked sample — we subsample per bin (seeded; errors scale up,
 means unbiased).
 
+Checkpoint/RNG provenance (2026-07-18 validation hardening): per-bin
+checkpoints are written ATOMICALLY (tmp + os.replace) and the resume path
+tolerates a corrupt/truncated checkpoint (recomputes that bin). Each bin
+draws its subsample + bootstrap from an independent stream
+default_rng([seed, bin]), and the checkpoint records subsample_idx +
+rng_scheme, so a bin's result no longer depends on which earlier bins were
+resumed (the earlier single-stream scheme was unbiased but not
+reproducible across resume patterns; checkpoints written before this
+change carry no subsample_idx/rng_scheme keys). Do NOT deliberately run
+two instances concurrently: an in-flight bin would be double-computed and
+photo_anchor_summary.json is last-writer-wins. Resubmit-after-timeout is
+the intended resume mode.
+
 Job-free, CPU: chunked pixell thumbnails; ~30-40 min at 120k/bin.
 Outputs -> /mnt/home/mlee1/ceph/paper3/B/wp5_inference/photo_anchor/
 """
@@ -34,6 +47,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -135,7 +149,8 @@ def main() -> None:
           f"({int(near.sum()):,} vetoed)", flush=True)
 
     ra, dec, pzb = ra[ok], dec[ok], pzb_all[ok]
-    rng = np.random.default_rng(args.seed)
+    # per-bin independent rng streams are created inside the loop
+    # (default_rng([seed, b])) so resume patterns cannot shift later bins
 
     liu = None
     try:
@@ -157,8 +172,16 @@ def main() -> None:
         sel = np.where(pzb == b)[0]
         n_avail = sel.size
         ck = OUT / f"photo_anchor_bin{b}.npz"
+        d = None
         if ck.exists():
-            d = np.load(ck)
+            try:
+                d = np.load(ck)
+                int(d["n_stacked"])
+            except Exception as e:            # truncated/corrupt checkpoint
+                print(f"[anchor] pz{b}: checkpoint unreadable ({e}) — "
+                      f"recomputing this bin", flush=True)
+                d = None
+        if d is not None:
             if int(d["n_stacked"]) >= args.n_per_bin:
                 mean, err = d["y_cap"], d["y_cap_err"]
                 curves[b] = (mean, err)
@@ -173,6 +196,7 @@ def main() -> None:
                 print(f"[anchor] pz{b}: resumed from checkpoint "
                       f"(n={int(d['n_stacked']):,})", flush=True)
                 continue
+        rng = np.random.default_rng([args.seed, b])
         if n_avail > args.n_per_bin:
             sel = rng.choice(sel, args.n_per_bin, replace=False)
         per_obj = np.empty((sel.size, len(LIU_RADII)))
@@ -190,8 +214,11 @@ def main() -> None:
             boot[k] = per_obj[rng.integers(0, sel.size, sel.size)].mean(axis=0)
         err = boot.std(axis=0)
         curves[b] = (mean, err)
-        np.savez(OUT / f"photo_anchor_bin{b}.npz", n_stacked=sel.size,
-                 radii_arcmin=LIU_RADII, y_cap=mean, y_cap_err=err)
+        tmp = OUT / f".photo_anchor_bin{b}.npz.tmp"
+        np.savez(tmp, n_stacked=sel.size, radii_arcmin=LIU_RADII,
+                 y_cap=mean, y_cap_err=err, subsample_idx=sel,
+                 rng_scheme=f"default_rng([{args.seed}, {b}])")
+        os.replace(tmp, ck)
         print(f"[anchor] pz{b} y_cap: " + " ".join(f"{v:.3e}" for v in mean), flush=True)
         print(f"[anchor] pz{b} err  : " + " ".join(f"{v:.3e}" for v in err), flush=True)
         row = {"n_available": int(n_avail), "n_stacked": int(sel.size),
@@ -206,8 +233,10 @@ def main() -> None:
                   f"chi2 vs series = {chi2:.1f}/9")
         summary["bins"][f"pz{b}"] = row
 
-    with open(OUT / "photo_anchor_summary.json", "w") as f:
+    tmp = OUT / ".photo_anchor_summary.json.tmp"
+    with open(tmp, "w") as f:
         json.dump(summary, f, indent=1)
+    os.replace(tmp, OUT / "photo_anchor_summary.json")
     print(f"[anchor] wrote {OUT/'photo_anchor_summary.json'}")
 
     import matplotlib

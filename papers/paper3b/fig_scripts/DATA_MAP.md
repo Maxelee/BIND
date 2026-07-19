@@ -25,3 +25,15 @@ MANIFEST; nothing here recomputes science).
 | fig08_sobol_chi2 | pre-registered item-8 verdict: per-unit χ² + thresholds | sobol/b5_sobol_verdict.json + model grids + frozen vectors |
 | fig09_ladder_budget | ladder rungs as absorbable deficit factors vs the 3.2–6.6× band | wp5_inference/{transfer_movement,b5_item6_cosmology_bracket}.json + validation_closures/gap6_mask_hole_asymmetry.json (+ constants with artifact provenance in-script) |
 | fig10_photo_anchor | DESI LRG × DR6 cumulative CAP profiles vs the (bugged) Zenodo series | wp5_inference/photo_anchor/photo_anchor_summary.json |
+
+**Discussion figures (fig11–fig14, 2026-07-19).** Drafts for the Discussion
+section (see the plans repo `projectB/discussion-plans/`). All frozen
+post-processing; each was executed + independently verified (workflow Wave-1).
+Lead with the data/model ratio; absolute keV/f_gas are prior-conditional.
+
+| fig | shows | inputs (under B) |
+|---|---|---|
+| fig11_ykappa_specific_energy | Y/κ specific energy: grid response a_g/a_T(ν,r) + deficit + f_gas/T split | wp5_inference/p1_ykappa_specific_energy.json (+ p1_ykappa_figdata.npz) |
+| fig12_selfsimilar_entropy_baseline | self-similar/entropy baseline: Δln(f_gas·T) displacement + non-thermal (masking) test | wp5_inference/p4_selfsimilar_entropy_baseline.json |
+| fig13_two_component_feedback_mode | two-component decomposition: outer-amplitude floor + extra-central below the full 313-unit envelope | wp5_inference/two_component_feedback_mode.json |
+| fig14_latent_radial_zones | (inner,outer) f_gas latent plane: SB35 cloud + twobound diagonal + data (inner ~9× deficit; outer needs τ) | wp5_inference/b5_latent_radial_zones.json |

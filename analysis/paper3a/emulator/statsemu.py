@@ -52,7 +52,12 @@ import numpy as np
 from .gasemu import _matern25, _SnapModel  # noqa: F401  (kernel + posterior reuse)
 
 WP6 = Path("/mnt/ceph/users/mlee1/paper3/A/wp6_propagation")
-DATASET = WP6 / "sb35_stats" / "emulator_dataset.npz"
+# xpkfix (2026-07-19): cross columns (cl_kappa_y/cl_yt/cl_kappa_tau)
+# carry the upstream npix^2/fov_rad normalization fix (Popeye session
+# 9, sha 67d6a8c3...); every other column is bit-identical to the
+# Jun-24 emulator_dataset.npz. Consumers no longer apply
+# XPK_CROSS_FIX after the cross-family retrain.
+DATASET = WP6 / "sb35_stats" / "emulator_dataset_xpkfix.npz"
 ARTIFACT = WP6 / "statsemu_gp.npz"
 
 

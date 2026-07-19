@@ -143,14 +143,14 @@ def main() -> None:
     # are NaN there. Zero-fill before the Hankel: those dims are
     # consistent with zero and the fill error is far below the ~9%
     # emulation floor.
-    fid_pred = np.nan_to_num(emu.predict(u_fid, "cl_kappa_y"), nan=0.0) * XPK_CROSS_FIX
+    fid_pred = np.nan_to_num(emu.predict(u_fid, "cl_kappa_y"), nan=0.0)
     n_masked = int(np.sum(~np.isfinite(emu.predict(u_fid, "cl_kappa_y"))))
     print(f"masked (zero-filled) dims: {n_masked} / {fid_pred.size}")
     cl_fid = np.tensordot(fid_pred, w, axes=([0], [0]))
     leak = low_ell_leakage(ell, cl_fid, theta_rad)
     valid = leak < MAX_LEAK
 
-    pred = np.nan_to_num(emu.predict(post, "cl_kappa_y"), nan=0.0) * XPK_CROSS_FIX
+    pred = np.nan_to_num(emu.predict(post, "cl_kappa_y"), nan=0.0)
     cl_w = np.tensordot(pred, w, axes=([1], [0]))          # (N, L)
     xi = cl_w @ K.T                                        # (N, n_th)
     xi_fid = K @ cl_fid
@@ -180,7 +180,7 @@ def main() -> None:
         "status": "first-contact frame-matched comparison; flat-sky J2, "
                   "beam forward-modeled; large-theta bins masked by the "
                   "low-ell leakage criterion",
-        "xpk_cross_fix": XPK_CROSS_FIX,
+        "xpk_cross_fix": "upstream (xpkfix dataset, retrained 2026-07-19); constant kept below for the battery regression",
         "sanity": {"xi_fid_at_2.8am": float(xi_fid[0]),
                    "data_comb_at_2.8am": float(d_comb[0])},
     }

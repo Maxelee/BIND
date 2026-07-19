@@ -126,7 +126,9 @@ FILES = {
     "wp5_inference/mbias/mbias_summary.json":
         "Ladder item 7: shear m-bias exact-cancellation demonstration",
     "wp5_inference/transfer_movement.json":
-        "Ladder item 4: transfer-shape movement numbers (populated once variant grids land)",
+        "Ladder item 4: transfer-shape movement numbers (NULL: <=8% lever, jobs 2451614/15)",
+    "wp5_inference/photo_anchor/photo_anchor_summary.json":
+        "Ladder item 5: absolute photometric anchor vs Liu et al. 2025 (DESI LRG x same DR6 NILC y)",
 }
 
 

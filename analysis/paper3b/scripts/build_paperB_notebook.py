@@ -514,9 +514,18 @@ mechanism that could fake a $y$-deficit, with its verdict recorded:
    partial contribution ($\lesssim2\times$ in the mid bins) is not
    excluded and is carried as a nuisance in the interpretation.
 4. **Transfer-shape robustness**: the grid re-run with transfer shapes
-   derived from different atlas denominators (movement numbers below;
-   populated once the variant grids complete).
-5. **Absolute photometric anchor** (external catalog): open.
+   derived from different atlas denominators moves the prediction by
+   $\le 8\%$ (movement numbers below) — an order of magnitude too small.
+   **Null.**
+5. **Absolute photometric anchor**: the same map product, CAP filter and
+   units were used by an independent group (Liu et al. 2025,
+   arXiv:2502.08850) to stack DESI DR9 Main-LRG positions; we repeat
+   their measurement with *our* pipeline on the public catalog (official
+   quality cuts) and compare amplitudes — an end-to-end absolute check of
+   the $y$-map handling, beam, units and CAP code, independent of the DES
+   peak chain. (Their Zenodo release carries a column-replication bug —
+   every pz/variant column holds the same series — so the comparison also
+   serves as an identification test against the one genuine series.)
 6. **$\sigma_8$/cosmology bracket**: open (estimated second-order, since
    the transfer re-matches the two-point content by construction).
 7. **Shear multiplicative bias**: cancels **exactly** — every step is
@@ -559,11 +568,22 @@ mtxt = (f"Item 7 (shear m-bias): NULL-EXACT\n"
         f"  data side: {mb['data_side']['n_peaks']} peaks, identical set,\n"
         f"    max|Δν| = {mb['data_side']['max_abs_delta_nu']:.1e}\n"
         f"  mock side: max|Δν| = {mb['model_side']['max_abs_delta_nu']:.1e},\n"
-        f"    per-peak Y bit-identical\n\nItem 4 (transfer shapes):\n")
+        f"    per-peak Y bit-identical\n\nItem 4 (transfer shapes): NULL\n")
 for name, v in mv["variants"].items():
     mtxt += (f"  {name}: ratio(4') = "
              + ", ".join(f"{r:.3f}" for r in v["ratio_4am"]) + "\n"
              if v.get("status") == "ok" else f"  {name}: grids running\n")
+try:
+    pa = load("wp5_inference/photo_anchor/photo_anchor_summary.json")
+    mtxt += "\nItem 5 (photometric anchor vs Liu+25):\n"
+    for k, r in pa["bins"].items():
+        if "ratio_to_liu_series" in r:
+            mtxt += (f"  {k} (n={r['n_stacked']:,}): "
+                     f"<ratio vs series> = "
+                     f"{np.mean(r['ratio_to_liu_series']):.2f}, "
+                     f"chi2 = {r['chi2_vs_liu_series']:.0f}/9\n")
+except (KeyError, FileNotFoundError):
+    mtxt += "\nItem 5 (photometric anchor): measurement in progress\n"
 axes[2].text(0.02, 0.95, mtxt, va="top", family="monospace", fontsize=8.5)
 axes[2].axis("off")
 fig.tight_layout(); fig.savefig(FIG / "fig6_ladder.png", bbox_inches="tight")

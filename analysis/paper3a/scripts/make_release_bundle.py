@@ -257,6 +257,34 @@ predictive p-value is 0.000. Treat these chains as "the range TNG
 feedback can be calibrated to", not as a measurement of the feedback of
 the Universe. The WP-A7 S8 numbers inherit that framing.
 
+## Scope (read before applying anything here to a survey)
+
+1. **Model class: TNG.** Every band is a statement about the
+   IllustrisTNG feedback family (the 30-parameter CAMELS-TNG design) —
+   and the paper's own result is that this family does not fit the four
+   probes jointly. Nothing here constrains non-TNG feedback physics.
+2. **Halo-mass floor: M ≥ 1e13 h⁻¹M☉.** The emulators are trained above
+   this floor; predictions below it are extrapolation and must not be
+   used.
+3. **Halo-pasting ceiling on 2-pt statistics.** The pasting pipeline
+   captures ~90% of the true suppression on C_ℓ; quoted 2-pt corrections
+   are incomplete at that level (peaks are exempt). Envelopes are
+   validated for ℓ ≲ 8000 only.
+4. **Fixed cosmology.** The calibration is at the TNG300 cosmology; the
+   induced error elsewhere in (Ωm, σ8) is quantified as the Elbers band
+   (`wp7_cosmology/elbers_band.json`, subdominant but nonzero) and must
+   be carried, not dropped.
+
+## Loading (the 5-line snippet)
+
+```python
+import json, numpy as np
+from pathlib import Path
+ROOT = Path("paper3a_products_v1")
+tables = json.loads((ROOT / "wp7_cosmology/safescale_tables.json").read_text())
+chain = np.load(ROOT / "wp5_chains/joint_ab_seed0.npz")["chain"]
+```
+
 ## External code
 
 The Pandey et al. comparison uses the GODMAX model implementation from

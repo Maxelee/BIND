@@ -65,15 +65,30 @@ from analysis.paper3a.emulator.statsemu import WP6, StatsEmulator  # noqa: E402
 GRID = Path("/mnt/ceph/users/mlee1/paper3/B/wp4_mocks/model_grid_tfwiener.npz")
 FID_TABLE = Path("/mnt/ceph/users/mlee1/paper3/A/wp3_gate/operator_tables_v3/"
                  "fiducial_run_0000_snap096.npz")
-MASS_MIN_MSUN = 10**13.5          # B4's peak-relevant floor
+# B4's peak-relevant floor. UNITS, settled 2026-07-19 (rusty s7) after
+# Popeye established halo_mass = Group_M_Crit200 in Msun/h: this cut, the
+# table's `logm200`, and the statsemu manifest `mass_bins` are ALL in the
+# Msun/h frame. Evidence: median log10(m500_msunh) - logm200 = -0.1411,
+# i.e. exactly the 200c->500c c=5 conversion and nothing else, so logm200
+# shares the frame of the explicitly-named m500_msunh; and the catalogue
+# floor sits at exactly 13.000 = the 1e13 Msun/h cut, matching the lowest
+# manifest bin edge. The binning is therefore SELF-CONSISTENT (no
+# misassignment), and the A-vs-B mirror gate passing at 98.4-100% is the
+# empirical confirmation -- a 0.169 dex frame mismatch between the two
+# sides would shift bin membership and break the mirror.
+# The constant was previously named ..._MSUN and the line below was
+# commented "Msun-frame masses"; both were wrong labels on correct
+# numbers. Absolute-mass statements derived from these bins must add
+# +0.169 dex to reach Msun.
+MASS_MIN_MSUNH = 10**13.5
 CV_LN = {"scaling_f_gas": np.sqrt(2) * 0.023,   # 8-fold CV, ln-frame floor
          "scaling_T": np.sqrt(2) * 0.017}
 
 
 def bin_weights(edges: np.ndarray) -> np.ndarray:
     d = np.load(FID_TABLE, allow_pickle=True)
-    m200 = 10.0 ** np.asarray(d["logm200"], float)        # Msun-frame masses
-    m200 = m200[m200 > MASS_MIN_MSUN]
+    m200 = 10.0 ** np.asarray(d["logm200"], float)        # Msun/h frame
+    m200 = m200[m200 > MASS_MIN_MSUNH]
     idx = np.clip(np.digitize(np.log10(m200), edges) - 1, 0, len(edges) - 2)
     w = np.zeros(len(edges) - 1)
     for i, mm in zip(idx, m200):
@@ -222,7 +237,7 @@ def main() -> None:
            "gate_frame": label,
            "n_runs": int(len(params)),
            "weights_per_bin": w.tolist(),
-           "mass_floor_msun": MASS_MIN_MSUN,
+           "mass_floor_msunh": MASS_MIN_MSUNH,
            "criteria": "v1: JOINT_AB_PLAN.md step 2 (pre-registered); "
                        "v2: reference-offset amendment (2026-07-18)"}
     if v3_off is not None:

@@ -1,0 +1,240 @@
+"""WP-A8 stream 1: the systematics grid, importance-reweighted.
+
+Reruns the joint A+B inference under every defensible analysis variation
+that is expressible as a modified likelihood, WITHOUT new chains: for a
+subsample of the frozen joint posterior, w = exp(L_variant - L_fiducial)
+(only the changed block contributes — the others cancel), and the
+headline coordinates are re-quoted under w. The cov-stress script
+established the pattern; this generalizes it to the plan's grid.
+
+Movement metric (pre-registered, from the WP-A8 plan): a variation is
+FLAGGED if it moves a headline posterior median by more than 0.5x that
+coordinate's statistical sigma ( = (p84-p16)/2 of the fiducial joint
+posterior). Flagged variations get a dedicated paragraph in the paper.
+ESS is reported per variant; a variant whose ESS collapses (< 500) is
+marked UNRELIABLE rather than quoted.
+
+Variant map (plan item -> implementation):
+  3  central_only     f_sat forced to 0 (vs the fitted U[0.10,0.30])
+  2  rsat_wide        the satellite-geometry/miscentering bracket
+                      (sys_rsat) doubled in the kSZ covariance
+  8  emul2x           Sigma_theory doubled EVERYWHERE: kSZ emul_frac x2,
+                      fgas emul_frac x2, B-block propagated GP errs x2
+  5  fgas_model2x     the fgas 2D-projection/transfer model tier
+                      (PAINT_BIAS_RESID, C2S_TRANSFER_SYS) doubled
+  5b b_coordsys2x     B's pre-registered coordinate-systematic tier
+                      (SLOPE_SYS, OFFSET_SYS) doubled
+  7  drop-one rows    quoted from the FROZEN subset chains/summaries
+                      (kszonly, A-joint = drop-B) — no reweighting
+  1  mass_shift       DEFERRED: the GGL logM500 targets carry no
+                      published sigma in the frozen constants; needs the
+                      source value before any shift is defensible
+  4  cap_radii        DEFERRED to a re-fit: changes the data vector
+  6  stochasticity    N/A here: wp4 diagonal Sigma_theory was confirmed
+                      final and the A2 optional variants closed (see
+                      wp2/wp4 REPORT notes)
+  9  simba_spot       optional; not on rusty (SIMBA 1P data on Popeye)
+
+Run: python analysis/paper3a/scripts/run_a8_sysgrid.py
+Out: wp8_robustness/a8_sysgrid.json
+"""
+
+from __future__ import annotations
+
+import copy
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+
+_repo = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(_repo))
+sys.path.insert(0, str(_repo / "src"))
+
+from analysis.paper3a.inference import bblock as bblock_mod  # noqa: E402
+from analysis.paper3a.inference.fgas import FgasBlock  # noqa: E402
+from analysis.paper3a.inference.jointab import JointBBlock  # noqa: E402
+from analysis.paper3a.inference.ksz import KszBlock  # noqa: E402
+from analysis.paper3a.inference.sampler import CHAINS  # noqa: E402
+
+WP8 = Path("/mnt/ceph/users/mlee1/paper3/A/wp8_robustness")
+N_SUB = 30_000
+FLAG_AT = 0.5          # x sigma_stat, the plan's threshold
+ESS_MIN = 500.0
+
+
+def wq(x, w, q):
+    i = np.argsort(x)
+    c = np.cumsum(w[i])
+    return float(np.interp(q * c[-1], c, x[i]))
+
+
+def ess(w):
+    return float(w.sum() ** 2 / (w ** 2).sum())
+
+
+def load_joint(n, seed=17):
+    flat = np.concatenate(
+        [np.load(CHAINS / f"joint_ab_seed{k}.npz")["chain"]
+         .astype(float).reshape(-1, 32) for k in range(4)])
+    rng = np.random.default_rng(seed)
+    return flat[rng.choice(len(flat), n, replace=False)]
+
+
+def headline(U, coords, w=None):
+    """Weighted medians+sigmas of the four headline quantities."""
+    if w is None:
+        w = np.ones(len(U))
+    out = {}
+    for name, x in (("dln_mgas", coords[:, 0]), ("dln_t", coords[:, 1]),
+                    ("f_sat", 0.10 + 0.20 * U[:, 30]),
+                    ("sigma_pos_arcmin", U[:, 31] * 3.6)):
+        out[name] = {"p16": wq(x, w, 0.16), "p50": wq(x, w, 0.50),
+                     "p84": wq(x, w, 0.84)}
+    return out
+
+
+def movement(fid, var):
+    """Delta(median)/sigma_stat per headline quantity + the flag."""
+    out = {}
+    for k in fid:
+        sig = 0.5 * (fid[k]["p84"] - fid[k]["p16"])
+        d = (var[k]["p50"] - fid[k]["p50"]) / sig if sig > 0 else np.nan
+        out[k] = round(float(d), 3)
+    out["flagged"] = bool(any(abs(v) > FLAG_AT for v in out.values()
+                              if isinstance(v, float) and np.isfinite(v)))
+    return out
+
+
+def main() -> None:
+    WP8.mkdir(exist_ok=True)
+    U = load_joint(N_SUB)
+
+    print("building blocks ...")
+    ksz = KszBlock()
+    fgas = FgasBlock(emu=ksz.emu)
+    jb = JointBBlock()
+
+    print("fiducial loglikes + coords on the subsample ...")
+    coords, cerr = jb.coords(U[:, :30])
+    lk_fid = ksz.loglike(U)
+    lf_fid = fgas.loglike(U)
+    sigma_pos = U[:, 31] * 3.6
+    lb_fid = jb.b.loglike_batch(coords, cerr, sigma_pos)
+
+    fid = headline(U, coords)
+    results = {"fiducial": fid}
+    table = {}
+
+    def add(name, dln_l, note):
+        w = np.exp(dln_l - dln_l.max())
+        e = ess(w)
+        h = headline(U, coords, w)
+        mv = movement(fid, h)
+        table[name] = {**mv, "ess": round(e, 1),
+                       "reliable": bool(e >= ESS_MIN), "note": note}
+        results[name] = h
+        print(f"  {name:16s} ESS={e:8.0f} "
+              + " ".join(f"{k}={mv[k]:+.2f}" for k in
+                         ("dln_mgas", "dln_t", "f_sat", "sigma_pos_arcmin"))
+              + ("  ** FLAGGED" if mv["flagged"] else ""))
+
+    # -- v3 central-only: f_sat = 0 exactly ------------------------------
+    print("variants ...")
+    k0 = copy.copy(ksz)
+    k0.F_SAT_RANGE = (0.0, 0.0)
+    add("central_only", k0.loglike(U) - lk_fid,
+        "plan v3: f_sat=0 vs fitted U[0.10,0.30] mixture")
+
+    # -- v2 satellite-geometry / miscentering bracket doubled ------------
+    k2 = copy.copy(ksz)
+    k2.sys_frac = np.sqrt(ksz.sys_frac**2 + 3.0 * ksz.sys_rsat**2)  # 2x tier
+    add("rsat_wide", k2.loglike(U) - lk_fid,
+        "plan v2: sys_rsat doubled in quadrature (widened miscentering/"
+        "satellite-geometry prior)")
+
+    # -- v8 Sigma_theory doubled everywhere ------------------------------
+    k8 = copy.copy(ksz)
+    k8.sys_frac = np.sqrt(ksz.sys_frac**2 + 3.0 * ksz.emul_frac**2)
+    f8 = copy.copy(fgas)
+    f8.emul_frac = 2.0 * fgas.emul_frac
+    lb8 = jb.b.loglike_batch(coords, 2.0 * cerr, sigma_pos)
+    add("emul2x",
+        (k8.loglike(U) - lk_fid) + (f8.loglike(U) - lf_fid) + (lb8 - lb_fid),
+        "plan v8: emulator-error tier doubled in kSZ + fgas + B blocks")
+
+    # -- v5 fgas model tier doubled --------------------------------------
+    from analysis.paper3a.inference import fgas as fgas_mod
+
+    class Fgas2x(FgasBlock):
+        def sigma(self, pred):
+            emul = np.interp(self.data.bin_centers, self.model_centers,
+                             self.emul_frac)
+            frac = np.sqrt(emul**2 + (2 * fgas_mod.PAINT_BIAS_RESID) ** 2
+                           + (2 * fgas_mod.C2S_TRANSFER_SYS) ** 2)
+            return np.sqrt(self.data.stat_err[None, :] ** 2
+                           + (frac[None, :] * pred) ** 2)
+
+    f5 = Fgas2x.__new__(Fgas2x)
+    f5.__dict__.update(fgas.__dict__)
+    add("fgas_model2x", f5.loglike(U) - lf_fid,
+        "plan v5: fgas 2D-projection/transfer tiers (PAINT_BIAS_RESID, "
+        "C2S_TRANSFER_SYS) doubled")
+
+    # -- v5b B coordinate-systematic tier doubled (sequential patch) -----
+    sl, of = bblock_mod.SLOPE_SYS, bblock_mod.OFFSET_SYS
+    try:
+        bblock_mod.SLOPE_SYS, bblock_mod.OFFSET_SYS = 2 * sl, 2 * of
+        lb5 = jb.b.loglike_batch(coords, cerr, sigma_pos)
+    finally:
+        bblock_mod.SLOPE_SYS, bblock_mod.OFFSET_SYS = sl, of
+    add("b_coordsys2x", lb5 - lb_fid,
+        "B's pre-registered coordinate-systematic tier (SLOPE_SYS, "
+        "OFFSET_SYS) doubled")
+
+    # -- v7 drop-one rows from the frozen artifacts ----------------------
+    syn = json.loads((Path("/mnt/ceph/users/mlee1/paper3/A/wp6_propagation")
+                      / "ab_synthesis.json").read_text())
+    table["drop_probes_note"] = {
+        "note": "plan v7 (drop-one): quoted from the FROZEN subset chains "
+                "— joint_ab (all four) vs a5 joint (drop B) vs kszonly "
+                "(kSZ alone); medians recorded in ab_synthesis.json. The "
+                "two unrun combos (ksz+B, fgas+B) would need fresh "
+                "4-seed fits — prepared on request (same "
+                "joint_ab_fits.disbatch pattern), not run.",
+        "ab_synthesis_medians": syn.get("medians", syn),
+    }
+
+    # -- deferred / N.A. rows (documented, per the acceptance criterion) --
+    table["mass_shift"] = {
+        "note": "plan v1 DEFERRED: SIEGEL_GGL_LOGM500_TARGETS carries no "
+                "published sigma in the frozen constants; shifting by an "
+                "invented value would be the remembered-number failure "
+                "mode. Mechanism ready (rebuild KszBlock at shifted "
+                "LOGM500_TARGET) once the source sigma is recorded."}
+    table["cap_radii"] = {
+        "note": "plan v4 DEFERRED to a re-fit: alternative CAP radii sets "
+                "change the data vector (different dof), outside "
+                "importance-reweighting validity."}
+    table["stochasticity"] = {
+        "note": "plan v6 N/A: wp4 diagonal Sigma_theory confirmed final; "
+                "A2 optional single-vs-multi-sample variants closed "
+                "(wp2/wp4 REPORT notes)."}
+    table["simba_spot"] = {
+        "note": "plan v9 optional: SIMBA 1P inputs live on Popeye ceph; "
+                "not runnable from rusty."}
+
+    out = {"method": "importance reweighting of the frozen joint_ab chain "
+                     f"({N_SUB} subsample of 750k); w = exp(dL) with only "
+                     "the modified block contributing",
+           "flag_threshold_sigma": FLAG_AT,
+           "ess_min": ESS_MIN,
+           "movement_table": table,
+           "posteriors": results}
+    (WP8 / "a8_sysgrid.json").write_text(json.dumps(out, indent=2))
+    print(f"\nwrote {WP8}/a8_sysgrid.json")
+
+
+if __name__ == "__main__":
+    main()

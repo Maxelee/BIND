@@ -139,6 +139,8 @@ FILES = {
         "Sobol-tree assembly summary (R2 selection validation re-ran inside: PASS)",
     "wp4_mocks/sobol/sb35_coords.npz":
         "Per-run (delta_ln_Mgas, delta_ln_T) coordinates + raw means + reference provenance",
+    "wp5_inference/b5_item6_cosmology_bracket.json":
+        "Ladder item 6: analytic sigma8/cosmology bracket (absorbs <=1.5x plausible; cannot null)",
 }
 
 

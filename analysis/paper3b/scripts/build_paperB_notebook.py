@@ -535,8 +535,15 @@ mechanism that could fake a $y$-deficit, with its verdict recorded:
    column; our four measured profiles are retained for comparison against
    author-confirmed vectors. **Inconclusive by external bug — the
    absolute-amplitude guard remains open.**
-6. **$\sigma_8$/cosmology bracket**: open (estimated second-order, since
-   the transfer re-matches the two-point content by construction).
+6. **$\sigma_8$/cosmology bracket**: executed as an analytic bracket.
+   The self-normalized $\nu$ and transfer re-matching absorb the 2-pt
+   amplitude of a $\sigma_8$ shift; the leading residual channel is the
+   $\nu\to M$ remapping at fixed peak abundance. With the mass-function
+   slope measured on the halo skeleton, a DES-Y3-like $\sigma_8=0.776$
+   absorbs a 1.3--1.5$\times$ factor (generous 0.76: $\le$1.8$\times$);
+   nulling the deficit would need $\sigma_8\approx0.65$--$0.72$, far
+   outside current constraints. **Cannot null; carried as a
+   bracket/nuisance** (the largest soft absorber after $\sigma_{\rm pos}$).
 7. **Shear multiplicative bias**: cancels **exactly** — every step is
    linear in the map and $\nu$ is self-normalized on both the data and
    mock sides; demonstrated at $|m|=0.03$ with machine-precision closure.

@@ -63,12 +63,18 @@ def contour_levels(h):
 
 def main() -> None:
     gate = json.loads((WP6 / "ab_gate.json").read_text())
-    if not gate.get("PASS"):
-        raise SystemExit("step-2 gate did not PASS — product 1 is blocked")
+    if not gate.get("PASS_v2"):
+        raise SystemExit("step-2 gate v2 did not PASS — product 1 is blocked")
 
     # ---- B side: nodes + approximate chi2 ------------------------------
+    # v2 amendment (JOINT_AB_PLAN 2026-07-18): B4 coords are ratios against
+    # the bind PRODUCTION fiducial, offset from a same-theta re-run; shift
+    # the nodes by the suite's directly measured reference offset
+    # (twobound/run_0018) so both sides share the fiducial-theta origin.
+    off = np.array([gate["reference_offset"]["dln_mgas"]["value"],
+                    gate["reference_offset"]["dln_t"]["value"]])
     g = np.load(GRID, allow_pickle=True)
-    meas = np.stack([g["delta_ln_mgas"], g["delta_ln_t"]], axis=1)
+    meas = np.stack([g["delta_ln_mgas"], g["delta_ln_t"]], axis=1) - off[None, :]
     y_nodes = np.asarray(g["y_mean"], float)[:, 1:5, 2]      # (60, 4) at 4'
     mc = np.asarray(g["y_mc_err"], float)[:, 1:5, 2]
     stack = np.load(B / "wp2_measurement" / "stack_wiener_sm2am_fid.npz",
@@ -137,6 +143,10 @@ def main() -> None:
     # ---- pre-registered answers ---------------------------------------
     dirvec = meas[imin] / np.linalg.norm(meas[imin])
     summary = {"gate": gate["gate"],
+               "gate_v2": gate["gate_v2_dereferenced"],
+               "frame": "fiducial-theta origin: B nodes shifted by the "
+                        "suite reference offset (v2 amendment)",
+               "reference_offset_removed": off.tolist(),
                "b_min_chi2": {"value": float(chi2[imin]),
                               "coords": meas[imin].tolist(),
                               "run": str(np.asarray(g["run_names"])[imin])},

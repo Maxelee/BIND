@@ -190,8 +190,16 @@ def main() -> None:
     if fid_node is not None:
         keep_v2[fid_node] = False        # the reference defines the offset
 
-    res, res_v2, ref_offset = {}, {}, {}
-    for key, meas in (("dln_mgas", meas_m), ("dln_t", meas_t)):
+    # v3 table (Popeye 2026-07-18): the fiducial-theta node's measured
+    # delta is embedded -> a fit-free offset for the sobol frame too
+    v3_off = None
+    if args.sobol and "fiducial_theta_node_twobound_run_0018_delta" in g.files:
+        v3_off = np.asarray(
+            g["fiducial_theta_node_twobound_run_0018_delta"], float)
+
+    res, res_v2, res_ff, ref_offset = {}, {}, {}, {}
+    for ki, (key, meas) in enumerate((("dln_mgas", meas_m),
+                                      ("dln_t", meas_t))):
         p, e = pred[key], pred[key + "_err"]
         res[key] = criteria(p, e, meas, keep_all)
         if fid_node is not None:
@@ -204,6 +212,8 @@ def main() -> None:
                                "method": "constant fit (slope=1), pending "
                                          "Popeye reference re-measurement"}
         res_v2[key] = criteria(p, e, meas - off, keep_v2)
+        if v3_off is not None:
+            res_ff[key] = criteria(p, e, meas - v3_off[ki], keep_v2)
     verdict = bool(all(res[k]["PASS"] for k in res))
     verdict_v2 = bool(all(res_v2[k]["PASS"] for k in res_v2))
     out = {"gate": res, "PASS": verdict,
@@ -215,6 +225,10 @@ def main() -> None:
            "mass_floor_msun": MASS_MIN_MSUN,
            "criteria": "v1: JOINT_AB_PLAN.md step 2 (pre-registered); "
                        "v2: reference-offset amendment (2026-07-18)"}
+    if v3_off is not None:
+        out["gate_v2_fitfree_run0018"] = res_ff
+        out["PASS_v2_fitfree"] = bool(all(r["PASS"] for r in res_ff.values()))
+        out["fitfree_offset"] = v3_off.tolist()
     tag = "_sobol" if args.sobol else ""
     (WP6 / f"ab_gate{tag}.json").write_text(json.dumps(out, indent=2))
     print(json.dumps(out, indent=2))

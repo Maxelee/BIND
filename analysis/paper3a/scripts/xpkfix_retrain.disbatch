@@ -1,11 +1,11 @@
 # xpkfix cross-family retrain: 3 targets against emulator_dataset_xpkfix.npz
 # (statsemu.DATASET now points there; settings replicate the y-family log
-# re-fit: --transform-override log, --kfold 8). Parts overwrite in place;
+# re-fit: --transform-override $T=log, --kfold 8). Parts overwrite in place;
 # the sbatch driver re-merges all 23 parts and regenerates the cross
 # products. Log-transform makes the constant an exact mean shift, so the
 # retrained predictions must equal old x 1.201580e7 — checked in stage 2b.
 #DISBATCH PREFIX ( cd /mnt/home/mlee1/vdm_bind2-paper3a && module load gcc && source /mnt/home/mlee1/venvs/torch3/bin/activate && export OMP_NUM_THREADS=2 && P=/mnt/ceph/users/mlee1/paper3/A/wp6_propagation/statsemu_parts && T=
-#DISBATCH SUFFIX  && python -u -m analysis.paper3a.emulator.statsemu fit --targets $T --transform-override log --kfold 8 --artifact-out $P/$T.npz ) &> /mnt/home/mlee1/ceph/logs/wp6_statsemu/xpkfix_${DISBATCH_TASKID}.log
+#DISBATCH SUFFIX  && python -u -m analysis.paper3a.emulator.statsemu fit --targets $T --transform-override $T=log --kfold 8 --artifact-out $P/$T.npz ) &> /mnt/home/mlee1/ceph/logs/wp6_statsemu/xpkfix_${DISBATCH_TASKID}.log
 #DISBATCH PERENGINE START mkdir -p /mnt/home/mlee1/ceph/logs/wp6_statsemu
 cl_kappa_y
 cl_kappa_tau

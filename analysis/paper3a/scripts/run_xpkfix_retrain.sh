@@ -26,12 +26,21 @@ module load gcc disBatch
 source /mnt/home/mlee1/venvs/torch3/bin/activate
 cd /mnt/home/mlee1/vdm_bind2-paper3a
 
-cp /mnt/ceph/users/mlee1/paper3/A/wp6_propagation/statsemu_gp.npz \
-   /mnt/ceph/users/mlee1/paper3/A/wp6_propagation/statsemu_gp_prexpkfix.npz
+WP6=/mnt/ceph/users/mlee1/paper3/A/wp6_propagation
+[ -f $WP6/statsemu_gp_prexpkfix.npz ] || \
+    cp $WP6/statsemu_gp.npz $WP6/statsemu_gp_prexpkfix.npz
 
 echo "=== stage 1: 3 cross-family fits ==="
 disBatch -p /mnt/home/mlee1/ceph/logs/wp6_statsemu/db_xpkfix_ \
     analysis/paper3a/scripts/xpkfix_retrain.disbatch
+
+echo "=== stage 1b: verify the parts actually refit ==="
+for T in cl_kappa_y cl_kappa_tau cl_yt; do
+    if [ ! $WP6/statsemu_parts/$T.npz -nt $WP6/sb35_stats/emulator_dataset_xpkfix.npz ]; then
+        echo "part $T is OLDER than the xpkfix dataset — stage 1 failed; see xpkfix task logs"
+        exit 1
+    fi
+done
 
 echo "=== stage 2: merge 23 parts ==="
 python -u -m analysis.paper3a.emulator.statsemu merge

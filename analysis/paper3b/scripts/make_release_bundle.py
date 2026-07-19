@@ -129,6 +129,16 @@ FILES = {
         "Ladder item 4: transfer-shape movement numbers (NULL: <=8% lever, jobs 2451614/15)",
     "wp5_inference/photo_anchor/photo_anchor_summary.json":
         "Ladder item 5: absolute photometric anchor vs Liu et al. 2025 (DESI LRG x same DR6 NILC y)",
+    "wp5_inference/b5_chi2_supplement.json":
+        "Every chi2 quoted in the WP5 record with its explicit covariance recipe (each reproduces exactly)",
+    "wp4_mocks/sobol/b5_sobol_verdict.json":
+        "Ladder item 8 pre-registered verdict: full-box rejection (chi2_min=339.6/4 over 253 Sobol units)",
+    "wp4_mocks/sobol/model_grid_tfwiener_sb35.npz":
+        "253-run SB35 Sobol model table through the identical transfer-matched chain",
+    "wp4_mocks/sobol/b4_summary_tfwiener.json":
+        "Sobol-tree assembly summary (R2 selection validation re-ran inside: PASS)",
+    "wp4_mocks/sobol/sb35_coords.npz":
+        "Per-run (delta_ln_Mgas, delta_ln_T) coordinates + raw means + reference provenance",
 }
 
 

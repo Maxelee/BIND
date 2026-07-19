@@ -95,7 +95,7 @@ def main() -> None:
             "n_patches": npatch,
             "patch_area_deg2": patch_area_deg2,
         }
-        if cat == "twobound":
+        if cat in ("twobound", "sb35"):    # sb35: halo_scaling.npz backfilled
             entry["coords"] = halo_coordinates(cat_root(cat) / run, fid)
         rows[f"{cat}/{run}"] = entry
 
@@ -112,6 +112,22 @@ def main() -> None:
                  abundance_per_deg2=np.stack([rows[k]["abundance_per_deg2"] for k in tb]),
                  delta_ln_mgas=np.array([rows[k]["coords"][0] for k in tb]),
                  delta_ln_t=np.array([rows[k]["coords"][1] for k in tb]),
+                 mass_min=MASS_MIN,
+                 nbin=first["y_mean"].shape[0], nrad=first["y_mean"].shape[1])
+
+    # ── sb35 Sobol table (same fields, separate file; ladder item 8) ─────────
+    sb = sorted(k for k in rows if k.startswith("sb35/"))
+    if sb:
+        first = rows[sb[0]]
+        np.savez(out / f"model_grid{tag}_sb35.npz",
+                 run_names=np.array(sb),
+                 params=np.stack([rows[k]["params"] for k in sb]),
+                 y_mean=np.stack([rows[k]["y_mean"] for k in sb]),
+                 y_mc_err=np.stack([rows[k]["y_mc_err"] for k in sb]),
+                 n_per_bin=np.stack([rows[k]["n_per_bin"] for k in sb]),
+                 abundance_per_deg2=np.stack([rows[k]["abundance_per_deg2"] for k in sb]),
+                 delta_ln_mgas=np.array([rows[k]["coords"][0] for k in sb]),
+                 delta_ln_t=np.array([rows[k]["coords"][1] for k in sb]),
                  mass_min=MASS_MIN,
                  nbin=first["y_mean"].shape[0], nrad=first["y_mean"].shape[1])
 

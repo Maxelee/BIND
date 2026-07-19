@@ -526,12 +526,32 @@ mechanism that could fake a $y$-deficit, with its verdict recorded:
    peak chain. (Their Zenodo release carries a column-replication bug —
    every pz/variant column holds the same series — so the comparison also
    serves as an identification test against the one genuine series.)
+   **Executed at full depth (120k/bin, all four bins): the identification
+   test is decisively negative** — every bin shows the same
+   cumulative-vs-hump radius signature against the one genuine series
+   ($\chi^2$ = 376/191/139/94 per 9), confirming the released series is
+   plausibly from a differential (non-cumulative) figure family. The
+   released vectors are therefore unusable as an absolute anchor in any
+   column; our four measured profiles are retained for comparison against
+   author-confirmed vectors. **Inconclusive by external bug — the
+   absolute-amplitude guard remains open.**
 6. **$\sigma_8$/cosmology bracket**: open (estimated second-order, since
    the transfer re-matches the two-point content by construction).
 7. **Shear multiplicative bias**: cancels **exactly** — every step is
    linear in the map and $\nu$ is self-normalized on both the data and
    mock sides; demonstrated at $|m|=0.03$ with machine-precision closure.
    **Null-exact.**
+8. **Manifold-coverage extension (Sobol box)**: the frozen grid samples
+   the two-parameter $(\Delta\ln M_{\rm gas}, \Delta\ln T)$ family along
+   axis extremes — could parameter *interactions* in the full 30-dim
+   feedback prior open an escape route? All 253 runs of the SB35 Sobol
+   suite (same shared-DMO realizations) were pushed through the identical
+   transfer-matched chain. **Pre-registered verdict (criterion fixed
+   before any model vector was seen): $\chi^2_{\min} = 340/4$ over the
+   full box — zero of 253 units below the rejection threshold of 100.
+   The rejection extends to the full sampled 30-dim box.** Even the best
+   unit (the extreme ejection corner, $\Delta\ln M_{\rm gas} = -0.31$)
+   leaves data/model at 0.40/0.41/0.36/0.21.
 """)
 
 code(r"""
@@ -584,6 +604,15 @@ try:
                      f"chi2 = {r['chi2_vs_liu_series']:.0f}/9\n")
 except (KeyError, FileNotFoundError):
     mtxt += "\nItem 5 (photometric anchor): measurement in progress\n"
+try:
+    sv = load("wp4_mocks/sobol/b5_sobol_verdict.json")
+    mtxt += (f"\nItem 8 (Sobol box, pre-registered): {sv['verdict']}\n"
+             f"  chi2_min = {sv['chi2_min']:.1f}/4 at {sv['chi2_min_at']}"
+             f" {tuple(round(c,3) for c in sv['chi2_min_coords'])}\n"
+             f"  units < 100: {sv['n_below_100']}/{sv['n_units']};"
+             f" median = {sv['chi2_median']:.0f}\n")
+except (KeyError, FileNotFoundError):
+    mtxt += "\nItem 8 (Sobol box): grids running\n"
 axes[2].text(0.02, 0.95, mtxt, va="top", family="monospace", fontsize=8.5)
 axes[2].axis("off")
 fig.tight_layout(); fig.savefig(FIG / "fig6_ladder.png", bbox_inches="tight")
@@ -601,8 +630,9 @@ md(r"""
 the null battery ran as CPU passes; the mock grids ran as Slurm jobs on the
 Flatiron *Popeye* cluster — intrinsic grid **2451467**, transfer-matched
 FINAL grid (n_seeds = 32), coarse-finding variant **2451611**,
-transfer-shape variants **2451614 / 2451615**. The fit and ladder analyses
-are CPU-light and re-runnable.
+transfer-shape variants **2451614 / 2451615**, the 253-run Sobol-box
+extension **2451635**, and the photometric-anchor stack **2451638**. The
+fit and ladder analyses are CPU-light and re-runnable.
 
 **Code.** `analysis/paper3b/` in the BIND repository
 (github.com/Maxelee/BIND): `maps/` (loaders, footprint, peak finder),

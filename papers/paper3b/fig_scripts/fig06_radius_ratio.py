@@ -1,7 +1,9 @@
-"""fig06_radius_ratio.pdf — the ejection signature: CAP-radius-resolved measurement
-vs the TNG-painted fiducial, one column per detected nu bin; lower panels show
-data/model with the unity line (Siegel-style ratio subpanels). The deficit
-concentrates at small radii and relaxes outward in every bin.
+"""fig06_radius_ratio.pdf — the deficit decomposed in radius: CAP-radius-resolved
+measurement vs the TNG-painted fiducial, one column per detected nu bin; lower
+panels show data/model with the unity line (Siegel-style ratio subpanels) and a
+dashed line at each bin's OUTER (8') amplitude. Two components: a bin-coherent
+~2x suppression present at ALL radii (~4x top bin), plus an ADDITIONAL central
+suppression below the dashed line (x0.5-0.7 in bins 2-3, x0.3 top, x0.08 bin 1).
 
 Data (cached, no engine re-run):
   - /mnt/home/mlee1/ceph/paper3/B/wp2_measurement/stack_wiener_sm2am_fid.npz
@@ -42,6 +44,12 @@ for k, b in enumerate(range(1, 5)):
              transform=top.transAxes, va="top", fontsize=7)
     bot.errorbar(r, yd / ym, err / ym, fmt="o", ms=3, color="k", capsize=2, lw=0.9)
     bot.axhline(1, color=COLORS["dmo"], lw=0.8)
+    # the bin-coherent OUTER amplitude: the component a constant rescaling could
+    # absorb; the fall below it toward the centre is the additional shape part
+    bot.axhline(yd[-1] / ym[-1], color=COLORS["bind"], lw=0.7, ls="--")
+    if k == 0:
+        bot.text(1.75, yd[-1] / ym[-1] * 1.18, "outer amplitude", fontsize=5,
+                 color=COLORS["bind"], ha="left")
     bot.set_yscale("log")
     bot.set_ylim(0.03, 2.5)
     bot.set_xlabel(r"$\theta_d$ [arcmin]")

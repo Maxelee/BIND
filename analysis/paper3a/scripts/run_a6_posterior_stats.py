@@ -12,6 +12,12 @@ measurement pass) pushed through the same posterior — their z_s = 1.0
 R(ell) envelopes agreeing is the A6 validation the plan's "wlemu-vs-direct
 spot-check" was scoped to provide, obtained without any new generation.
 
+--with-gp-sigma (deviation follow-up, 2026-07-18): fold the statsemu GP
+predictive std into the envelope — each posterior sample's prediction is
+drawn as mu + sigma*eps (one standard-normal eps per sample, fixed seed)
+before the quantiles, so the envelope carries emulator uncertainty in
+quadrature with the posterior spread instead of being mean-only.
+
 Run:  python analysis/paper3a/scripts/run_a6_posterior_stats.py
 Out:  wp6_propagation/a6_posterior_stats.npz  (envelopes per target)
       wp6_propagation/a6_posterior_stats_summary.json
@@ -54,15 +60,35 @@ def load_posterior_thin(n: int = N_POST) -> np.ndarray:
 
 
 def main() -> None:
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--with-gp-sigma", action="store_true",
+                    help="fold GP predictive std into the envelope "
+                         "(mu + sigma*eps per posterior sample)")
+    args = ap.parse_args()
+
     emu = StatsEmulator.load()
     post = load_posterior_thin()
     u_fid = pm.astro_physical_to_unit(pm.ASTRO_FIDUCIAL)
 
     arrays = {"source_redshifts": emu.source_redshifts,
               "n_posterior": np.array(N_POST)}
-    summary = {"n_posterior": N_POST, "targets": {}}
+    summary = {"n_posterior": N_POST, "targets": {},
+               "gp_sigma": bool(args.with_gp_sigma),
+               "gp_sigma_note": ("envelopes drawn as mu + sigma*eps per "
+                                 "posterior sample (seed 17)"
+                                 if args.with_gp_sigma else
+                                 "mean-only per sample")}
+    rng = np.random.default_rng(17)
     for t in emu.targets:
-        pred = emu.predict(post, t)                     # (N, *shape)
+        if args.with_gp_sigma:
+            pred, sd = emu.predict(post, t, return_std=True)
+            sd = np.nan_to_num(np.asarray(sd, float), nan=0.0)
+            pred = pred + sd * rng.standard_normal((len(post),)
+                                                   + (1,) * (pred.ndim - 1))
+        else:
+            pred = emu.predict(post, t)                 # (N, *shape)
         fid = emu.predict(u_fid, t)
         qs = np.nanpercentile(pred, [2.5, 16, 50, 84, 97.5], axis=0)
         arrays[f"{t}__q"] = qs.astype(np.float32)       # (5, *shape)

@@ -95,16 +95,40 @@ def delta_coords(emu: StatsEmulator, U: np.ndarray, u_fid: np.ndarray,
     return out
 
 
+SOBOL_COORDS = Path("/mnt/ceph/users/mlee1/paper3/B/wp4_mocks/sobol/"
+                    "sb35_coords.npz")
+
+
 def main() -> None:
-    g = np.load(GRID, allow_pickle=True)
-    names = [str(n) for n in g["run_names"]]
-    tb = [i for i, n in enumerate(names) if "twobound" in n or "run_" in n]
-    # twobound rows: everything that is not the bind fiducial / truth entry
-    tb = [i for i, n in enumerate(names) if n not in ("bind", "truth")
-          and "bind/run_0000" not in n]
-    params = np.asarray(g["params"], float)[tb]
-    meas_m = np.asarray(g["delta_ln_mgas"], float)[tb]
-    meas_t = np.asarray(g["delta_ln_t"], float)[tb]
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--sobol", action="store_true",
+                    help="use the 253-point Sobol coordinate table "
+                         "(Popeye session-9 gate upgrade) instead of the "
+                         "60 twobound runs")
+    args = ap.parse_args()
+
+    if args.sobol:
+        if not SOBOL_COORDS.exists():
+            raise SystemExit(f"{SOBOL_COORDS} not rsync'd yet (⛔ Max, "
+                             "few KB from Popeye ceph wp4_mocks/sobol/)")
+        g = np.load(SOBOL_COORDS, allow_pickle=True)
+        params = np.asarray(g["params"] if "params" in g.files
+                            else g["theta"], float)
+        meas_m = np.asarray(g["delta_ln_mgas"], float)
+        meas_t = np.asarray(g["delta_ln_t"], float)
+        label = f"sobol ({len(params)} runs)"
+    else:
+        g = np.load(GRID, allow_pickle=True)
+        names = [str(n) for n in g["run_names"]]
+        tb = [i for i, n in enumerate(names) if n not in ("bind", "truth")
+              and "bind/run_0000" not in n]
+        params = np.asarray(g["params"], float)[tb]
+        meas_m = np.asarray(g["delta_ln_mgas"], float)[tb]
+        meas_t = np.asarray(g["delta_ln_t"], float)[tb]
+        label = f"twobound ({len(tb)} runs)"
+    print(f"gate frame: {label}")
 
     U = np.array([pm.astro_physical_to_unit(p[pm.ASTRO_IDX]) for p in params])
     u_fid = pm.astro_physical_to_unit(pm.ASTRO_FIDUCIAL)
@@ -137,11 +161,13 @@ def main() -> None:
         }
     verdict = bool(all(res[k]["PASS"] for k in res))
     out = {"gate": res, "PASS": verdict,
-           "n_twobound": len(tb),
+           "gate_frame": label,
+           "n_runs": int(len(params)),
            "weights_per_bin": w.tolist(),
            "mass_floor_msun": MASS_MIN_MSUN,
            "criteria": "JOINT_AB_PLAN.md step 2 (pre-registered)"}
-    (WP6 / "ab_gate.json").write_text(json.dumps(out, indent=2))
+    tag = "_sobol" if args.sobol else ""
+    (WP6 / f"ab_gate{tag}.json").write_text(json.dumps(out, indent=2))
     print(json.dumps(out, indent=2))
 
     fig, axes = plt.subplots(1, 2, figsize=(9, 4))
@@ -162,8 +188,8 @@ def main() -> None:
     fig.suptitle("JOINT_AB_PLAN step-2 gate: cross-frame coordinate validation")
     fig.tight_layout()
     (WP6 / "figures").mkdir(exist_ok=True)
-    fig.savefig(WP6 / "figures" / "ab_gate.png", dpi=150)
-    print(f"wrote {WP6}/ab_gate.json + figures/ab_gate.png")
+    fig.savefig(WP6 / "figures" / f"ab_gate{tag}.png", dpi=150)
+    print(f"wrote {WP6}/ab_gate{tag}.json + figures/ab_gate{tag}.png")
 
 
 if __name__ == "__main__":

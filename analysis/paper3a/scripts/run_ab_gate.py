@@ -3,7 +3,7 @@ coordinates + the pre-registered twobound cross-frame validation gate.
 
 B4's definition (`run_b4_assemble.py::halo_coordinates`, read from the
 paper3b branch): per run, the HALO-MASS-weighted average over matched
-halos with M > 10^13.5 Msun of ln(f_gas_500c / f_gas_500c^fid) and
+halos with M > 10^13.5 Msun/h of ln(f_gas_500c / f_gas_500c^fid) and
 ln(T_mw_500c / T_mw_500c^fid).
 
 The statsemu mirror: the sb35 scaling targets give per-mass-bin
@@ -11,7 +11,8 @@ f_gas / T at snap 096 per theta. The mirror coordinate is
 
     Delta ln X(theta) = sum_b w_b [ln X_b(theta) - ln X_b(theta_fid)]
 
-with w_b = sum of halo masses in bin b (m > 10^13.5, halos above the top
+with w_b = sum of halo masses in bin b (m > 10^13.5 Msun/h, matching the
+constant MASS_MIN_MSUNH below; halos above the top
 bin edge assigned to the top bin), taken from the shared-DMO fiducial
 snap-096 catalog (`wp3_gate/operator_tables_v3/fiducial_run_0000_snap096`,
 logm200 column — the same mass frame the composite halo_scaling uses).

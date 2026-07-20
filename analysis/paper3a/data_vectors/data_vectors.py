@@ -450,7 +450,26 @@ def load_ksz_qu2026_lrg_fiducial() -> DataVector:
             "CLOSED 2026-07-16: fig12.T_ksz_err == sqrt(diag(fig07.covariance)) to machine "
             "precision, fig12.covariance == fig07.covariance exactly, and both share the "
             "same R_arcmin grid. fig12 also carries the paper's simulation curves "
-            "(DM, Illustris z0.5/z0.8, TNG z0.8) — useful for the A3 overlay sanity check."
+            "(DM, Illustris z0.5/z0.8, TNG z0.8). *** DO NOT USE THESE FOR PHYSICAL "
+            "COMPARISON. *** They are FREE-AMPLITUDE RESCALED — each is multiplied by "
+            "the best-fit amplitude of Qu's own Table III fit to their data, so they "
+            "carry no absolute normalization. Verified 2026-07-20 by direct division "
+            "against fig26_cap_vs_simulations_norescale.npz, exact and radius-independent "
+            "at every one of the 9 apertures: DM x0.235, TNG_z08 x0.367, "
+            "Illustris_z05 x1.828, Illustris_z08 x1.355 (T_ksz and the covariance are "
+            "IDENTICAL between the two files; only the sim columns differ). A "
+            "free-amplitude refit against the released covariance returns 1.002/1.001 for "
+            "fig12 and 0.2355/0.3672 for fig26, confirming which file is the rescaled one. "
+            "An earlier version of this note called these columns 'useful for the A3 "
+            "overlay sanity check' with no warning; anyone who did that would have "
+            "inherited a bias of up to 4.26x (=1/0.235) — and note the Illustris factors "
+            "point the OTHER way, so the error does not even have a consistent sign. "
+            "USE fig26_cap_vs_simulations_norescale.npz FOR ANY PHYSICAL COMPARISON. "
+            "The fig12 sim columns are good only for reproducing Qu's own figure. "
+            "(The loading code below is correct and unchanged — it takes only T_ksz, "
+            "R_arcmin and the covariance from fig12, all of which are identical in both "
+            "files. This is a documentation fix, not a behaviour change; "
+            "run_correctness_battery.py already reads the norescale file.)"
         ),
         provenance=_provenance(_QU_SUBDIR, "fig07_correlation_matrix.npz"),
     )
@@ -459,13 +478,38 @@ def load_ksz_qu2026_lrg_fiducial() -> DataVector:
 def load_ksz_qu2026_lrg_by_mass() -> dict:
     """CAP kSZ profile + covariance per stellar-mass quartile (Qu et al. 2026, Part I).
 
-    Also returns the paper's own log10(M200c/Msun) "tick" (central value per
-    bin, from abundance-matching / HOD, not a per-galaxy calibration) via the
-    `mass_definition` field, sourced from fig02_stellar_mass_distribution.npz.
+    Also returns Qu's `m200c_ticks` array via the `mass_definition` field,
+    sourced from fig02_stellar_mass_distribution.npz.
 
-    log10(M*) bin edges: [10.5, 11.2, 11.4, 11.6, 12.5]
-    approx log10(M200c) ticks: [11.86, 12.49, 13.43, 14.57]  (bins 1-4)
-    -> only bins 3 and 4 clear the M>=1e13 h^-1 Msun floor (R2); bins 1-2 are sub-floor.
+    *** WARNING (corrected 2026-07-20): `m200c_ticks` is a SECONDARY-AXIS LABEL
+    ARRAY, NOT per-quartile halo masses. *** Do not read tick i as the mass of
+    quartile i — this code assigns m200c_ticks[i-1] to quartile i below, and
+    that association is a labelling convenience only.
+
+    Qu's Fig. 2 caption states it: "The top axis shows approximate halo masses
+    M200c inferred from the [60] stellar-to-halo mass relation, converted using
+    the [61] concentration-mass relation at z = 0.7." The companion
+    `mstar_ticks = [10.5, 11.0, 11.5, 12.0]` are plainly round axis labels,
+    while the actual quartile edges are [10.5, 11.2, 11.4, 11.6, 12.5].
+
+    log10(M*) bin edges:        [10.5, 11.2, 11.4, 11.6, 12.5]
+    m200c_ticks (AXIS LABELS):  [11.86, 12.49, 13.43, 14.57]   <- NOT masses
+
+    The real per-quartile masses, recomputed from the released M* histograms
+    (this reproduces Qu's own fig15b_mean_mstar = [1.1747, 2.0143, 3.0286,
+    5.0286]e11 Msun to four decimals, so it is validated against the authors'
+    own product):
+        <log10 M*>    = [11.0706, 11.3042, 11.4820, 11.7013]
+        -> log10 M500 = [12.48,   12.92,   13.26,   13.75]
+
+    Floor conclusion is UNCHANGED: only bins 3 and 4 clear the M>=1e13 h^-1
+    Msun floor (R2); bins 1-2 are sub-floor. But the magnitudes were wrong, and
+    the downstream claim they fed -- an "R4-class 0.75 dex / ~90 sigma m4 mass
+    conflict" with Siegel's GGL 13.82 -- is RETRACTED: correctly computed, m4
+    is 13.75, within 0.07 dex of Siegel. m3 moves only 0.03 dex (its mean M*
+    happens to sit on the 11.5 tick), which is why this went unnoticed.
+    The m4 exclusion now rests on the Siegel/Bigwood amplitude grounds alone.
+    See systematics-hunt/FINDINGS_ksz.md section 2 in the plans repo.
     """
     path = data_root() / _QU_SUBDIR / "fig15_mass_dependence.npz"
     d = np.load(path)

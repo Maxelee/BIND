@@ -54,6 +54,47 @@ SIEGEL_GGL_LOGM500_TARGETS = {
     "lrg_m4": 13.81,
 }
 
+# UNCERTAINTIES, added 2026-07-19 (WP-A8 grid variation 1). Read from the
+# PRIMARY source -- Siegel et al. 2025 (2509.10455) Table 1, "DESI GGL
+# Calibration Summary" -- rather than the Bigwood prose the point values
+# above were taken from. Table 1 quotes, for the configuration matching
+# ours (fiducial feedback, satellites INCLUDED, one-sided selection):
+#
+#     BGS      13.31 +/- 0.009      LRG M3   13.41 +/- 0.009
+#     LRG M1   12.91 +/- 0.02       LRG M4   13.82 +/- 0.008
+#     LRG M2   13.15 +/- 0.009
+#
+# Two point values disagree with the Bigwood prose above at the 0.01 dex
+# level -- Siegel Table 1 (and its Fig. 2 panel labels) give LRG M2 =
+# 13.15 and LRG M4 = 13.82 where Bigwood's prose says 13.16 and 13.81.
+# The dict above is left as-is (it is what the frozen A5 fit used, and
+# 0.01 dex is far inside every systematic below); recorded here so the
+# discrepancy is on the record rather than rediscovered.
+SIEGEL_GGL_LOGM500_STAT_DEX = {
+    "bgs": 0.009,
+    "lrg_m1": 0.02,
+    "lrg_m2": 0.009,
+    "lrg_m3_spec": 0.009,
+    "lrg_m4": 0.008,
+}
+
+# THE DOMINANT UNCERTAINTY IS NOT STATISTICAL. Siegel Sec. 4.2.1: with
+# the stellar-to-halo mass relation of fiducial FLAMINGO, "the different
+# stellar mass estimates correspond to >~ 0.1 dex variation in the mean
+# halo mass" -- i.e. the choice among the three public stellar-mass
+# catalogs (Zhou random-forest, FastSpecFit, CIGALE) moves the inferred
+# mass by an order of magnitude MORE than the GGL fit's statistical
+# error. This is the number a mass-systematic test should use.
+SIEGEL_GGL_LOGM500_SYS_DEX = 0.10
+
+# For completeness, the selection-method spread visible in Table 1 is
+# NOT an additional independent systematic on our configuration: within
+# the satellites-included family, one-sided vs log-normal selection
+# differs by <= 0.01 dex. The large Table-1 spread (up to 0.32 dex at
+# BGS) is the centrals-only rows, which are a physically different
+# sample -- that axis is already covered separately by the WP-A8
+# `central_only` variant, and must not be double-counted here.
+
 # Satellite fraction: Bigwood et al. 2025 Sec 3.5 states the GGL-matched
 # simulated samples carry satellite fractions "of ~10-30%" (a qualitative
 # range confirmed in the paper's prose; the per-simulation/per-bin table in

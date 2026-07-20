@@ -69,6 +69,7 @@ full Qu 9x9 data covariance
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -79,6 +80,7 @@ from analysis.paper3a.emulator.gasemu import GasEmulator
 from analysis.paper3a.observables.constants import TNG_H, TNG_OMEGA_M
 from analysis.paper3a.observables.mock_sample import (
     BIGWOOD_SATELLITE_FRACTION_RANGE,
+    SIEGEL_GGL_LOGM500_SYS_DEX,
     SIEGEL_GGL_LOGM500_TARGETS,
     MockSampleConfig,
 )
@@ -88,7 +90,13 @@ QU_ROOT = Path("/mnt/ceph/users/mlee1/paper3/A/wp1_data/ksz_qu_2604.19744")
 
 BLOCK = "ksz0_sr"                 # group kSZ bin [13.2, 13.7] ∋ m3 GGL 13.41
 DATA_BIN = "m3"                   # see module docstring: the mass-uncontested quartile
-LOGM500_TARGET = SIEGEL_GGL_LOGM500_TARGETS["lrg_m3_spec"]
+# $BIND_PAPER3A_LOGM500_SHIFT shifts the GGL target mass by that many
+# dex, for the WP-A8 grid's mass-calibration variation. The 1-sigma
+# scale to use is SIEGEL_GGL_LOGM500_SYS_DEX = 0.10 -- the stellar-mass-
+# estimator systematic from Siegel Sec. 4.2.1, which dominates the
+# 0.008-0.02 dex GGL statistical error by an order of magnitude.
+LOGM500_TARGET = (SIEGEL_GGL_LOGM500_TARGETS["lrg_m3_spec"]
+                  + float(os.environ.get("BIND_PAPER3A_LOGM500_SHIFT", 0.0)))
 VEL_NORM_SYS = 0.06               # linear sigma_v vs Qu nominal (session 4)
 SLAB_SYS = 0.03                   # beyond-slab correlated gas (A4 budget)
 N_MC_DILUTION = 128     # mean-ratio MC error ~1%, well under the sys terms;

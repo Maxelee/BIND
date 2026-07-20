@@ -51,6 +51,8 @@ JSUM = json.loads((Path("/mnt/ceph/users/mlee1/paper3/A/wp5_chains")
                    / "joint_ab_summary.json").read_text())
 S8X = json.loads((Path("/mnt/ceph/users/mlee1/paper3/A/wp7_cosmology")
                   / "s8_exercise.json").read_text())
+OFFM = json.loads((Path("/mnt/ceph/users/mlee1/paper3/A/wp7_cosmology")
+                   / "s8_offmanifold.json").read_text())
 
 S8_FID = 0.83
 D = P5["van_daalen_2020"]["coefficients_k0p5"]["d"]     # -5.99
@@ -60,6 +62,11 @@ E = P5["van_daalen_2020"]["coefficients_k0p5"]["e"]     # -0.5107
 FBAR_FID = P5["absolute_branch_BOTH_CATALOGS"]["remeasured_d1ce1133"][
     "per_bin_mass_matched"]["nu3"]["ftilde_bar_TNG"]
 DLN_DATA = -1.214            # p5 acceptance required_dln_mgas nu3 (~ -1.21)
+# conservative branch: if sigma8/sigma_pos nuisances absorb part of the
+# deficit, the residual TRUE feedback is milder. ftilde_bar from p5.
+FBAR_CONS = OFFM["conservative_after_nuisance_nu3"]["remeasured_d1ce1133"][
+    "sigma8_DESY3_0p776"]["ftilde_bar_data"]                  # ~0.424
+DLN_CONS = float(np.log(FBAR_CONS / FBAR_FID))               # ~ -0.78
 
 # TNG-calibrated analyst's feedback prior = the joint A+B posterior
 DLN_TNG_MU = JSUM["coords_posterior"]["dln_mgas"]["p50"]         # -0.353
@@ -80,9 +87,9 @@ def s8_of(dln_model, dln_true):
     return S8_FID * np.sqrt((1.0 + dP_P(dln_true)) / (1.0 + dP_P(dln_model)))
 
 
-def sample(dln_mu, dln_sd, n, rng):
+def sample(dln_mu, dln_sd, n, rng, dln_true=DLN_DATA):
     dln = rng.normal(dln_mu, dln_sd, n)
-    s8 = s8_of(dln, DLN_DATA) + rng.normal(0.0, S8_SD, n)
+    s8 = s8_of(dln, dln_true) + rng.normal(0.0, S8_SD, n)
     return dln, s8
 
 
@@ -103,7 +110,9 @@ def main():
     rng = np.random.default_rng(7)
     n = 300_000
     dx_t, s8_t = sample(DLN_DATA, 0.10, n, rng)         # correct analyst
-    dx_b, s8_b = sample(DLN_TNG_MU, DLN_TNG_SD, n, rng)  # TNG-clamped analyst
+    dx_b, s8_b = sample(DLN_TNG_MU, DLN_TNG_SD, n, rng)  # TNG-clamped, full deficit
+    # TNG-clamped analyst, but part of the deficit is nuisance (milder truth)
+    dx_c, s8_c = sample(DLN_TNG_MU, DLN_TNG_SD, n, rng, dln_true=DLN_CONS)
 
     fig = plt.figure(figsize=(W_SINGLE * 1.35, W_SINGLE * 1.35))
     gs = fig.add_gridspec(2, 2, width_ratios=[3, 1], height_ratios=[1, 3],
@@ -114,6 +123,7 @@ def main():
 
     # 2D
     contour(ax, dx_t, s8_t, COL["truth"], fill=True)
+    contour(ax, dx_c, s8_c, COL["aux"], fill=True)
     contour(ax, dx_b, s8_b, COL["data"], fill=True)
     ax.axhline(S8_FID, color=COL["ref"], ls=":", lw=1.1)
     ax.axvline(DLN_DATA, color=COL["ref"], ls=":", lw=1.1)
@@ -126,28 +136,28 @@ def main():
     ax.tick_params(top=False, right=False)
 
     # marginals
-    axx.hist(dx_t, 90, density=True, histtype="step", color=COL["truth"],
-             lw=1.5)
-    axx.hist(dx_b, 90, density=True, histtype="step", color=COL["data"],
-             lw=1.5)
+    for d, c in ((dx_t, COL["truth"]), (dx_b, COL["data"])):
+        axx.hist(d, 90, density=True, histtype="step", color=c, lw=1.5)
     axx.axvline(DLN_DATA, color=COL["ref"], ls=":", lw=1.1)
     axx.set_axis_off()
-    axy.hist(s8_t, 90, density=True, histtype="step", color=COL["truth"],
-             lw=1.5, orientation="horizontal")
-    axy.hist(s8_b, 90, density=True, histtype="step", color=COL["data"],
-             lw=1.5, orientation="horizontal")
+    for s, c in ((s8_t, COL["truth"]), (s8_c, COL["aux"]), (s8_b, COL["data"])):
+        axy.hist(s, 90, density=True, histtype="step", color=c, lw=1.5,
+                 orientation="horizontal")
     axy.axhline(S8_FID, color=COL["ref"], ls=":", lw=1.1)
     axy.set_axis_off()
 
-    s8_bias = float(np.median(s8_b)) - S8_FID
-    ax.annotate(f"TNG-calibrated\nanalyst:\n$S_8={np.median(s8_b):.3f}$\n"
-                f"(${s8_bias/S8_SD:+.0f}\\sigma$)",
-                xy=(DLN_TNG_MU, np.median(s8_b)), xytext=(-0.95, 0.792),
+    bias_b = (float(np.median(s8_b)) - S8_FID) / S8_SD
+    bias_c = (float(np.median(s8_c)) - S8_FID) / S8_SD
+    ax.annotate(f"if the full deficit\nis feedback:  ${bias_b:+.0f}\\sigma$",
+                xy=(DLN_TNG_MU, np.median(s8_b)), xytext=(-0.98, 0.784),
                 fontsize=7, color="#8a3000", ha="center",
                 arrowprops=dict(arrowstyle="->", lw=0.9, color=COL["data"]))
-    ax.annotate("truth\n(data-required feedback)", xy=(DLN_DATA, S8_FID),
-                xytext=(-0.62, 0.836), fontsize=6.8, ha="center",
-                color="#444444",
+    ax.annotate(f"if nuisances absorb\npart of it:  ${bias_c:+.0f}\\sigma$",
+                xy=(DLN_TNG_MU, np.median(s8_c)), xytext=(-0.98, 0.818),
+                fontsize=7, color="#1f6f8f", ha="center",
+                arrowprops=dict(arrowstyle="->", lw=0.9, color=COL["aux"]))
+    ax.annotate("truth", xy=(DLN_DATA, S8_FID), xytext=(-0.78, 0.842),
+                fontsize=7, ha="center", color="#444444",
                 arrowprops=dict(arrowstyle="->", lw=0.8, color="#888888"))
     axx.text(0.02, 0.7, "feedback prior", transform=axx.transAxes,
              fontsize=6.8, color="#666666")
@@ -156,17 +166,21 @@ def main():
     ax.legend(handles=[
         mp.Patch(fc=COL["truth"], alpha=0.5, label="correct feedback model"),
         mp.Patch(fc=COL["data"], alpha=0.5,
-                 label="feedback clamped to TNG band")],
-        loc="lower right", fontsize=6.8, framealpha=0.95)
+                 label="TNG-clamped, full deficit real"),
+        mp.Patch(fc=COL["aux"], alpha=0.5,
+                 label="TNG-clamped, part is nuisance")],
+        loc="lower right", fontsize=6.6, framealpha=0.95)
     axx.set_title(r"$S_8$ bias from an insufficient feedback prior "
                   r"(vd20 pivot $k=0.5$)", fontsize=7.5, pad=3)
 
     for ext in ("pdf", "png"):
         fig.savefig(OUT / f"09_s8_corner.{ext}", dpi=300, bbox_inches="tight")
     plt.close(fig)
-    print(f"TNG-clamped S8 = {np.median(s8_b):.4f}  "
-          f"bias {s8_bias:+.4f} = {s8_bias/S8_SD:+.1f} sigma")
-    print(f"correct-model S8 = {np.median(s8_t):.4f}")
+    print(f"TNG-clamped, full deficit: S8 = {np.median(s8_b):.4f}  "
+          f"({bias_b:+.1f} sigma)")
+    print(f"TNG-clamped, conservative: S8 = {np.median(s8_c):.4f}  "
+          f"({bias_c:+.1f} sigma)  [true dln = {DLN_CONS:.2f}]")
+    print(f"correct-model:             S8 = {np.median(s8_t):.4f}")
     print("wrote 09_s8_corner.pdf/.png")
 
 

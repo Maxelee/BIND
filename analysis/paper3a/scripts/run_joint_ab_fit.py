@@ -22,6 +22,16 @@ Only fresh chains can assess them.
   emul2x        Sigma_theory doubled in all three blocks
   fgas_model2x  fgas PAINT_BIAS_RESID + C2S_TRANSFER_SYS doubled
   b_coordsys2x  B SLOPE_SYS + OFFSET_SYS doubled
+  no_ksz        the kSZ block DROPPED entirely -- does the four-probe
+                exclusion survive on fgas + B alone? This exists
+                because Siegel and Bigwood both omit M500 >~ 10^13.3
+                from their primary analyses on a spec-vs-photo
+                amplitude discrepancy, and our kSZ leg uses the
+                spectroscopic m3 at 13.41, inside that boundary (wp5
+                REPORT addendum). Dropping a likelihood term BROADENS
+                the posterior, so this cannot be answered by
+                reweighting the frozen chain -- it needs a fresh fit,
+                which is exactly what this variant provides.
 
 Outputs: wp5_chains/joint_ab_seed{K}.npz, then joint_ab_summary.json.
 """
@@ -67,7 +77,7 @@ def _gate() -> dict:
     return rec
 
 
-VARIANTS = ("emul2x", "fgas_model2x", "b_coordsys2x")
+VARIANTS = ("emul2x", "fgas_model2x", "b_coordsys2x", "no_ksz")
 
 
 def _tag(variant):
@@ -91,7 +101,18 @@ def _blocks(variant: str | None = None):
     fgas = FgasBlock(emu=ksz.emu)
     jb = JointBBlock()
 
-    if variant == "emul2x":
+    if variant == "no_ksz":
+        # log_prob_factory sums block loglikes; returning zeros removes
+        # the kSZ term while leaving the f_sat prior dimension in place
+        # so the chain geometry (and every other block) is unchanged.
+        class _NoKsz:
+            emu = ksz.emu
+
+            @staticmethod
+            def loglike(U):
+                return np.zeros(len(np.atleast_2d(U)))
+        ksz = _NoKsz()
+    elif variant == "emul2x":
         ksz.sys_frac = np.sqrt(ksz.sys_frac**2 + 3.0 * ksz.emul_frac**2)
         fgas.emul_frac = 2.0 * fgas.emul_frac
         jb.err_scale = 2.0          # consumed by JointBBlock.loglike

@@ -21,7 +21,7 @@
 # ESS >= 500 gate caught it; the +9 sigma movements those rows report are IS
 # artifacts and are NOT quotable. Only fresh chains can assess them.
 #
-# 12 tasks = 3 variants x 4 seeds, fanned by disBatch inside this one
+# 16 tasks = 4 variants x 4 seeds, fanned by disBatch inside this one
 # allocation (each task single-core; emcee here is vectorized single-process,
 # never MPI). Same recipe as the fiducial joint fit: 128 walkers x 30k, DE
 # move mixture, and every task re-checks the a5_recovery_jointab gate itself,
@@ -31,6 +31,17 @@
 #                 fgas emul_frac, and the B block's propagated GP errors)
 #   fgas_model2x  fgas PAINT_BIAS_RESID + C2S_TRANSFER_SYS doubled
 #   b_coordsys2x  B's SLOPE_SYS + OFFSET_SYS coordinate-systematic tier doubled
+#   no_ksz        the kSZ block DROPPED entirely. Added 2026-07-19 after the
+#                 wp5 mass adjudication found that Siegel and Bigwood both omit
+#                 M500 >~ 10^13.3 from their primary analyses (a spec-vs-photo
+#                 amplitude discrepancy), while our kSZ leg uses the
+#                 spectroscopic m3 at 13.41 -- inside that boundary. This asks
+#                 directly whether the four-probe exclusion survives on fgas +
+#                 B alone. It CANNOT be answered by reweighting the frozen
+#                 chain: dropping a likelihood term broadens the posterior, the
+#                 same IS-failure direction that collapsed the widening
+#                 variants. Verified in-process that it zeroes only the kSZ
+#                 term (fgas and B loglikes unchanged).
 #
 # AFTER IT LANDS: re-run `python analysis/paper3a/scripts/run_a8_sysgrid.py`.
 # It picks the chains up and replaces the three UNRELIABLE rows with

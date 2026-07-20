@@ -36,8 +36,9 @@ twobound grid's fiducial-theta node run_0018 sits at (-0.0387, +0.0143),
 not (0,0)). v2 re-applies the same criteria after removing the per-suite
 reference offset: twobound subtracts run_0018's measured coords (a
 measurement, not a fit; run_0018 excluded from the pass fraction); sobol
-fits one constant per coordinate (slope NOT fitted; 2 dof / 209 runs,
-disclosed) pending Popeye's re-measurement of the reference. Both
+fits one constant per coordinate (slope NOT fitted; 2 dof / 253 runs --
+"209" here was wrong, corrected 2026-07-20; the file carries 253 and the
+fit uses all of them) pending Popeye's re-measurement of the reference. Both
 verdicts (v1 absolute, v2 re-referenced) are emitted.
 
 Run: python analysis/paper3a/scripts/run_ab_gate.py [--sobol]

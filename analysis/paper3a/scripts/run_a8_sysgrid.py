@@ -226,9 +226,27 @@ def main() -> None:
     # These replace the reweighted rows above, which collapse (ESS << 500)
     # for every error-WIDENING variant: the widened posterior is broader
     # than the fiducial proposal, so IS has no support where it needs it.
-    for v in ("emul2x", "fgas_model2x", "b_coordsys2x"):
+    # The drop-one pair (plan v7) is here rather than reweighted for the
+    # SAME structural reason: dropping a likelihood term broadens the
+    # posterior, the direction in which IS has no support.
+    FRESH = {
+        "emul2x": "FRESH CHAINS (4 seeds) — supersedes the reweighted row, "
+                  "which failed the ESS gate",
+        "fgas_model2x": "FRESH CHAINS (4 seeds) — supersedes the reweighted "
+                        "row, which failed the ESS gate",
+        "b_coordsys2x": "FRESH CHAINS (4 seeds) — supersedes the reweighted "
+                        "row, which failed the ESS gate",
+        "no_ksz": "FRESH CHAINS (4 seeds), plan v7 drop-one: kSZ block "
+                  "dropped, so f_gas + B alone. Not reweightable — dropping "
+                  "a term broadens the posterior",
+        "no_fgas": "FRESH CHAINS (4 seeds), plan v7 drop-one: f_gas block "
+                   "dropped, so kSZ + B alone. Not reweightable — dropping "
+                   "a term broadens the posterior",
+    }
+    for v, method in FRESH.items():
         paths = [CHAINS / f"joint_ab_{v}_seed{k}.npz" for k in range(4)]
         if not all(p.exists() for p in paths):
+            log(f"  {v:16s} (chains absent — row left unrun)")
             continue
         flat = np.concatenate([np.load(p)["chain"].astype(float)
                                .reshape(-1, 32) for p in paths])
@@ -239,8 +257,7 @@ def main() -> None:
         h = headline(Uv, cv)
         mv = movement(fid, h)
         table[v] = {**mv, "ess": None, "reliable": True,
-                    "method": "FRESH CHAINS (4 seeds) — supersedes the "
-                              "reweighted row, which failed the ESS gate",
+                    "method": method,
                     "note": table.get(v, {}).get("note", "")}
         results[v] = h
         log(f"  {v:16s} FRESH  "
@@ -251,13 +268,18 @@ def main() -> None:
     # -- v7 drop-one rows from the frozen artifacts ----------------------
     syn = json.loads((Path("/mnt/ceph/users/mlee1/paper3/A/wp6_propagation")
                       / "ab_synthesis.json").read_text())
+    _done = [v for v in ("no_ksz", "no_fgas") if v in table]
     table["drop_probes_note"] = {
-        "note": "plan v7 (drop-one): quoted from the FROZEN subset chains "
-                "— joint_ab (all four) vs a5 joint (drop B) vs kszonly "
-                "(kSZ alone); medians recorded in ab_synthesis.json. The "
-                "two unrun combos (ksz+B, fgas+B) would need fresh "
-                "4-seed fits — prepared on request (same "
-                "joint_ab_fits.disbatch pattern), not run.",
+        "note": "plan v7 (drop-one): the drop-B and kSZ-alone rows are "
+                "quoted from the FROZEN subset chains — joint_ab (all "
+                "blocks) vs a5 joint (drop B) vs kszonly; medians recorded "
+                "in ab_synthesis.json. The two remaining combos are the "
+                "fresh-chain rows `no_fgas` (kSZ+B) and `no_ksz` (fgas+B) "
+                "in this same table, run by "
+                "run_a8_dropone_disbatch.sh; "
+                + (f"landed: {', '.join(_done)}." if _done
+                   else "NOT YET RUN — those rows are absent above."),
+        "rows_landed": _done,
         "ab_synthesis_medians": syn.get("medians", syn),
     }
 

@@ -32,6 +32,13 @@ Only fresh chains can assess them.
                 the posterior, so this cannot be answered by
                 reweighting the frozen chain -- it needs a fresh fit,
                 which is exactly what this variant provides.
+  no_fgas       the f_gas block DROPPED entirely -- the OTHER half of
+                the plan-v7 drop-one pair (kSZ + B alone). Same
+                argument as no_ksz: dropping a term broadens the
+                posterior, so reweighting cannot reach it. Together
+                the two rows separate which probe carries the
+                exclusion; ab_synthesis already holds the drop-B and
+                kSZ-alone rows, so these two complete the set.
 
 Outputs: wp5_chains/joint_ab_seed{K}.npz, then joint_ab_summary.json.
 """
@@ -77,7 +84,7 @@ def _gate() -> dict:
     return rec
 
 
-VARIANTS = ("emul2x", "fgas_model2x", "b_coordsys2x", "no_ksz")
+VARIANTS = ("emul2x", "fgas_model2x", "b_coordsys2x", "no_ksz", "no_fgas")
 
 
 def _tag(variant):
@@ -107,11 +114,27 @@ def _blocks(variant: str | None = None):
         # so the chain geometry (and every other block) is unchanged.
         class _NoKsz:
             emu = ksz.emu
+            dropped = True      # scoring code: fitted total must exclude it
+            real = ksz          # ... but its chi2 is still an out-of-sample
 
             @staticmethod
             def loglike(U):
                 return np.zeros(len(np.atleast_2d(U)))
         ksz = _NoKsz()
+    elif variant == "no_fgas":
+        # same construction as no_ksz, on the other block: zero the fgas
+        # loglike so only kSZ + B contribute. log_prob_factory sums
+        # block loglikes and touches nothing else on a block, so the
+        # chain geometry (all 32 columns, both nuisances) is unchanged.
+        class _NoFgas:
+            data = fgas.data
+            dropped = True      # scoring code: fitted total must exclude it
+            real = fgas         # ... but its chi2 is still an out-of-sample
+
+            @staticmethod
+            def loglike(U):
+                return np.zeros(len(np.atleast_2d(U)))
+        fgas = _NoFgas()
     elif variant == "emul2x":
         ksz.sys_frac = np.sqrt(ksz.sys_frac**2 + 3.0 * ksz.emul_frac**2)
         fgas.emul_frac = 2.0 * fgas.emul_frac

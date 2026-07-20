@@ -28,6 +28,13 @@ SIGMA_POS_MAX = 3.6            # arcmin; U[0, 3.6] prior via col 31
 
 
 class JointBBlock:
+    # Multiplier on the propagated coordinate errors. 1.0 is the
+    # fiducial analysis; WP-A8's `emul2x` systematics variant sets 2.0
+    # so this block's emulator-error tier is widened alongside the kSZ
+    # and fgas ones. Applied inside `loglike`, so setting it on an
+    # existing instance takes effect on the next call.
+    err_scale: float = 1.0
+
     def __init__(self, bblock: BBlock | None = None,
                  emu: StatsEmulator | None = None):
         self.b = bblock or BBlock()
@@ -52,7 +59,7 @@ class JointBBlock:
         U = np.atleast_2d(U)
         c, e = self.coords(U[:, :30])
         sigma_pos = U[:, 31] * SIGMA_POS_MAX
-        return self.b.loglike_batch(c, e, sigma_pos)
+        return self.b.loglike_batch(c, self.err_scale * e, sigma_pos)
 
     # data-space hooks for the battery / assembly
     def predict(self, U: np.ndarray) -> np.ndarray:

@@ -8,6 +8,21 @@ a5_recovery_jointab.json PASS — refuses to run otherwise.
 Usage:    python run_joint_ab_fit.py --seed K        (K in 0..3)
 Assemble: python run_joint_ab_fit.py --assemble
 
+WP-A8 systematics variants (--variant NAME) rerun the SAME fit with one
+covariance tier widened, writing joint_ab_<NAME>_seed{K}.npz. These
+exist because the cheap route failed honestly: importance reweighting
+of the fiducial chain (run_a8_sysgrid.py) collapses for every
+error-WIDENING variant -- ESS 24/130/141 out of 8000 -- because the
+widened posterior is broader than the fiducial proposal it is being
+reweighted from, so the target has mass where the proposal has none.
+The pre-registered ESS >= 500 gate catches this; the movements those
+runs report (up to +9 sigma) are IS artifacts and must not be quoted.
+Only fresh chains can assess them.
+
+  emul2x        Sigma_theory doubled in all three blocks
+  fgas_model2x  fgas PAINT_BIAS_RESID + C2S_TRANSFER_SYS doubled
+  b_coordsys2x  B SLOPE_SYS + OFFSET_SYS doubled
+
 Outputs: wp5_chains/joint_ab_seed{K}.npz, then joint_ab_summary.json.
 """
 
@@ -52,18 +67,46 @@ def _gate() -> dict:
     return rec
 
 
-def _blocks():
+VARIANTS = ("emul2x", "fgas_model2x", "b_coordsys2x")
+
+
+def _tag(variant):
+    return "" if not variant else f"_{variant}"
+
+
+def _blocks(variant: str | None = None):
+    """The three likelihood blocks, with one WP-A8 tier optionally
+    widened. Doubling a tier t inside sigma^2 = t^2 + rest^2 means
+    sigma^2 -> sigma^2 + 3 t^2, which is how the kSZ rows below read."""
+    if variant is not None and variant not in VARIANTS:
+        raise SystemExit(f"unknown --variant {variant}; have {VARIANTS}")
+
+    if variant == "b_coordsys2x":
+        # read at call time inside bblock, so patch before constructing
+        from analysis.paper3a.inference import bblock as _bb
+        _bb.SLOPE_SYS = 2.0 * _bb.SLOPE_SYS
+        _bb.OFFSET_SYS = 2.0 * _bb.OFFSET_SYS
+
     ksz = KszBlock()
     fgas = FgasBlock(emu=ksz.emu)
     jb = JointBBlock()
+
+    if variant == "emul2x":
+        ksz.sys_frac = np.sqrt(ksz.sys_frac**2 + 3.0 * ksz.emul_frac**2)
+        fgas.emul_frac = 2.0 * fgas.emul_frac
+        jb.err_scale = 2.0          # consumed by JointBBlock.loglike
+    elif variant == "fgas_model2x":
+        from analysis.paper3a.inference import fgas as _fg
+        _fg.PAINT_BIAS_RESID = 2.0 * _fg.PAINT_BIAS_RESID
+        _fg.C2S_TRANSFER_SYS = 2.0 * _fg.C2S_TRANSFER_SYS
     return fgas, ksz, jb
 
 
-def run_seed(seed: int) -> None:
+def run_seed(seed: int, variant: str | None = None) -> None:
     import emcee
 
     _gate()
-    fgas, ksz, jb = _blocks()
+    fgas, ksz, jb = _blocks(variant)
     rng = np.random.default_rng(300 + seed)
     p0 = rng.uniform(0.02, 0.98, size=(N_WALKERS, NDIM))
     moves = [(emcee.moves.DEMove(), 0.8), (emcee.moves.DESnookerMove(), 0.2)]
@@ -75,14 +118,15 @@ def run_seed(seed: int) -> None:
     logp = sampler.get_log_prob(discard=N_BURN, thin=THIN)
     CHAINS.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(
-        CHAINS / f"joint_ab_seed{seed}.npz",
+        CHAINS / f"joint_ab{_tag(variant)}_seed{seed}.npz",
         chain=chain.astype(np.float32), logp=logp.astype(np.float32),
         acceptance=np.mean(sampler.acceptance_fraction),
         settings=np.array(json.dumps({
             "which": "joint_ab", "ndim": NDIM, "n_walkers": N_WALKERS,
             "n_steps": N_STEPS, "n_burn": N_BURN, "thin": THIN,
-            "moves": "DE 0.8 + DESnooker 0.2", "seed": seed})))
-    print(f"joint_ab seed {seed}: acceptance "
+            "moves": "DE 0.8 + DESnooker 0.2", "seed": seed,
+            "variant": variant or "fiducial"})))
+    print(f"joint_ab{_tag(variant)} seed {seed}: acceptance "
           f"{np.mean(sampler.acceptance_fraction):.3f}, archived {chain.shape}")
 
 
@@ -183,11 +227,13 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--assemble", action="store_true")
+    ap.add_argument("--variant", default=None,
+                    help=f"WP-A8 systematics variant: {VARIANTS}")
     args = ap.parse_args()
     if args.assemble:
         assemble()
     elif args.seed is not None:
-        run_seed(args.seed)
+        run_seed(args.seed, args.variant)
     else:
         raise SystemExit("pass --seed K or --assemble")
 

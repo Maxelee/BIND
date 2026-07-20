@@ -59,9 +59,24 @@ from analysis.paper3a.inference.ksz import KszBlock  # noqa: E402
 from analysis.paper3a.inference.sampler import CHAINS  # noqa: E402
 
 WP8 = Path("/mnt/ceph/users/mlee1/paper3/A/wp8_robustness")
-N_SUB = 30_000
+
+# Subsample size. The deliverable is Delta(median)/sigma_stat against a
+# 0.5-sigma flag threshold, so the Monte-Carlo error on a median,
+# ~1.25/sqrt(N) sigma, only has to be small compared to 0.5 sigma:
+# N = 8000 gives ~0.014 sigma, i.e. 35x margin. A first attempt at
+# N = 30000 did not finish inside 30 minutes and bought nothing for this
+# threshold -- the cost is dominated by GP predictive-sigma evaluations,
+# which scale linearly in N.
+N_SUB = 8_000
 FLAG_AT = 0.5          # x sigma_stat, the plan's threshold
 ESS_MIN = 500.0
+
+
+def log(msg):
+    """Progress with an explicit flush -- stdout is block-buffered when
+    the script is run through a pipe, which hid all progress on the
+    first attempt."""
+    print(msg, flush=True)
 
 
 def wq(x, w, q):
@@ -111,17 +126,29 @@ def main() -> None:
     WP8.mkdir(exist_ok=True)
     U = load_joint(N_SUB)
 
-    print("building blocks ...")
+    import time
+    t0 = time.time()
+
+    def el():
+        return f"[{time.time()-t0:6.1f}s]"
+
+    log(f"{el()} building KszBlock ...")
     ksz = KszBlock()
+    log(f"{el()} building FgasBlock ...")
     fgas = FgasBlock(emu=ksz.emu)
+    log(f"{el()} building JointBBlock ...")
     jb = JointBBlock()
 
-    print("fiducial loglikes + coords on the subsample ...")
+    log(f"{el()} coords on {len(U)} samples (GP predictive sigma) ...")
     coords, cerr = jb.coords(U[:, :30])
+    log(f"{el()} fiducial kSZ loglike ...")
     lk_fid = ksz.loglike(U)
+    log(f"{el()} fiducial fgas loglike ...")
     lf_fid = fgas.loglike(U)
     sigma_pos = U[:, 31] * 3.6
+    log(f"{el()} fiducial B loglike ...")
     lb_fid = jb.b.loglike_batch(coords, cerr, sigma_pos)
+    log(f"{el()} fiducial done")
 
     fid = headline(U, coords)
     results = {"fiducial": fid}
@@ -135,13 +162,13 @@ def main() -> None:
         table[name] = {**mv, "ess": round(e, 1),
                        "reliable": bool(e >= ESS_MIN), "note": note}
         results[name] = h
-        print(f"  {name:16s} ESS={e:8.0f} "
+        log(f"  {name:16s} ESS={e:8.0f} "
               + " ".join(f"{k}={mv[k]:+.2f}" for k in
                          ("dln_mgas", "dln_t", "f_sat", "sigma_pos_arcmin"))
               + ("  ** FLAGGED" if mv["flagged"] else ""))
 
     # -- v3 central-only: f_sat = 0 exactly ------------------------------
-    print("variants ...")
+    log(f"{el()} variants ...")
     k0 = copy.copy(ksz)
     k0.F_SAT_RANGE = (0.0, 0.0)
     add("central_only", k0.loglike(U) - lk_fid,
@@ -192,6 +219,32 @@ def main() -> None:
     add("b_coordsys2x", lb5 - lb_fid,
         "B's pre-registered coordinate-systematic tier (SLOPE_SYS, "
         "OFFSET_SYS) doubled")
+
+    # -- fresh-chain variants, if run_a8_variants_disbatch.sh has landed --
+    # These replace the reweighted rows above, which collapse (ESS << 500)
+    # for every error-WIDENING variant: the widened posterior is broader
+    # than the fiducial proposal, so IS has no support where it needs it.
+    for v in ("emul2x", "fgas_model2x", "b_coordsys2x"):
+        paths = [CHAINS / f"joint_ab_{v}_seed{k}.npz" for k in range(4)]
+        if not all(p.exists() for p in paths):
+            continue
+        flat = np.concatenate([np.load(p)["chain"].astype(float)
+                               .reshape(-1, 32) for p in paths])
+        rng = np.random.default_rng(23)
+        Uv = flat[rng.choice(len(flat), min(N_SUB, len(flat)),
+                             replace=False)]
+        cv, _ = jb.coords(Uv[:, :30])
+        h = headline(Uv, cv)
+        mv = movement(fid, h)
+        table[v] = {**mv, "ess": None, "reliable": True,
+                    "method": "FRESH CHAINS (4 seeds) — supersedes the "
+                              "reweighted row, which failed the ESS gate",
+                    "note": table.get(v, {}).get("note", "")}
+        results[v] = h
+        log(f"  {v:16s} FRESH  "
+            + " ".join(f"{k}={mv[k]:+.2f}" for k in
+                       ("dln_mgas", "dln_t", "f_sat", "sigma_pos_arcmin"))
+            + ("  ** FLAGGED" if mv["flagged"] else ""))
 
     # -- v7 drop-one rows from the frozen artifacts ----------------------
     syn = json.loads((Path("/mnt/ceph/users/mlee1/paper3/A/wp6_propagation")

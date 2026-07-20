@@ -172,6 +172,20 @@ def main() -> None:
         "max_leak_tolerance": MAX_LEAK,
         "chi2_posterior_median_totcov": chi2_med,
         "chi2_fiducial_datacov": chi2_fid,
+        # TK #22: "A5-posterior median" was ambiguous between the A5
+        # astro-only chain and the 32-dim joint_ab chain, and the artifact
+        # carried no provenance to settle it. It is the FORMER -- see
+        # run_a6_posterior_stats.load_posterior_thin.
+        "chain_provenance": {
+            "chains": "wp5_chains/a5_final_seed{0..3}.npz",
+            "ndim": 30,
+            "which": "A5 astro-only posterior (f_gas + kSZ); NOT joint_ab",
+            "n_draws": 2000,
+            "seed": 11,
+            "why_it_matters": "the comparison carries no B information, "
+                              "which is what makes it out-of-sample "
+                              "against a kappa x y observable",
+        },
         "data_over_model_median": {f"{theta_arcmin[j]:.1f}": float(ratio[j])
                                    for j in np.flatnonzero(v)},
         "beam_fwhm_arcmin": BEAM_FWHM_ARCMIN,

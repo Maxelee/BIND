@@ -26,9 +26,11 @@ Variant map (plan item -> implementation):
                       (SLOPE_SYS, OFFSET_SYS) doubled
   7  drop-one rows    quoted from the FROZEN subset chains/summaries
                       (kszonly, A-joint = drop-B) — no reweighting
-  1  mass_shift       DEFERRED: the GGL logM500 targets carry no
-                      published sigma in the frozen constants; needs the
-                      source value before any shift is defensible
+  1  mass_shift       EXECUTED — see run_a8_massshift.py and
+                      wp8_robustness/a8_massshift.json. The sigma is
+                      Siegel 2509.10455 Sec 4.2.1 (>~0.1 dex
+                      stellar-mass-estimator systematic, which dominates
+                      the 0.009 dex Table-1 statistical error)
   4  cap_radii        DEFERRED to a re-fit: changes the data vector
   6  stochasticity    N/A here: wp4 diagonal Sigma_theory was confirmed
                       final and the A2 optional variants closed (see
@@ -261,11 +263,13 @@ def main() -> None:
 
     # -- deferred / N.A. rows (documented, per the acceptance criterion) --
     table["mass_shift"] = {
-        "note": "plan v1 DEFERRED: SIEGEL_GGL_LOGM500_TARGETS carries no "
-                "published sigma in the frozen constants; shifting by an "
-                "invented value would be the remembered-number failure "
-                "mode. Mechanism ready (rebuild KszBlock at shifted "
-                "LOGM500_TARGET) once the source sigma is recorded."}
+        "note": "plan v1 EXECUTED — see wp8_robustness/a8_massshift.json "
+                "(run_a8_massshift.py). The sigma was located in the "
+                "primary source: Siegel 2509.10455 Table 1 gives the GGL "
+                "statistical error (0.009 dex at LRG M3) and Sec 4.2.1 the "
+                "stellar-mass-estimator systematic (>~0.1 dex) that "
+                "dominates it and is the one used. Result: clean, worst "
+                "coordinate movement 0.028 sigma at ESS ~99%."}
     table["cap_radii"] = {
         "note": "plan v4 DEFERRED to a re-fit: alternative CAP radii sets "
                 "change the data vector (different dof), outside "

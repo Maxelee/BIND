@@ -133,11 +133,37 @@ def main() -> None:
     }
     a_med = q(dp_post, 50)
     b_dat = b["dP_P_k0p5_data"]
+
+    # The GAS-RATIO route to the same shortfall, persisted here because
+    # it had been quoted in prose (2.48x) with no artifact behind it --
+    # it was computed ad hoc and never written down, which is exactly
+    # the untraceable-number failure this project guards against.
+    #   A: the calibrated posterior's gas relative to CAMELS fiducial
+    #      = exp(dln M_gas) from joint_ab_summary (MIRROR frame, the
+    #      frame in which the fiducial sits at 0 by construction)
+    #   B: p5's R_fgas headline, data relative to TNG fiducial
+    j = json.loads((Path("/mnt/ceph/users/mlee1/paper3/A/wp5_chains")
+                    / "joint_ab_summary.json").read_text())
+    dm = j["coords_posterior"]["dln_mgas"]
+    a_ratio = float(np.exp(dm["p50"]))
+    b_ratio = float(p5["R_fgas_headline_nu1_3_mean"])
+    out["gas_ratio_route"] = {
+        "A_posterior_over_fiducial": a_ratio,
+        "A_p16_p84": [float(np.exp(dm["p16"])), float(np.exp(dm["p84"]))],
+        "B_data_over_TNG": b_ratio,
+        "shortfall_factor": float(a_ratio / b_ratio),
+        "note": "A is exp(dln M_gas) in the MIRROR frame (CAMELS fiducial "
+                "at 0); B is p5's nu1-3 mean R_fgas. Different reference "
+                "points, both ratios, so the comparison is of how far each "
+                "sits below its own TNG baseline."}
+
     out["comparison"] = {
         "A_posterior_predicts_dP_P": a_med,
         "B_data_demands_dP_P": b_dat,
         "ratio_demand_over_prediction": float(b_dat / a_med),
-        "gap_in_dP_P": float(b_dat - a_med)}
+        "gap_in_dP_P": float(b_dat - a_med),
+        "shortfall_power_route": float(b_dat / a_med),
+        "shortfall_gas_ratio_route": float(a_ratio / b_ratio)}
 
     (WP6 / "ab_pk_crosscheck.json").write_text(json.dumps(out, indent=2))
 

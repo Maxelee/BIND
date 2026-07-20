@@ -32,6 +32,52 @@ Only fresh chains can assess them.
                 the posterior, so this cannot be answered by
                 reweighting the frozen chain -- it needs a fresh fit,
                 which is exactly what this variant provides.
+  c2s_massdep   the CylToSph conversion made MASS-DEPENDENT instead of
+                one scalar over all five gate bins (systematics-hunt
+                FINDINGS_fgas.md candidate 1). The mass dependence was
+                measured on 5,280 CAMELS-L50 halos and persisted in the
+                very npz the code loads, then never applied. This is a
+                VARIANT and not a default change on purpose: the shape is
+                transported from CAMELS-L50 to TNG300, its decisive
+                like-for-like measurement is a Popeye job that has NOT
+                run, and the top two mass bins are pure extrapolation.
+                Only the shape is imported -- the wp2 absolute anchor is
+                preserved by construction (emulator/cyltosph_theta.py).
+                Needs a fresh chain: it re-points the f_gas block's mass
+                slope rather than widening an error, so the fiducial
+                proposal is not a valid importance proposal for it.
+  ksz_wp2bias   the kSZ prediction DIVIDED by the wp2 painted-vs-truth
+                tau_CAP bias (1 + frac_bias), theta <= 3.5' only --
+                the f_gas PAINT_BIAS = 1.074 treatment applied to the
+                probe that never got one (FINDINGS_bind_layer.md sec 1).
+                Inner-only is the CONSERVATIVE BRACKET of the pair below:
+                it corrects only the 7-13% regime that is well measured
+                and consistent across all four wp2 snapshots, and leaves
+                the outer two radii alone.
+  ksz_wp2bias_all  the same, applied at all nine radii -- including the
+                factor 1.85-2.1 implied by frac_bias 0.847/1.095 at
+                4.75'/6'. VALIDATED 2026-07-20 and now scheduled. The
+                open question had been whether those outer numbers were a
+                small-denominator artifact of the COMPENSATED CAP filter.
+                They are not: deriving stack(truth) = bias / frac_bias
+                from sigma_model_ksz_tauCAP_snap063.npz (mirrored on
+                rusty at /mnt/ceph/users/mlee1/paper3/A/wp2_validation/,
+                so no Popeye job was needed) gives 4.152e-4 / 2.359e-3 /
+                3.467e-3 / 4.210e-3 / 5.101e-3 over the five Qu radii --
+                monotonically increasing, with the OUTER stack the
+                LARGEST of the five, 12.3x the innermost. The offsets are
+                67.1 and 71.8 sigma against the wp2 bootstrap Sigma_model
+                diagonal, past the ">2 sigma => the block carries an
+                uncorrected factor-2 error on 2 of 9 radii" branch of the
+                pre-registered criterion (FINDINGS_bind_layer.md cand. 1
+                step 1). See inference/ksz.py for the full table and for
+                the standing caveat that Sigma_model is an error on the
+                mean, which makes the sigma branch weak; the absolute
+                magnitudes are what refute the artifact hypothesis.
+                Both forms are kept and both are run: their DIFFERENCE
+                measures how much of the effect lives in the outer two
+                radii. Neither is a default change.
+
   no_fgas       the f_gas block DROPPED entirely -- the OTHER half of
                 the plan-v7 drop-one pair (kSZ + B alone). Same
                 argument as no_ksz: dropping a term broadens the
@@ -84,7 +130,8 @@ def _gate() -> dict:
     return rec
 
 
-VARIANTS = ("emul2x", "fgas_model2x", "b_coordsys2x", "no_ksz", "no_fgas")
+VARIANTS = ("emul2x", "fgas_model2x", "b_coordsys2x", "no_ksz", "no_fgas",
+            "c2s_massdep", "ksz_wp2bias", "ksz_wp2bias_all")
 
 
 def _tag(variant):
@@ -104,9 +151,28 @@ def _blocks(variant: str | None = None):
         _bb.SLOPE_SYS = 2.0 * _bb.SLOPE_SYS
         _bb.OFFSET_SYS = 2.0 * _bb.OFFSET_SYS
 
+    c2s = None
+    if variant == "c2s_massdep":
+        # constructed BEFORE FgasBlock: the mass shape is baked into the
+        # CylToSph object the block holds, so nothing else has to change.
+        # Only the SHAPE moves; the wp2 absolute anchor is preserved (see
+        # emulator/cyltosph_theta.py). The kSZ and B blocks are untouched
+        # -- CylToSph enters the f_gas leg only.
+        from analysis.paper3a.emulator.cyltosph_theta import CylToSphTheta
+        c2s = CylToSphTheta(mass_dependent=True)
+
     ksz = KszBlock()
-    fgas = FgasBlock(emu=ksz.emu)
+    fgas = FgasBlock(emu=ksz.emu, c2s=c2s)
     jb = JointBBlock()
+
+    if variant in ("ksz_wp2bias", "ksz_wp2bias_all"):
+        # divide the kSZ prediction by the wp2 painted-vs-truth tau_CAP
+        # bias, exactly as fgas.py divides by PAINT_BIAS = 1.074. Radii
+        # outside the corrected range get a divisor of 1.0 exactly.
+        from analysis.paper3a.inference.ksz import wp2_tau_bias_divisor
+        mode = "all" if variant.endswith("_all") else "inner"
+        ksz.wp2_bias_mode = mode
+        ksz.wp2_bias_divisor = wp2_tau_bias_divisor(ksz.radii, mode)
 
     if variant == "no_ksz":
         # log_prob_factory sums block loglikes; returning zeros removes

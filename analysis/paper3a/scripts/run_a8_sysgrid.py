@@ -242,7 +242,36 @@ def main() -> None:
         "no_fgas": "FRESH CHAINS (4 seeds), plan v7 drop-one: f_gas block "
                    "dropped, so kSZ + B alone. Not reweightable — dropping "
                    "a term broadens the posterior",
+        "c2s_massdep": "FRESH CHAINS (4 seeds), systematics-hunt: CylToSph "
+                       "made mass-dependent instead of one scalar over all "
+                       "five gate bins. Re-points the f_gas mass slope rather "
+                       "than widening an error, so the fiducial chain is not "
+                       "a valid importance proposal",
+        "ksz_wp2bias": "FRESH CHAINS (4 seeds), systematics-hunt: kSZ divided "
+                       "by the wp2 painted-vs-truth tau_CAP bias, theta <= "
+                       "3.5' only — the conservative inner-radii bracket",
+        "ksz_wp2bias_all": "FRESH CHAINS (4 seeds), systematics-hunt: the same "
+                           "at all nine radii. The outer-radius bias is "
+                           "validated (stack(truth) rises monotonically to "
+                           "12.3x the innermost; offsets 67/72 sigma), so this "
+                           "is the measurement and the inner-only row is the "
+                           "bracket",
     }
+
+    # A variant registered for fitting but missing here would land its chains
+    # and then be silently dropped from the movement table -- it is iterated
+    # by name, so absence is invisible rather than an error. That happened
+    # once (the three systematics-hunt variants above). Fail loudly instead.
+    try:
+        from analysis.paper3a.scripts.run_joint_ab_fit import VARIANTS
+    except ImportError:          # keep the grid runnable in isolation
+        VARIANTS = ()
+    missing = [v for v in VARIANTS if v not in FRESH]
+    if missing:
+        raise SystemExit(
+            f"run_a8_sysgrid: {missing} are fittable variants with no FRESH "
+            "entry. Add a description above, or the rows vanish silently.")
+
     for v, method in FRESH.items():
         paths = [CHAINS / f"joint_ab_{v}_seed{k}.npz" for k in range(4)]
         if not all(p.exists() for p in paths):

@@ -44,13 +44,18 @@ Out: wp6_propagation/bblock_validation.json
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import numpy as np
 from scipy.optimize import minimize, nnls
 
 B = Path("/mnt/ceph/users/mlee1/paper3/B")
-GRID = B / "wp4_mocks/model_grid_tfwiener.npz"
+# The frozen 60-unit twobound grid. $BIND_PAPER3A_BGRID overrides it so
+# the bind-anchored 61-unit variant can be validated WITHOUT touching the
+# frozen file (see scripts/make_anchored_grid.py).
+GRID = Path(os.environ.get("BIND_PAPER3A_BGRID",
+                           B / "wp4_mocks/model_grid_tfwiener.npz"))
 STACK = B / "wp2_measurement/stack_wiener_sm2am_fid.npz"
 SYS = B / "wp3_nulls/sigma_sys_wiener_decomposed.npz"
 SUMMARY = B / "wp4_mocks/b4_summary_tfwiener.json"

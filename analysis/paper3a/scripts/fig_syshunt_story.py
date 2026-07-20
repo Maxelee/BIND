@@ -93,7 +93,8 @@ def fig2():
     for j, (nu, c) in enumerate(zip(NU, shades)):
         ax.plot(RADII, RATIO[:, j], "-o", color=c, lw=2.0, ms=5,
                 mec="white", mew=0.8, zorder=3)
-        ax.annotate(rf"$\nu\,{nu}$", (RADII[-1], RATIO[-1, j]),
+        nu_math = nu.strip("$")          # NU entries may already be mathtext
+        ax.annotate(rf"$\nu\,{nu_math}$", (RADII[-1], RATIO[-1, j]),
                     xytext=(4, 0), textcoords="offset points",
                     fontsize=7, color=c, va="center")
     ax.axhline(0.2654, color=COL["ref"], ls=":", lw=1.2, zorder=2)
@@ -198,7 +199,7 @@ BLOCKS = [r"X-ray $f_{\rm gas}$" "\n" r"$n=5$",
           "kSZ\n" r"$n=9$",
           r"$\kappa$-peaks $\times\,y$" "\n" r"$n=4$"]
 FID = [19.8, 37.6, 106.6]
-C2S = [1.8, 17.3, 86.3]
+C2S = [2.3, 17.0, 85.9]
 NDOF = [5, 9, 4]
 
 
@@ -231,8 +232,8 @@ def fig5():
 # ---------------------------------------------------------------------------
 CONFIGS = [("fiducial", 106.6), ("emul2x", 107.6), ("fgas_model2x", 95.9),
            ("b_coordsys2x", 94.7), ("no_ksz", 88.4), ("no_fgas", 83.1),
-           ("c2s_massdep", 86.3), ("ksz_wp2bias", 101.8),
-           ("ksz_wp2bias_all", 103.2)]
+           ("c2s_massdep", 85.9), ("ksz_wp2bias", 101.5),
+           ("ksz_wp2bias_all", 102.7)]
 
 
 def fig6():

@@ -69,6 +69,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from bind.wlemu import WLEmulator, measure_stats
+from bind.wlemu.analysis import sensitivity
 from bind.wlemu.fit import frac_err_by_block, sigma_err_by_block
 
 # -- consistent, colorblind-safe style (Okabe-Ito) --------------------------
@@ -221,31 +222,45 @@ md(r"""
 ## 4. Which parameters matter?
 
 For each parameter, sweep it across its full prior range (all others fiducial)
-and measure how far each statistic block moves, expressed as the **integrated
-detectability for a single 5×5 deg field**:
-$S/N = \max_v \sqrt{\sum_{\rm bins} (\Delta_{\rm bin}(v)/\sigma_{\rm bin})^2}$
-with $\sigma$ the single-field scatter. This global sensitivity map of WL
-statistics to the TNG feedback model reads directly off the emulator in seconds.
-(Sweeps are conditional — one axis at a time through the fiducial; for weakly
-responding parameters the ranking is emulator-limited, so treat the bottom of
-the table as "consistent with no detectable response".)
+and measure how far each statistic block moves, expressed as a **correlation-
+aware, noise-debiased detectability for a single 5×5 deg field**.
+
+An earlier version of this cell scored each block with a per-bin
+sqrt-sum-of-squares, $S/N = \max_v \sqrt{\sum_{\rm bins}
+(\Delta_{\rm bin}(v)/\sigma_{\rm bin})^2}$. That treats every bin as an
+independent detection, but the 18 $C_\ell$ bins (and the 113 scattering
+coefficients) of one field are strongly correlated, so a coherent shift gets
+counted once per bin instead of once per block — an overcount of order
+$\sqrt{n_{\rm bins}}$. It also has no noise floor: the GP's own
+interpolation uncertainty, amplified by the `max` over the sweep, gives every
+parameter — including physically null ones — a nonzero score, so weak/null
+params could out-rank genuinely responsive ones.
+
+The fix (`bind.wlemu.analysis.sensitivity`): whiten each block by its own
+single-field covariance, keeping only the top $K=\min(30, 40)$ eigenmodes
+(the 40 cap is the noise-paired-realization effective-dof guard — the
+`n_real=50` map realizations give an effective dof of order 49, not
+$253\times 49$, once you account for the training Sobol points sharing
+noise-paired realizations). That collapses each block's within-block
+correlation down to a handful of near-independent modes before summing
+squares. The GP's own predictive-uncertainty floor is then estimated the
+same way (propagating the GP's $\sigma$ at the fiducial through the same
+whitening transform) and subtracted in quadrature, so a parameter with a
+whitened response no larger than the GP's own noise floor scores ~0 rather
+than some spurious positive number. Zero-variance bins (empty histogram
+tails) are masked out before whitening, as before.
+
+(Sweeps are conditional — one axis at a time through the fiducial; the
+debiased score can be exactly 0 for a block/parameter pair whose true
+response sits below the GP's resolving power there — that block-parameter
+combination is "consistent with no detectable response," not "detected
+weakly.")
 """)
 
 code(r"""
 zi, nv = 1, 9
-sig_field = np.sqrt(np.diag(emu.covariance(z_idx=zi)))
-ok = sig_field > 0                                    # mask empty histogram tails
-p_fid = emu.predict_vector(theta_fid, z_idx=zi, return_std=False)[0]
-
-score = np.zeros((emu.n_params, len(emu.block_names)))
-for i in range(emu.n_params):
-    thetas = np.tile(theta_fid, (nv, 1))
-    thetas[:, i] = np.linspace(0.0, 1.0, nv)
-    v = emu.predict_vector(thetas, z_idx=zi, return_std=False)
-    zres = np.where(ok, (v - p_fid) / np.where(ok, sig_field, 1.0), 0.0)  # (nv, D)
-    for j, b in enumerate(emu.block_names):
-        s = emu.block_slices[b]
-        score[i, j] = np.sqrt((zres[:, s] ** 2).sum(axis=1)).max()
+res = sensitivity(emu, z_idx=zi, nv=nv)
+score = res["debiased"]                                # (n_params, n_blocks), noise-subtracted
 
 order = np.argsort(score.max(axis=1))[::-1]
 fig, ax = plt.subplots(figsize=(7.5, 9))
@@ -254,8 +269,8 @@ im = ax.imshow(score[order], cmap="Oranges", aspect="auto",
 ax.set_xticks(range(len(emu.block_names)), emu.block_names, rotation=45, ha="right")
 ax.set_yticks(range(emu.n_params), [emu.param_names[i] for i in order], fontsize=7.5)
 ax.grid(False)
-fig.colorbar(im, ax=ax, label="integrated response S/N, one field", shrink=0.6)
-ax.set_title(f"global sensitivity at $z_s={emu.source_redshifts[zi]:g}$")
+fig.colorbar(im, ax=ax, label="whitened, noise-debiased response S/N, one field", shrink=0.6)
+ax.set_title(f"global sensitivity at $z_s={emu.source_redshifts[zi]:g}$ (correlation-aware)")
 fig.tight_layout()
 print("most influential:", ", ".join(emu.param_names[i] for i in order[:5]))
 """)

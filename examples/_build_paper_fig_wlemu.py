@@ -86,6 +86,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 from bind.wlemu import WLEmulator
+from bind.wlemu.analysis import block_whitener
 
 try:
     import scienceplots  # noqa: F401
@@ -298,12 +299,16 @@ parameters fiducial): supernova wind speed ($A_{\rm SN2}$, top) and AGN/BH
 radiative efficiency (bottom), for four statistic families. Each panel shows
 the per-bin response **in units of the statistical (cosmic-variance-only)
 error of an LSST-Y10-area survey** (gray band = ±1; shared symlog scale), with
-the integrated $S/N=\sqrt{\sum_{\rm bins}(\Delta/\sigma)^2}$ of the extreme
-sweep annotated. At survey precision, feedback is a many-$\sigma$ effect not
-just in the power spectrum but in *every* statistic family simultaneously —
-if HOS enter a survey's data vector, their feedback response must be modeled
-as consistently as the 2-pt one. This joint, smooth response surface is
-exactly that model.
+the integrated $S/N=\sqrt{N_{\rm tiles}}\,\|W(\Delta)\|$ of the extreme sweep
+annotated — the whitened norm of the response (see §4 of the tutorial: bins
+within a block are strongly correlated, so a naive per-bin sqrt-sum-of-squares
+overcounts by ~$\sqrt{n_{\rm bins}}$; whitening by the block's own covariance
+collapses that to its ~independent modes before the $\sqrt{N_{\rm tiles}}$
+survey-area scaling is applied). At survey precision, feedback is a many-
+$\sigma$ effect not just in the power spectrum but in *every* statistic family
+simultaneously — if HOS enter a survey's data vector, their feedback response
+must be modeled as consistently as the 2-pt one. This joint, smooth response
+surface is exactly that model.
 
 *Caption draft*: Response of the joint statistic suite to two feedback
 parameters, each swept across its full prior range (color scale; all other
@@ -311,13 +316,14 @@ parameters fiducial), at $z_s = 1$, per bin in units of the statistical
 error of an LSST-Y10-like area (18 000 deg$^2$ of independent 5×5 deg fields,
 cosmic variance only — shape noise and systematics would loosen this, so the
 scale is an idealized information measure). Gray band: $\pm 1\sigma$; note
-the symlog scale. Annotations give the integrated $S/N$ of the largest
-response in each panel. Peaks/PDF/Minkowski are measured in per-map $S/N$
-units ($\nu$), so amplitude information is carried separately by the moments
-block. Per-bin structure inside the gray band is comparable to the emulator's
-own predictive uncertainty at this precision. Because all statistics are
-emulated jointly from the same raytraced maps, their responses are mutually
-consistent by construction.
+the symlog scale. Annotations give the whitened, correlation-aware integrated
+$S/N$ of the largest response in each panel (see §4 of the tutorial for why a
+naive per-bin sqrt-sum-of-squares overcounts). Peaks/PDF/Minkowski are
+measured in per-map $S/N$ units ($\nu$), so amplitude information is carried
+separately by the moments block. Per-bin structure inside the gray band is
+comparable to the emulator's own predictive uncertainty at this precision.
+Because all statistics are emulated jointly from the same raytraced maps,
+their responses are mutually consistent by construction.
 """)
 
 code(r"""
@@ -332,6 +338,10 @@ SWEEP = [("VariableWindVelFactor", r"SN wind speed $A_{\rm SN2}$", "Oranges"),
          ("BlackHoleRadiativeEfficiency", "BH radiative efficiency", "Blues")]
 COLS = ["Cl", "peak", "pdf", "V2"]
 nv = 7
+# Whitened S/N: sqrt(720) survey-area scaling stays as-is (N_TILES above),
+# only the per-bin sqrt-sum-of-squares (which overcounts correlated bins) is
+# replaced by the block's own top-eigenmode whitened norm (bind.wlemu.analysis).
+WHITENERS = {blk: block_whitener(emu, zi, blk) for blk in COLS}
 
 fig, axes = plt.subplots(2, 4, figsize=(10.5, 4.6), sharey=True,
                          gridspec_kw=dict(wspace=0.14, hspace=0.28))
@@ -349,7 +359,12 @@ for row, (name, nice, cmap) in enumerate(SWEEP):
         for j in range(nv):
             ax.plot(x, zresp[j, s], color=shades[j], lw=1.3)
         ax.axhspan(-1, 1, color=C_GRAY, alpha=0.35, lw=0)
-        sn = np.sqrt((zresp[:, s] ** 2).sum(axis=1)).max()
+        Wb, maskb = WHITENERS[blk]
+        if Wb.size:
+            delta = vr[:, s][:, maskb] - p0v[s][maskb][None, :]     # raw physical delta
+            sn = np.sqrt(N_TILES) * np.linalg.norm(delta @ Wb.T, axis=1).max()
+        else:
+            sn = 0.0
         ax.text(0.96, 0.04, rf"$S/N_{{\rm int}}$ = {sn:.0f}", transform=ax.transAxes,
                 ha="right", fontsize=7.5, bbox=dict(fc="white", ec="none", alpha=0.8))
         ax.set_yscale("symlog", linthresh=2)

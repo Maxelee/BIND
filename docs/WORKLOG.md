@@ -6,6 +6,12 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-23 — wlemu v2 implementation complete (T1–T4 on `feature/wl-emu`)
+
+Four upgrades landed to `bind.wlemu`: [T1](../../commit/00b1717) user ℓ/ν output grids (predict/covariance regridding), [T2](../../commit/1a0f4eb) continuous z_source via PCHIP interpolation + LOO inflation, [T3](../../commit/7ba3bf8) whitened sensitivity map (eigen-truncated covariance) fixing correlated-bin overcounting, [T4](../../commit/9849164) active-subspace reduction with gas-fraction axis + fiducial posterior. Both notebooks rebuilt cleanly (tutorial + paper-fig 5 sections); ruff check src shows 0 new errors; `docs/wl_emulator.md` reads coherently across all sections.
+
+---
+
 ## 2026-07-23 — wlemu v2 planned; sensitivity-map estimator diagnosed as buggy
 
 Plan for five wlemu upgrades written to `docs/plans/wlemu_v2.md` (local,

@@ -13,11 +13,28 @@ emu = WLEmulator.load()                                   # packaged artifact
 pred = emu.predict({"WindEnergyIn1e51erg": 7.2}, z_source=1.0)
 pred["Cl"], pred["Cl_std"]                                # + pdf, peak, min, V0-V2, scat, moments
 cov = emu.covariance(z_source=1.0, blocks=("Cl", "peak"))  # single-field covariance
+
+# custom output grids: interpolated from the native grid (Cl in log-log,
+# nu-binned blocks linearly in nu); out-of-range points raise ValueError
+pred = emu.predict(params, z_source=1.0, ell=my_ell, nu=my_nu)
+pred["grids"]                                             # {"Cl": my_ell, "pdf": my_nu, ...}
+cov = emu.covariance(z_source=1.0, blocks=("Cl",), ell=my_ell)  # exact A @ C @ A.T
 ```
 
 CLI: `bind-wlemu --z 1.0 --set WindEnergyIn1e51erg=7.2 --out pred.npz`
 (`--list-params` prints the parameter table). Tutorial + validation:
 `examples/wlemu_tutorial.ipynb`.
+
+`predict`/`predict_vector`/`covariance` accept optional custom output grids for
+the 7 binned blocks (Cl, pdf, peak, min, V0, V1, V2 — `scat`/`moments` are
+discrete coefficients and cannot be regridded): a per-block `grids={...}`
+dict, or the shorthands `ell=` (→ `grids["Cl"]`) and `nu=` (applied to all six
+nu-binned blocks, each interpolated from its own native grid: `pdf_x`,
+`peak_x` for peak/min, `mink_thr` for V0-V2). Values are linearly interpolated
+from the native grid (log10-log10 for Cl); requests outside the native
+range raise `ValueError`. `predict`'s regridded `_std` uses the same linear
+map as the mean (`A @ std`, a conservative neighbor-correlation
+approximation); `covariance`'s regrid is exact (`A @ C @ A.T`).
 
 ## What it emulates
 

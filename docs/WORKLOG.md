@@ -6,6 +6,28 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-23 — wlemu v2 planned; sensitivity-map estimator diagnosed as buggy
+
+Plan for five wlemu upgrades written to `docs/plans/wlemu_v2.md` (local,
+gitignored per the plans convention): user-chosen ℓ/ν output grids, continuous
+z_source via cross-plane interpolation, corrected sensitivity map, and an
+active-subspace reduction of the 30-dim feedback space with a gas-fraction
+axis + fiducial-TNG posterior (replaces the tutorial §7 figure). Diagnosis
+worth recording: the tutorial §4 / paper-fig S/N_int estimator sums per-bin
+z-scores with diagonal σ only — correlated Cl/scat bins overcount by ~√N_bins,
+which is why every parameter lit up in the Cl column and null params ranked
+top; fix is an eigen-truncated covariance whitening (dof ≈ 49 because
+realizations are noise-paired across runs). Physical-axis directions come from
+the `bind_sb35` Sobol bundle (`analysis_cache/integrated.pkl`).
+
+---
+
+## 2026-07-15 (later still) — Paper-3 planning (private repo); `plans/` gitignored
+
+Next-paper planning lives in a separate **private** repository (this repo is
+public); `plans/` added to `.gitignore` here as a guard. Details in the private
+repo's own worklog.
+
 ## 2026-07-15 (later) — WL-emulator paper figures (`examples/paper_fig_wlemu.ipynb`)
 
 Four publication figures for the paper's community-tool section (builder

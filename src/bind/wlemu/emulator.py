@@ -45,6 +45,17 @@ LOG_BLOCKS = {"Cl", "scat"}          # emulated as log10
 NONNEG_BLOCKS = {"pdf", "peak", "min", "V0", "V1"}  # clipped at 0 in predict
 COORD_KEYS = ("ell", "pdf_x", "peak_x", "mink_thr")
 
+# Blocks whose bins live on a coordinate grid (and can therefore be resampled
+# onto a user-chosen grid). scat/moments are discrete coefficient indices, not
+# binned quantities, and are excluded on purpose.
+GRID_BLOCKS = ("Cl", "pdf", "peak", "min", "V0", "V1", "V2")
+_NU_BLOCKS = ("pdf", "peak", "min", "V0", "V1", "V2")   # share the `nu=` shorthand
+_NATIVE_GRID_ATTR = {
+    "Cl": "ell", "pdf": "pdf_x", "peak": "peak_x", "min": "peak_x",
+    "V0": "mink_thr", "V1": "mink_thr", "V2": "mink_thr",
+}
+_LOG_X_BLOCKS = {"Cl"}   # interpolated in log10(x) (Cl is also log10(y), see LOG_BLOCKS)
+
 DEFAULT_ARTIFACT = Path(__file__).parent.parent / "assets" / "wlemu_gp.npz"
 
 _SQRT5 = np.sqrt(5.0)
@@ -53,6 +64,40 @@ _SQRT5 = np.sqrt(5.0)
 def _matern25(dist: np.ndarray) -> np.ndarray:
     """Matern-5/2 correlation as a function of the ARD-scaled distance."""
     return (1.0 + _SQRT5 * dist + (5.0 / 3.0) * dist**2) * np.exp(-_SQRT5 * dist)
+
+
+def _interp_matrix(native: np.ndarray, query, log_x: bool, block_name: str) -> np.ndarray:
+    """Dense linear-interpolation matrix ``A`` of shape ``(len(query),
+    len(native))`` such that ``A @ y`` resamples values defined on the
+    ``native`` grid onto ``query`` points (interpolating in ``log10(x)`` if
+    ``log_x`` else in ``x`` directly). Passing ``query == native`` (any order)
+    yields a permutation matrix, so ``A @ y`` reproduces ``y`` exactly.
+
+    Raises ``ValueError`` if any query point falls outside the native grid's
+    range (no extrapolation).
+    """
+    native = np.asarray(native, float)
+    query = np.atleast_1d(np.asarray(query, float))
+    xn = np.log10(native) if log_x else native
+    xq = np.log10(query) if log_x else query
+    order = np.argsort(xn)
+    xs = xn[order]
+    lo, hi = xs[0], xs[-1]
+    tol = 1e-9 * max(abs(lo), abs(hi), 1.0)
+    bad = (xq < lo - tol) | (xq > hi + tol)
+    if bad.any():
+        raise ValueError(
+            f"grid for block '{block_name}' has points outside its native "
+            f"range [{native.min():g}, {native.max():g}]: {query[bad].tolist()}")
+    xq_c = np.clip(xq, lo, hi)
+    j = np.clip(np.searchsorted(xs, xq_c, side="left"), 1, len(xs) - 1)
+    x0, x1 = xs[j - 1], xs[j]
+    w = np.divide(xq_c - x0, x1 - x0, out=np.zeros_like(xq_c), where=(x1 > x0))
+    A = np.zeros((len(xq_c), len(native)))
+    rows = np.arange(len(xq_c))
+    A[rows, order[j - 1]] += 1.0 - w
+    A[rows, order[j]] += w
+    return A
 
 
 class _ZModel:
@@ -241,10 +286,38 @@ class WLEmulator:
                 "were raytraced at these discrete source redshifts)")
         return i
 
+    # ------------------------------------------------------------ grids -----
+
+    def _resolve_grids(self, grids: dict | None, ell, nu) -> dict:
+        """Merge the ``grids=``/``ell=``/``nu=`` kwargs into one per-block
+        dict, validating block names and rejecting double-specification."""
+        grids = dict(grids) if grids else {}
+        if ell is not None:
+            if "Cl" in grids:
+                raise ValueError("pass ell= or grids={'Cl': ...}, not both")
+            grids["Cl"] = ell
+        if nu is not None:
+            for b in _NU_BLOCKS:
+                if b in grids:
+                    raise ValueError(f"pass nu= or grids={{'{b}': ...}}, not both")
+                grids[b] = nu
+        for b in grids:
+            if b not in GRID_BLOCKS:
+                raise ValueError(
+                    f"block '{b}' does not support custom output grids (only "
+                    f"{GRID_BLOCKS}); 'scat'/'moments' are discrete coefficients, "
+                    "not binned quantities, and cannot be regridded")
+        return grids
+
+    def _grid_matrix(self, block: str, query) -> np.ndarray:
+        native = getattr(self, _NATIVE_GRID_ATTR[block])
+        return _interp_matrix(native, query, block in _LOG_X_BLOCKS, block)
+
     # ----------------------------------------------------------- prediction --
 
     def predict(self, params, z_source: float | None = None, z_idx: int | None = None,
-                return_std: bool = True, clip: bool = True) -> dict:
+                return_std: bool = True, clip: bool = True,
+                grids: dict | None = None, ell=None, nu=None) -> dict:
         """Predict all statistic blocks in physical units.
 
         Parameters
@@ -254,54 +327,97 @@ class WLEmulator:
         z_source / z_idx : one of the emulated source planes (value or index).
         return_std : also return per-bin GP uncertainties as ``<block>_std``.
         clip : clip count-like blocks (pdf, peak, min, V0, V1) at zero.
+        grids : dict, optional
+            Per-block custom output grids for the 7 binned blocks
+            (:data:`GRID_BLOCKS` = Cl, pdf, peak, min, V0, V1, V2), e.g.
+            ``{"Cl": ell_array, "peak": nu_array}``. Values are linearly
+            interpolated from the block's native grid (Cl in log10-log10
+            space, the nu-binned blocks linearly in nu) and must lie within
+            the native grid's range — out-of-range points raise
+            ``ValueError``. ``scat``/``moments`` are discrete coefficients
+            and cannot be regridded.
+        ell : array, optional
+            Shorthand for ``grids["Cl"]``.
+        nu : array, optional
+            Shorthand applied to all six nu-binned blocks (pdf, peak, min,
+            V0, V1, V2), each interpolated from its own native grid.
 
         Returns
         -------
         dict with one array per block (single input -> (D,), batched ->
-        (N, D)), plus ``<block>_std`` if requested. Bin coordinates live on
-        the emulator (:attr:`ell`, :attr:`pdf_x`, :attr:`peak_x`,
-        :attr:`mink_thr`).
+        (N, D)), plus ``<block>_std`` if requested. Bin coordinates for the
+        default grids live on the emulator (:attr:`ell`, :attr:`pdf_x`,
+        :attr:`peak_x`, :attr:`mink_thr`); if any block was regridded, the
+        actual grids used are echoed back under ``out["grids"]`` (block name
+        -> array).
+
+        Note on regridded ``_std``: the resampled uncertainty is computed as
+        ``A @ std`` (the same linear map as the mean), which is a
+        conservative approximation — it treats adjacent native bins as
+        perfectly correlated. This is reasonable because neighboring-bin GP
+        errors are dominated by the same shared PCA modes, but it is not
+        exact; use :meth:`covariance` (which *is* exact, ``A @ C @ A.T``) if
+        you need the true regridded uncertainty/correlation structure.
         """
         u, single = self._resolve_params(params)
         zi = self._resolve_z(z_source, z_idx)
         m = self._z_models[zi]
+        grids = self._resolve_grids(grids, ell, nu)
+        mats = {b: self._grid_matrix(b, g) for b, g in grids.items()}
 
         mean_s, std_s = m.posterior(u, return_std)          # (N, P) scaled PCs
         C = mean_s * m.c_sd
         Y_std = C @ m.components + m.pca_mean
-        Y_t = Y_std * self.y_sd + self.y_mu
+        Y_t = Y_std * self.y_sd + self.y_mu               # transformed space (log10 for LOG_BLOCKS)
 
-        Yp = Y_t.copy()
-        for b in LOG_BLOCKS:
-            s = self.block_slices[b]
-            Yp[:, s] = 10.0 ** Y_t[:, s]
-
-        out = {}
         if return_std:
             sd_C = std_s * m.c_sd
             Y_std_sd = np.sqrt((sd_C**2) @ (m.components**2))
             sd_t = Y_std_sd * self.y_sd
+
+        out = {}
         for b in self.block_names:
             s = self.block_slices[b]
-            v = Yp[:, s]
+            yt_b = Y_t[:, s]
+            sd_b = sd_t[:, s] if return_std else None
+            if b in mats:
+                A = mats[b]
+                yt_b = yt_b @ A.T
+                if return_std:
+                    # Conservative approximation (see docstring above):
+                    # adjacent native bins share most of their GP error
+                    # through the shared PCA modes, so applying the same
+                    # linear map to std as to the mean is a reasonable
+                    # (if not exact) way to combine neighbor uncertainties.
+                    sd_b = sd_b @ A.T
+            v = 10.0 ** yt_b if b in LOG_BLOCKS else yt_b
             if clip and b in NONNEG_BLOCKS:
                 v = np.maximum(v, 0.0)
             out[b] = v[0] if single else v
             if return_std:
                 if b in LOG_BLOCKS:
-                    sd = np.abs(Yp[:, s]) * np.log(10.0) * sd_t[:, s]
+                    sd = np.abs(v) * np.log(10.0) * sd_b
                 else:
-                    sd = sd_t[:, s]
+                    sd = sd_b
                 out[b + "_std"] = sd[0] if single else sd
+        if grids:
+            out["grids"] = {b: np.asarray(g, float) for b, g in grids.items()}
         return out
 
     def predict_vector(self, params, z_source: float | None = None,
                        z_idx: int | None = None, return_std: bool = True,
-                       clip: bool = True):
+                       clip: bool = True, grids: dict | None = None, ell=None, nu=None):
         """Like :meth:`predict` but returns the concatenated statistics vector
         ``(N, D)`` (and its std), aligned with :attr:`block_slices` — the shape
-        needed for likelihoods against :meth:`covariance`."""
-        out = self.predict(params, z_source, z_idx, return_std=return_std, clip=clip)
+        needed for likelihoods against :meth:`covariance`.
+
+        ``grids``/``ell``/``nu`` are forwarded to :meth:`predict` (see there);
+        when given, ``D`` reflects the requested grid sizes rather than
+        :attr:`block_slices`, and should be paired with the matching
+        ``covariance(..., grids=..., ell=..., nu=...)`` call.
+        """
+        out = self.predict(params, z_source, z_idx, return_std=return_std, clip=clip,
+                           grids=grids, ell=ell, nu=nu)
         vec = np.concatenate([np.atleast_2d(out[b]) for b in self.block_names], axis=1)
         if not return_std:
             return vec
@@ -310,7 +426,8 @@ class WLEmulator:
         return vec, sd
 
     def covariance(self, z_source: float | None = None, z_idx: int | None = None,
-                   blocks: tuple | list | None = None) -> np.ndarray:
+                   blocks: tuple | list | None = None,
+                   grids: dict | None = None, ell=None, nu=None) -> np.ndarray:
         """Statistic covariance of a **single 5x5 deg field** (physical units),
         estimated from the 50 map realizations per parameter point and averaged
         over parameter points.
@@ -320,16 +437,47 @@ class WLEmulator:
         concatenation. Estimated from ``n_real=50`` fields — restrict to a
         data-vector subset well below 50 dimensions before inverting (and
         apply your favorite Hartlap-style correction).
+
+        grids / ell / nu : optional custom output grids for the gridded
+            blocks (see :meth:`predict`). Unlike ``predict``'s ``_std``, the
+            covariance transform is exact: diagonal blocks become
+            ``A @ C @ A.T`` and cross-block terms become
+            ``A_row @ C_block @ A_col.T``, since resampling is a linear map
+            and this is its exact covariance propagation. If ``blocks`` is
+            omitted while ``grids`` is given, all blocks are included (with
+            native, i.e. identity, grids for the ones not in ``grids``).
         """
         zi = self._resolve_z(z_source, z_idx)
         cov = self._z_models[zi].cov_phys
         if cov is None:
             raise ValueError("this artifact carries no covariance matrices")
+        grids = self._resolve_grids(grids, ell, nu)
         if blocks is None:
-            return cov.copy()
-        idx = np.concatenate([np.arange(self.n_stats)[self.block_slices[b]]
-                              for b in blocks])
-        return cov[np.ix_(idx, idx)]
+            if not grids:
+                return cov.copy()
+            blocks = self.block_names
+        else:
+            blocks = list(blocks)
+        for b in grids:
+            if b not in blocks:
+                raise ValueError(f"grid given for block '{b}' but it is not in blocks={blocks}")
+        mats = {b: self._grid_matrix(b, grids[b]) for b in grids}
+        slices = [self.block_slices[b] for b in blocks]
+        sizes = [mats[b].shape[0] if b in mats else (s.stop - s.start)
+                for b, s in zip(blocks, slices)]
+        offs = np.concatenate([[0], np.cumsum(sizes)])
+        out = np.empty((int(offs[-1]), int(offs[-1])))
+        for i, (bi, si) in enumerate(zip(blocks, slices)):
+            Ai = mats.get(bi)
+            for j, (bj, sj) in enumerate(zip(blocks, slices)):
+                Aj = mats.get(bj)
+                block = cov[si, sj]
+                if Ai is not None:
+                    block = Ai @ block
+                if Aj is not None:
+                    block = block @ Aj.T
+                out[offs[i]:offs[i + 1], offs[j]:offs[j + 1]] = block
+        return out
 
     def coords_for(self, block: str) -> np.ndarray:
         """Bin coordinates for a block (ell for Cl; S/N bin centers/thresholds

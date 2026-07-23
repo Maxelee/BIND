@@ -60,10 +60,91 @@ DEFAULT_ARTIFACT = Path(__file__).parent.parent / "assets" / "wlemu_gp.npz"
 
 _SQRT5 = np.sqrt(5.0)
 
+# Per-block continuous-z_source interpolation error, expressed as a fraction
+# of |mean| -- the worst case (max) over leave-one-plane-out validation at
+# the 3 interior source planes (z=1.0, 1.5, 2.0), each interpolated (PCHIP)
+# from the OTHER four planes' models and compared to that plane's own direct
+# prediction, over 256 Sobol points of the unit param cube, in physical
+# (post-transform) units (median |err|/|mean| per plane, max over the 3
+# planes). Used to inflate predictive std at non-plane z (see
+# ``_inflate_std``). Recipe: T2 LOO validation, see docs/plans/wlemu_v2.md T2
+# (script: scratchpad wlemu_t2_loo_validate.py, 2026-07-23).
+_LOO_FRAC_ERR = {
+    "Cl": 0.1354, "pdf": 0.0270, "peak": 0.0605, "min": 0.0359,
+    "V0": 0.0085, "V1": 0.0276, "V2": 0.0467, "scat": 0.0759, "moments": 0.1682,
+}
+
 
 def _matern25(dist: np.ndarray) -> np.ndarray:
     """Matern-5/2 correlation as a function of the ARD-scaled distance."""
     return (1.0 + _SQRT5 * dist + (5.0 / 3.0) * dist**2) * np.exp(-_SQRT5 * dist)
+
+
+def _pchip_edge(h0, h1, m0, m1):
+    """Shape-preserving one-sided derivative estimate at a boundary knot
+    (the ``scipy.interpolate.PchipInterpolator`` edge-case formula)."""
+    d = ((2.0 * h0 + h1) * m0 - h0 * m1) / (h0 + h1)
+    sign_flip = np.sign(d) != np.sign(m0)
+    too_far = (np.sign(m0) != np.sign(m1)) & (np.abs(d) > 3.0 * np.abs(m0))
+    d = np.where(sign_flip, 0.0, d)
+    d = np.where((~sign_flip) & too_far, 3.0 * m0, d)
+    return d
+
+
+def _pchip_slopes(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Fritsch-Carlson (PCHIP) derivative estimates at each of the ``k``
+    knots ``x`` (ascending) for vector-valued data ``y`` of shape ``(k, m)``.
+    Returns ``(k, m)``. Reproduces the classic monotone-cubic-Hermite
+    construction used by ``scipy.interpolate.PchipInterpolator`` (same
+    interior weighted-harmonic-mean and edge-case formulas)."""
+    k = len(x)
+    h = np.diff(x)                                    # (k-1,)
+    delta = np.diff(y, axis=0) / h[:, None]            # (k-1, m)
+    d = np.zeros_like(y)
+    if k == 2:
+        d[:] = delta[0]
+        return d
+    hi_1 = h[:-1, None]      # h[i-1], for interior i = 1..k-2
+    hi = h[1:, None]         # h[i]
+    m0 = delta[:-1]          # delta[i-1]
+    m1 = delta[1:]           # delta[i]
+    w1 = 2.0 * hi + hi_1
+    w2 = hi + 2.0 * hi_1
+    same_sign = (np.sign(m0) == np.sign(m1)) & (m0 != 0) & (m1 != 0)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        harmonic = (w1 + w2) / (w1 / np.where(m0 == 0, 1.0, m0)
+                                 + w2 / np.where(m1 == 0, 1.0, m1))
+    d[1:-1] = np.where(same_sign, harmonic, 0.0)
+    d[0] = _pchip_edge(h[0], h[1], delta[0], delta[1])
+    d[-1] = _pchip_edge(h[-1], h[-2], delta[-1], delta[-2])
+    return d
+
+
+def _hermite_eval(x0, x1, y0, y1, d0, d1, xq):
+    hh = x1 - x0
+    t = (xq - x0) / hh
+    h00 = 2 * t**3 - 3 * t**2 + 1
+    h10 = t**3 - 2 * t**2 + t
+    h01 = -2 * t**3 + 3 * t**2
+    h11 = t**3 - t**2
+    return h00 * y0 + h10 * hh * d0 + h01 * y1 + h11 * hh * d1
+
+
+def _pchip_interp(x: np.ndarray, y: np.ndarray, xq: float) -> np.ndarray:
+    """Evaluate the PCHIP monotone-cubic-Hermite interpolant of ``y(x)`` at
+    the scalar query ``xq`` (must lie in ``[x[0], x[-1]]``); ``x`` ascending
+    ``(k,)``, ``y`` any shape ``(k, ...)``. Hand-rolled (no scipy runtime
+    dependency, keeping ``bind.wlemu`` inference numpy-only); matches
+    ``scipy.interpolate.PchipInterpolator`` on the same knot subset to float
+    round-off (verified in the T2 LOO validation script)."""
+    x = np.asarray(x, float)
+    y = np.asarray(y, float)
+    orig_shape = y.shape[1:]
+    yf = y.reshape(len(x), -1)
+    d = _pchip_slopes(x, yf)
+    j = int(np.clip(np.searchsorted(x, xq, side="right") - 1, 0, len(x) - 2))
+    out = _hermite_eval(x[j], x[j + 1], yf[j], yf[j + 1], d[j], d[j + 1], xq)
+    return out.reshape(orig_shape)
 
 
 def _interp_matrix(native: np.ndarray, query, log_x: bool, block_name: str) -> np.ndarray:
@@ -157,8 +238,11 @@ class WLEmulator:
     Load with :meth:`WLEmulator.load` (defaults to the packaged artifact).
     Inputs are the 30 SB35 astrophysical parameters, either on the unit cube
     (arrays) or as physical values (dicts keyed by parameter name; missing
-    entries default to the IllustrisTNG fiducial). Source redshift must be one
-    of :attr:`source_redshifts` (the raytraced source planes).
+    entries default to the IllustrisTNG fiducial). Source redshift may be any
+    value in ``[source_redshifts[0], source_redshifts[-1]]``: exact matches to
+    :attr:`source_redshifts` (the raytraced source planes) are emulated
+    directly; other values are PCHIP-interpolated between the bracketing
+    planes with an inflated std (see :meth:`predict`).
     """
 
     def __init__(self, arrays: dict):
@@ -270,21 +354,87 @@ class WLEmulator:
                           stacklevel=3)
         return u, single
 
-    def _resolve_z(self, z_source: float | None, z_idx: int | None) -> int:
+    def _resolve_z_plane(self, z_source: float | None, z_idx: int | None) -> int | None:
+        """Resolve ``z_source``/``z_idx`` to a single-plane index when
+        possible (``z_idx=`` given, or ``z_source`` exactly matches a
+        raytraced plane to <1e-3), else ``None`` to signal a continuous query
+        between planes (caller must then PCHIP-interpolate). Raises
+        ``ValueError`` if ``z_source`` lies outside
+        ``[source_redshifts[0], source_redshifts[-1]]``."""
         if (z_source is None) == (z_idx is None):
             raise ValueError("pass exactly one of z_source= or z_idx=")
         if z_idx is not None:
             if not 0 <= int(z_idx) < len(self.source_redshifts):
                 raise IndexError(f"z_idx {z_idx} out of range")
             return int(z_idx)
-        diff = np.abs(self.source_redshifts - float(z_source))
+        z = float(z_source)
+        diff = np.abs(self.source_redshifts - z)
         i = int(np.argmin(diff))
-        if diff[i] > 1e-3:
+        if diff[i] <= 1e-3:
+            return i
+        lo, hi = float(self.source_redshifts[0]), float(self.source_redshifts[-1])
+        if z < lo or z > hi:
             raise ValueError(
-                f"z_source={z_source} is not one of the emulated source planes "
-                f"{self.source_redshifts.tolist()}; pass one of those (the maps "
-                "were raytraced at these discrete source redshifts)")
-        return i
+                f"z_source={z_source} is outside the emulated range [{lo}, {hi}] "
+                f"spanned by the raytraced source planes {self.source_redshifts.tolist()}")
+        return None
+
+    def _z_window(self, z: float) -> np.ndarray:
+        """The (up to 4) plane indices bracketing ``z``, chosen as balanced
+        as possible around the query -- used for the continuous-z PCHIP mean
+        and std. If fewer than 4 planes exist at all, uses all of them."""
+        zs = self.source_redshifts
+        n = len(zs)
+        k = min(4, n)
+        i = int(np.clip(np.searchsorted(zs, z, side="right") - 1, 0, n - 2))
+        lo = int(np.clip(i - (k - 2), 0, n - k))
+        return np.arange(lo, lo + k)
+
+    def _z_weight(self, z: float) -> float:
+        """Normalized distance to the nearest source plane: 0 exactly at a
+        plane, 1 at the midpoint between the two planes bracketing ``z``.
+        Used to scale the LOO interpolation-error std inflation."""
+        zs = self.source_redshifts
+        i = int(np.clip(np.searchsorted(zs, z, side="right") - 1, 0, len(zs) - 2))
+        z0, z1 = zs[i], zs[i + 1]
+        d = min(z - z0, z1 - z)
+        return float(2.0 * d / (z1 - z0))
+
+    def _predict_raw(self, u: np.ndarray, zi: int, return_std: bool):
+        """Posterior mean (and std) in the transformed space ``Y_t`` (i.e.
+        before the ``10**`` step for :data:`LOG_BLOCKS`), for a single plane
+        index ``zi``. Shapes ``(N, n_stats)``. The single-plane core shared by
+        the exact-plane path and (per-plane) the continuous-z PCHIP path."""
+        m = self._z_models[zi]
+        mean_s, std_s = m.posterior(u, return_std)          # (N, P) scaled PCs
+        C = mean_s * m.c_sd
+        Y_std = C @ m.components + m.pca_mean
+        Y_t = Y_std * self.y_sd + self.y_mu
+        if not return_std:
+            return Y_t, None
+        sd_C = std_s * m.c_sd
+        Y_std_sd = np.sqrt((sd_C**2) @ (m.components**2))
+        sd_t = Y_std_sd * self.y_sd
+        return Y_t, sd_t
+
+    def _predict_interp_from(self, u: np.ndarray, z: float, plane_idxs, return_std: bool):
+        """PCHIP-interpolate the transformed-space mean/std across the given
+        ascending plane indices, evaluated at ``z``. Takes an explicit plane
+        list (rather than always calling :meth:`_z_window`) so leave-one-out
+        validation can interpolate from a subset that excludes one plane."""
+        plane_idxs = list(plane_idxs)
+        zs = self.source_redshifts[plane_idxs]
+        Y_list, Sd_list = [], []
+        for zi in plane_idxs:
+            Y_t, sd_t = self._predict_raw(u, int(zi), return_std)
+            Y_list.append(Y_t)
+            if return_std:
+                Sd_list.append(sd_t)
+        Y_t_q = _pchip_interp(zs, np.stack(Y_list, axis=0), z)
+        if not return_std:
+            return Y_t_q, None
+        sd_t_q = _pchip_interp(zs, np.stack(Sd_list, axis=0), z)
+        return Y_t_q, sd_t_q
 
     # ------------------------------------------------------------ grids -----
 
@@ -324,7 +474,15 @@ class WLEmulator:
         ----------
         params : (30,) or (N, 30) unit-cube array, or dict of physical values
             (missing parameters default to the fiducial).
-        z_source / z_idx : one of the emulated source planes (value or index).
+        z_source / z_idx : a raytraced source plane (index, or exact value in
+            :attr:`source_redshifts`) is emulated directly, bit-exactly. Any
+            other ``z_source`` in ``[source_redshifts[0], source_redshifts[-1]]``
+            (i.e. ``[0.5, 2.44]``) is supported by PCHIP-interpolating the
+            (up to 4) bracketing planes' predictions in the transformed
+            statistics space; the returned std is additionally inflated by a
+            per-block leave-one-out interpolation-error estimate (see
+            :data:`_LOO_FRAC_ERR`), scaled by distance to the nearest plane.
+            Outside that range raises ``ValueError``.
         return_std : also return per-bin GP uncertainties as ``<block>_std``.
         clip : clip count-like blocks (pdf, peak, min, V0, V1) at zero.
         grids : dict, optional
@@ -360,21 +518,31 @@ class WLEmulator:
         you need the true regridded uncertainty/correlation structure.
         """
         u, single = self._resolve_params(params)
-        zi = self._resolve_z(z_source, z_idx)
-        m = self._z_models[zi]
+        zi = self._resolve_z_plane(z_source, z_idx)
         grids = self._resolve_grids(grids, ell, nu)
         mats = {b: self._grid_matrix(b, g) for b, g in grids.items()}
 
-        mean_s, std_s = m.posterior(u, return_std)          # (N, P) scaled PCs
-        C = mean_s * m.c_sd
-        Y_std = C @ m.components + m.pca_mean
-        Y_t = Y_std * self.y_sd + self.y_mu               # transformed space (log10 for LOG_BLOCKS)
+        if zi is not None:
+            Y_t, sd_t = self._predict_raw(u, zi, return_std)   # transformed space (log10 for LOG_BLOCKS)
+            z_interp = None
+        else:
+            z_interp = float(z_source)
+            Y_t, sd_t = self._predict_interp_from(u, z_interp, self._z_window(z_interp), return_std)
 
-        if return_std:
-            sd_C = std_s * m.c_sd
-            Y_std_sd = np.sqrt((sd_C**2) @ (m.components**2))
-            sd_t = Y_std_sd * self.y_sd
+        out = self._blocks_from_transformed(Y_t, sd_t, mats, clip, return_std, single)
+        if grids:
+            out["grids"] = {b: np.asarray(g, float) for b, g in grids.items()}
+        if z_interp is not None and return_std:
+            self._inflate_std(out, z_interp)
+        return out
 
+    def _blocks_from_transformed(self, Y_t: np.ndarray, sd_t: np.ndarray | None,
+                                 mats: dict, clip: bool, return_std: bool,
+                                 single: bool) -> dict:
+        """Convert the transformed-space mean/std (``Y_t``/``sd_t``, ``(N,
+        n_stats)``) into the per-block physical-units output dict -- the tail
+        shared by both the exact-plane and continuous-z paths of
+        :meth:`predict`."""
         out = {}
         for b in self.block_names:
             s = self.block_slices[b]
@@ -384,7 +552,7 @@ class WLEmulator:
                 A = mats[b]
                 yt_b = yt_b @ A.T
                 if return_std:
-                    # Conservative approximation (see docstring above):
+                    # Conservative approximation (see predict()'s docstring):
                     # adjacent native bins share most of their GP error
                     # through the shared PCA modes, so applying the same
                     # linear map to std as to the mean is a reasonable
@@ -400,9 +568,20 @@ class WLEmulator:
                 else:
                     sd = sd_b
                 out[b + "_std"] = sd[0] if single else sd
-        if grids:
-            out["grids"] = {b: np.asarray(g, float) for b, g in grids.items()}
         return out
+
+    def _inflate_std(self, out: dict, z: float) -> None:
+        """Inflate ``out[<block>_std]`` in place for a continuous (non-plane)
+        ``z_source`` query, adding the per-block LOO interpolation-error
+        estimate (:data:`_LOO_FRAC_ERR`, scaled by :meth:`_z_weight`) in
+        quadrature: ``sqrt(sd**2 + (epsilon_b(z) * |mean|)**2)``."""
+        w = self._z_weight(z)
+        for b in self.block_names:
+            eps = _LOO_FRAC_ERR.get(b, 0.0) * w
+            if eps <= 0:
+                continue
+            key = b + "_std"
+            out[key] = np.sqrt(out[key]**2 + (eps * np.abs(out[b]))**2)
 
     def predict_vector(self, params, z_source: float | None = None,
                        z_idx: int | None = None, return_std: bool = True,
@@ -410,6 +589,10 @@ class WLEmulator:
         """Like :meth:`predict` but returns the concatenated statistics vector
         ``(N, D)`` (and its std), aligned with :attr:`block_slices` — the shape
         needed for likelihoods against :meth:`covariance`.
+
+        ``z_source``/``z_idx`` accept any continuous z in
+        ``[source_redshifts[0], source_redshifts[-1]]`` (PCHIP-interpolated
+        between planes with std inflation); see :meth:`predict`.
 
         ``grids``/``ell``/``nu`` are forwarded to :meth:`predict` (see there);
         when given, ``D`` reflects the requested grid sizes rather than
@@ -438,6 +621,13 @@ class WLEmulator:
         data-vector subset well below 50 dimensions before inverting (and
         apply your favorite Hartlap-style correction).
 
+        z_source / z_idx : a raytraced source plane (index, or exact value)
+            returns that plane's covariance directly. Any other ``z_source``
+            in ``[source_redshifts[0], source_redshifts[-1]]`` is supported by
+            **linearly** (not PCHIP-) interpolating the covariances of the two
+            planes bracketing it — a convex combination of two PSD matrices is
+            itself PSD, which a higher-order interpolant would not guarantee.
+
         grids / ell / nu : optional custom output grids for the gridded
             blocks (see :meth:`predict`). Unlike ``predict``'s ``_std``, the
             covariance transform is exact: diagonal blocks become
@@ -447,10 +637,20 @@ class WLEmulator:
             omitted while ``grids`` is given, all blocks are included (with
             native, i.e. identity, grids for the ones not in ``grids``).
         """
-        zi = self._resolve_z(z_source, z_idx)
-        cov = self._z_models[zi].cov_phys
-        if cov is None:
-            raise ValueError("this artifact carries no covariance matrices")
+        zi = self._resolve_z_plane(z_source, z_idx)
+        if zi is not None:
+            cov = self._z_models[zi].cov_phys
+            if cov is None:
+                raise ValueError("this artifact carries no covariance matrices")
+        else:
+            z = float(z_source)
+            zs = self.source_redshifts
+            i = int(np.clip(np.searchsorted(zs, z, side="right") - 1, 0, len(zs) - 2))
+            c0, c1 = self._z_models[i].cov_phys, self._z_models[i + 1].cov_phys
+            if c0 is None or c1 is None:
+                raise ValueError("this artifact carries no covariance matrices")
+            w = (z - zs[i]) / (zs[i + 1] - zs[i])
+            cov = (1.0 - w) * c0 + w * c1
         grids = self._resolve_grids(grids, ell, nu)
         if blocks is None:
             if not grids:

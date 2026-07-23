@@ -40,7 +40,7 @@ approximation); `covariance`'s regrid is exact (`A @ C @ A.T`).
 
 | | |
 |---|---|
-| Inputs | 30 SB35 astro parameters (unit cube or physical), source redshift ∈ {0.5, 1.0, 1.5, 2.0, 2.44} |
+| Inputs | 30 SB35 astro parameters (unit cube or physical), source redshift ∈ [0.5, 2.44] (any value; the raytraced planes {0.5, 1.0, 1.5, 2.0, 2.44} are emulated directly, other values PCHIP-interpolated — see below) |
 | Fixed | cosmology at the IllustrisTNG fiducial (Ωm=0.3089, σ8=0.8159, Ωb=0.0486, h=0.6774, ns=0.9667) |
 | Field | convergence κ of a 5×5 deg flat-sky patch at 1024², raytraced to z≈2.5 |
 | Outputs | `Cl` (18 ℓ-bins), `pdf` (60), `peak` (40), `min` (40), `V0/V1/V2` Minkowski (36 each), `scat` scattering coefficients (113), `moments` (4) — 383 numbers per (θ, z_s), each with a GP σ |
@@ -103,10 +103,34 @@ source redshift on one GPU.
   statistics on the raw maps to float32 precision, and the standard-split
   protocol reproduces the historical design-comparison table exactly.
 
+## Continuous source redshift
+
+`z_source` accepts any value in `[0.5, 2.44]`, not just the 5 raytraced
+planes; values outside that range raise `ValueError`. Exact plane values (or
+`z_idx=`) are emulated directly (bit-exact, no interpolation). Other values
+are handled by PCHIP-interpolating (monotone cubic Hermite, hand-rolled in
+numpy — no scipy dependency) the (up to 4) bracketing planes' predictions in
+the *transformed* statistics space (i.e. before the `10**` step for `Cl`,
+`scat`), for both the mean and the GP std. `covariance()` instead
+**linearly** interpolates between the two bracketing planes' covariance
+matrices (a convex combination of two PSD matrices stays PSD; PCHIP could
+overshoot and break that).
+
+Because interpolation error is unmodeled at the GP level, `predict`'s
+returned std at a non-plane `z_source` is inflated by a per-block empirical
+term, added in quadrature: `sqrt(sd**2 + (epsilon_b * w(z) * |mean|)**2)`,
+where `epsilon_b` is a fixed per-block fractional error from leave-one-plane-
+out (LOO) validation at the 3 interior planes (hardcoded as
+`bind.wlemu.emulator._LOO_FRAC_ERR`) and `w(z)` is the normalized distance to
+the nearest plane (0 at a plane, 1 at the midpoint between two planes) — so
+the inflation vanishes at the planes themselves and peaks at the midpoints.
+
 ## Caveats
 
 - Cosmology is **fixed**; this emulates baryonic-feedback response only.
-- Source redshifts are the 5 discrete raytraced planes — no z interpolation.
+- Source redshifts: interpolated off the 5 raytraced planes as described
+  above; accuracy is validated by leave-one-plane-out at the 3 interior
+  planes but not independently confirmed for every block/plane combination.
 - The covariance is estimated from 50 (noise-paired) realizations of one
   5×5 deg field: restrict to a data-vector subset well below 50 dims before
   inverting, and apply a Hartlap-style correction.

@@ -125,6 +125,63 @@ out (LOO) validation at the 3 interior planes (hardcoded as
 the nearest plane (0 at a plane, 1 at the midpoint between two planes) — so
 the inflation vanishes at the planes themselves and peaks at the midpoints.
 
+## Reduced feedback space
+
+`src/bind/wlemu/analysis.py` also provides a small pipeline that collapses
+the 30-dim astro-parameter response down to **2 physically-labeled axes**,
+built entirely from the emulator (no training-time internals needed):
+
+1. **`active_subspace(emu, z_idx, anchors=None)`** — a global whitener over
+   the full 383-dim statistics vector (same zero-variance-mask +
+   eigen-truncation recipe as `block_whitener`, shared via `_eigen_whiten`,
+   K ≤ 40), then the 30×30 Gram matrix of whitened-response Jacobians
+   (central differences, h=0.02 in unit-cube coordinates) averaged over the
+   fiducial point plus 16 Sobol-sampled prior anchors. Its eigenvectors are
+   the directions the *joint* statistics respond to most strongly. On the
+   shipped artifact (z_s=1): **λ2/λ1 ≈ 0.42**, **λ3/λ1 ≈ 0.11** — the
+   response is dominated by one direction, with a clear second mode and a
+   much weaker third.
+2. **`standardized_direction(X, y)`** — a standardized-linear-regression
+   direction (params → an integrated halo quantity) from an independent
+   dataset: the BIND SB35 256-pt Sobol design's R200-aperture integrated
+   quantities (`/mnt/ceph/users/mlee1/bind_sb35/{design,analysis_cache}/`,
+   z≈0, summed/mass-weighted over the shared halo sample). Used to build a
+   gas-fraction direction `g_fgas` (plus `g_mstar`, `g_Y`, `g_T` — `K`/`P`
+   were not available in the cached integrated quantities and are skipped).
+   These vectors are bundled (with provenance) at
+   `examples/data/wlemu_phys_dirs.npz`.
+3. **`rotate_to_physical_axes(eigenvectors, g_fgas, n_top)`** — projects
+   `g_fgas` onto `span(top-n_top eigenvectors)`; `a1` is the (unit-norm)
+   projection, `a2` its orthogonal complement in that plane. Gated on the
+   **capture fraction** `‖P g_fgas‖ / ‖g_fgas‖` ≥ 0.6. On the shipped
+   artifact the top-2 plane only captures 0.27 of `g_fgas` (fails the gate);
+   the top-3 plane captures **0.675** and is used instead (`a1`/`a2` still
+   the 2 axes carried forward). `a2` correlates most with the **Y** and
+   **T** directions after removing each one's `g_fgas` component
+   (cos ≈ −0.59 and −0.52, vs −0.21 for `g_mstar`) and loads most on
+   `BlackHoleRadiativeEfficiency`, `IMFslope`, `QuasarThreshold`,
+   `WindEnergyIn1e51erg` — an **AGN-heating/quenching axis** rather than the
+   naively-expected pure stellar-wind direction (though `WindEnergyIn1e51erg`
+   is still a top-4 loading, so the known f_gas–M⋆ anticorrelation,
+   ρ≈−0.54, is present but not dominant).
+4. **`reduced_grid_theta`/`gaussian_chi2`** — grid `θ(α) = u_fid + α1·a1 +
+   α2·a2` (masking points that leave the unit cube) and score two
+   likelihood variants against the noise-free fiducial mock: (i) Cl +
+   well-populated peak bins with the single-field covariance + GP σ² on the
+   diagonal + Hartlap, as in the tutorial's toy-inference section; (ii) the
+   global-whitened K=20 modes (Hartlap, p=20, n=50). Both recover the truth
+   at χ²=0 (the noise-free global minimum, trivially inside 68%); variant
+   (i) gives **σ(α1) ≈ 0.35** (unit-cube), i.e. **σ(Δf_gas) ≈ 1.7e-3** for
+   one 5×5 deg field via the standardized-regression scaling from step 2 —
+   the number that ties this section to the paper's f_b↔Cℓ discussion.
+   Variant (ii) is markedly weaker in this 2D slice (σ(α1) ≈ 0.54, and its
+   68%/95% contours do not close within the unit-cube-safe sweep range) —
+   the top global-whitened modes are dominated by directions other than
+   `a1`/`a2`, so Cl+peaks is the more informative variant here.
+
+See `examples/wlemu_tutorial.ipynb` §7 for the eigenspectrum, loading-bar,
+and posterior-contour figures.
+
 ## Caveats
 
 - Cosmology is **fixed**; this emulates baryonic-feedback response only.

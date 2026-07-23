@@ -537,26 +537,180 @@ vals = np.array(list(dchi_truth.values()))
 print(f"truth position in the 2-dof posterior, 12 held-out points: "
       f"median dchi2 = {np.median(vals):.2f}; inside 68% contour: "
       f"{(vals < 2.30).sum()}/12; inside 95%: {(vals < 6.17).sum()}/12")
+""")
 
-# representative example (dchi2 closest to the median)
-r_show = int(cand[np.argmin(np.abs(vals - np.median(vals)))])
-g, c2 = chi2_grid(r_show)
+md(r"""
+### Reduced feedback space: physical axes + a fiducial posterior
 
-from matplotlib.lines import Line2D
-fig, ax = plt.subplots(figsize=(5.6, 4.6))
-ax.contour(g, g, (c2 - c2.min()).T, levels=[2.30, 6.17],
-           colors=C_EMU, linewidths=[2, 1])
-ax.plot(*run_true[r_show, [pa, pb]], marker="x", ms=11, mew=2.5, color=C_TRUTH,
-        ls="none")
-handles = [Line2D([], [], color=C_EMU, lw=2, label=r"68% / 95% ($C_\ell$+peaks)"),
-           Line2D([], [], color=C_TRUTH, marker="x", ms=9, mew=2.5, ls="none",
-                  label="truth (held-out sim)")]
-ax.set(xlabel=f"{scan_params[0]} (unit cube)", ylabel=f"{scan_params[1]} (unit cube)",
-       title=f"one 5x5 deg field, $z_s=1$ (held-out point {r_show})")
-ax.legend(handles=handles, loc="upper left")
+The 30 astro parameters are highly redundant as far as the *joint* WL
+statistics are concerned. `bind.wlemu.analysis.active_subspace` finds the
+directions in parameter space the full 383-dim statistics vector actually
+responds to (a global, whitened Jacobian Gram matrix, same recipe as
+`sensitivity`'s per-block whitener); its eigenvalue spectrum answers "how
+many directions does the WL feedback response really have?".
+""")
+
+code(r"""
+from bind.wlemu.analysis import (active_subspace, rotate_to_physical_axes,
+                                  reduced_grid_theta, gaussian_chi2)
+
+zi = 1
+sub = active_subspace(emu, z_idx=zi)
+evals, evecs = sub["eigenvalues"], sub["eigenvectors"]
+print(f"lambda2/lambda1 = {evals[1] / evals[0]:.3f}, "
+      f"lambda3/lambda1 = {evals[2] / evals[0]:.3f}")
+
+fig, axes = plt.subplots(1, 2, figsize=(11, 3.6))
+axes[0].semilogy(np.arange(1, len(evals) + 1), evals, "o-", color=C_EMU)
+axes[0].set(xlabel="eigenmode rank", ylabel="eigenvalue",
+            title="active-subspace eigenvalue spectrum", xlim=(0, 15))
+top = np.argsort(-np.abs(evecs[:, 0]))[:10]
+axes[1].barh(range(10), evecs[top, 0][::-1], color=C_ALT)
+axes[1].set_yticks(range(10))
+axes[1].set_yticklabels(np.array(emu.param_names)[top][::-1], fontsize=8)
+axes[1].set(xlabel="loading", title="top-10 |loading| params, eigenvector 1")
 fig.tight_layout()
-print(f"data dims: {mask.sum()} (Cl {mask_cl.sum()} + peaks {mask_pk.sum()}), "
-      f"Hartlap factor {hartlap:.2f}")
+""")
+
+md(r"""
+That spectrum is dominated by 1-2 directions -- but they're linear
+combinations of raw parameters, not physically named. To label them, we use
+an independent dataset: `examples/data/wlemu_phys_dirs.npz` bundles
+standardized-regression direction vectors (params -> integrated R200-aperture
+halo quantity) fit on the BIND SB35 256-point Sobol design (same DMO halos as
+the WL training set, so this is the same *controlled* experiment; see
+`docs/wl_emulator.md` for provenance). `rotate_to_physical_axes` projects the
+gas-fraction direction `g_fgas` onto the top eigenvectors: `a1` is the
+resulting **gas-fraction axis**, `a2` its orthogonal complement.
+""")
+
+code(r"""
+dirs = np.load(Path("data") / "wlemu_phys_dirs.npz")
+g_fgas = dirs["g_fgas"]
+
+rot = rotate_to_physical_axes(evecs, g_fgas, n_top=2)
+n_top_used = 2
+print(f"capture fraction (top-2 plane) = {rot['capture']:.3f}")
+if rot["capture"] < 0.6:
+    rot = rotate_to_physical_axes(evecs, g_fgas, n_top=3)
+    n_top_used = 3
+    print(f"-> retrying with top-3: capture fraction = {rot['capture']:.3f}")
+a1, a2 = rot["a1"], rot["a2"]
+
+g_fgas_hat = g_fgas / np.linalg.norm(g_fgas)
+print("\ncosine(a2, g_x with g_fgas component removed):")
+for name in ("g_mstar", "g_Y", "g_T"):
+    g_other = dirs[name]
+    g_perp = g_other - (g_other @ g_fgas_hat) * g_fgas_hat
+    print(f"  {name}: {a2 @ g_perp / np.linalg.norm(g_perp):+.3f}")
+top_a2 = np.argsort(-np.abs(a2))[:6]
+print("\na2 top-loading params:",
+      [f"{emu.param_names[i]} ({a2[i]:+.2f})" for i in top_a2])
+""")
+
+md(r"""
+On the shipped artifact, the top-2 plane captures only ~0.27 of `g_fgas`
+(below the 0.6 gate), so `a2` above comes from the **top-3** plane instead.
+It correlates most with the (`g_fgas`-orthogonalized) **Y** and **T**
+directions, and loads most on `BlackHoleRadiativeEfficiency`, `IMFslope`,
+`QuasarThreshold` -- an **AGN-heating/quenching axis**, rather than a pure
+stellar-wind direction (`WindEnergyIn1e51erg` is still a top loading, so the
+known f_gas-M$_\star$ anticorrelation, $\rho\approx-0.54$, is present but not
+dominant). See `docs/wl_emulator.md` for the full writeup.
+
+**Fiducial posterior.** Treating the noise-free emulator prediction at the
+TNG fiducial as pseudo-data, grid $\theta(\alpha) = u_{\rm fid} + \alpha_1
+a_1 + \alpha_2 a_2$ and score two likelihoods: (i) the same Cl+peaks recipe
+as the toy inference above; (ii) the global-whitened K=20 modes (fresh
+`active_subspace` truncated to 20 whitening modes), Hartlap with p=20, n=50.
+""")
+
+code(r"""
+from matplotlib.lines import Line2D
+
+u_fid = emu.fiducial_params()
+obs = emu.predict_vector(u_fid, z_idx=zi, return_std=False)[0]
+
+
+def axis_range(u0, a, tol=1e-9):
+    # Skip params pinned exactly at the prior boundary in the fiducial (a few
+    # known near-null UVB params) -- including them collapses the "always
+    # safe" range to a point; the exact-cube `valid` mask below still catches
+    # any individual grid point that strays because of them.
+    interior = (u0 > tol) & (u0 < 1 - tol)
+    lo, hi = (0.0 - u0) / a, (1.0 - u0) / a
+    lo, hi = np.minimum(lo, hi), np.maximum(lo, hi)
+    return float(np.max(lo[interior])), float(np.min(hi[interior]))
+
+
+lo1, hi1 = axis_range(u_fid, a1)
+lo2, hi2 = axis_range(u_fid, a2)
+shrink = 0.85
+alpha1 = np.linspace(shrink * lo1, shrink * hi1, 81)
+alpha2 = np.linspace(shrink * lo2, shrink * hi2, 81)
+# cube-containment slack = the emulator's own no-warning extrapolation budget
+A1, A2, thetas, valid = reduced_grid_theta(u_fid, a1, a2, alpha1, alpha2, tol=0.05)
+
+sizes = {b: emu.block_slices[b] for b in emu.block_names}
+mask_cl2 = np.zeros(D, bool); mask_cl2[sizes["Cl"]] = True
+peak_fid = emu.predict(u_fid, z_idx=zi, return_std=False)["peak"]
+mask_pk2 = np.zeros(D, bool)
+mask_pk2[np.arange(D)[sizes["peak"]][peak_fid > 30]] = True
+mask1 = mask_cl2 | mask_pk2
+cov1 = np.zeros((D, D))
+idx1 = np.concatenate([np.arange(D)[sizes["Cl"]], np.arange(D)[sizes["peak"]]])
+cov1[np.ix_(idx1, idx1)] = emu.covariance(z_idx=zi, blocks=("Cl", "peak"))
+_, sd_gp = emu.predict_vector(u_fid, z_idx=zi, return_std=True)
+cov1[np.diag_indices(D)] += sd_gp[0] ** 2
+hartlap1 = (emu.n_real - mask1.sum() - 2) / (emu.n_real - 1)
+
+Vg = np.full((thetas.shape[0], D), np.nan)
+Vg[valid] = emu.predict_vector(thetas[valid], z_idx=zi, return_std=False)
+chi2_1 = np.full(thetas.shape[0], np.inf)
+chi2_1[valid] = gaussian_chi2(obs[mask1], Vg[valid][:, mask1], cov1[np.ix_(mask1, mask1)], hartlap1)
+chi2_1 = chi2_1.reshape(A1.shape)
+
+sub20 = active_subspace(emu, z_idx=zi, kmax=20)
+W20, mask20 = sub20["W"], sub20["mask"]
+K20 = W20.shape[0]
+cov_white = np.eye(K20) + W20 @ np.diag(sd_gp[0][mask20] ** 2) @ W20.T
+hartlap2 = (emu.n_real - K20 - 2) / (emu.n_real - 1)
+obs_w = W20 @ obs[mask20]
+Vg_w = np.full((thetas.shape[0], K20), np.nan)
+Vg_w[valid] = (W20 @ Vg[valid][:, mask20].T).T
+chi2_2 = np.full(thetas.shape[0], np.inf)
+chi2_2[valid] = gaussian_chi2(obs_w, Vg_w[valid], cov_white, hartlap2)
+chi2_2 = chi2_2.reshape(A1.shape)
+
+dchi1, dchi2 = chi2_1 - np.nanmin(chi2_1), chi2_2 - np.nanmin(chi2_2)
+i0, j0 = np.argmin(np.abs(alpha1)), np.argmin(np.abs(alpha2))
+print(f"truth dchi2: variant(i)={dchi1[i0, j0]:.3f}, variant(ii)={dchi2[i0, j0]:.3f} "
+      "(68% threshold 2.30 -- both must be below it for this noise-free mock)")
+
+prof1 = dchi1[:, j0]
+sig_a1 = 0.5 * np.ptp(alpha1[prof1 <= 1.0]) if (prof1 <= 1.0).sum() >= 2 else np.nan
+# unit-cube alpha1 -> physical f_gas via the standardized-regression scaling from step 2
+dy_std_dalpha1 = float(g_fgas @ a1)
+sig_fgas = abs(dy_std_dalpha1) * float(dirs["fgas_std"]) * sig_a1
+print(f"sigma(alpha1) [Cl+peaks] = {sig_a1:.3f} (unit-cube gas-fraction-axis units)")
+print(f"-> sigma(Delta f_gas) [Cl+peaks, one 5x5 deg field] = {sig_fgas:.4f}")
+
+frac_v2_68 = float(np.nanmean(dchi2[valid.reshape(A1.shape)] < 2.30))
+fig, ax = plt.subplots(figsize=(6, 5))
+ax.contour(A1, A2, dchi1, levels=[2.30, 6.17], colors=C_EMU, linewidths=[2, 1])
+if frac_v2_68 < 0.99:
+    ax.contour(A1, A2, dchi2, levels=[2.30, 6.17], colors=C_ALT, linewidths=[2, 1], linestyles="--")
+else:
+    ax.text(0.02, 0.02, "variant (ii) contours don't close\nin the explored range",
+            transform=ax.transAxes, fontsize=7.5, color=C_ALT, va="bottom")
+ax.plot(0, 0, marker="x", ms=11, mew=2.5, color=C_TRUTH, ls="none")
+handles = [Line2D([], [], color=C_EMU, lw=2, label="68%/95% (Cl+peaks)"),
+           Line2D([], [], color=C_ALT, lw=2, ls="--", label="68%/95% (whitened K=20)"),
+           Line2D([], [], color=C_TRUTH, marker="x", ms=9, mew=2.5, ls="none", label="truth (fiducial)")]
+ax.legend(handles=handles, loc="upper left", fontsize=8)
+ax.set(xlabel=r"$\alpha_1$ (gas-fraction axis)", ylabel=r"$\alpha_2$ (orthogonal axis)",
+       title=f"fiducial posterior, one 5x5 deg field, $z_s={emu.source_redshifts[zi]}$")
+fig.tight_layout()
 """)
 
 md(r"""

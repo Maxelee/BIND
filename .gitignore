@@ -31,6 +31,9 @@ examples/bind_output/
 # used by examples/wlemu_tutorial.ipynb (see docs/wl_emulator.md).
 !examples/data/wlemu_validation.npz
 !examples/data/kappa_sample.npz
+# WL-emulator reduced-feedback-space direction vectors (g_fgas etc.), used by
+# examples/wlemu_tutorial.ipynb section 7 (see docs/wl_emulator.md).
+!examples/data/wlemu_phys_dirs.npz
 
 # ---------------------------------------------------------------------------
 # Run logs

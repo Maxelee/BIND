@@ -714,6 +714,212 @@ fig.tight_layout()
 """)
 
 md(r"""
+### Systematic eigenvector <-> physical-axis matching
+
+The gas-fraction axis above was *hand-picked*: `a1` comes from projecting one
+chosen direction (`g_fgas`) onto the top eigenvectors, and only `a2` gets a
+post-hoc similarity check against the other three candidates.
+`bind.wlemu.analysis.identify_axes` replaces this with a full, symmetric
+match: the top-`K` eigenvectors against **all four** candidate directions
+(`g_fgas, g_mstar, g_Y, g_T`) at once, so an eigenvector can end up with no
+good physical label (flagged `weak`), and a candidate is free to load onto
+several eigenvectors rather than exactly one.
+
+`K` is read off the eigenvalue spectrum plotted above: the mode-to-mode
+ratio `lambda_{i+1}/lambda_i` is <= 0.85 through mode 7 (a steep decline)
+and settles onto a `~0.85-0.95` plateau (a flat noise floor) from mode 8 on
+-- consistent with the ~8 modes visually picked from the scree plot. We use
+`K=8`.
+""")
+
+code(r"""
+from bind.wlemu.analysis import identify_axes
+
+K = 8
+ratios = evals[1:16] / evals[:15]
+print("mode-to-mode eigenvalue ratio lambda[i+1]/lambda[i], modes 1-15:")
+print(np.round(ratios, 3))
+print(f"lambda[K-1]/lambda[14] (ratio to ~15th-mode noise-floor proxy) = {evals[K - 1] / evals[14]:.2f}")
+
+candidates = {"fgas": dirs["g_fgas"], "mstar": dirs["g_mstar"], "Y": dirs["g_Y"], "T": dirs["g_T"]}
+axid = identify_axes(evecs, candidates, k=K)
+
+print("\nbest-matching candidate per eigenvector:")
+for bm in axid["best_match"]:
+    flag = "  <- weak (|cos|<0.3, no candidate explains this direction)" if bm["weak"] else ""
+    print(f"  eig{bm['eigenvector'] + 1}: {bm['candidate']:6s} cos={bm['cosine']:+.3f}{flag}")
+
+print(f"\ncandidate loadings across eig1..eig{K} (a direction can spread over several modes):")
+for name, v in axid["candidate_loadings"].items():
+    print(f"  {name:6s}: {np.round(v, 3)}")
+
+fig, ax = plt.subplots(figsize=(5.4, 6.2))
+im = ax.imshow(axid["cosine_matrix"], cmap="RdBu_r", vmin=-1, vmax=1, aspect="auto")
+ax.set_xticks(range(len(axid["candidate_names"])), axid["candidate_names"])
+ax.set_yticks(range(K), [f"eig{i + 1}" for i in range(K)])
+for i in range(K):
+    for j in range(len(axid["candidate_names"])):
+        v = axid["cosine_matrix"][i, j]
+        ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=8,
+                color="w" if abs(v) > 0.55 else "k")
+ax.set_title("eigenvector <-> physical-direction cosine similarity")
+fig.colorbar(im, ax=ax, shrink=0.85, label="cosine")
+fig.tight_layout()
+""")
+
+md(r"""
+No single candidate cleanly "owns" any one eigenvector beyond a `|cosine|`
+of ~0.5-0.6: `eig1` correlates most with **T** (moderate), `eig3` with both
+**Y** and `mstar` (opposite sign, `|cos|~0.6-0.64` each), `eig4` with
+`fgas`. `eig5/6/8` are weak matches for everything in the library -- the
+active subspace has directions the four hand-built candidates don't
+explain, consistent with `a2` in the (a1, a2) plot above reading as a mixed
+AGN-heating/quenching axis rather than a pure single-observable direction.
+Every candidate spreads across 2-4 eigenvectors rather than aligning with
+just one (see the loading rows printed above), which is the more
+informative read than the single best-match column: the top-K active
+subspace and the four R200-integrated observables are related but not in a
+one-to-one way.
+""")
+
+md(r"""
+### A corner plot over the top-K active-subspace coordinates
+
+The (a1, a2) posterior above only covers the two hand-rotated axes. The
+natural, un-rotated basis is the raw eigenvector coordinates themselves,
+`theta(alpha) = u_fid + sum_k alpha_k * eigenvectors[:, k]` for
+`alpha_1 .. alpha_K` -- but a dense grid does not scale to `K~8` dimensions.
+Since this is a noise-free mock at the fiducial (MAP = fiducial exactly, by
+construction), the posterior covariance in `alpha` is well approximated by
+the **inverse Fisher information at the fiducial** (a Laplace approximation),
+built from the same Cl+peaks data subset and effective covariance (`cov1`,
+Hartlap-corrected `hartlap1`) as variant (i) above -- the recipe that passed
+the truth-in-68%-contour check cleanly, unlike variant (ii)'s global-whitened
+K=20 modes.
+""")
+
+code(r"""
+from bind.wlemu.analysis import alpha_jacobian, laplace_alpha_covariance, confidence_ellipse
+
+C_eff = cov1[np.ix_(mask1, mask1)]
+J_alpha = alpha_jacobian(emu, zi, u_fid, evecs, mask1, K, h=0.02)
+lap = laplace_alpha_covariance(J_alpha, C_eff, hartlap=hartlap1)
+Sigma_alpha, sig_alpha = lap["sigma"], np.sqrt(np.diag(lap["sigma"]))
+corr_alpha = Sigma_alpha / np.outer(sig_alpha, sig_alpha)
+print(f"Fisher_alpha condition number = {lap['cond']:.2e} "
+      "(large -> the top-K directions, though orthogonal in the whitened "
+      "full-statistics sense that defined them, are far from independently "
+      "constrained by Cl+peaks alone)")
+print("sigma(alpha_k), k=1..K, unit-cube directions (marginal):", np.round(sig_alpha, 2))
+
+fig, axes = plt.subplots(K, K, figsize=(1.95 * K, 1.95 * K))
+xr = 3.2 * sig_alpha
+for i in range(K):
+    for j in range(K):
+        ax = axes[i, j]
+        if j > i:
+            ax.axis("off")
+            continue
+        if i == j:
+            xs = np.linspace(-xr[i], xr[i], 300)
+            ax.plot(xs, np.exp(-0.5 * (xs / sig_alpha[i]) ** 2), color=C_EMU)
+            ax.axvline(0, color=C_TRUTH, lw=0.8, ls=":")
+            ax.set_yticks([])
+        else:
+            cov2 = Sigma_alpha[np.ix_([i, j], [i, j])]
+            for lev, lw in [(2.30, 1.6), (6.17, 0.9)]:
+                e = confidence_ellipse(cov2, level=lev)
+                ax.plot(e[:, 1], e[:, 0], color=C_ALT, lw=lw)
+            ax.plot(0, 0, marker="x", color=C_TRUTH, ms=6, mew=1.5)
+            ax.set_xlim(-xr[j], xr[j]); ax.set_ylim(-xr[i], xr[i])
+        if i == K - 1:
+            ax.set_xlabel(rf"$\alpha_{{{j + 1}}}$", fontsize=9)
+        if j == 0:
+            ax.set_ylabel(rf"$\alpha_{{{i + 1}}}$", fontsize=9)
+        ax.tick_params(labelsize=6)
+fig.suptitle(f"Laplace posterior, top-{K} active-subspace coordinates (68%/95%)", y=1.0)
+fig.tight_layout()
+""")
+
+md(r"""
+**Cross-check against the actual (non-Gaussian) likelihood.** The Laplace
+covariance above is a *marginal* over all `K` alphas; a fair local check is
+to pick the pair with the largest `|correlation|` in `Sigma_alpha` plus a
+near-zero-correlation pair for contrast, and evaluate `gaussian_chi2` on a
+real 2D grid (`reduced_grid_theta` generalizes directly -- `a1`/`a2` there
+were arbitrary unit vectors, and `eigenvectors[:, i]`/`eigenvectors[:, j]`
+are just another choice of two). We show both the *marginal* Laplace ellipse
+(the corner-plot panel) and, since the other `K-2` alphas being fixed at 0
+vs. marginalized over are very different conditions when they are strongly
+coupled to everything else, also the *conditional* 2-parameter-only Laplace
+ellipse (ignoring the other `K-2` directions entirely) next to the grid --
+the conditional one is the fair apples-to-apples comparison for a
+fixed-others-at-0 grid.
+""")
+
+code(r"""
+iu = np.triu_indices(K, 1)
+offvals = np.abs(corr_alpha[iu])
+pmax = (int(iu[0][np.argmax(offvals)]), int(iu[1][np.argmax(offvals)]))
+pmin = (int(iu[0][np.argmin(offvals)]), int(iu[1][np.argmin(offvals)]))
+print(f"max |correlation| pair: eig{pmax[0] + 1}/eig{pmax[1] + 1}, r={corr_alpha[pmax]:+.3f}")
+print(f"near-zero-correlation pair: eig{pmin[0] + 1}/eig{pmin[1] + 1}, r={corr_alpha[pmin]:+.3f}")
+
+Ci_eff = hartlap1 * np.linalg.inv(C_eff)
+
+
+def grid_dchi2(pair, sig2, n=25, nsig=4.0):
+    i, j = pair
+    a_i = np.linspace(-nsig * sig2[0], nsig * sig2[0], n)
+    a_j = np.linspace(-nsig * sig2[1], nsig * sig2[1], n)
+    A1g, A2g, thetasg, validg = reduced_grid_theta(u_fid, evecs[:, i], evecs[:, j], a_i, a_j, tol=0.05)
+    Vgg = np.full((thetasg.shape[0], D), np.nan)
+    Vgg[validg] = emu.predict_vector(thetasg[validg], z_idx=zi, return_std=False)
+    c2 = np.full(thetasg.shape[0], np.inf)
+    c2[validg] = gaussian_chi2(obs[mask1], Vgg[validg][:, mask1], C_eff, hartlap1)
+    c2 = c2.reshape(A1g.shape)
+    return A1g, A2g, c2 - np.nanmin(c2)
+
+
+fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.6))
+for ax, pair, lab in zip(axes, [pmax, pmin], ["max |corr| pair", "near-zero-corr pair"]):
+    i, j = pair
+    J2 = J_alpha[:, [i, j]]
+    Sigma2 = np.linalg.inv(J2.T @ Ci_eff @ J2)
+    sig2 = np.sqrt(np.diag(Sigma2))
+    A1g, A2g, dchig = grid_dchi2(pair, sig2)
+    ax.contour(A1g, A2g, dchig, levels=[2.30, 6.17], colors=C_GREEN, linewidths=[1.6, 0.9])
+    for lev, lw, ls in [(2.30, 1.6, ":"), (6.17, 0.9, ":")]:
+        e = confidence_ellipse(Sigma2, level=lev)
+        ax.plot(e[:, 0], e[:, 1], color=C_ALT, lw=lw, ls=ls)
+    ax.plot(0, 0, marker="x", color=C_TRUTH, ms=8, mew=1.8)
+    ratio = sig_alpha[[i, j]] / sig2
+    ax.set(xlabel=rf"$\alpha_{{{i + 1}}}$", ylabel=rf"$\alpha_{{{j + 1}}}$",
+           title=f"{lab} (eig{i + 1},eig{j + 1}, r={corr_alpha[i, j]:+.2f})\n"
+                 f"marginal/conditional sigma ratio = {ratio[0]:.0f}x, {ratio[1]:.0f}x")
+handles = [Line2D([], [], color=C_ALT, lw=1.6, ls=":", label="Laplace ellipse (this pair only, conditional)"),
+           Line2D([], [], color=C_GREEN, lw=1.6, label="grid chi2 (other alphas fixed at 0)")]
+axes[0].legend(handles=handles, fontsize=7, loc="upper right")
+fig.tight_layout()
+""")
+
+md(r"""
+The conditional (2-parameter-only) Laplace ellipse tracks the real grid
+contour reasonably well in shape, confirming the Jacobian/Fisher machinery
+is internally consistent with the actual (mildly non-Gaussian -- some visible
+skew at this zoom) likelihood surface. The *marginal* ellipses in the corner
+plot above are, by contrast, one to two orders of magnitude wider than the
+conditional ones along the same axes (not shown to the same scale on
+purpose) -- this is the real, non-cosmetic caveat: the top-K active-subspace
+directions are orthogonal only in the whitened *full* (383-dim, all 9
+blocks) statistics sense used to define them. Constrained by Cl+peaks alone
+they are strongly degenerate with each other beyond the first 2-3 modes, so
+the joint (marginal) corner-plot panels should be read as "these directions
+are individually well measured but not jointly separable from Cl+peaks
+data," not as a literal small-volume 8D confidence region.
+""")
+
+md(r"""
 ## 8. Using it against your own maps
 
 `bind.wlemu.stats.measure_stats` is the *exact* estimator set the emulator was

@@ -349,3 +349,186 @@ def gaussian_chi2(data: np.ndarray, pred: np.ndarray, cov: np.ndarray,
     d = np.asarray(pred, float) - np.asarray(data, float)[None, :]
     Ci = np.linalg.inv(cov)
     return hartlap * np.einsum("nd,de,ne->n", d, Ci, d)
+
+
+# ---------------------------------------------------------------------------
+# Follow-ups to the reduced-feedback-space section: (1) a systematic
+# eigenvector <-> physical-observable match (replacing the single hand-picked
+# gas-fraction axis used by :func:`rotate_to_physical_axes`), and (2) a
+# Laplace/Fisher approximation to the fiducial posterior directly in the
+# top-K active-subspace coordinates, so the 2D (a1, a2) grid in
+# :func:`reduced_grid_theta` can be extended to a K-dim corner plot without a
+# combinatorial dense grid. See docs/wl_emulator.md ("Reduced feedback
+# space") for the writeup and the tutorial's cells following the (a1, a2)
+# posterior for worked examples of both.
+# ---------------------------------------------------------------------------
+
+
+def identify_axes(eigenvectors: np.ndarray, candidates: dict, k: int,
+                   weak_threshold: float = 0.3) -> dict:
+    """Full cosine-similarity match between the top ``k`` active-subspace
+    eigenvectors and a library of candidate physical directions (e.g. the
+    four ``g_*`` vectors in ``examples/data/wlemu_phys_dirs.npz``).
+
+    Unlike :func:`rotate_to_physical_axes` (which hand-picks *one* candidate
+    to define ``a1`` and only checks ``a2`` post hoc against the others),
+    this scores every (eigenvector, candidate) pair symmetrically: each
+    eigenvector gets its single best-matching candidate (and a "weak match"
+    flag when no candidate explains it well), and each candidate gets its
+    full loading vector across all ``k`` eigenvectors (a direction can spread
+    across several eigenvectors rather than aligning with just one).
+
+    Parameters
+    ----------
+    eigenvectors : (n_params, n_params) ndarray
+        ``active_subspace(...)["eigenvectors"]``, columns are unit vectors
+        in descending-eigenvalue order.
+    candidates : dict[str, (n_params,) ndarray]
+        Named candidate direction vectors (not required to be unit norm).
+    k : int
+        Number of leading eigenvectors to match.
+    weak_threshold : float
+        A best-match cosine with ``abs(cosine) < weak_threshold`` is flagged
+        ``weak=True`` -- no candidate in the library explains that
+        eigenvector well.
+
+    Returns
+    -------
+    dict with:
+      - ``"candidate_names"``: list, length ``n_cand``.
+      - ``"cosine_matrix"``: ``(k, n_cand)`` ndarray, signed cosine
+        similarity of each eigenvector (rows) against each candidate
+        (columns).
+      - ``"best_match"``: list of length ``k``, one dict per eigenvector:
+        ``{"eigenvector": i, "candidate": name, "cosine": float, "weak": bool}``.
+      - ``"candidate_loadings"``: dict, ``name -> (k,) ndarray`` -- each
+        candidate's cosine similarity against every one of the ``k``
+        eigenvectors (a column of ``cosine_matrix``).
+    """
+    names = list(candidates.keys())
+    G = np.stack([np.asarray(candidates[n], float) for n in names], axis=1)  # (n_params, n_cand)
+    G = G / np.linalg.norm(G, axis=0, keepdims=True)
+    Vk = eigenvectors[:, :k]                                    # already unit-norm columns
+    cos = Vk.T @ G                                               # (k, n_cand)
+
+    best_idx = np.argmax(np.abs(cos), axis=1)
+    best_cos = cos[np.arange(k), best_idx]
+    best_match = [
+        {"eigenvector": i, "candidate": names[int(best_idx[i])],
+         "cosine": float(best_cos[i]), "weak": bool(abs(best_cos[i]) < weak_threshold)}
+        for i in range(k)
+    ]
+    candidate_loadings = {names[j]: cos[:, j].copy() for j in range(len(names))}
+    return {
+        "candidate_names": names,
+        "cosine_matrix": cos,
+        "best_match": best_match,
+        "candidate_loadings": candidate_loadings,
+    }
+
+
+def alpha_jacobian(emu, z_idx, u_center: np.ndarray, eigenvectors: np.ndarray,
+                    data_mask: np.ndarray, k: int, h: float = 0.02) -> np.ndarray:
+    """Jacobian of a masked data-vector's predicted mean with respect to the
+    top ``k`` active-subspace coordinates ``alpha``, i.e. the columns of
+    ``d(pred[data_mask])/d(alpha_1..alpha_k)`` at ``theta(alpha) = u_center +
+    sum_j alpha_j * eigenvectors[:, j]``, by central finite differences at
+    ``u_center`` (same ``h`` convention as :func:`active_subspace`: a step of
+    ``h`` in unit-cube coordinates, clipped to ``[0, 1]``).
+
+    Each eigenvector direction touches multiple raw parameters at once, so
+    (unlike :func:`active_subspace`'s per-parameter sweep) clipping to the
+    cube is not guaranteed to leave the step exactly antiparallel/parallel to
+    ``eigenvectors[:, j]``; the finite-difference denominator therefore uses
+    the *actual* clipped step projected back onto ``eigenvectors[:, j]``
+    (``(up - dn) @ eigenvectors[:, j]``, which reduces to ``2*h`` when no
+    clipping occurs) rather than the nominal ``2*h``. Directions whose
+    projected step is degenerate (<= 0, i.e. ``u_center`` already pinned at
+    the cube boundary along that direction) get a zero column.
+
+    Parameters
+    ----------
+    emu : WLEmulator
+    z_idx : int
+    u_center : (n_params,) ndarray
+        Expansion point (typically ``emu.fiducial_params()``).
+    eigenvectors : (n_params, n_params) ndarray
+    data_mask : (n_stats,) bool ndarray
+        Which entries of ``emu.predict_vector`` to keep.
+    k : int
+    h : float
+
+    Returns
+    -------
+    (n_data, k) ndarray, ``n_data = data_mask.sum()``.
+    """
+    Vk = eigenvectors[:, :k]
+    n_data = int(np.sum(data_mask))
+    J = np.zeros((n_data, k))
+    for j in range(k):
+        vj = Vk[:, j]
+        up = np.clip(u_center + h * vj, 0.0, 1.0)
+        dn = np.clip(u_center - h * vj, 0.0, 1.0)
+        step = float((up - dn) @ vj)
+        if not (step > 0):
+            continue
+        Vp = emu.predict_vector(up[None, :], z_idx=z_idx, return_std=False)[0]
+        Vn = emu.predict_vector(dn[None, :], z_idx=z_idx, return_std=False)[0]
+        J[:, j] = (Vp - Vn)[data_mask] / step
+    return J
+
+
+def laplace_alpha_covariance(J: np.ndarray, cov: np.ndarray, hartlap: float = 1.0) -> dict:
+    """Laplace/Fisher approximation to the posterior covariance in
+    active-subspace ``alpha`` coordinates, for a noise-free mock at the
+    fiducial (MAP = fiducial exactly, by construction, so only the curvature
+    at that point is needed -- no optimization).
+
+    ``Fisher = J.T @ (hartlap * inv(cov)) @ J``; ``Sigma = inv(Fisher)``.
+
+    Parameters
+    ----------
+    J : (n_data, k) ndarray
+        E.g. from :func:`alpha_jacobian`.
+    cov : (n_data, n_data) ndarray
+        The same effective data covariance used in :func:`gaussian_chi2`
+        (single-field covariance + GP predictive variance on the diagonal).
+    hartlap : float
+        Precision-matrix debiasing factor, as in :func:`gaussian_chi2`.
+
+    Returns
+    -------
+    dict with ``"fisher"`` ((k, k)), ``"sigma"`` ((k, k), ``inv(fisher)``),
+    and ``"cond"`` (condition number of ``fisher`` -- a large value flags
+    near-degenerate ``alpha`` directions, i.e. the data subset used cannot
+    separate them individually even though they are orthogonal in the
+    whitened full-statistics sense that defined them).
+    """
+    Ci = hartlap * np.linalg.inv(cov)
+    fisher = J.T @ Ci @ J
+    sigma = np.linalg.inv(fisher)
+    return {"fisher": fisher, "sigma": sigma, "cond": float(np.linalg.cond(fisher))}
+
+
+def confidence_ellipse(cov2: np.ndarray, level: float = 2.30, n_pts: int = 200,
+                        center=(0.0, 0.0)) -> np.ndarray:
+    """Boundary points of the Gaussian confidence ellipse ``{x : (x -
+    center).T @ inv(cov2) @ (x - center) = level}`` for a 2x2 covariance
+    block.
+
+    ``level`` is a 2-dof delta-chi^2 threshold (2.30 -> 68%, 6.17 -> 95%,
+    matching the convention used for the dense-grid contours elsewhere in
+    this module, e.g. the ``levels=[2.30, 6.17]`` calls against
+    :func:`gaussian_chi2` output), *not* a "number of sigma".
+
+    Returns
+    -------
+    (n_pts, 2) ndarray of (x, y) boundary points.
+    """
+    evals, evecs = np.linalg.eigh(np.asarray(cov2, float))
+    evals = np.clip(evals, 0.0, None)
+    t = np.linspace(0.0, 2.0 * np.pi, n_pts)
+    circle = np.stack([np.cos(t), np.sin(t)], axis=1)            # (n_pts, 2)
+    pts = circle * np.sqrt(level * evals)[None, :]
+    pts = pts @ evecs.T
+    return pts + np.asarray(center, float)[None, :]

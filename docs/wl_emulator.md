@@ -182,6 +182,67 @@ built entirely from the emulator (no training-time internals needed):
 See `examples/wlemu_tutorial.ipynb` §7 for the eigenspectrum, loading-bar,
 and posterior-contour figures.
 
+### Follow-ups: systematic axis matching + a K-dim corner plot
+
+Two additions extend the above without replacing it (`rotate_to_physical_axes`'s
+hand-picked `a1`/`a2` still work and the tutorial keeps both cells):
+
+- **`identify_axes(eigenvectors, candidates, k)`** — replaces the
+  hand-pick-`a1`/post-hoc-check-`a2` pattern with a full `k × 4`
+  cosine-similarity match between the top-`k` eigenvectors and *all four*
+  candidate directions (`g_fgas, g_mstar, g_Y, g_T`) at once. Each
+  eigenvector gets a best-matching candidate (flagged `weak` if
+  `|cosine| < 0.3`, i.e. no candidate in the library explains it), and each
+  candidate gets its full loading vector across all `k` eigenvectors, since a
+  physical direction can spread across several eigenvectors rather than
+  aligning with exactly one. `k` is chosen from the mode-to-mode eigenvalue
+  ratio in the spectrum plotted by `active_subspace`: the steep decline
+  (ratio ≤ 0.85) runs through mode 7, settling onto a ~0.85–0.95 noise-floor
+  plateau from mode 8 on (`λ[7]/λ[14] ≈ 2.1`, i.e. still only ~2× the
+  15th-mode noise-floor proxy) — **k=8**. On the shipped artifact no
+  candidate exceeds `|cosine| ≈ 0.64` for any eigenvector (`eig3` vs `Y`),
+  and `eig5/6/8` are weak matches for all four candidates — the top-8 active
+  subspace and the four R200-integrated observables are related but not
+  one-to-one; every candidate's loading spreads over 2–4 eigenvectors rather
+  than concentrating on one.
+- **A `K`-dim corner plot in the raw eigenvector coordinates**
+  (`theta(alpha) = u_fid + sum_k alpha_k * eigenvectors[:, k]`, no rotation)
+  via a **Laplace/Fisher approximation**: since the fiducial mock is
+  noise-free (MAP = fiducial exactly), the posterior covariance in `alpha`
+  is `Sigma_alpha = inv(Fisher_alpha)`,
+  `Fisher_alpha = J_alpha.T @ (hartlap * inv(C_eff)) @ J_alpha`, with
+  `J_alpha` the central-finite-difference Jacobian of variant (i)'s
+  Cl+peaks data vector w.r.t. `alpha` (`alpha_jacobian`, same `h=0.02`
+  convention as `active_subspace`, and the same `C_eff`/Hartlap recipe that
+  passed the truth-in-68% check cleanly above — variant (ii) did not).
+  `laplace_alpha_covariance` builds `Fisher`/`Sigma`; `confidence_ellipse`
+  draws the 68%/95% (Δχ²=2.30/6.17) boundary of a 2×2 covariance block. The
+  corner plot is a plain `K×K` matplotlib grid: 1D Gaussian marginals on the
+  diagonal, ellipses from the corresponding `Sigma_alpha` sub-block below.
+  **Caveat (real, not cosmetic):** `Fisher_alpha`'s condition number is
+  `~8.5e5` on the shipped artifact — the top-8 directions, though orthogonal
+  in the whitened *full* (383-dim, 9-block) statistics sense that defines
+  them, are strongly degenerate under Cl+peaks alone beyond the first 2–3
+  modes. A cross-check evaluated `gaussian_chi2` on a real local grid
+  (`reduced_grid_theta` generalizes directly to any two eigenvector
+  directions) for the most- and least-correlated `Sigma_alpha` pairs found
+  on the shipped artifact (eig1/eig3, r≈+0.98; eig1/eig8, r≈−0.01): the
+  *conditional* (2-parameter-only) Laplace ellipse tracks the real grid
+  contour reasonably well (confirming the Jacobian/Fisher machinery itself
+  is correct), but the **marginal** ellipses shown in the corner plot are
+  one to two orders of magnitude wider along the same axes than the
+  conditional ones — so the corner-plot panels should be read as "these
+  directions are individually well measured but not jointly separable from
+  Cl+peaks data alone," not as a literal small-volume 8D confidence region.
+  A CCA-based alternative to the cosine-similarity match (canonical
+  correlation between per-design-point `alpha` coordinates and the raw
+  per-design observable arrays, rather than the pre-fit regression
+  directions) was prototyped against the BIND SB35 Sobol design's cached
+  integrated quantities and gives a consistent picture (leading canonical
+  correlation ≈0.80, dominated by `M_star`, spread across eig2–5) but needs
+  ceph-only data not shipped with the package, so it is not wired into the
+  tutorial.
+
 ## Caveats
 
 - Cosmology is **fixed**; this emulates baryonic-feedback response only.

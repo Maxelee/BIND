@@ -84,3 +84,6 @@ docs/_build/
 # SBI TensorBoard logs + generated DMO accretion-history catalog
 sbi-logs/
 tng300_dm_mass_history.hdf5
+
+# local mirror of KS/lightcone generated artifacts (P4b/P4c campaigns)
+lightcone/

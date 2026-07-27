@@ -1,0 +1,1267 @@
+#DISBATCH PREFIX source /mnt/home/mlee1/venvs/BIND_env/bin/activate ; export PYTHONPATH=/mnt/home/mlee1/BIND-ksz2/src ; export OMP_NUM_THREADS=1 ; cd /mnt/home/mlee1/BIND-ksz2 ; python examples/lightcone_cap_stack.py 
+#DISBATCH SUFFIX  --out_dir /mnt/home/mlee1/ceph/bind_science/ksz_confront/lightcone/shards
+--run 0 --map tau --sample elg --src_idx 4
+--run 0 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 0 --map y --sample elg --src_idx 4
+--run 0 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 0 --map kappa --sample elg --src_idx 3
+--run 1 --map tau --sample elg --src_idx 4
+--run 1 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 1 --map y --sample elg --src_idx 4
+--run 1 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 1 --map kappa --sample elg --src_idx 3
+--run 2 --map tau --sample elg --src_idx 4
+--run 2 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 2 --map y --sample elg --src_idx 4
+--run 2 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 2 --map kappa --sample elg --src_idx 3
+--run 3 --map tau --sample elg --src_idx 4
+--run 3 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 3 --map y --sample elg --src_idx 4
+--run 3 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 3 --map kappa --sample elg --src_idx 3
+--run 4 --map tau --sample elg --src_idx 4
+--run 4 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 4 --map y --sample elg --src_idx 4
+--run 4 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 4 --map kappa --sample elg --src_idx 3
+--run 5 --map tau --sample elg --src_idx 4
+--run 5 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 5 --map y --sample elg --src_idx 4
+--run 5 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 5 --map kappa --sample elg --src_idx 3
+--run 6 --map tau --sample elg --src_idx 4
+--run 6 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 6 --map y --sample elg --src_idx 4
+--run 6 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 6 --map kappa --sample elg --src_idx 3
+--run 7 --map tau --sample elg --src_idx 4
+--run 7 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 7 --map y --sample elg --src_idx 4
+--run 7 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 7 --map kappa --sample elg --src_idx 3
+--run 8 --map tau --sample elg --src_idx 4
+--run 8 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 8 --map y --sample elg --src_idx 4
+--run 8 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 8 --map kappa --sample elg --src_idx 3
+--run 9 --map tau --sample elg --src_idx 4
+--run 9 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 9 --map y --sample elg --src_idx 4
+--run 9 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 9 --map kappa --sample elg --src_idx 3
+--run 10 --map tau --sample elg --src_idx 4
+--run 10 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 10 --map y --sample elg --src_idx 4
+--run 10 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 10 --map kappa --sample elg --src_idx 3
+--run 11 --map tau --sample elg --src_idx 4
+--run 11 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 11 --map y --sample elg --src_idx 4
+--run 11 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 11 --map kappa --sample elg --src_idx 3
+--run 12 --map tau --sample elg --src_idx 4
+--run 12 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 12 --map y --sample elg --src_idx 4
+--run 12 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 12 --map kappa --sample elg --src_idx 3
+--run 13 --map tau --sample elg --src_idx 4
+--run 13 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 13 --map y --sample elg --src_idx 4
+--run 13 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 13 --map kappa --sample elg --src_idx 3
+--run 14 --map tau --sample elg --src_idx 4
+--run 14 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 14 --map y --sample elg --src_idx 4
+--run 14 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 14 --map kappa --sample elg --src_idx 3
+--run 15 --map tau --sample elg --src_idx 4
+--run 15 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 15 --map y --sample elg --src_idx 4
+--run 15 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 15 --map kappa --sample elg --src_idx 3
+--run 16 --map tau --sample elg --src_idx 4
+--run 16 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 16 --map y --sample elg --src_idx 4
+--run 16 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 16 --map kappa --sample elg --src_idx 3
+--run 17 --map tau --sample elg --src_idx 4
+--run 17 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 17 --map y --sample elg --src_idx 4
+--run 17 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 17 --map kappa --sample elg --src_idx 3
+--run 18 --map tau --sample elg --src_idx 4
+--run 18 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 18 --map y --sample elg --src_idx 4
+--run 18 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 18 --map kappa --sample elg --src_idx 3
+--run 19 --map tau --sample elg --src_idx 4
+--run 19 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 19 --map y --sample elg --src_idx 4
+--run 19 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 19 --map kappa --sample elg --src_idx 3
+--run 20 --map tau --sample elg --src_idx 4
+--run 20 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 20 --map y --sample elg --src_idx 4
+--run 20 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 20 --map kappa --sample elg --src_idx 3
+--run 21 --map tau --sample elg --src_idx 4
+--run 21 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 21 --map y --sample elg --src_idx 4
+--run 21 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 21 --map kappa --sample elg --src_idx 3
+--run 22 --map tau --sample elg --src_idx 4
+--run 22 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 22 --map y --sample elg --src_idx 4
+--run 22 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 22 --map kappa --sample elg --src_idx 3
+--run 23 --map tau --sample elg --src_idx 4
+--run 23 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 23 --map y --sample elg --src_idx 4
+--run 23 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 23 --map kappa --sample elg --src_idx 3
+--run 24 --map tau --sample elg --src_idx 4
+--run 24 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 24 --map y --sample elg --src_idx 4
+--run 24 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 24 --map kappa --sample elg --src_idx 3
+--run 25 --map tau --sample elg --src_idx 4
+--run 25 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 25 --map y --sample elg --src_idx 4
+--run 25 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 25 --map kappa --sample elg --src_idx 3
+--run 26 --map tau --sample elg --src_idx 4
+--run 26 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 26 --map y --sample elg --src_idx 4
+--run 26 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 26 --map kappa --sample elg --src_idx 3
+--run 27 --map tau --sample elg --src_idx 4
+--run 27 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 27 --map y --sample elg --src_idx 4
+--run 27 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 27 --map kappa --sample elg --src_idx 3
+--run 28 --map tau --sample elg --src_idx 4
+--run 28 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 28 --map y --sample elg --src_idx 4
+--run 28 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 28 --map kappa --sample elg --src_idx 3
+--run 29 --map tau --sample elg --src_idx 4
+--run 29 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 29 --map y --sample elg --src_idx 4
+--run 29 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 29 --map kappa --sample elg --src_idx 3
+--run 30 --map tau --sample elg --src_idx 4
+--run 30 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 30 --map y --sample elg --src_idx 4
+--run 30 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 30 --map kappa --sample elg --src_idx 3
+--run 31 --map tau --sample elg --src_idx 4
+--run 31 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 31 --map y --sample elg --src_idx 4
+--run 31 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 31 --map kappa --sample elg --src_idx 3
+--run 32 --map tau --sample elg --src_idx 4
+--run 32 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 32 --map y --sample elg --src_idx 4
+--run 32 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 32 --map kappa --sample elg --src_idx 3
+--run 33 --map tau --sample elg --src_idx 4
+--run 33 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 33 --map y --sample elg --src_idx 4
+--run 33 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 33 --map kappa --sample elg --src_idx 3
+--run 34 --map tau --sample elg --src_idx 4
+--run 34 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 34 --map y --sample elg --src_idx 4
+--run 34 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 34 --map kappa --sample elg --src_idx 3
+--run 35 --map tau --sample elg --src_idx 4
+--run 35 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 35 --map y --sample elg --src_idx 4
+--run 35 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 35 --map kappa --sample elg --src_idx 3
+--run 36 --map tau --sample elg --src_idx 4
+--run 36 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 36 --map y --sample elg --src_idx 4
+--run 36 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 36 --map kappa --sample elg --src_idx 3
+--run 37 --map tau --sample elg --src_idx 4
+--run 37 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 37 --map y --sample elg --src_idx 4
+--run 37 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 37 --map kappa --sample elg --src_idx 3
+--run 38 --map tau --sample elg --src_idx 4
+--run 38 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 38 --map y --sample elg --src_idx 4
+--run 38 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 38 --map kappa --sample elg --src_idx 3
+--run 39 --map tau --sample elg --src_idx 4
+--run 39 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 39 --map y --sample elg --src_idx 4
+--run 39 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 39 --map kappa --sample elg --src_idx 3
+--run 40 --map tau --sample elg --src_idx 4
+--run 40 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 40 --map y --sample elg --src_idx 4
+--run 40 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 40 --map kappa --sample elg --src_idx 3
+--run 41 --map tau --sample elg --src_idx 4
+--run 41 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 41 --map y --sample elg --src_idx 4
+--run 41 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 41 --map kappa --sample elg --src_idx 3
+--run 42 --map tau --sample elg --src_idx 4
+--run 42 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 42 --map y --sample elg --src_idx 4
+--run 42 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 42 --map kappa --sample elg --src_idx 3
+--run 43 --map tau --sample elg --src_idx 4
+--run 43 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 43 --map y --sample elg --src_idx 4
+--run 43 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 43 --map kappa --sample elg --src_idx 3
+--run 44 --map tau --sample elg --src_idx 4
+--run 44 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 44 --map y --sample elg --src_idx 4
+--run 44 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 44 --map kappa --sample elg --src_idx 3
+--run 45 --map tau --sample elg --src_idx 4
+--run 45 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 45 --map y --sample elg --src_idx 4
+--run 45 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 45 --map kappa --sample elg --src_idx 3
+--run 46 --map tau --sample elg --src_idx 4
+--run 46 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 46 --map y --sample elg --src_idx 4
+--run 46 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 46 --map kappa --sample elg --src_idx 3
+--run 47 --map tau --sample elg --src_idx 4
+--run 47 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 47 --map y --sample elg --src_idx 4
+--run 47 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 47 --map kappa --sample elg --src_idx 3
+--run 48 --map tau --sample elg --src_idx 4
+--run 48 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 48 --map y --sample elg --src_idx 4
+--run 48 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 48 --map kappa --sample elg --src_idx 3
+--run 49 --map tau --sample elg --src_idx 4
+--run 49 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 49 --map y --sample elg --src_idx 4
+--run 49 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 49 --map kappa --sample elg --src_idx 3
+--run 50 --map tau --sample elg --src_idx 4
+--run 50 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 50 --map y --sample elg --src_idx 4
+--run 50 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 50 --map kappa --sample elg --src_idx 3
+--run 51 --map tau --sample elg --src_idx 4
+--run 51 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 51 --map y --sample elg --src_idx 4
+--run 51 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 51 --map kappa --sample elg --src_idx 3
+--run 52 --map tau --sample elg --src_idx 4
+--run 52 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 52 --map y --sample elg --src_idx 4
+--run 52 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 52 --map kappa --sample elg --src_idx 3
+--run 53 --map tau --sample elg --src_idx 4
+--run 53 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 53 --map y --sample elg --src_idx 4
+--run 53 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 53 --map kappa --sample elg --src_idx 3
+--run 54 --map tau --sample elg --src_idx 4
+--run 54 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 54 --map y --sample elg --src_idx 4
+--run 54 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 54 --map kappa --sample elg --src_idx 3
+--run 55 --map tau --sample elg --src_idx 4
+--run 55 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 55 --map y --sample elg --src_idx 4
+--run 55 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 55 --map kappa --sample elg --src_idx 3
+--run 56 --map tau --sample elg --src_idx 4
+--run 56 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 56 --map y --sample elg --src_idx 4
+--run 56 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 56 --map kappa --sample elg --src_idx 3
+--run 57 --map tau --sample elg --src_idx 4
+--run 57 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 57 --map y --sample elg --src_idx 4
+--run 57 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 57 --map kappa --sample elg --src_idx 3
+--run 58 --map tau --sample elg --src_idx 4
+--run 58 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 58 --map y --sample elg --src_idx 4
+--run 58 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 58 --map kappa --sample elg --src_idx 3
+--run 59 --map tau --sample elg --src_idx 4
+--run 59 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 59 --map y --sample elg --src_idx 4
+--run 59 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 59 --map kappa --sample elg --src_idx 3
+--run 60 --map tau --sample elg --src_idx 4
+--run 60 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 60 --map y --sample elg --src_idx 4
+--run 60 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 60 --map kappa --sample elg --src_idx 3
+--run 61 --map tau --sample elg --src_idx 4
+--run 61 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 61 --map y --sample elg --src_idx 4
+--run 61 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 61 --map kappa --sample elg --src_idx 3
+--run 62 --map tau --sample elg --src_idx 4
+--run 62 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 62 --map y --sample elg --src_idx 4
+--run 62 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 62 --map kappa --sample elg --src_idx 3
+--run 63 --map tau --sample elg --src_idx 4
+--run 63 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 63 --map y --sample elg --src_idx 4
+--run 63 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 63 --map kappa --sample elg --src_idx 3
+--run 64 --map tau --sample elg --src_idx 4
+--run 64 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 64 --map y --sample elg --src_idx 4
+--run 64 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 64 --map kappa --sample elg --src_idx 3
+--run 65 --map tau --sample elg --src_idx 4
+--run 65 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 65 --map y --sample elg --src_idx 4
+--run 65 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 65 --map kappa --sample elg --src_idx 3
+--run 66 --map tau --sample elg --src_idx 4
+--run 66 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 66 --map y --sample elg --src_idx 4
+--run 66 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 66 --map kappa --sample elg --src_idx 3
+--run 67 --map tau --sample elg --src_idx 4
+--run 67 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 67 --map y --sample elg --src_idx 4
+--run 67 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 67 --map kappa --sample elg --src_idx 3
+--run 68 --map tau --sample elg --src_idx 4
+--run 68 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 68 --map y --sample elg --src_idx 4
+--run 68 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 68 --map kappa --sample elg --src_idx 3
+--run 69 --map tau --sample elg --src_idx 4
+--run 69 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 69 --map y --sample elg --src_idx 4
+--run 69 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 69 --map kappa --sample elg --src_idx 3
+--run 70 --map tau --sample elg --src_idx 4
+--run 70 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 70 --map y --sample elg --src_idx 4
+--run 70 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 70 --map kappa --sample elg --src_idx 3
+--run 71 --map tau --sample elg --src_idx 4
+--run 71 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 71 --map y --sample elg --src_idx 4
+--run 71 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 71 --map kappa --sample elg --src_idx 3
+--run 72 --map tau --sample elg --src_idx 4
+--run 72 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 72 --map y --sample elg --src_idx 4
+--run 72 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 72 --map kappa --sample elg --src_idx 3
+--run 73 --map tau --sample elg --src_idx 4
+--run 73 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 73 --map y --sample elg --src_idx 4
+--run 73 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 73 --map kappa --sample elg --src_idx 3
+--run 74 --map tau --sample elg --src_idx 4
+--run 74 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 74 --map y --sample elg --src_idx 4
+--run 74 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 74 --map kappa --sample elg --src_idx 3
+--run 75 --map tau --sample elg --src_idx 4
+--run 75 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 75 --map y --sample elg --src_idx 4
+--run 75 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 75 --map kappa --sample elg --src_idx 3
+--run 76 --map tau --sample elg --src_idx 4
+--run 76 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 76 --map y --sample elg --src_idx 4
+--run 76 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 76 --map kappa --sample elg --src_idx 3
+--run 77 --map tau --sample elg --src_idx 4
+--run 77 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 77 --map y --sample elg --src_idx 4
+--run 77 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 77 --map kappa --sample elg --src_idx 3
+--run 78 --map tau --sample elg --src_idx 4
+--run 78 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 78 --map y --sample elg --src_idx 4
+--run 78 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 78 --map kappa --sample elg --src_idx 3
+--run 79 --map tau --sample elg --src_idx 4
+--run 79 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 79 --map y --sample elg --src_idx 4
+--run 79 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 79 --map kappa --sample elg --src_idx 3
+--run 80 --map tau --sample elg --src_idx 4
+--run 80 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 80 --map y --sample elg --src_idx 4
+--run 80 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 80 --map kappa --sample elg --src_idx 3
+--run 81 --map tau --sample elg --src_idx 4
+--run 81 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 81 --map y --sample elg --src_idx 4
+--run 81 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 81 --map kappa --sample elg --src_idx 3
+--run 82 --map tau --sample elg --src_idx 4
+--run 82 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 82 --map y --sample elg --src_idx 4
+--run 82 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 82 --map kappa --sample elg --src_idx 3
+--run 83 --map tau --sample elg --src_idx 4
+--run 83 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 83 --map y --sample elg --src_idx 4
+--run 83 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 83 --map kappa --sample elg --src_idx 3
+--run 84 --map tau --sample elg --src_idx 4
+--run 84 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 84 --map y --sample elg --src_idx 4
+--run 84 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 84 --map kappa --sample elg --src_idx 3
+--run 85 --map tau --sample elg --src_idx 4
+--run 85 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 85 --map y --sample elg --src_idx 4
+--run 85 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 85 --map kappa --sample elg --src_idx 3
+--run 86 --map tau --sample elg --src_idx 4
+--run 86 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 86 --map y --sample elg --src_idx 4
+--run 86 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 86 --map kappa --sample elg --src_idx 3
+--run 87 --map tau --sample elg --src_idx 4
+--run 87 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 87 --map y --sample elg --src_idx 4
+--run 87 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 87 --map kappa --sample elg --src_idx 3
+--run 88 --map tau --sample elg --src_idx 4
+--run 88 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 88 --map y --sample elg --src_idx 4
+--run 88 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 88 --map kappa --sample elg --src_idx 3
+--run 89 --map tau --sample elg --src_idx 4
+--run 89 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 89 --map y --sample elg --src_idx 4
+--run 89 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 89 --map kappa --sample elg --src_idx 3
+--run 90 --map tau --sample elg --src_idx 4
+--run 90 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 90 --map y --sample elg --src_idx 4
+--run 90 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 90 --map kappa --sample elg --src_idx 3
+--run 91 --map tau --sample elg --src_idx 4
+--run 91 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 91 --map y --sample elg --src_idx 4
+--run 91 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 91 --map kappa --sample elg --src_idx 3
+--run 92 --map tau --sample elg --src_idx 4
+--run 92 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 92 --map y --sample elg --src_idx 4
+--run 92 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 92 --map kappa --sample elg --src_idx 3
+--run 93 --map tau --sample elg --src_idx 4
+--run 93 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 93 --map y --sample elg --src_idx 4
+--run 93 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 93 --map kappa --sample elg --src_idx 3
+--run 94 --map tau --sample elg --src_idx 4
+--run 94 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 94 --map y --sample elg --src_idx 4
+--run 94 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 94 --map kappa --sample elg --src_idx 3
+--run 95 --map tau --sample elg --src_idx 4
+--run 95 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 95 --map y --sample elg --src_idx 4
+--run 95 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 95 --map kappa --sample elg --src_idx 3
+--run 96 --map tau --sample elg --src_idx 4
+--run 96 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 96 --map y --sample elg --src_idx 4
+--run 96 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 96 --map kappa --sample elg --src_idx 3
+--run 97 --map tau --sample elg --src_idx 4
+--run 97 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 97 --map y --sample elg --src_idx 4
+--run 97 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 97 --map kappa --sample elg --src_idx 3
+--run 98 --map tau --sample elg --src_idx 4
+--run 98 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 98 --map y --sample elg --src_idx 4
+--run 98 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 98 --map kappa --sample elg --src_idx 3
+--run 99 --map tau --sample elg --src_idx 4
+--run 99 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 99 --map y --sample elg --src_idx 4
+--run 99 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 99 --map kappa --sample elg --src_idx 3
+--run 100 --map tau --sample elg --src_idx 4
+--run 100 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 100 --map y --sample elg --src_idx 4
+--run 100 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 100 --map kappa --sample elg --src_idx 3
+--run 101 --map tau --sample elg --src_idx 4
+--run 101 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 101 --map y --sample elg --src_idx 4
+--run 101 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 101 --map kappa --sample elg --src_idx 3
+--run 102 --map tau --sample elg --src_idx 4
+--run 102 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 102 --map y --sample elg --src_idx 4
+--run 102 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 102 --map kappa --sample elg --src_idx 3
+--run 103 --map tau --sample elg --src_idx 4
+--run 103 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 103 --map y --sample elg --src_idx 4
+--run 103 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 103 --map kappa --sample elg --src_idx 3
+--run 104 --map tau --sample elg --src_idx 4
+--run 104 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 104 --map y --sample elg --src_idx 4
+--run 104 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 104 --map kappa --sample elg --src_idx 3
+--run 105 --map tau --sample elg --src_idx 4
+--run 105 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 105 --map y --sample elg --src_idx 4
+--run 105 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 105 --map kappa --sample elg --src_idx 3
+--run 106 --map tau --sample elg --src_idx 4
+--run 106 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 106 --map y --sample elg --src_idx 4
+--run 106 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 106 --map kappa --sample elg --src_idx 3
+--run 107 --map tau --sample elg --src_idx 4
+--run 107 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 107 --map y --sample elg --src_idx 4
+--run 107 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 107 --map kappa --sample elg --src_idx 3
+--run 108 --map tau --sample elg --src_idx 4
+--run 108 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 108 --map y --sample elg --src_idx 4
+--run 108 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 108 --map kappa --sample elg --src_idx 3
+--run 109 --map tau --sample elg --src_idx 4
+--run 109 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 109 --map y --sample elg --src_idx 4
+--run 109 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 109 --map kappa --sample elg --src_idx 3
+--run 110 --map tau --sample elg --src_idx 4
+--run 110 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 110 --map y --sample elg --src_idx 4
+--run 110 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 110 --map kappa --sample elg --src_idx 3
+--run 111 --map tau --sample elg --src_idx 4
+--run 111 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 111 --map y --sample elg --src_idx 4
+--run 111 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 111 --map kappa --sample elg --src_idx 3
+--run 112 --map tau --sample elg --src_idx 4
+--run 112 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 112 --map y --sample elg --src_idx 4
+--run 112 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 112 --map kappa --sample elg --src_idx 3
+--run 113 --map tau --sample elg --src_idx 4
+--run 113 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 113 --map y --sample elg --src_idx 4
+--run 113 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 113 --map kappa --sample elg --src_idx 3
+--run 116 --map tau --sample elg --src_idx 4
+--run 116 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 116 --map y --sample elg --src_idx 4
+--run 116 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 116 --map kappa --sample elg --src_idx 3
+--run 118 --map tau --sample elg --src_idx 4
+--run 118 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 118 --map y --sample elg --src_idx 4
+--run 118 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 118 --map kappa --sample elg --src_idx 3
+--run 119 --map tau --sample elg --src_idx 4
+--run 119 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 119 --map y --sample elg --src_idx 4
+--run 119 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 119 --map kappa --sample elg --src_idx 3
+--run 120 --map tau --sample elg --src_idx 4
+--run 120 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 120 --map y --sample elg --src_idx 4
+--run 120 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 120 --map kappa --sample elg --src_idx 3
+--run 121 --map tau --sample elg --src_idx 4
+--run 121 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 121 --map y --sample elg --src_idx 4
+--run 121 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 121 --map kappa --sample elg --src_idx 3
+--run 122 --map tau --sample elg --src_idx 4
+--run 122 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 122 --map y --sample elg --src_idx 4
+--run 122 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 122 --map kappa --sample elg --src_idx 3
+--run 123 --map tau --sample elg --src_idx 4
+--run 123 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 123 --map y --sample elg --src_idx 4
+--run 123 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 123 --map kappa --sample elg --src_idx 3
+--run 124 --map tau --sample elg --src_idx 4
+--run 124 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 124 --map y --sample elg --src_idx 4
+--run 124 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 124 --map kappa --sample elg --src_idx 3
+--run 125 --map tau --sample elg --src_idx 4
+--run 125 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 125 --map y --sample elg --src_idx 4
+--run 125 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 125 --map kappa --sample elg --src_idx 3
+--run 126 --map tau --sample elg --src_idx 4
+--run 126 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 126 --map y --sample elg --src_idx 4
+--run 126 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 126 --map kappa --sample elg --src_idx 3
+--run 127 --map tau --sample elg --src_idx 4
+--run 127 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 127 --map y --sample elg --src_idx 4
+--run 127 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 127 --map kappa --sample elg --src_idx 3
+--run 128 --map tau --sample elg --src_idx 4
+--run 128 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 128 --map y --sample elg --src_idx 4
+--run 128 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 128 --map kappa --sample elg --src_idx 3
+--run 129 --map tau --sample elg --src_idx 4
+--run 129 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 129 --map y --sample elg --src_idx 4
+--run 129 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 129 --map kappa --sample elg --src_idx 3
+--run 130 --map tau --sample elg --src_idx 4
+--run 130 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 130 --map y --sample elg --src_idx 4
+--run 130 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 130 --map kappa --sample elg --src_idx 3
+--run 131 --map tau --sample elg --src_idx 4
+--run 131 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 131 --map y --sample elg --src_idx 4
+--run 131 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 131 --map kappa --sample elg --src_idx 3
+--run 132 --map tau --sample elg --src_idx 4
+--run 132 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 132 --map y --sample elg --src_idx 4
+--run 132 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 132 --map kappa --sample elg --src_idx 3
+--run 133 --map tau --sample elg --src_idx 4
+--run 133 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 133 --map y --sample elg --src_idx 4
+--run 133 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 133 --map kappa --sample elg --src_idx 3
+--run 134 --map tau --sample elg --src_idx 4
+--run 134 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 134 --map y --sample elg --src_idx 4
+--run 134 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 134 --map kappa --sample elg --src_idx 3
+--run 135 --map tau --sample elg --src_idx 4
+--run 135 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 135 --map y --sample elg --src_idx 4
+--run 135 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 135 --map kappa --sample elg --src_idx 3
+--run 136 --map tau --sample elg --src_idx 4
+--run 136 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 136 --map y --sample elg --src_idx 4
+--run 136 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 136 --map kappa --sample elg --src_idx 3
+--run 137 --map tau --sample elg --src_idx 4
+--run 137 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 137 --map y --sample elg --src_idx 4
+--run 137 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 137 --map kappa --sample elg --src_idx 3
+--run 138 --map tau --sample elg --src_idx 4
+--run 138 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 138 --map y --sample elg --src_idx 4
+--run 138 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 138 --map kappa --sample elg --src_idx 3
+--run 139 --map tau --sample elg --src_idx 4
+--run 139 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 139 --map y --sample elg --src_idx 4
+--run 139 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 139 --map kappa --sample elg --src_idx 3
+--run 140 --map tau --sample elg --src_idx 4
+--run 140 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 140 --map y --sample elg --src_idx 4
+--run 140 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 140 --map kappa --sample elg --src_idx 3
+--run 141 --map tau --sample elg --src_idx 4
+--run 141 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 141 --map y --sample elg --src_idx 4
+--run 141 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 141 --map kappa --sample elg --src_idx 3
+--run 142 --map tau --sample elg --src_idx 4
+--run 142 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 142 --map y --sample elg --src_idx 4
+--run 142 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 142 --map kappa --sample elg --src_idx 3
+--run 143 --map tau --sample elg --src_idx 4
+--run 143 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 143 --map y --sample elg --src_idx 4
+--run 143 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 143 --map kappa --sample elg --src_idx 3
+--run 144 --map tau --sample elg --src_idx 4
+--run 144 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 144 --map y --sample elg --src_idx 4
+--run 144 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 144 --map kappa --sample elg --src_idx 3
+--run 145 --map tau --sample elg --src_idx 4
+--run 145 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 145 --map y --sample elg --src_idx 4
+--run 145 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 145 --map kappa --sample elg --src_idx 3
+--run 146 --map tau --sample elg --src_idx 4
+--run 146 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 146 --map y --sample elg --src_idx 4
+--run 146 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 146 --map kappa --sample elg --src_idx 3
+--run 147 --map tau --sample elg --src_idx 4
+--run 147 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 147 --map y --sample elg --src_idx 4
+--run 147 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 147 --map kappa --sample elg --src_idx 3
+--run 148 --map tau --sample elg --src_idx 4
+--run 148 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 148 --map y --sample elg --src_idx 4
+--run 148 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 148 --map kappa --sample elg --src_idx 3
+--run 149 --map tau --sample elg --src_idx 4
+--run 149 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 149 --map y --sample elg --src_idx 4
+--run 149 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 149 --map kappa --sample elg --src_idx 3
+--run 150 --map tau --sample elg --src_idx 4
+--run 150 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 150 --map y --sample elg --src_idx 4
+--run 150 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 150 --map kappa --sample elg --src_idx 3
+--run 151 --map tau --sample elg --src_idx 4
+--run 151 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 151 --map y --sample elg --src_idx 4
+--run 151 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 151 --map kappa --sample elg --src_idx 3
+--run 152 --map tau --sample elg --src_idx 4
+--run 152 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 152 --map y --sample elg --src_idx 4
+--run 152 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 152 --map kappa --sample elg --src_idx 3
+--run 153 --map tau --sample elg --src_idx 4
+--run 153 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 153 --map y --sample elg --src_idx 4
+--run 153 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 153 --map kappa --sample elg --src_idx 3
+--run 154 --map tau --sample elg --src_idx 4
+--run 154 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 154 --map y --sample elg --src_idx 4
+--run 154 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 154 --map kappa --sample elg --src_idx 3
+--run 155 --map tau --sample elg --src_idx 4
+--run 155 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 155 --map y --sample elg --src_idx 4
+--run 155 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 155 --map kappa --sample elg --src_idx 3
+--run 156 --map tau --sample elg --src_idx 4
+--run 156 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 156 --map y --sample elg --src_idx 4
+--run 156 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 156 --map kappa --sample elg --src_idx 3
+--run 157 --map tau --sample elg --src_idx 4
+--run 157 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 157 --map y --sample elg --src_idx 4
+--run 157 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 157 --map kappa --sample elg --src_idx 3
+--run 158 --map tau --sample elg --src_idx 4
+--run 158 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 158 --map y --sample elg --src_idx 4
+--run 158 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 158 --map kappa --sample elg --src_idx 3
+--run 159 --map tau --sample elg --src_idx 4
+--run 159 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 159 --map y --sample elg --src_idx 4
+--run 159 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 159 --map kappa --sample elg --src_idx 3
+--run 160 --map tau --sample elg --src_idx 4
+--run 160 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 160 --map y --sample elg --src_idx 4
+--run 160 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 160 --map kappa --sample elg --src_idx 3
+--run 161 --map tau --sample elg --src_idx 4
+--run 161 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 161 --map y --sample elg --src_idx 4
+--run 161 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 161 --map kappa --sample elg --src_idx 3
+--run 162 --map tau --sample elg --src_idx 4
+--run 162 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 162 --map y --sample elg --src_idx 4
+--run 162 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 162 --map kappa --sample elg --src_idx 3
+--run 163 --map tau --sample elg --src_idx 4
+--run 163 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 163 --map y --sample elg --src_idx 4
+--run 163 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 163 --map kappa --sample elg --src_idx 3
+--run 164 --map tau --sample elg --src_idx 4
+--run 164 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 164 --map y --sample elg --src_idx 4
+--run 164 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 164 --map kappa --sample elg --src_idx 3
+--run 165 --map tau --sample elg --src_idx 4
+--run 165 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 165 --map y --sample elg --src_idx 4
+--run 165 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 165 --map kappa --sample elg --src_idx 3
+--run 166 --map tau --sample elg --src_idx 4
+--run 166 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 166 --map y --sample elg --src_idx 4
+--run 166 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 166 --map kappa --sample elg --src_idx 3
+--run 167 --map tau --sample elg --src_idx 4
+--run 167 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 167 --map y --sample elg --src_idx 4
+--run 167 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 167 --map kappa --sample elg --src_idx 3
+--run 168 --map tau --sample elg --src_idx 4
+--run 168 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 168 --map y --sample elg --src_idx 4
+--run 168 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 168 --map kappa --sample elg --src_idx 3
+--run 169 --map tau --sample elg --src_idx 4
+--run 169 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 169 --map y --sample elg --src_idx 4
+--run 169 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 169 --map kappa --sample elg --src_idx 3
+--run 170 --map tau --sample elg --src_idx 4
+--run 170 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 170 --map y --sample elg --src_idx 4
+--run 170 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 170 --map kappa --sample elg --src_idx 3
+--run 171 --map tau --sample elg --src_idx 4
+--run 171 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 171 --map y --sample elg --src_idx 4
+--run 171 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 171 --map kappa --sample elg --src_idx 3
+--run 172 --map tau --sample elg --src_idx 4
+--run 172 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 172 --map y --sample elg --src_idx 4
+--run 172 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 172 --map kappa --sample elg --src_idx 3
+--run 173 --map tau --sample elg --src_idx 4
+--run 173 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 173 --map y --sample elg --src_idx 4
+--run 173 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 173 --map kappa --sample elg --src_idx 3
+--run 174 --map tau --sample elg --src_idx 4
+--run 174 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 174 --map y --sample elg --src_idx 4
+--run 174 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 174 --map kappa --sample elg --src_idx 3
+--run 175 --map tau --sample elg --src_idx 4
+--run 175 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 175 --map y --sample elg --src_idx 4
+--run 175 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 175 --map kappa --sample elg --src_idx 3
+--run 176 --map tau --sample elg --src_idx 4
+--run 176 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 176 --map y --sample elg --src_idx 4
+--run 176 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 176 --map kappa --sample elg --src_idx 3
+--run 177 --map tau --sample elg --src_idx 4
+--run 177 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 177 --map y --sample elg --src_idx 4
+--run 177 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 177 --map kappa --sample elg --src_idx 3
+--run 178 --map tau --sample elg --src_idx 4
+--run 178 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 178 --map y --sample elg --src_idx 4
+--run 178 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 178 --map kappa --sample elg --src_idx 3
+--run 179 --map tau --sample elg --src_idx 4
+--run 179 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 179 --map y --sample elg --src_idx 4
+--run 179 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 179 --map kappa --sample elg --src_idx 3
+--run 180 --map tau --sample elg --src_idx 4
+--run 180 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 180 --map y --sample elg --src_idx 4
+--run 180 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 180 --map kappa --sample elg --src_idx 3
+--run 181 --map tau --sample elg --src_idx 4
+--run 181 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 181 --map y --sample elg --src_idx 4
+--run 181 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 181 --map kappa --sample elg --src_idx 3
+--run 182 --map tau --sample elg --src_idx 4
+--run 182 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 182 --map y --sample elg --src_idx 4
+--run 182 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 182 --map kappa --sample elg --src_idx 3
+--run 183 --map tau --sample elg --src_idx 4
+--run 183 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 183 --map y --sample elg --src_idx 4
+--run 183 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 183 --map kappa --sample elg --src_idx 3
+--run 184 --map tau --sample elg --src_idx 4
+--run 184 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 184 --map y --sample elg --src_idx 4
+--run 184 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 184 --map kappa --sample elg --src_idx 3
+--run 185 --map tau --sample elg --src_idx 4
+--run 185 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 185 --map y --sample elg --src_idx 4
+--run 185 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 185 --map kappa --sample elg --src_idx 3
+--run 186 --map tau --sample elg --src_idx 4
+--run 186 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 186 --map y --sample elg --src_idx 4
+--run 186 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 186 --map kappa --sample elg --src_idx 3
+--run 187 --map tau --sample elg --src_idx 4
+--run 187 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 187 --map y --sample elg --src_idx 4
+--run 187 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 187 --map kappa --sample elg --src_idx 3
+--run 188 --map tau --sample elg --src_idx 4
+--run 188 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 188 --map y --sample elg --src_idx 4
+--run 188 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 188 --map kappa --sample elg --src_idx 3
+--run 189 --map tau --sample elg --src_idx 4
+--run 189 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 189 --map y --sample elg --src_idx 4
+--run 189 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 189 --map kappa --sample elg --src_idx 3
+--run 190 --map tau --sample elg --src_idx 4
+--run 190 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 190 --map y --sample elg --src_idx 4
+--run 190 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 190 --map kappa --sample elg --src_idx 3
+--run 191 --map tau --sample elg --src_idx 4
+--run 191 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 191 --map y --sample elg --src_idx 4
+--run 191 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 191 --map kappa --sample elg --src_idx 3
+--run 192 --map tau --sample elg --src_idx 4
+--run 192 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 192 --map y --sample elg --src_idx 4
+--run 192 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 192 --map kappa --sample elg --src_idx 3
+--run 193 --map tau --sample elg --src_idx 4
+--run 193 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 193 --map y --sample elg --src_idx 4
+--run 193 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 193 --map kappa --sample elg --src_idx 3
+--run 194 --map tau --sample elg --src_idx 4
+--run 194 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 194 --map y --sample elg --src_idx 4
+--run 194 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 194 --map kappa --sample elg --src_idx 3
+--run 195 --map tau --sample elg --src_idx 4
+--run 195 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 195 --map y --sample elg --src_idx 4
+--run 195 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 195 --map kappa --sample elg --src_idx 3
+--run 196 --map tau --sample elg --src_idx 4
+--run 196 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 196 --map y --sample elg --src_idx 4
+--run 196 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 196 --map kappa --sample elg --src_idx 3
+--run 197 --map tau --sample elg --src_idx 4
+--run 197 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 197 --map y --sample elg --src_idx 4
+--run 197 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 197 --map kappa --sample elg --src_idx 3
+--run 198 --map tau --sample elg --src_idx 4
+--run 198 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 198 --map y --sample elg --src_idx 4
+--run 198 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 198 --map kappa --sample elg --src_idx 3
+--run 199 --map tau --sample elg --src_idx 4
+--run 199 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 199 --map y --sample elg --src_idx 4
+--run 199 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 199 --map kappa --sample elg --src_idx 3
+--run 200 --map tau --sample elg --src_idx 4
+--run 200 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 200 --map y --sample elg --src_idx 4
+--run 200 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 200 --map kappa --sample elg --src_idx 3
+--run 201 --map tau --sample elg --src_idx 4
+--run 201 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 201 --map y --sample elg --src_idx 4
+--run 201 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 201 --map kappa --sample elg --src_idx 3
+--run 202 --map tau --sample elg --src_idx 4
+--run 202 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 202 --map y --sample elg --src_idx 4
+--run 202 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 202 --map kappa --sample elg --src_idx 3
+--run 203 --map tau --sample elg --src_idx 4
+--run 203 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 203 --map y --sample elg --src_idx 4
+--run 203 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 203 --map kappa --sample elg --src_idx 3
+--run 204 --map tau --sample elg --src_idx 4
+--run 204 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 204 --map y --sample elg --src_idx 4
+--run 204 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 204 --map kappa --sample elg --src_idx 3
+--run 205 --map tau --sample elg --src_idx 4
+--run 205 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 205 --map y --sample elg --src_idx 4
+--run 205 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 205 --map kappa --sample elg --src_idx 3
+--run 206 --map tau --sample elg --src_idx 4
+--run 206 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 206 --map y --sample elg --src_idx 4
+--run 206 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 206 --map kappa --sample elg --src_idx 3
+--run 207 --map tau --sample elg --src_idx 4
+--run 207 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 207 --map y --sample elg --src_idx 4
+--run 207 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 207 --map kappa --sample elg --src_idx 3
+--run 208 --map tau --sample elg --src_idx 4
+--run 208 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 208 --map y --sample elg --src_idx 4
+--run 208 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 208 --map kappa --sample elg --src_idx 3
+--run 209 --map tau --sample elg --src_idx 4
+--run 209 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 209 --map y --sample elg --src_idx 4
+--run 209 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 209 --map kappa --sample elg --src_idx 3
+--run 210 --map tau --sample elg --src_idx 4
+--run 210 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 210 --map y --sample elg --src_idx 4
+--run 210 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 210 --map kappa --sample elg --src_idx 3
+--run 211 --map tau --sample elg --src_idx 4
+--run 211 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 211 --map y --sample elg --src_idx 4
+--run 211 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 211 --map kappa --sample elg --src_idx 3
+--run 212 --map tau --sample elg --src_idx 4
+--run 212 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 212 --map y --sample elg --src_idx 4
+--run 212 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 212 --map kappa --sample elg --src_idx 3
+--run 213 --map tau --sample elg --src_idx 4
+--run 213 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 213 --map y --sample elg --src_idx 4
+--run 213 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 213 --map kappa --sample elg --src_idx 3
+--run 214 --map tau --sample elg --src_idx 4
+--run 214 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 214 --map y --sample elg --src_idx 4
+--run 214 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 214 --map kappa --sample elg --src_idx 3
+--run 215 --map tau --sample elg --src_idx 4
+--run 215 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 215 --map y --sample elg --src_idx 4
+--run 215 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 215 --map kappa --sample elg --src_idx 3
+--run 216 --map tau --sample elg --src_idx 4
+--run 216 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 216 --map y --sample elg --src_idx 4
+--run 216 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 216 --map kappa --sample elg --src_idx 3
+--run 217 --map tau --sample elg --src_idx 4
+--run 217 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 217 --map y --sample elg --src_idx 4
+--run 217 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 217 --map kappa --sample elg --src_idx 3
+--run 218 --map tau --sample elg --src_idx 4
+--run 218 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 218 --map y --sample elg --src_idx 4
+--run 218 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 218 --map kappa --sample elg --src_idx 3
+--run 219 --map tau --sample elg --src_idx 4
+--run 219 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 219 --map y --sample elg --src_idx 4
+--run 219 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 219 --map kappa --sample elg --src_idx 3
+--run 220 --map tau --sample elg --src_idx 4
+--run 220 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 220 --map y --sample elg --src_idx 4
+--run 220 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 220 --map kappa --sample elg --src_idx 3
+--run 221 --map tau --sample elg --src_idx 4
+--run 221 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 221 --map y --sample elg --src_idx 4
+--run 221 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 221 --map kappa --sample elg --src_idx 3
+--run 222 --map tau --sample elg --src_idx 4
+--run 222 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 222 --map y --sample elg --src_idx 4
+--run 222 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 222 --map kappa --sample elg --src_idx 3
+--run 223 --map tau --sample elg --src_idx 4
+--run 223 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 223 --map y --sample elg --src_idx 4
+--run 223 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 223 --map kappa --sample elg --src_idx 3
+--run 224 --map tau --sample elg --src_idx 4
+--run 224 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 224 --map y --sample elg --src_idx 4
+--run 224 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 224 --map kappa --sample elg --src_idx 3
+--run 225 --map tau --sample elg --src_idx 4
+--run 225 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 225 --map y --sample elg --src_idx 4
+--run 225 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 225 --map kappa --sample elg --src_idx 3
+--run 226 --map tau --sample elg --src_idx 4
+--run 226 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 226 --map y --sample elg --src_idx 4
+--run 226 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 226 --map kappa --sample elg --src_idx 3
+--run 227 --map tau --sample elg --src_idx 4
+--run 227 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 227 --map y --sample elg --src_idx 4
+--run 227 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 227 --map kappa --sample elg --src_idx 3
+--run 228 --map tau --sample elg --src_idx 4
+--run 228 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 228 --map y --sample elg --src_idx 4
+--run 228 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 228 --map kappa --sample elg --src_idx 3
+--run 229 --map tau --sample elg --src_idx 4
+--run 229 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 229 --map y --sample elg --src_idx 4
+--run 229 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 229 --map kappa --sample elg --src_idx 3
+--run 230 --map tau --sample elg --src_idx 4
+--run 230 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 230 --map y --sample elg --src_idx 4
+--run 230 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 230 --map kappa --sample elg --src_idx 3
+--run 231 --map tau --sample elg --src_idx 4
+--run 231 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 231 --map y --sample elg --src_idx 4
+--run 231 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 231 --map kappa --sample elg --src_idx 3
+--run 232 --map tau --sample elg --src_idx 4
+--run 232 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 232 --map y --sample elg --src_idx 4
+--run 232 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 232 --map kappa --sample elg --src_idx 3
+--run 233 --map tau --sample elg --src_idx 4
+--run 233 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 233 --map y --sample elg --src_idx 4
+--run 233 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 233 --map kappa --sample elg --src_idx 3
+--run 234 --map tau --sample elg --src_idx 4
+--run 234 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 234 --map y --sample elg --src_idx 4
+--run 234 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 234 --map kappa --sample elg --src_idx 3
+--run 235 --map tau --sample elg --src_idx 4
+--run 235 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 235 --map y --sample elg --src_idx 4
+--run 235 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 235 --map kappa --sample elg --src_idx 3
+--run 236 --map tau --sample elg --src_idx 4
+--run 236 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 236 --map y --sample elg --src_idx 4
+--run 236 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 236 --map kappa --sample elg --src_idx 3
+--run 237 --map tau --sample elg --src_idx 4
+--run 237 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 237 --map y --sample elg --src_idx 4
+--run 237 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 237 --map kappa --sample elg --src_idx 3
+--run 238 --map tau --sample elg --src_idx 4
+--run 238 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 238 --map y --sample elg --src_idx 4
+--run 238 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 238 --map kappa --sample elg --src_idx 3
+--run 239 --map tau --sample elg --src_idx 4
+--run 239 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 239 --map y --sample elg --src_idx 4
+--run 239 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 239 --map kappa --sample elg --src_idx 3
+--run 240 --map tau --sample elg --src_idx 4
+--run 240 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 240 --map y --sample elg --src_idx 4
+--run 240 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 240 --map kappa --sample elg --src_idx 3
+--run 241 --map tau --sample elg --src_idx 4
+--run 241 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 241 --map y --sample elg --src_idx 4
+--run 241 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 241 --map kappa --sample elg --src_idx 3
+--run 242 --map tau --sample elg --src_idx 4
+--run 242 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 242 --map y --sample elg --src_idx 4
+--run 242 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 242 --map kappa --sample elg --src_idx 3
+--run 243 --map tau --sample elg --src_idx 4
+--run 243 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 243 --map y --sample elg --src_idx 4
+--run 243 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 243 --map kappa --sample elg --src_idx 3
+--run 244 --map tau --sample elg --src_idx 4
+--run 244 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 244 --map y --sample elg --src_idx 4
+--run 244 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 244 --map kappa --sample elg --src_idx 3
+--run 245 --map tau --sample elg --src_idx 4
+--run 245 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 245 --map y --sample elg --src_idx 4
+--run 245 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 245 --map kappa --sample elg --src_idx 3
+--run 246 --map tau --sample elg --src_idx 4
+--run 246 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 246 --map y --sample elg --src_idx 4
+--run 246 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 246 --map kappa --sample elg --src_idx 3
+--run 247 --map tau --sample elg --src_idx 4
+--run 247 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 247 --map y --sample elg --src_idx 4
+--run 247 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 247 --map kappa --sample elg --src_idx 3
+--run 248 --map tau --sample elg --src_idx 4
+--run 248 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 248 --map y --sample elg --src_idx 4
+--run 248 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 248 --map kappa --sample elg --src_idx 3
+--run 249 --map tau --sample elg --src_idx 4
+--run 249 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 249 --map y --sample elg --src_idx 4
+--run 249 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 249 --map kappa --sample elg --src_idx 3
+--run 250 --map tau --sample elg --src_idx 4
+--run 250 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 250 --map y --sample elg --src_idx 4
+--run 250 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 250 --map kappa --sample elg --src_idx 3
+--run 251 --map tau --sample elg --src_idx 4
+--run 251 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 251 --map y --sample elg --src_idx 4
+--run 251 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 251 --map kappa --sample elg --src_idx 3
+--run 252 --map tau --sample elg --src_idx 4
+--run 252 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 252 --map y --sample elg --src_idx 4
+--run 252 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 252 --map kappa --sample elg --src_idx 3
+--run 253 --map tau --sample elg --src_idx 4
+--run 253 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 253 --map y --sample elg --src_idx 4
+--run 253 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 253 --map kappa --sample elg --src_idx 3
+--run 254 --map tau --sample elg --src_idx 4
+--run 254 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 254 --map y --sample elg --src_idx 4
+--run 254 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 254 --map kappa --sample elg --src_idx 3
+--run 255 --map tau --sample elg --src_idx 4
+--run 255 --map tau --sample elg --src_idx 4 --beam_fwhm_arcmin 0.52
+--run 255 --map y --sample elg --src_idx 4
+--run 255 --map y --sample elg --src_idx 4 --beam_fwhm_arcmin 1.6
+--run 255 --map kappa --sample elg --src_idx 3

@@ -25,8 +25,11 @@ E=/mnt/home/mlee1/BIND-ksz2/examples/_r8_gp_mcmc.py
 # absent so the script is fully self-contained on any node.
 ING=/mnt/home/mlee1/ceph/bind_science/ksz_confront/lightcone/r8_state/r8_ingredients.pkl
 [ -f "$ING" ] || python $E --stage gp || { echo "GP STAGE FAILED"; exit 1; }
+# --mem per STEP is required: without it the first step claims the job's
+# whole memory allocation and blocks the other three ("step creation still
+# disabled" — hit in job 2454136).
 for leg in ksz tsz joint joint_noA2h; do
-  srun --exact -n1 -c4 python $E --stage chain --leg $leg --budget 25000 &
+  srun --exact -n1 -c4 --mem=7000M python $E --stage chain --leg $leg --budget 25000 &
 done
 wait
 python $E --stage finalize

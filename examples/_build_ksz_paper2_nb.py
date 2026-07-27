@@ -302,13 +302,13 @@ fig, ax = plt.subplots(1, 2, figsize=(8.4, 3.3))
 ax[0].plot(mc, rin_b, "o-", color="tab:blue", label=r"$r(\hat e_1,$ inner$)$")
 ax[0].plot(mc, rout_b, "s-", color="tab:green", label=r"$r(\hat e_2,$ outer$)$")
 ax[0].axhline(0.85, color="0.6", ls=":", lw=.8); ax[0].set_ylim(0, 1.02)
-ax[0].set_xlabel(r"$\log_{10} M_{200}$ (bin center)"); ax[0].set_ylabel("correlation"); ax[0].legend(loc="lower left")
-ax[0].text(.04, .06, "(a) per-bin stability", transform=ax[0].transAxes, fontsize=8)
+ax[0].set_xlabel(r"$\log_{10} M_{200}$ (bin center)"); ax[0].set_ylabel("correlation"); ax[0].legend(loc="lower right")
+ax[0].text(.04, .93, "(a) per-bin stability", transform=ax[0].transAxes, fontsize=8, va="top")
 ax[1].bar(np.arange(1, 7), lamj[:6], color="tab:blue", alpha=.8)
 ax[1].plot(np.arange(1, 7), np.cumsum(lamj[:6]), "ko-", ms=4, lw=1)
 ax[1].axhline(0.95, color="tab:red", ls=":", lw=1)
 ax[1].set_xlabel("latent component"); ax[1].set_ylabel("variance fraction"); ax[1].set_ylim(0, 1.05)
-ax[1].text(.04, .90, f"(b) joint (all bins)\ncum2={lamj[:2].sum():.2f}", transform=ax[1].transAxes, fontsize=8)
+ax[1].text(.04, .90, f"(b) joint (all bins)\ncum2={lamj[:2].sum():.2f}", transform=ax[1].transAxes, fontsize=8, va="top")
 fig.tight_layout(); fig.savefig(FIG / "figB_latent_massbins.pdf", bbox_inches="tight"); plt.show()
 print("per-bin r(e1,inner):", np.round(rin_b, 2)); print("per-bin r(e2,outer):", np.round(rout_b, 2))
 print(f"joint multi-mass latent cum2 = {lamj[:2].sum():.2f}")
@@ -360,10 +360,14 @@ mio = np.isfinite(fi) & np.isfinite(fo); r_io = np.corrcoef(fi[mio], fo[mio])[0,
 fig, ax = plt.subplots(figsize=(4.4, 3.6))
 mI = np.isfinite(fi)
 sc = ax.scatter(P[mI, 0], P[mI, 1], c=fi[mI], cmap="cividis", s=16, edgecolor="0.3", lw=.2)
-sca = 0.4 * (P[:, 0].max() - P[:, 0].min())
-for g, lab, col in [(g_in, "inner-gas grad", "k"), (g_out, "outer-gas grad", "tab:red")]:
-    ax.annotate("", xy=(g[0] * sca, g[1] * sca), xytext=(0, 0), arrowprops=dict(arrowstyle="->", color=col, lw=1.6))
-    ax.text(g[0] * sca * 1.1, g[1] * sca * 1.1, lab, color=col, fontsize=7)
+# anchor both gradient arrows at a fixed axes-fraction point so they (and their
+# labels) always stay inside the visible plot regardless of the data range
+x0, y0 = 0.30, 0.55
+for g, lab, col, dy in [(g_in, "inner-gas grad", "k", 0.0), (g_out, "outer-gas grad", "tab:red", 0.10)]:
+    xt, yt = x0 + 0.22 * g[0], y0 + 0.22 * g[1]
+    ax.annotate("", xy=(xt, yt), xytext=(x0, y0), xycoords="axes fraction",
+                 arrowprops=dict(arrowstyle="->", color=col, lw=1.6))
+    ax.text(0.03, 0.97 - dy, lab, color=col, fontsize=7, transform=ax.transAxes, va="top")
 ax.set_xlabel("raw PC1"); ax.set_ylabel("raw PC2")
 ax.text(.03, .03, f"$R^2$(inner)={R2_in:.2f}  $R^2$(outer)={R2_out:.2f}\n"
                   f"grad angle={angle:.0f}$^\\circ$   inner/outer $r$={r_io:.2f}",

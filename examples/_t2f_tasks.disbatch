@@ -1,0 +1,16 @@
+#DISBATCH PREFIX source /mnt/home/mlee1/venvs/BIND_env/bin/activate && python /mnt/home/mlee1/BIND-ksz2/examples/act_ycap_measure.py --res_arcmin 0.29296875 --force 
+--mode lrg --zmin 0.4 --zmax 0.6 --grid both --map_variant baseline --out T2f_lrg_z0406_baseline.npz
+--mode lrg --zmin 0.4 --zmax 0.6 --grid both --map_variant cib1.7 --out T2f_lrg_z0406_cib1.7.npz
+--mode lrg --zmin 0.4 --zmax 0.6 --grid both --map_variant cib1.0 --out T2f_lrg_z0406_cib1.0.npz
+--mode lrg --zmin 0.4 --zmax 0.6 --grid both --map_variant cib1.2 --out T2f_lrg_z0406_cib1.2.npz
+--mode lrg --zmin 0.4 --zmax 0.6 --grid both --map_variant cib1.4 --out T2f_lrg_z0406_cib1.4.npz
+--mode lrg --zmin 0.4 --zmax 0.6 --grid both --map_variant cib1.6 --out T2f_lrg_z0406_cib1.6.npz
+--mode lrg --zmin 0.4 --zmax 0.6 --grid both --map_variant cib1.8 --out T2f_lrg_z0406_cib1.8.npz
+--mode lrg --zmin 0.4 --zmax 0.6 --grid both --map_variant cib2.0 --out T2f_lrg_z0406_cib2.0.npz
+--mode lrg --zmin 0.4 --zmax 0.6 --grid both --map_variant cib1.7_24 --out T2f_lrg_z0406_cib1.7_24.npz
+--mode lrg --zmin 0.4 --zmax 0.6 --grid both --map_variant cibdBeta --out T2f_lrg_z0406_cibdBeta.npz
+--mode lrg --zmin 0.4 --zmax 0.6 --grid both --map_variant cibdBetadT --out T2f_lrg_z0406_cibdBetadT.npz
+--mode lrg --zmin 0.4 --zmax 0.6 --grid both --ebv_max 0.15 --map_variant baseline --out T2f_lrg_z0406_ebv015.npz
+--mode lrg --zmin 0.45 --zmax 0.9 --grid both --map_variant baseline --out T2f_lrg_z04509_baseline.npz
+--mode random --zmin 0.4 --zmax 0.6 --grid rap --n_boot 100 --out T2f_random_null_z0406.npz
+--mode rotated --zmin 0.4 --zmax 0.6 --grid both --out T2f_rotated_null_z0406.npz

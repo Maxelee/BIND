@@ -116,7 +116,10 @@ VERDICT_DIR.mkdir(parents=True, exist_ok=True)
 # be driven as a series of bounded, resumable foreground calls (HDFBackend per
 # leg persists incrementally; killing/restarting a --stage chain call resumes
 # from the last completed step).
-SCRATCH = Path("/tmp/claude-2107/-mnt-home-mlee1-BIND-ksz2/a3e6fd7c-bf3e-4d5e-96f4-50abdbd4fd6b/scratchpad")
+# Relocated to ceph 2026-07-27: the chain-extension sbatch runs on cluster
+# nodes where the workstation's /tmp session scratchpad does not exist (the
+# first run_r8_chains.sh submission died on exactly this).
+SCRATCH = Path("/mnt/home/mlee1/ceph/bind_science/ksz_confront/lightcone/r8_state")
 SCRATCH.mkdir(parents=True, exist_ok=True)
 INGREDIENTS_PATH = SCRATCH / "r8_ingredients.pkl"
 

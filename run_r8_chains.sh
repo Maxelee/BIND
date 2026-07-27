@@ -20,6 +20,11 @@
 # flips to pass.
 source /mnt/home/mlee1/venvs/BIND_env/bin/activate
 E=/mnt/home/mlee1/BIND-ksz2/examples/_r8_gp_mcmc.py
+# R8 state now lives on ceph (engine SCRATCH patched 2026-07-27: node-local
+# /tmp killed the first submission); rebuild the GP ingredients in-job if
+# absent so the script is fully self-contained on any node.
+ING=/mnt/home/mlee1/ceph/bind_science/ksz_confront/lightcone/r8_state/r8_ingredients.pkl
+[ -f "$ING" ] || python $E --stage gp || { echo "GP STAGE FAILED"; exit 1; }
 for leg in ksz tsz joint joint_noA2h; do
   srun --exact -n1 -c4 python $E --stage chain --leg $leg --budget 25000 &
 done

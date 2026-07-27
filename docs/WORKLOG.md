@@ -6,7 +6,396 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
-## 2026-07-03 — Cosmology rescaling feasibility: 35-dim Sobol via AW10 rescaling of TNG300-Dark
+## 2026-07-27 — R8: GP+MCMC inference upgrade, replaces the ESS~6 pseudo-posterior
+
+Executed `docs/p4c_referee_hardening_plan.md` R8 (`examples/_r8_gp_mcmc.py`,
+verdict `KS/lightcone/verdicts/R8.json`, figs `R8_posterior_corner.png` /
+`R8_param_forest.png`, chains `KS/lightcone/r8_posterior.npz`). Replaces
+Phase L's `exp(-dchi2/2)` importance weights over 253 Sobol nodes (ESS~6)
+with continuous posteriors: per-column GP emulators (Matern+White, shared
+ARD hyperparameters per physically-correlated column group, K-fold CV with
+a temperature/calibration factor on the GP sigma) feeding an emcee MCMC
+over 33 params (30 astro + f_sat + dlogM + **A_2h**, DE+snooker moves —
+default StretchMove gave ~5% acceptance/huge tau at this dimensionality).
+
+**Mid-session addendum**: R4 (two-halo/unpainted-gas floor, completed by a
+sibling agent) quantified a 16–30%-of-data-value analytic 2-halo CAP-y
+contamination exceeding its own 10% action gate; folded into the tSZ/joint
+likelihood as a template with free amplitude `A_2h ~ N(1.0,0.3)`
+truncated≥0 (R4's own analytic prediction is exactly 1). A_2h posterior
+tracks its prior almost exactly (16/50/84 ≈ 0.70/0.95/1.21 vs prior
+0.70/1.00/1.30) — the tSZ fit range doesn't strongly update it — and a
+secondary `joint_noA2h` comparison chain confirms <0.03 (normalized-unit)
+shifts in the top-8 constrained params with/without the term.
+
+**GP validation**: post-calibration coverage lands close to nominal (1σ
+≈0.67–0.73, 2σ≈0.93–0.96) after a 1.2–1.5× temperature factor; RMSE/
+node-to-node-spread 0.45–0.86 (real signal, not noise) — gate passed.
+**MCMC convergence**: did NOT reach the 50-tau target for any of the 3
+primary chains (nsteps/tau_max ≈ 20–29; default StretchMove was far worse
+before the DE-move fix) — a shared, contended 1-CPU box made a fully
+gold-standard run infeasible in the available wall-clock; documented
+honestly (`pass: false` on the convergence sub-gate) rather than faked.
+**Gas-plane vs L**: joint f_in 0.39/0.45/0.51 (L: 0.464/0.468/0.498), f_out
+0.90/0.95/1.00 (L: 0.867/0.880/0.919) — R8's contours are broad, smooth
+regions that CONTAIN L's tiny lumpy ESS~6 contour, i.e. L's point estimate
+was a real but overconfident/undersampled snapshot of a genuinely wider
+posterior (see the corner fig). **Look-elsewhere null** (200 Dirichlet
+draws, α tuned to ESS≈6.0 over 253 nodes): only 1/30 params
+(`WindFreeTravelDensFac`) beats the 5th-percentile null threshold — neither
+of L's own "robustness-stable" pair (`RadioFeedbackReiorientationFactor`,
+`ThermalWindFraction`) survives a proper null test, though the top-ranked
+directions (IMFslope, WindEnergyIn1e51erg) agree qualitatively with L.
+**Prior-measure sensitivity**: flat-linear reweight of the 19 LogFlag dims
+(ESS=53 of 5184 joint samples) shifts medians by ≤0.24 (normalized units,
+largest for BlackHoleRadiativeEfficiency) — mostly mild.
+
+**Engineering note** (for future long-running-compute sessions): a 1-CPU
+sandbox shared with another agent made simple "launch in background, wait
+for notification" unreliable in practice this session. Restructured the
+script into a checkpointed CLI (`--stage {gp,chain,finalize}`,
+`emcee.backends.HDFBackend` per leg under a scratch dir, `cloudpickle` to
+hand the fitted-GP closures between processes) so the whole campaign runs
+as a series of bounded (<10 min), independently resumable foreground calls
+— worth reusing for the next long MCMC/training run in this environment.
+
+## 2026-07-28d — R6: kSZ-leg audit finds a major data-covariance unit bug
+
+Executed `docs/p4c_referee_hardening_plan.md` R6 (`examples/_r6_ksz_audit.py`,
+verdict `KS/lightcone/verdicts/R6.json`, fig `figs/R6_ksz_audit.png`). Audited
+M1 (`lightcone_m1_fgas_desiact.py`) to the T3 standard.
+
+**Headline finding**: the published Zenodo 19160138 (Ried Guachalla+25)
+`Fig8_*.npz['cov_ksz']` is **byte-identical to `Fig6_*.npz['cov']`** for the
+logm11.00 cut — i.e. it is the covariance of the *raw T^CAP amplitude*
+profile, not of the `ratio` (f̃_gas) column the M1/per-halo chi2 has always
+been built from (confirmed by a second tell: `yerr` vs `sqrt(diag(cov_ksz))`
+disagree by 3.26× too small at θ=1′ → 31× too large at θ=10.75′). Every kSZ
+chi2 this repo has ever computed (M1 **and** the per-halo `_build_ksz_paper_nb.py`
+§6/§6a/§7 money plots) inherited this. Fixed via a diagonal-rescale
+(congruence transform onto `yerr**2`, preserving cov_ksz's correlation
+shape) — the only correction possible without re-measuring the ACT map.
+Also applied the missing Hartlap factor to the BIND-side realization block
+(`h_bind=(n_r-1)/(n_r-ndof-2)`, T3's own convention) — cov_ksz's *own*
+jackknife/bootstrap N is undocumented in the repo and NOT corrected
+(flagged, not guessed).
+
+**Result**: bgs110 31/253→27/253 (25/31 survive, Spearman ρ=0.97 old-vs-new);
+bgs1125 48/251→**5/251** (only 3/48 survive, ρ=0.84) — bgs1125 blows through
+the ±30% gate (89.6% change), because its one extra 1-halo-regime bin
+(ndof=7 vs 6) was exactly the large-θ bin the bug had made vacuously loose.
+kSZ-vs-tSZ ranking coherence is **robust**: Spearman(kSZ_r6, chi2_tsz) =
+0.81 (bgs110) / 0.69 (bgs1125), vs T3's own 0.82 pre-correction — the paper's
+ranking-coherence claim survives; raw consistent-node counts do not.
+New product `KS/lightcone/ksz_consistent_nodes_r6.npz` (same schema as the
+original + `_original`-suffixed companions; original file untouched).
+**Next**: R7 painting-fidelity closure, R8 GP+MCMC; propagate `_r6` through
+T3/L/X only if the campaign re-freezes on the corrected kSZ set (open
+decision, see R6.json `next`).
+
+## 2026-07-28d — R6+R7 (parallel Sonnet agents) + final chain regeneration
+
+- **R7 (painting fidelity, agent)**: full TNG300-hydro TRUTH lightcone found on
+  disk (bind-truth-halos, identical lux trace/realizations/seed) → closure at
+  the exact 1691 LRG halos/apertures with the production estimator: **BIND
+  over-paints CAP-y by +15–18% (mean +16.4%, ~10σ)** — explains ~16% of the 2×
+  data deficit → tension NOT emulator bias. Bonus: this validates the
+  redshift-conditioned (a-factor) production path empirically at z=0.5 —
+  the plan's "does not apply" note was wrong (`weights/fm_redshift_thermo`
+  generated the lightcone). `examples/_r7_fidelity_closure.py`, R7.json.
+- **R6 (kSZ audit, agent)**: data vector = Ried Guachalla+25 Part II Zenodo
+  f̃_gas (velocity-marginalised by their pipeline; cancels in BIND's ratio).
+  **NEW BUG: the release's `cov_ksz` is byte-identical to the RAW T^CAP
+  amplitude covariance (Fig6), not the f̃_gas ratio covariance** — unit fix
+  applied by congruence rescale onto yerr²; + Hartlap on the BIND block.
+  Corrected sets: bgs110 31→27 (25/31 survive, rank ρ_old,new=0.97);
+  **bgs1125 48→5** (the fixed covariance actually constrains the 7th bin).
+  Corrected kSZ-vs-tSZ coherence: ρ=0.81 (bgs110). Also affects the per-halo
+  §6/§6a/§7 companion figures of `_build_ksz_paper_nb.py`.
+  `examples/_r6_ksz_audit.py`, `ksz_consistent_nodes_r6.npz`, R6.json.
+- **Final chain** (T3/L/X consume `ksz_consistent_nodes_r6` + R7 correction;
+  UnboundLocalError shadowing bug fixed in T3): fid/data 4.96→2.26 over the
+  fit range, fid χ²/dof=4.16 (p=3e-4), best node χ²=15.9/6, 4 nodes at
+  p>0.01, ρ(kSZ,tSZ)=0.823. Joint gas latent: f̃_gas(<R500)=0.468+0.030/−0.004,
+  shell=0.880+0.039/−0.013. **Headline unchanged: strong-feedback tension +
+  ranking coherence; consistent-node counts demoted (unstable under both
+  T- and k-leg corrections).**
+- Remaining: R8 (GP+MCMC), R4 (2-halo number), R9 (commit/tag/variants table).
+
+## 2026-07-28c — R3+R5: the error budget completed; the headline becomes a TENSION
+
+- **R5a (correlated CIB)**: the diagonal half-band was absorbing non-CIB-shaped
+  residuals (χ²_med 13.5 → 40 when the CIB freedom is restricted to its actual
+  correlated shape, mean off-diag r=0.73). Diagonal treatment retired.
+- **R3 (mass anchor)**: ±0.1 dex template built (model ±17–19%/0.1 dex via
+  ±window stacks; data via aperture rescale) — `examples/_r3_mass_anchor.py`.
+- **Final budget** (T3 primary): jk(Hartlap) ⊕ resample ⊕ per-node satellites ⊕
+  correlated Σ_CIB ⊕ mass anchor. Under it **no SB35 node fits**: best node
+  χ²=16.9/6 (p≈0.01), fid 4.36/6 (p=2e-4); the data sit ~2× below even the
+  strongest-feedback node with a SHALLOWER profile (3–5σ/column), and no
+  amplitude freedom fixes it (shape-orthogonal residual). Per-variant range
+  (each deprojection map as truth): all reject. **The paper's headline is the
+  tension** — map-level counterpart of the P4 eROSITA finding — plus the
+  invariant kSZ–tSZ ranking coherence (ρ=0.82–0.90 through every budget).
+  Consistency counts (0↔119 across treatments) are demoted to a treatment
+  table. T3/L/X regenerated under the full budget.
+- **R5c (Liu reproduction, `examples/_r5c_liu_figure.py` + engine `--mode
+  liu/rotated_liu`)**: our pipeline on Liu's own 12.4M-object catalog
+  (400k/bin) REPRODUCES their published curve at ~1.1σ mean — once one
+  realizes **the release csv's duplicated column is the pz4 (z~0.9) bin**
+  (χ²/9: pz4 1.7, pz3 4.3, pz2 14, pz1 46): the bins-bit-identical bug is now
+  fully characterized, our measurement resolves all four bins (2–4σ/pt,
+  correct z-ordering), the rotated null is ~0 (no hidden background
+  subtraction). Data side validated end-to-end at the fit scales.
+- **Open**: R7 painting-fidelity closure is now the critical item for the
+  tension claim (is BIND CAP-y faithful to TNG truth at these halos at the
+  10–20% level?); then R6 kSZ audit, R8 GP+MCMC.
+
+## 2026-07-28b — Referee hardening R0–R2: statistics, closures, and the satellite forward model
+
+Executed `docs/p4c_referee_hardening_plan.md` R0–R2 (report + plan written the
+same session; R2 reframed after discussion: satellites' GAS is already painted
+on both sides — the mismatch is the stacking-center population + the
+aperture-assignment rule).
+
+- **R0**: inverse-Hartlap inflation on every sample covariance block; engine
+  jackknife 30→100 cells + per-object CAP/position/weight storage
+  (`T2f_*` re-measured, 15-task disBatch `run_t2f_disbatch.sh`); p-values +
+  threshold scans in verdicts.
+- **R1** (`examples/_r1_closure.py`): beam-shape retired (≤0.014%); the
+  0.5'→0.293' resampling path biases stacked CAP −4.5→−1.9% at θ<1.6'
+  (mimics feedback) → measured template divided out of the data
+  (`R1_resample_correction.npz`), 50% kept as systematic; fine-res 11-variant
+  CIB band direct (transfer approximation retired).
+- **R2** (`examples/lightcone_hod_stack.py`): aperture-rule correction is
+  node-independent (±2%) and adopted; naive satellites-on-top double-counts
+  the lensing anchor (kills all nodes — recorded as unphysical bound);
+  median-mass recalibration is a no-op; the defensible calibration matches
+  the mixed population's CAP-κ stack on the lightcone κ maps to the
+  pure-central 13.18 reference. Satellite boost is strongly NODE-dependent
+  (±35–39%) → final = per-node HOD stacks (254-task disBatch
+  `run_hod_disbatch.sh`), f_eff ∈ {0.04,0.08,0.12} (true f_sat×0.73;
+  sub-1e13 hosts hold 27% of satellites but 0.2% of the Y-boost).
+- **Final numbers** (per-node HOD model, all corrections): 119/253
+  tSZ-consistent (P=0.47); **P(tSZ|kSZ)=1.00 at every threshold**;
+  ρ=0.879; TNG300 fiducial now CONSISTENT (p=0.18) — the "fiducial
+  rejected" claim is retired; count evolution 30→53→119 shows raw counts
+  are treatment-dependent — lead with conditional/enrichment + ranking.
+  Baseline-map data still 0/253 → R5 (correlated CIB) is the top remaining
+  systematic, then R6 (kSZ audit), R8 (GP+MCMC inference).
+
+## 2026-07-27/28 — P4c executed end-to-end: real ACT DR6 y-CAP + DES Y3 WL vs the kSZ subspace
+
+Full enactment of `docs/tsz_des_data_plan.md` (T0–T3, D0–D4, Capstone X);
+verdicts in `KS/lightcone/verdicts/{T0..T3,D0..D4,X}.json`, figures
+`figs/{VT0,VT1,VT2,VD1,VD2}_*.png` + money plots `M2R_ycap_real.png`,
+`M7_des_wl.png`, `X_multiprobe.png`; notebook §7 addendum
+(`examples/_build_ksz_lightcone_nb.py`).
+
+- **Stream T** — new engine `examples/act_ycap_measure.py` (batched-gnomonic
+  thumbnails ~800 obj/s single-core, pixell-exact to ≤0.09%; DR5-cluster
+  validation S/N 22–32, nulls pass). Measured 160k DESI DR1 SGC spec-LRGs
+  (z 0.4–0.6) on baseline + 10 CIB-variant maps + EBV/z-window variants +
+  random/rotated nulls. **Estimator lessons (first M2R draft was wrong —
+  caught in review):** (1) the discrete CAP filter is pixel-scale-dependent →
+  data re-measured at BIND's 0.29296875'/px (`--res_arcmin`); (2) compare
+  xb=θ/θ200-scaled apertures on both sides, never fixed-arcmin vs scaled;
+  (3) baseline ILC is CIB/dust-biased (negative y!) at small θ → deproj-CIB
+  is the primary data vector, 11-map spread in the covariance; (4) χ² cut to
+  xb≤1.4 (M1's 1-halo convention) — beyond it the data climb through the
+  envelope (2-halo + sub-1e13/IGM gas BIND doesn't paint).
+  **Result (T3/M2R): 30/253 nodes tSZ-consistent; P(tSZ|kSZ)=0.81 vs
+  P(tSZ)=0.12 (~7× enrichment); ρ(kSZ χ², tSZ χ²)=0.90. TNG300 fiducial
+  over-predicts small-aperture y up to ~5.7× (χ²/dof=4.1) — the real sky
+  prefers the strong-feedback edge, same direction as kSZ.**
+- **Stream D** — D1 killed direct Hankel ξ± (ℓ<87 truncation of the 5° FOV
+  loses 10–130%) → forward model = pyccl theory Cl (exact DES n(z), TNG300
+  cosmo) × paired-DMO suppression S_ab(ℓ) (`examples/des_bind_forward.py`);
+  no mas_correct re-trace needed (W² ≤4.3% at ℓ≤6000, corrected; upturn
+  ℓ≳1.2e4). D2: official 2pt vector + COVMAT + 1000 n(z) reals; 45
+  hole-tolerant 5° GLIMPSE/Wiener patches (plan's 150–200 impossible —
+  Swiss-cheese mask; GLIMPSE holes filled from Wiener).
+  **Result (D4/M7): raw fixed-cosmology rejects all 253 (B_fid=0.79 ≈ the S8
+  offset); amplitude-marginalized accepts all 253 (ξ+ envelope ≤0.4% vs
+  11–19% errors — DES 2pt has no residual feedback discrimination); but the
+  χ² ranking tracks the kSZ selection (ρ=0.78). Map leg uniformly rejected →
+  reconstruction-filter dominated, consistency-check-grade only.**
+- **Capstone X**: 25/31 kSZ-consistent nodes survive real-tSZ (12% base
+  rate); survivors sit at flatter IMFslope (−2.08 vs −2.34) and lower
+  log₁₀WindEnergy (0.28 vs 0.62) — the M6 directions.
+- Ops: session cgroup ~10 GB + 1 CPU (OOM lessons: per-galaxy `DA()`
+  linspace; fine-res chunk scaling); monolithic per-node map stats hit a 6 h
+  Slurm wall → redesigned as 253 disBatch shards
+  (`examples/_mapstats_tasks.disbatch` + `run_mapstats_disbatch.sh`, ~25 min
+  total); `run_tsz_des_overnight.sh` = the idempotent T2 battery + tail.
+- **Phase L (post-X pivot, user decision: drop DES WL as a constraint)** —
+  `examples/lightcone_latent_corner.py`: kSZ/tSZ/joint χ² → importance
+  weights over the Sobol design, shown in the parent paper's rotated 2-D gas
+  latent (rebuilt verbatim, λ=0.51/0.46, r=+0.95/+0.95) →
+  `figs/L_latent_corner.png` (corner: both probes select the low-inner-gas
+  edge; joint f̃_gas(<R500)=0.469+0.031/−0.005, shell 0.881+0.066/−0.009) +
+  `figs/L_param_backtrack.png` (30-dim weighted 68% forest). ESS 9/13/6 —
+  pseudo-posterior, robustness block in `verdicts/L.json`: width-stable top
+  set {IMFslope↑, RadioFeedbackReiorientationFactor↑, ThermalWindFraction↓,
+  UVBHepbeta}; median-pull directions stable 16/18 (wind/SN energy LOW,
+  IMFslope/WindFreeTravelDensFac HIGH, BHEddington LOW). Notebook §7
+  extended (55 cells).
+
+## 2026-07-24 — M6: SB35 astro-param constraints from the kSZ-consistent node sets
+
+Closed out `docs/ksz_lightcone_map_plan.md` phase M6 — turns M1's
+kSZ-consistent node SETS around to ask what they say about the 30 SB35 astro
+params relative to their Sobol prior (a selection test, not a posterior).
+
+- Extended `examples/lightcone_m1_fgas_desiact.py::main()` (new `skip_fig`
+  arg / `--skip-fig` CLI flag) to also write
+  `KS/lightcone/ksz_consistent_nodes.npz` — `node_ids_all` (253,, positionally
+  aligned run IDs), `node_ids_bgs110`/`node_ids_bgs1125` (31,/48,, the
+  DESI-precision-consistent run IDs), `chi2_desi_bgs110`/`chi2_desi_bgs1125`
+  (253, each, NaN at bgs1125's 2 empty-sample nodes), `readme`. Ran with
+  `--skip-fig` so the existing `M1_fgas_vs_desiact.png` was not touched
+  (md5-verified identical); reproduced the P6b headline 31/253, 48/251
+  exactly. Finding: bgs110-consistent is an exact subset of
+  bgs1125-consistent (overlap 31/31) for this data.
+- New `examples/lightcone_m6_params.py` → `KS/lightcone/figs/
+  M6_ksz_param_constraints.png`: panel (a) all 30 astro params (prior-
+  normalized to the empirical 256-row Sobol box, log10-space for the 19/30
+  `LogFlag==1` params per `bind.params.PARAM_LOG_FLAG`), full-253 grid vs.
+  both consistent sets' 16/50/84 percentiles, sorted by KS p-value (smaller
+  of the two cuts, annotated per row); panel (b) pairwise scatter of the
+  top-3. Verified the design is a genuinely filled box (max 3.3% relative
+  deviation of per-param min/max over random 200/256 subsets).
+- **Result**: 4/30 params cross p<0.05 (vs. ~1-2 expected by chance over 30
+  tests), 3/30 survive Bonferroni. Top 5: `IMFslope` (p=0.0004, new signal),
+  `WindEnergyIn1e51erg` (p=0.0015), `VariableWindSpecMomentum` (p=0.0015, new
+  signal), `VariableWindVelFactor` (p=0.012), `WindFreeTravelDensFac`
+  (p=0.056). Cross-check vs. the per-halo D5/D5-CAP "wind/SN sector"
+  (`VariableWindVelFactor`, `WindEnergyIn1e51erg`, `WindFreeTravelDensFac`,
+  `MinWindVel` — `docs/ksz_desi_act_plan.md` lines 165-199): 3/4 land in
+  M6's top 5 (agreement) — `MinWindVel` does not (rank 17/30). `IMFslope`
+  and `VariableWindSpecMomentum` are signals the per-halo GP posterior did
+  not flag, a genuine new finding from the map-level selection test, not a
+  contradiction (different statistic: hard selection on 253 discrete draws
+  vs. a smooth GP-emulated posterior).
+- Added an M6 subsection to `examples/_build_ksz_lightcone_nb.py` (end of
+  §4, after M5) with its own "what would look wrong" note; rebuilt +
+  re-executed `examples/paper_ksz_lightcone.ipynb` end-to-end — 47 cells,
+  zero errors. Verdict `KS/lightcone/verdicts/M6.json`
+  (`next: "feeds DES stream (ksz_consistent_nodes.npz)"`).
+
+## 2026-07-24 — M5 finisher: massbin notebook section + verdict metrics
+
+Closed out `docs/ksz_lightcone_map_plan.md` phase M5 (the map-level
+recreation of the per-halo headline f̃_gas–logM200 figure), whose
+companion-notebook integration was lost in a session restart even though the
+506-shard `_p5_massbin_tasks.disbatch` sweep and `M5_fgas_mass.png` were
+already complete on disk. Added an M5 subsection to
+`examples/_build_ksz_lightcone_nb.py` (end of §4, after M3): prose on the
+≥1e13 closure (1-6% vs. per-halo, inside the P4 gate) and the sub-1e13
+reuse-regime story (pooled curve diluted by unpainted background; the
+dashed in_patch substack — ELG in_patch 0.578 ≈1.3× the data vs. per-halo's
+≈1.9× — is the honest read), a re-plot cell calling
+`lightcone_m5_fgas_mass.main()` directly (mirrors the other money-plot
+cells; ~75MB of per-node shard `.npz` files, the notebook's single largest
+data load but still well under the plan's 200MB budget), and its own "what
+would look wrong" note. Rebuilt + re-executed
+`examples/paper_ksz_lightcone.ipynb` end-to-end — 42 cells, zero errors.
+Added `metrics.envelope_range_per_bin` (253-node max−min per mass bin) and
+`metrics.n_nodes_touching_bgs_data` (1σ overlap count at the ≥1e13 bins
+where all 5 BGS data points live) to `KS/lightcone/verdicts/M5.json`:
+48/253 nodes touch at least one of the 5 BGS points (0/253 touch all 5,
+driven by the M★=10.50 cut having zero touching nodes at any node) — close
+to, but not the same statistic as, the per-halo capstone's headline 49/256.
+
+## 2026-07-24 — P6 stage B (final assembly): map-level money plots + notebook
+
+Completed `docs/ksz_lightcone_map_plan.md` phase P6 (verdict
+`KS/lightcone/verdicts/P6b.json`, `KS = bind_science/ksz_confront`). New
+products/scripts:
+
+- `examples/lightcone_capmat_merge.py` (new) + a minimal `--map massplane`
+  branch in `lightcone_cap_stack.py` (reads
+  `bind_lightcone_tng/haloplane_trace/massplane_maps.npz` key `'tau'`, capped
+  to its 47 realizations) → `KS/lightcone/capmat_lightcone.npz`, the f̃_gas
+  CAP_mat denominator (fiducial-shared across all 253 Sobol nodes; error
+  convention: f̃_gas's realization scatter is carried entirely by the
+  numerator, denominator fixed at its 47-real. mean — documented in the
+  script docstring).
+- `examples/lightcone_cap_merge.py` generalized (per-product `samples` list)
+  to also merge the ELG/LRG shard sweeps → 9 new products
+  (`elgtau[_smear]/elgy[_beam]/elgkappa/lrgtau/lrgy[_beam]/lrgkappa_lightcone.npz`).
+- `examples/lightcone_m1_fgas_desiact.py` (new) — **M1, the headline**:
+  map-level f̃_gas(θ) for both BGS cuts vs Ried Guachalla+25. First pass used
+  a single **fiducial-shared** CAP_mat denominator (per the plan's literal
+  wording) and found 217/253 (bgs110) / 245/251 (bgs1125) map-level
+  consistent — far above the per-halo 49/256, 65/256 — plus individual SB35
+  node curves reaching unphysical f̃_gas≈4–16. A mid-session message flagged
+  the f̃_gas>1 shape itself as a bug; checked explicitly and found it was
+  the expected, already-documented "cosmic" f̃_gas→1 asymptote at large θ
+  (fiducial stayed ≤0.87 throughout the 1-halo regime) — that specific claim
+  was not correct and was not acted on. A **follow-up** message correctly
+  identified the real defect: BGS's per-node M★ cut selects a *different*
+  halo subset per Sobol node (feedback changes which halos cross the
+  threshold — verified independently against `mstar_matrix_snap085.npz`
+  before acting: node 64 selects 11 halos at mean logM200=14.38 vs the
+  fiducial's 1753 halos at 13.44), so dividing a node's own gas column by
+  the *fiducial's* matter column inflated f̃_gas for mass-mismatched
+  extreme-feedback nodes — the actual source of the unphysical tails. Fixed
+  by rewriting `lightcone_capmat_merge.py` to stack the (still
+  fiducial-shared, single-co-trace) massplane field at **each node's own**
+  M★-selected positions (253×2 in-memory CAP stacks, ~30 min, no Slurm);
+  independently verified ELG/LRG selection is node-independent (byte-
+  identical across nodes) so their shared CAP_mat was never affected. Post-fix
+  the SB35 envelope is fully physical (no node >1.5 anywhere in the 1-halo
+  regime; max observed 1.09/1.19) and M1 reports two χ² variants: (a)
+  survey-variance (`cov_ksz + this node's single-realization covariance`,
+  still 92–98% consistent — a real, KG3-anticipated finding about one 25
+  deg² realization's small landing-galaxy count, not a bug) and (b)
+  **DESI-precision** (`cov_ksz + covariance of the realization mean`, the
+  headline/plotted classification): 31/253 (12.3%) and 48/251 (19.1%) — the
+  same order of magnitude and qualitative story as the per-halo 49/256
+  (19.1%) and 65/256 (25.4%). Fiducial f̃_gas at θ(r200) unchanged throughout
+  (0.80/0.85, still <5% from the per-halo reference 0.77/0.84). Full
+  defect/fix narrative in `KS/lightcone/verdicts/P6b.json`'s
+  `metrics.defect_and_fix`.
+- `examples/lightcone_m2_ycap_liu.py` (regenerated) — LRG (mass-matched to
+  Liu's logM200=13.18) promoted to the PRIMARY panel: fid/Liu = 1.9-4.2×, an
+  O(1) offset (vs 32-165× for the old BGS-vs-LRG mass-mismatched
+  comparison), confirming most of the old gap was mass selection, consistent
+  in direction/magnitude with the trusted per-halo LRG result (~1.5×).
+- `examples/lightcone_m4_elg_zshell.py` (new) — ELG (z=1.16) τ-CAP/f̃_gas in
+  the patch-reuse regime (in_patch=29.2-29.4%) + a deflection-smearing
+  sensitivity panel: measured 14% mean / 20% max suppression (larger than
+  the plan's rough "~%-level" prior guess — reported as measured, not
+  adjusted to match), because the P2 deflection σ=0.222′ is a large
+  fraction of ELG's own θ200≈0.36′. Confirmed unaffected by the M1 CAP_mat
+  defect above (ELG selection is node-independent); denominator's own 96.6%
+  realization-scatter noise floor now explicitly annotated on the figure.
+- `examples/_build_ksz_lightcone_nb.py` → `examples/paper_ksz_lightcone.ipynb`
+  (executes end-to-end, <25MB of npz loaded, one optional raw-map cell gated
+  behind `RUN_HEAVY=False`). 6 sections (§0 overview, §1 geometry, §2
+  catalogs, §3 closure, §4 money plots regenerated in-notebook, §5 caveats,
+  §6 verdict), each with a "what would look wrong" paragraph.
+
+## 2026-07-24 — P4b plan: map-level DESI×ACT confrontation on the SB35 lightcones
+
+Reconnaissance + execution plan for redoing the P4 kSZ/tSZ headline (per-halo
+f̃_gas + y-CAP vs DESI×ACT) on the ray-traced lightcone maps
+(`bind_sb35/runs/*/{tau,y,kappa}_maps.npz`, 50 realizations × 25 deg²/node).
+Plan: `docs/ksz_lightcone_map_plan.md` (phases P0–P7, agent-enactable).
+
+Key findings that unblock it (verified against lux + BIND source + disk):
+- lux's per-realization randomization = per-snapshot 90°-rotation + integer
+  pixel shift, seed `1992+7*r`, and the drawn values are **persisted in the
+  tail of `rt_output/runNNN/config.dat`** — the fiducial retains all 50, and
+  the same records apply to every Sobol run (shared RT_SEED). No RNG
+  re-implementation needed; full halo→map-pixel chain is deterministic
+  (plan §1.2, incl. the `4096-j` scatter quirk and ray geometry).
+- Untracked `bind.cli.paint_{haloplane,massplane}` (co-trace a halo-indicator
+  + total-mass plane through one fiducial lux run) = gold-standard validation
+  + shared CAP_mat denominator (plan §1.3, P2).
+- No instrument-beam handling exists anywhere in the repo — must be added for
+  the y-CAP vs Liu+2025 comparison (per-halo tSZ figure stays untrusted).
 
 Researched + prototyped extending the Sobol suite from 30 astro params to the full 35 (adding
 Om, s8, Ob, h, ns) by Angulo & White (2010) rescaling of TNG300-Dark instead of new N-body runs.

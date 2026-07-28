@@ -103,11 +103,14 @@ from the merged npz products.
 """)
 code(r"""
 import json
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-KS = Path("/mnt/home/mlee1/ceph/bind_science/ksz_confront")
+# $BIND_KSZ_PRODUCTS drives every engine in the rebuild chain (docs/REPRODUCING.md);
+# unset, this is byte-identical to the historical hardcoded path.
+KS = Path(os.environ.get("BIND_KSZ_PRODUCTS", "/mnt/home/mlee1/ceph/bind_science/ksz_confront"))
 LC = KS / "lightcone"
 ZEN = KS / "desact_zenodo"          # Ried Guachalla+2025 Zenodo release
 VD = LC / "verdicts"
@@ -262,7 +265,12 @@ level (decision #19), outside the fit range.
 **Fig. 1** shows the data vector, the CIB-variant band, and the nulls. Per-object
 bootstrap errors agree with the spatial jackknife to within a factor that
 reflects the expected spatial-correlation loss in bootstrap resampling; the
-spatial jackknife is therefore primary.
+spatial jackknife is therefore primary. As a robustness check, the full tSZ
+$\chi^2$ (§2.5's complete correlated budget) was recomputed with the
+jackknife covariance block replaced by the bootstrap covariance: both the
+fiducial rejection and the best-node verdict are unchanged
+($\chi^2_{\rm fid}=25.0\to24.6$; $\chi^2_{\rm best}=15.9\to15.9$;
+`covariance_robustness.json`).
 
 As an independent cross-check of the measurement pipeline against a
 different instrument, we also CAP-stack an independent 2015 Planck MILCA
@@ -503,6 +511,9 @@ node_mean = np.nanmean(nodes, axis=1)
 sig_real = np.nanmedian(np.nanstd(nodes, axis=1), axis=0) / np.sqrt(nodes.shape[1])
 sig_mass = np.nanmedian(np.abs(r3["dmodel_frac_per_sigma"][None, :] * node_mean
                                - r3["ddata_per_sigma"][None, :]), axis=0)
+# R7 painting-fidelity closure uncertainty: +-2% of the model, same
+# median-over-nodes construction as the other model-side terms above
+sig_r7 = np.nanmedian(0.02 * np.abs(node_mean), axis=0)
 
 fig, ax = plt.subplots(figsize=(7.2, 4.2))
 terms = [("jackknife (Hartlap)", sig_jk, C["data"]),
@@ -510,6 +521,7 @@ terms = [("jackknife (Hartlap)", sig_jk, C["data"]),
          ("resampling (50% of corr.)", sig_res, "#9467bd"),
          (r"satellite $f_{\rm eff}$ span (median node)", sig_sat, C["cons"]),
          (r"mass anchor $\pm0.1$ dex (median node)", sig_mass, C["best"]),
+         (r"R7 fidelity closure ($\pm2\%$ of model)", sig_r7, "#e377c2"),
          ("BIND realization (median node)", sig_real, C["null"])]
 for name, s, c in terms:
     ax.plot(xb[iv], s[iv], "o-", ms=4, lw=1.4, color=c, label=name)
@@ -800,6 +812,10 @@ print(f"internal splits: RA-half chi2={ra_xb['chi2']:.1f}/{ra_xb['dof']} "
       f"(PTE={ra_xb['pte']:.2f}) on fit columns, "
       f"{ra_rap['chi2']:.1f}/{ra_rap['dof']} (PTE={ra_rap['pte']:.2f}) on fixed apertures; "
       f"EBV<0.15 like-for-like shift <={ebv_shift:.2f} sigma")
+print("split-flagging rule: PTE < 0.05 or like-for-like shift > 1 sigma triggers a "
+      "budget entry; RA-half/EBV/rotation-random nulls do not trip it -- the "
+      "logMstar>11.25 kSZ cut (R6, 48->5 consistent nodes) did, and was demoted to "
+      "variant status (decision #15)")
 """)
 
 # ===================================================================== s3.4
@@ -1068,9 +1084,10 @@ $0.934$ weighted-band median, while the TNG300-hydro truth lightcone
 """)
 code(r"""
 # ---- Fig 10: WL suppression-curve translation (S1) -------------------------
-SB35_RUNS = Path("/mnt/home/mlee1/ceph/bind_sb35/runs")
-DMO_CL = Path("/mnt/home/mlee1/ceph/bind_science/runs/dmo/run_0000/Cl_kappa.npz")
-TRUTH_CL = Path("/mnt/home/mlee1/ceph/bind_science/runs/truth/run_0000/Cl_kappa.npz")
+SB35_RUNS = Path(os.environ.get("BIND_SB35_RUNS", "/mnt/home/mlee1/ceph/bind_sb35")) / "runs"
+SCIENCE_RUNS = Path(os.environ.get("BIND_SCIENCE_RUNS", "/mnt/home/mlee1/ceph/bind_science/runs"))
+DMO_CL = SCIENCE_RUNS / "dmo/run_0000/Cl_kappa.npz"
+TRUTH_CL = SCIENCE_RUNS / "truth/run_0000/Cl_kappa.npz"
 SELL_CACHE = LC / "Sell_zs1_253.npz"
 ZS1_IDX = 1             # kappa_maps source_redshifts = [0.5, 1.0, 1.5, 2.0, 2.44]
 ELL_TRUST_MAX = 1.5e4   # CIC aliasing dominates above this ell (Setup cell)
@@ -1234,7 +1251,12 @@ Other caveats, each quantified in its verdict:
   conclusions.
 - **kSZ external covariance**: the release's own sample-covariance estimator
   count is unpublished, so its Hartlap factor cannot be applied (flagged in
-  R6.json); the primary cut is the one stable under our unit fix.
+  R6.json); the primary cut is the one stable under our unit fix. A
+  sensitivity scan over hypothetical counts $n=30$–$500$ (Hartlap factors up
+  to $1.32$) only ever *enlarges* the consistent set ($27\to$ at most $33$)
+  and preserves the ranking ($\rho\ge0.998$), so the tension direction is
+  conservative to this unknown (`covariance_robustness.json`, printed below
+  Fig. 9).
 - **Independent-map check is large-aperture only**: the Planck MILCA
   cross-check (§2.3) validates $\theta\ge4'$ against a second instrument and
   component-separation pipeline; Planck's $10'$ beam cannot reach the
@@ -1248,16 +1270,23 @@ Other caveats, each quantified in its verdict:
   (Phase L, ESS$\sim$6) produced a "stable constrained pair" that did NOT
   survive the Dirichlet null — retained here as a methodological warning
   that robustness checks are not null tests.
-- **Measured-but-secondary splits**: a fine-grid, like-for-like
-  re-measurement of the EBV$<$0.15 dust-cut variant against the same
-  baseline map shifts the data vector by $\le0.16\sigma$ per column
+- **Measured-but-secondary splits**: the pre-stated rule is that a
+  split/variant is flagged for the error budget if its consistency
+  PTE$<0.05$ or its like-for-like shift exceeds $1\sigma$. A fine-grid,
+  like-for-like re-measurement of the EBV$<$0.15 dust-cut variant against the
+  same baseline map shifts the data vector by $\le0.16\sigma$ per column
   (superseding an earlier coarse-grid estimate of 0.05–0.07$\sigma$ that
   mixed in the CIB/dust map-variant difference, decision #18); an RA-half
   split of the LRG sample is internally consistent ($\chi^2=3.7/6$,
   PTE$=0.72$ on the fit columns; $3.1/6$, PTE$=0.79$ on fixed apertures),
   positive evidence of footprint uniformity; a broader $z=0.45$–0.9 window
-  was measured (T2 products) and behaves consistently — all retained as
-  variants, not cuts.
+  was measured (T2 products) and behaves consistently — none of the RA-half,
+  EBV, or rotation/random nulls trip the rule, so all are retained as
+  variants, not cuts. The one variant that *did* trip a stability
+  criterion — the $\log M_\star>11.25$ kSZ cut (R6), whose consistent-node
+  count moved 48$\to$5 under the covariance fix — was demoted to variant
+  status (decision #15), which is the mechanism having teeth: it does not
+  merely rubber-stamp every variant as retained.
 """)
 code(r"""
 # ---- Fig 9: counts by treatment (the honesty figure) -----------------------
@@ -1283,6 +1312,31 @@ plt.show()
 print("chi2_med by treatment:",
       {k: round(cbt[k]["chi2_med"], 1) for k in keys})
 print(f"threshold scan (final budget): {t3c['threshold_scan']}")
+""")
+code(r"""
+# ---- covariance-robustness scan (R3a, B4): Hartlap-scan bound + boot check --
+with open(LC / "covariance_robustness.json") as f:
+    covrob = json.load(f)
+
+hscan = covrob["ksz_hartlap_scan"]
+n_base = covrob["baseline_n_consistent"]
+print(f"kSZ external-covariance Hartlap sensitivity scan (baseline n_consistent = {n_base}):")
+print(f"{'n (hypothetical)':>18} {'h':>7} {'n_consistent':>13} {'rho_vs_baseline':>16}")
+for n_key in sorted(hscan, key=int):
+    row = hscan[n_key]
+    print(f"{n_key:>18} {row['h']:>7.3f} {row['n_consistent']:>13d} {row['rho_vs_baseline']:>16.4f}")
+n_cons_all = [row["n_consistent"] for row in hscan.values()]
+rho_all = [row["rho_vs_baseline"] for row in hscan.values()]
+print(f"-> across n=30-500: n_consistent {min(n_cons_all)}-{max(n_cons_all)} "
+      f"(baseline {n_base}), rho_vs_baseline >= {min(rho_all):.3f} -- "
+      "only ever enlarges the consistent set and preserves the ranking.")
+
+bc = covrob["tsz_boot_check"]
+print()
+print(f"tSZ bootstrap-covariance cross-check: chi2_fid {bc['chi2_fid_jk']:.1f} (jk) -> "
+      f"{bc['chi2_fid_boot']:.1f} (boot); chi2_best {bc['chi2_best_jk']:.1f} (jk) -> "
+      f"{bc['chi2_best_boot']:.1f} (boot); verdict_unchanged = {bc['verdict_unchanged']}")
+print("note:", bc["note"])
 """)
 
 # ===================================================================== s6
@@ -1346,7 +1400,14 @@ md(r"""
   between the gas plane and the matter power spectrum.
 - **Deeper SZ data.** Advanced ACTPol/SO depth improves the small-aperture
   columns where the tension is largest; the aperture-resolved deficit shape
-  is a falsifiable prediction for Simons Observatory stacking.
+  is a falsifiable prediction for Simons Observatory stacking. The two
+  outcomes are cleanly distinguishable: if the deficit is physical feedback,
+  SO's beam-resolved stacking should *reproduce the aperture-resolved shape*
+  — a deficit that keeps growing toward small apertures at the slope
+  measured here (Fig. 5); if it is instead an unmodeled measurement
+  systematic, the deficit would appear as an *aperture-independent offset*,
+  or track the CIB-deprojection choice rather than the aperture — a clean
+  discriminant between a physical and an instrumental origin.
 """)
 
 # ===================================================================== refs

@@ -87,6 +87,7 @@ persists incrementally to an emcee HDFBackend per leg under SCRATCH):
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -102,12 +103,19 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 CEPH = Path("/mnt/home/mlee1/ceph")
-KS = CEPH / "bind_science/ksz_confront"
+# Products/bind_sb35 roots (Round-2 T3, docs/paper_improvement_plan.md):
+# env-var override only -- deliberately NOT wired into the --stage CLI below
+# (this script drives live, long-running MCMC chains; keep the CLI surface
+# unchanged). Behavior with neither env var set is byte-identical to before.
+# SCRATCH/INGREDIENTS_PATH below are NOT derived from KS and are untouched --
+# they are the live chain-checkpoint location and must not move.
+KS = Path(os.environ.get("BIND_KSZ_PRODUCTS", str(CEPH / "bind_science/ksz_confront")))
 LC = KS / "lightcone"
 FIG_DIR = LC / "figs"
 VERDICT_DIR = LC / "verdicts"
-DESIGN = CEPH / "bind_sb35/design"
-PARQUET = CEPH / "bind_sb35/analysis_cache/integrated.parquet"
+_SB35_ROOT = Path(os.environ.get("BIND_SB35_RUNS", str(CEPH / "bind_sb35")))
+DESIGN = _SB35_ROOT / "design"
+PARQUET = _SB35_ROOT / "analysis_cache/integrated.parquet"
 FIG_DIR.mkdir(parents=True, exist_ok=True)
 VERDICT_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -81,6 +81,7 @@ Usage
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -97,7 +98,10 @@ import matplotlib.pyplot as plt
 from lightcone_m2_ycap_liu import mean_theta200_arcmin, N_XB
 
 CEPH = Path("/mnt/home/mlee1/ceph")
-KS = CEPH / "bind_science/ksz_confront"
+# Products root (Round-2 T3, docs/paper_improvement_plan.md): env-var
+# override only (straight-line script, no argparse); behavior with
+# $BIND_KSZ_PRODUCTS unset is byte-identical to before.
+KS = Path(os.environ.get("BIND_KSZ_PRODUCTS", str(CEPH / "bind_science/ksz_confront")))
 LIGHTCONE = KS / "lightcone"
 FIG_DIR = LIGHTCONE / "figs"
 VERDICT_DIR = LIGHTCONE / "verdicts"

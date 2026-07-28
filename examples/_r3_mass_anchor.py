@@ -18,6 +18,7 @@ R3_mass_template.npz (consumed by the R5 budget assembly).
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -26,7 +27,10 @@ import numpy as np
 sys.path.insert(0, "/mnt/home/mlee1/BIND-ksz2/src")
 sys.path.insert(0, "/mnt/home/mlee1/BIND-ksz2/examples")
 
-KS = Path("/mnt/home/mlee1/ceph/bind_science/ksz_confront")
+# Products root (Round-2 T3, docs/paper_improvement_plan.md): env-var
+# override only (straight-line script, no argparse); behavior with
+# $BIND_KSZ_PRODUCTS unset is byte-identical to before.
+KS = Path(os.environ.get("BIND_KSZ_PRODUCTS", "/mnt/home/mlee1/ceph/bind_science/ksz_confront"))
 LC = KS / "lightcone"
 SIGMA_LOGM = 0.1
 F_EFF = 0.08

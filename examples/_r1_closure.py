@@ -22,6 +22,7 @@ Writes figs/R1_closure.png + verdicts/R1.json.
 from __future__ import annotations
 
 import json
+import os
 import sys
 import zipfile
 from pathlib import Path
@@ -35,10 +36,14 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter, map_coordinates, spline_filter
 
-KS = Path("/mnt/home/mlee1/ceph/bind_science/ksz_confront")
+# Products/downloads roots (Round-2 T3, docs/paper_improvement_plan.md):
+# env-var override only (straight-line script, no argparse); behavior with
+# neither env var set is byte-identical to before.
+KS = Path(os.environ.get("BIND_KSZ_PRODUCTS", "/mnt/home/mlee1/ceph/bind_science/ksz_confront"))
 LC = KS / "lightcone"
 FID_Y = Path("/mnt/home/mlee1/ceph/bind_lightcone_tng/y_maps.npz")
-BEAM_TXT = Path("/mnt/home/mlee1/ceph/paper3/B/downloads/act_dr6_planck_ymap/ilc_beam.txt")
+BEAM_TXT = (Path(os.environ.get("BIND_KSZ_DOWNLOADS", "/mnt/home/mlee1/ceph/paper3/B/downloads"))
+            / "act_dr6_planck_ymap/ilc_beam.txt")
 
 PIX_FINE = 0.29296875
 PIX_COARSE = 0.5

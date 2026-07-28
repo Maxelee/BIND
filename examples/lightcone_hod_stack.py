@@ -30,6 +30,7 @@ model curves corrected by the rule template and the f_sat=0.20 end-member
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import zipfile
@@ -43,12 +44,21 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-KS = Path("/mnt/home/mlee1/ceph/bind_science/ksz_confront")
+# Products/bind_sb35 roots (Round-2 T3, docs/paper_improvement_plan.md):
+# env-var override only, resolved at import time as $BIND_KSZ_PRODUCTS >
+# the historical hardcoded path. No --products_root CLI flag here on
+# purpose: CONFIG_NPZ/SHARD_DIR below (and lightcone_hod_stack.CONFIG_NPZ
+# as imported by _r3_mass_anchor.py) are derived from LC at MODULE-IMPORT
+# time, before argparse would run, so a flag-only override would leave
+# them silently stale -- env-var is the one mechanism that is consistent
+# everywhere this module's globals are read. Behavior with the env var
+# unset is byte-identical to before.
+KS = Path(os.environ.get("BIND_KSZ_PRODUCTS", "/mnt/home/mlee1/ceph/bind_science/ksz_confront"))
 LC = KS / "lightcone"
 CAT = LC / "catalogs/desi_mock_snap067.npz"
 FID_Y = Path("/mnt/home/mlee1/ceph/bind_lightcone_tng/y_maps.npz")
 FID_KAPPA = Path("/mnt/home/mlee1/ceph/bind_lightcone_tng/kappa_maps.npz")
-RUNS = Path("/mnt/home/mlee1/ceph/bind_sb35/runs")
+RUNS = Path(os.environ.get("BIND_SB35_RUNS", "/mnt/home/mlee1/ceph/bind_sb35")) / "runs"
 
 XB = np.linspace(0.3, 3.0, 18)
 SRC_IDX, N_REAL = 4, 50

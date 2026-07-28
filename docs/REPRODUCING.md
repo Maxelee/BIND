@@ -7,7 +7,7 @@ verdict `.json` files under the products root and re-plots/re-prints from
 them (see `examples/_build_p4c_paper_nb.py`, which is the sole editor of
 the notebook — do not hand-edit the `.ipynb`).
 
-## `BIND_KSZ_PRODUCTS` — the products-root convention
+## `BIND_KSZ_PRODUCTS` and friends — the products-root convention
 
 All P4c products live under one root, referred to as `KS` throughout the
 campaign docs and code:
@@ -18,10 +18,9 @@ LC = KS/lightcone                          # almost everything below is under he
 VD = LC/verdicts                           # verdict JSONs (single source of truth for quoted numbers)
 ```
 
-As of this task (P4, `docs/paper_improvement_plan.md`), the two engines an
-outside reproducer would actually run — `examples/act_ycap_measure.py` and
-`examples/lightcone_m2r_ycap_real.py` — accept an explicit
-`--products_root` flag. Resolution order (identical in both scripts):
+`examples/act_ycap_measure.py` and `examples/lightcone_m2r_ycap_real.py`
+(the P4 conversions) additionally accept an explicit `--products_root`
+flag. Resolution order (identical in both scripts):
 
 ```
 --products_root <path>   >   $BIND_KSZ_PRODUCTS   >   /mnt/home/mlee1/ceph/bind_science/ksz_confront
@@ -38,14 +37,93 @@ python examples/act_ycap_measure.py --mode dr5 --grid rap --out T1_dr5_snr5.npz
 python examples/lightcone_m2r_ycap_real.py
 ```
 
-**Caveat:** only these two engines were converted under P4. The notebook
-builder itself and the other ~15 campaign scripts referenced below
-(`_r1_closure.py`, `_r3_mass_anchor.py`, `_r5_cib_systematics.py`,
-`_r6_ksz_audit.py`, `_r7_fidelity_closure.py`, `_r8_gp_mcmc.py`,
-`lightcone_hod_stack.py`, `lightcone_latent_corner.py`, `lightcone_m1_fgas_desiact.py`,
-etc.) still hardcode `KS = Path("/mnt/home/mlee1/ceph/bind_science/ksz_confront")`
-at module level. A full from-scratch rebuild under a different root would
-need those hardcoded paths patched too — out of scope for this task.
+**Round-2 T3** (`docs/paper_improvement_plan.md`) extended the same
+env-var override to every other engine in the rebuild chain below, plus
+three more env vars for the non-products roots those scripts also
+hardcode. All four resolve independently and default to the historical
+hardcoded path, so with none set, every script's behavior is
+byte-identical to before this task (verified per-file: `python -m
+py_compile` + an import-time constant check with the env vars set and
+unset — `_t2_fig_verdict.py`, which has no `if __name__` guard, was
+verified by code inspection only, not executed):
+
+| env var | default | moves |
+|---|---|---|
+| `BIND_KSZ_PRODUCTS` | `/mnt/home/mlee1/ceph/bind_science/ksz_confront` | `KS` — all lightcone products/figs/verdicts |
+| `BIND_KSZ_DOWNLOADS` | `/mnt/home/mlee1/ceph/paper3/B/downloads` | `DL` — the raw external-data release (ACT/Planck y-maps, DR5 clusters, DESI LRG catalogs) |
+| `BIND_SB35_RUNS` | `/mnt/home/mlee1/ceph/bind_sb35` | the SB35 Sobol tree (`design/`, `runs/`, `analysis_cache/`) |
+| `BIND_SCIENCE_RUNS` | `/mnt/home/mlee1/ceph/bind_science/runs` | the truth-hydro comparison run used by R7 |
+
+```bash
+export BIND_KSZ_PRODUCTS=/path/to/my_ksz_confront
+export BIND_KSZ_DOWNLOADS=/path/to/my_downloads
+export BIND_SB35_RUNS=/path/to/my_bind_sb35
+export BIND_SCIENCE_RUNS=/path/to/my_bind_science_runs
+```
+
+### Coverage — mechanism per script
+
+Only `act_ycap_measure.py` and `lightcone_m2r_ycap_real.py` gained a CLI
+flag (`--products_root`); every other script below is **env-var only** —
+either because it has no argparse at all (a straight-line script or a
+script whose only CLI is unrelated switches), or, for
+`lightcone_hod_stack.py` and `_r8_gp_mcmc.py` specifically, because adding
+a flag would be actively wrong (see notes below). No new CLI surface was
+added to any script; `--help` still exits 0 unchanged for every script
+that already had argparse.
+
+| script | mechanism | roots parameterized |
+|---|---|---|
+| `act_ycap_measure.py` | `--products_root` flag + env | `KS` (`BIND_KSZ_PRODUCTS`); `DL` (`BIND_KSZ_DOWNLOADS`, env-only) |
+| `lightcone_m2r_ycap_real.py` | `--products_root` flag + env | `KS`/`LC` (`BIND_KSZ_PRODUCTS`) |
+| `_r1_closure.py` | env-only | `KS` (`BIND_KSZ_PRODUCTS`); `BEAM_TXT` (`BIND_KSZ_DOWNLOADS`) |
+| `_r3_mass_anchor.py` | env-only | `KS` |
+| `_r4_twohalo.py` | env-only | `KS` |
+| `_r5_cib_systematics.py` | env-only | `KS` |
+| `_r5c_liu_figure.py` | env-only | `KS` (`LC` rebuilt from it; previously a standalone hardcoded `LC`) |
+| `_r6_ksz_audit.py` | env-only | `KS` |
+| `_r7_fidelity_closure.py` | env-only | `KS`; `TRUTH_Y` (`BIND_SCIENCE_RUNS`) |
+| `_r8_gp_mcmc.py` | env-only, deliberately no flag (see note) | `KS`/`LC`/`FIG_DIR`/`VERDICT_DIR` (`BIND_KSZ_PRODUCTS`); `DESIGN`/`PARQUET` (`BIND_SB35_RUNS`); `SCRATCH`/chain state **untouched** |
+| `lightcone_hod_stack.py` | env-only, deliberately no flag (see note) | `KS`/`LC`/`CAT` (`BIND_KSZ_PRODUCTS`); `RUNS` (`BIND_SB35_RUNS`) |
+| `lightcone_latent_corner.py` | env-only | `KS`/`LC` (`BIND_KSZ_PRODUCTS`); `DESIGN`/`PARQUET` (`BIND_SB35_RUNS`) |
+| `lightcone_capstone_x.py` | env-only | `KS`/`LC` (`BIND_KSZ_PRODUCTS`); `DESIGN` (`BIND_SB35_RUNS`) |
+| `lightcone_m1_fgas_desiact.py` | env-only | `KS` (`BIND_KSZ_PRODUCTS`) |
+| `_t2_fig_verdict.py` | env-only | `KS` (`BIND_KSZ_PRODUCTS`) |
+
+Notes:
+- **Why no `--products_root` flag on `lightcone_hod_stack.py`:** it
+  already has argparse (`--kcal_prep`/`--node`/`--merge`/`--explore`), but
+  `CONFIG_NPZ`/`SHARD_DIR` — also imported by `_r3_mass_anchor.py` — are
+  derived from `LC` at **module-import time**, before argparse runs. A
+  flag that only rebinds `KS`/`LC` in the `__main__` block would leave
+  those two stale, a silent correctness bug. The env var is resolved at
+  import time (before those derived constants are computed), so it is the
+  one mechanism that stays consistent everywhere this module's globals
+  are read — including by the cross-module import in `_r3_mass_anchor.py`.
+- **Why no `--products_root` flag on `_r8_gp_mcmc.py`:** its `--stage`/
+  `--leg`/`--budget` CLI drives **live, long-running MCMC chains**;
+  per the task brief this file was deliberately kept minimal-risk.
+  `SCRATCH`/`INGREDIENTS_PATH` (the emcee `HDFBackend` checkpoint dir for
+  the 4 in-flight chains) are **not** derived from `KS` and do **not**
+  honor any env var — they remain the literal historical path so chains
+  are never silently redirected mid-run.
+- **`FID_Y`/`FID_KAPPA`** (`/mnt/home/mlee1/ceph/bind_lightcone_tng/...`,
+  appearing in `_r1_closure.py`, `_r7_fidelity_closure.py`,
+  `lightcone_hod_stack.py`) are a fifth hardcoded root not covered by any
+  of the four env vars above — out of scope for this task (not one of the
+  three non-products roots named in the Round-2 T3 brief).
+- **`lightcone_m2_ycap_liu.py`** also hardcodes `KS`/`CEPH` at module
+  level and is imported (for two unrelated helper functions,
+  `mean_theta200_arcmin`/`N_XB`) by `_r6_ksz_audit.py` and
+  `lightcone_m1_fgas_desiact.py`, but it is not named anywhere in the
+  figure-by-figure map or rebuild order below, so it was left untouched —
+  flagged here as a residual gap, not a silent omission.
+- Still uncovered (out of this task's scope — not part of the figure
+  chain below): the earlier M2–M7 map-level campaign scripts
+  (`lightcone_m2_ycap_liu.py`, `lightcone_m3_kappa_anchor.py`, `lightcone_m4_elg_zshell.py`,
+  `lightcone_m5_fgas_mass.py`, `lightcone_m6_params.py`, `lightcone_m7_des.py`,
+  `lightcone_desi_catalog.py`), the P0–P4 geometry-validation scripts, and
+  the various `_reduce_*.py`/`_build_*.py`/`ksz_*.py` helpers.
 
 ## External raw-data prerequisites (not reproduced by anything below)
 
@@ -57,9 +135,11 @@ product; no script in this repo fetches it. See `docs/tsz_des_data_plan.md`
   release (baseline ILC + 10 CIB-deprojected variants + apodized mask),
   ACT DR5 SZ cluster catalog (Hilton et al. 2021), DESI DR1 SGC LRG
   spectroscopic catalog + randoms, Liu et al. (2025)'s own DR9 photometric
-  LRG catalog (`dr9_lrg_pzbins.fits`). `act_ycap_measure.py` reads these
-  directly via its own `DL` constant (unaffected by `--products_root`,
-  which only moves the *output/products* root `KS`).
+  LRG catalog (`dr9_lrg_pzbins.fits`). `act_ycap_measure.py` (and
+  `_r1_closure.py`'s `BEAM_TXT`) read these via their own `DL`/`BEAM_TXT`
+  constants — unaffected by `--products_root`/`$BIND_KSZ_PRODUCTS`, which
+  only moves the *output/products* root `KS`, but overridable separately
+  via `$BIND_KSZ_DOWNLOADS` (Round-2 T3).
 - `KS/desact_zenodo/` — the Ried Guachalla et al. (2025) DESI DR1 BGS ×
   ACT kSZ release (Zenodo 19160138): `Fig8_BGS_BRIGHT-20.2_logm{11.00,11.25}.npz`,
   `Fig6_BGS_BRIGHT-20.2_logm11.00.npz`.

@@ -16,6 +16,7 @@ Writes figs/X_multiprobe.png + verdicts/X.json.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -26,9 +27,12 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-KS = Path("/mnt/home/mlee1/ceph/bind_science/ksz_confront")
+# Products/bind_sb35 roots (Round-2 T3, docs/paper_improvement_plan.md):
+# env-var override only (straight-line script, no argparse); behavior with
+# neither env var set is byte-identical to before.
+KS = Path(os.environ.get("BIND_KSZ_PRODUCTS", "/mnt/home/mlee1/ceph/bind_science/ksz_confront"))
 LC = KS / "lightcone"
-DESIGN = Path("/mnt/home/mlee1/ceph/bind_sb35/design")
+DESIGN = Path(os.environ.get("BIND_SB35_RUNS", "/mnt/home/mlee1/ceph/bind_sb35")) / "design"
 
 BIND_PIX_AREA = 0.29296875 ** 2
 N_XB = 18

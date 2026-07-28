@@ -21,6 +21,7 @@ verdicts/R5.json (partial — R5c Liu-sample comparison appended separately).
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -28,7 +29,10 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-KS = Path("/mnt/home/mlee1/ceph/bind_science/ksz_confront")
+# Products root (Round-2 T3, docs/paper_improvement_plan.md): env-var
+# override only (straight-line script, no argparse); behavior with
+# $BIND_KSZ_PRODUCTS unset is byte-identical to before.
+KS = Path(os.environ.get("BIND_KSZ_PRODUCTS", "/mnt/home/mlee1/ceph/bind_science/ksz_confront"))
 LC = KS / "lightcone"
 VARIANTS = ["baseline", "cib1.0", "cib1.2", "cib1.4", "cib1.6", "cib1.7",
             "cib1.8", "cib2.0", "cib1.7_24", "cibdBeta", "cibdBetadT"]

@@ -55,7 +55,12 @@ import numpy as np
 # Paths / constants
 # ---------------------------------------------------------------------------
 
-DL = Path("/mnt/home/mlee1/ceph/paper3/B/downloads")
+# Downloads root (Round-2 T3, docs/paper_improvement_plan.md): env-var
+# override only (this constant predates --products_root and is
+# deliberately not wired into that flag -- see the module docstring /
+# REPRODUCING.md); behavior with $BIND_KSZ_DOWNLOADS unset is
+# byte-identical to before.
+DL = Path(os.environ.get("BIND_KSZ_DOWNLOADS", "/mnt/home/mlee1/ceph/paper3/B/downloads"))
 
 # Products root (P4, docs/paper_improvement_plan.md): resolved as
 # --products_root > $BIND_KSZ_PRODUCTS > the historical hardcoded path, so

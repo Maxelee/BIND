@@ -33,6 +33,7 @@ KS/lightcone/latent_constraints.npz, verdicts/L.json.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -46,11 +47,15 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 CEPH = Path("/mnt/home/mlee1/ceph")
-KS = CEPH / "bind_science/ksz_confront"
+# Products/bind_sb35 roots (Round-2 T3, docs/paper_improvement_plan.md):
+# env-var override only (straight-line script, no argparse); behavior with
+# neither env var set is byte-identical to before.
+KS = Path(os.environ.get("BIND_KSZ_PRODUCTS", str(CEPH / "bind_science/ksz_confront")))
 LC = KS / "lightcone"
 PROF_PATH = KS / "bind_tauy_xprof_snap085.npz"
-PARQUET = CEPH / "bind_sb35/analysis_cache/integrated.parquet"
-DESIGN = CEPH / "bind_sb35/design"
+_SB35_ROOT = Path(os.environ.get("BIND_SB35_RUNS", str(CEPH / "bind_sb35")))
+PARQUET = _SB35_ROOT / "analysis_cache/integrated.parquet"
+DESIGN = _SB35_ROOT / "design"
 F_B = 0.0490 / 0.3089
 BGS_BIN = 1
 SNAP_BGS = 85

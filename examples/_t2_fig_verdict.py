@@ -1,11 +1,15 @@
 """Fig V-T2 + T2.json (plan §2 T2 gate: nulls pass; baseline-deproj spread reported)."""
 import json
+import os
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-KS = "/mnt/home/mlee1/ceph/bind_science/ksz_confront"
+# Products root (Round-2 T3, docs/paper_improvement_plan.md): env-var
+# override only (straight-line script, no argparse); behavior with
+# $BIND_KSZ_PRODUCTS unset is byte-identical to before.
+KS = os.environ.get("BIND_KSZ_PRODUCTS", "/mnt/home/mlee1/ceph/bind_science/ksz_confront")
 LC = f"{KS}/lightcone"
 
 def L(n):

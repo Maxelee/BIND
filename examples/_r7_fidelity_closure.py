@@ -80,6 +80,7 @@ Usage
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -93,13 +94,17 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-KS = Path("/mnt/home/mlee1/ceph/bind_science/ksz_confront")
+# Products/bind_science-runs roots (Round-2 T3, docs/paper_improvement_plan.md):
+# env-var override only (straight-line script, no argparse); behavior with
+# neither env var set is byte-identical to before.
+KS = Path(os.environ.get("BIND_KSZ_PRODUCTS", "/mnt/home/mlee1/ceph/bind_science/ksz_confront"))
 LC = KS / "lightcone"
 CAT_PATH = LC / "catalogs/desi_mock_snap067.npz"
 ANCHOR_PATH = LC / "T3_theta200_anchors.npz"
 DATA_PATH = LC / "act_ycap_lrg_real.npz"
 FID_Y = Path("/mnt/home/mlee1/ceph/bind_lightcone_tng/y_maps.npz")
-TRUTH_Y = Path("/mnt/home/mlee1/ceph/bind_science/runs/truth/run_0000/y_maps.npz")
+TRUTH_Y = (Path(os.environ.get("BIND_SCIENCE_RUNS", "/mnt/home/mlee1/ceph/bind_science/runs"))
+           / "truth/run_0000/y_maps.npz")
 FIG_PATH = LC / "figs/R7_fidelity.png"
 VERDICT_PATH = LC / "verdicts/R7.json"
 

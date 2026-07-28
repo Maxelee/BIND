@@ -32,7 +32,9 @@ products), tsz_consistent_nodes.npz, figs/M2R_ycap_real.png, verdicts/T3.json.
 """
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -45,7 +47,19 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-KS = Path("/mnt/home/mlee1/ceph/bind_science/ksz_confront")
+# Products root (P4, docs/paper_improvement_plan.md): resolved as
+# --products_root > $BIND_KSZ_PRODUCTS > the historical hardcoded path, so
+# behavior with neither flag nor env var set is byte-identical to before.
+# KS/LC/FIG_DIR are module-level globals (read by load_t2() and others);
+# main() re-resolves them from --products_root before anything uses them.
+DEFAULT_PRODUCTS_ROOT = "/mnt/home/mlee1/ceph/bind_science/ksz_confront"
+
+
+def _products_root(explicit: str | None = None) -> Path:
+    return Path(explicit or os.environ.get("BIND_KSZ_PRODUCTS", DEFAULT_PRODUCTS_ROOT))
+
+
+KS = _products_root()
 LC = KS / "lightcone"
 FIG_DIR = LC / "figs"
 REPO = Path("/mnt/home/mlee1/BIND-ksz2")
@@ -75,6 +89,18 @@ def cols(d, kind):
 
 
 def main():
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--products_root", default=None,
+                    help="root for KS/LC (default: $BIND_KSZ_PRODUCTS or "
+                         f"{DEFAULT_PRODUCTS_ROOT})")
+    args = ap.parse_args()
+
+    global KS, LC, FIG_DIR
+    KS = _products_root(args.products_root)
+    LC = KS / "lightcone"
+    FIG_DIR = LC / "figs"
+
     anchors = np.load(LC / "T3_theta200_anchors.npz")
     t200_mock = float(anchors["t200_mock_arcmin"])
     t200_data = float(anchors["t200_data_arcmin"])

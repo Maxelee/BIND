@@ -45,6 +45,7 @@ Usage
 from __future__ import annotations
 
 import argparse
+import os
 import time
 from pathlib import Path
 
@@ -55,7 +56,18 @@ import numpy as np
 # ---------------------------------------------------------------------------
 
 DL = Path("/mnt/home/mlee1/ceph/paper3/B/downloads")
-KS = Path("/mnt/home/mlee1/ceph/bind_science/ksz_confront")
+
+# Products root (P4, docs/paper_improvement_plan.md): resolved as
+# --products_root > $BIND_KSZ_PRODUCTS > the historical hardcoded path, so
+# behavior with neither flag nor env var set is byte-identical to before.
+DEFAULT_PRODUCTS_ROOT = "/mnt/home/mlee1/ceph/bind_science/ksz_confront"
+
+
+def _products_root(explicit: str | None = None) -> Path:
+    return Path(explicit or os.environ.get("BIND_KSZ_PRODUCTS", DEFAULT_PRODUCTS_ROOT))
+
+
+KS = _products_root()
 YMAP_DIR = DL / "act_dr6_planck_ymap"
 MASK_PATH = YMAP_DIR / "wide_mask_GAL070_apod_1.50_deg_wExtended.fits"
 DR5_PATH = DL / "act_dr5_szcluster_hilton2009.11043/DR5_cluster-catalog_v1.1.fits"
@@ -499,7 +511,13 @@ def main():
                          "BIND lux pixel exactly (T3 discretization fix)")
     ap.add_argument("--out", required=True, help="output npz path (relative -> KS/lightcone/)")
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--products_root", default=None,
+                    help="root for KS (default: $BIND_KSZ_PRODUCTS or "
+                         f"{DEFAULT_PRODUCTS_ROOT})")
     args = ap.parse_args()
+
+    global KS
+    KS = _products_root(args.products_root)
 
     out_path = Path(args.out)
     if not out_path.is_absolute():

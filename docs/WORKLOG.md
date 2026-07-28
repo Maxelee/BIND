@@ -6,6 +6,24 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-28c — Paper rubric, grade (70/100), and improvement plan
+
+Three Sonnet research agents surveyed the niche's highest-impact papers
+(Schaan/Amodeo 21, Hadzhiyska 24/25, Bigwood 24 + 25 benchmark, McCarthy 25,
+van Daalen 20, Amon&Efstathiou 22, Popesso 24, Qu 26, Schaye 23) →
+`docs/paper_rubric.md` (32 criteria, 6 weighted categories, graded 0/1/2).
+Two independent grader agents scored the paper notebook: **71.2 and 68.7 →
+consensus 70/100**. Convergent diagnosis: model-confrontation statistics
+near exemplar grade (87.5% both graders); the misses are the missing
+suppression-curve figure (D1=0 both), no residual sub-panels (E2=0 both),
+nulls without σ/PTE, bootstrap never surfaced, thematic title, and
+nothing release-packaged. `docs/paper_improvement_plan.md` turns the gaps
+into 5 phases of Sonnet/Haiku-executable tasks (Q text wins → N surfaced
+numbers → R figure upgrades → S suppression figure + quantitative S8
+closure → P release packaging), projected 70 → ~86–90.
+
+---
+
 ## 2026-07-28b — Paper notebook: `examples/paper_p4c_tsz_ksz.ipynb`
 
 Paper-structured deliverable (builder `examples/_build_p4c_paper_nb.py`,

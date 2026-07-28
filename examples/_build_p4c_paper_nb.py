@@ -933,6 +933,142 @@ natural interface to pass to lensing analyses, echoing the low-dimensional
 latent structure of feedback response found in Lin et al. (2026).
 """)
 
+# ===================================================================== s4.1
+md(r"""
+### 4.1  Implication for weak-lensing suppression (Fig. 10)
+
+The gas-plane result of §3.4 has a direct translation onto weak lensing: van
+Daalen, McCarthy & Schaye (2020) showed that the baryon fraction retained
+inside $R_{500}$ of $10^{13-14}\,M_\odot$ groups tightly predicts the
+suppression of the small-scale matter (and hence convergence) power spectrum
+relative to gravity-only. We propagate this directly at map level rather
+than through a fitting function: each of the 253 painted nodes was already
+ray-traced into a convergence field on the shared TNG300-DMO lightcone, so
+$S(\ell,z_s\!=\!1)=C_\ell^\kappa({\rm node})/C_\ell^\kappa({\rm DMO})$
+(**Fig. 10**) is a direct measurement of each node's suppression curve, not
+an extrapolation. Weighting every node's $S(\ell)$ curve by its joint-probe
+importance $w_{\rm joint}$ — the same design-level $\chi^2$-importance
+weights used in Fig. 7, an honest proxy for the R8 joint posterior over the
+253-node design rather than a resampling of the chain itself (effective
+sample size ${\rm ESS}\simeq6$, printed below, matching the Phase-L caveat
+of §5) — gives the shaded orange 16–84% band: the data-preferred region of
+the design sits at or beyond the strong-suppression edge of the 253-node
+cloud, below both the unweighted design median and the TNG300-hydro truth
+lightcone (red) across the plotted range, including the DES/LSST-relevant
+$\ell\sim300$–$3000$ band (shaded grey). Two caveats keep this a translation
+rather than a calibrated forecast input: the weighting is a design-level
+importance proxy, not a draw from the actual R8 posterior (ESS quoted
+above), and the TNG300 (205 Mpc$/h$) box underlying every node is only
+marginally converged for the *absolute* amplitude of baryonic suppression
+(Schaller et al. 2024) — the same shared-box caveat noted for the node
+ranking in §5, here applying to suppression amplitude rather than rank.
+""")
+code(r"""
+# ---- Fig 10: WL suppression-curve translation (S1) -------------------------
+SB35_RUNS = Path("/mnt/home/mlee1/ceph/bind_sb35/runs")
+DMO_CL = Path("/mnt/home/mlee1/ceph/bind_science/runs/dmo/run_0000/Cl_kappa.npz")
+TRUTH_CL = Path("/mnt/home/mlee1/ceph/bind_science/runs/truth/run_0000/Cl_kappa.npz")
+SELL_CACHE = LC / "Sell_zs1_253.npz"
+ZS1_IDX = 1             # kappa_maps source_redshifts = [0.5, 1.0, 1.5, 2.0, 2.44]
+ELL_TRUST_MAX = 1.5e4   # CIC aliasing dominates above this ell (Setup cell)
+
+lat10 = np.load(LC / "latent_constraints.npz", allow_pickle=True)
+node_ids10, w_joint10 = lat10["node_ids"], lat10["w_joint"]
+f_in10, chi2_tsz10 = lat10["f_in"], lat10["chi2_tsz"]
+k6_10 = np.load(LC / "ksz_consistent_nodes_r6.npz", allow_pickle=True)
+cons_ids10 = set(int(i) for i in k6_10["node_ids_bgs110"])
+
+cl_dmo10 = np.load(DMO_CL)
+ell10 = cl_dmo10["ell"]
+cl_dmo_zs1 = cl_dmo10["cl"][ZS1_IDX, ZS1_IDX]
+
+if SELL_CACHE.exists():
+    sc10 = np.load(SELL_CACHE)
+    assert np.array_equal(sc10["ell"], ell10), "cached ell grid mismatch"
+    assert np.array_equal(sc10["node_ids"], node_ids10), "cached node_ids mismatch"
+    S10 = sc10["S"]
+    print(f"loaded cached S(ell) matrix from {SELL_CACHE}")
+else:
+    S10 = np.empty((len(node_ids10), len(ell10)))
+    for i10, nid10 in enumerate(node_ids10):
+        d10 = np.load(SB35_RUNS / f"run_{int(nid10):04d}" / "Cl_kappa.npz")
+        S10[i10] = d10["cl"][ZS1_IDX, ZS1_IDX] / cl_dmo_zs1
+    np.savez(SELL_CACHE, ell=ell10, S=S10, node_ids=node_ids10)
+    print(f"assembled 253-node S(ell) matrix -> cached to {SELL_CACHE}")
+
+cl_truth10 = np.load(TRUTH_CL)
+S_truth10 = cl_truth10["cl"][ZS1_IDX, ZS1_IDX] / cl_dmo_zs1
+
+def _weighted_quantile(values, weights, qs):
+    order = np.argsort(values)
+    v, w = values[order], weights[order]
+    cw = (np.cumsum(w) - 0.5 * w) / w.sum()
+    return np.interp(qs, cw, v)
+
+wn10 = w_joint10 / w_joint10.sum()
+ess10 = 1.0 / np.sum(wn10 ** 2)
+# joint-posterior-weighted 16/50/84 band of S(ell), per ell column
+band10 = np.array([_weighted_quantile(S10[:, j], wn10, [0.16, 0.5, 0.84])
+                    for j in range(S10.shape[1])]).T   # (3, nell)
+
+trust10 = (ell10 >= 100) & (ell10 <= ELL_TRUST_MAX)
+strongest10 = int(np.argmin(f_in10))
+run_strongest10 = int(node_ids10[strongest10])
+best_tsz10 = int(np.nanargmin(chi2_tsz10))
+run_best_tsz10 = int(node_ids10[best_tsz10])
+is_cons10 = np.array([int(n) in cons_ids10 for n in node_ids10])
+
+fig, ax = plt.subplots(figsize=(7.8, 5.4))
+for i10 in np.nonzero(~is_cons10)[0]:
+    ax.plot(ell10[trust10], S10[i10, trust10], color=C["nodes"], lw=0.5, alpha=0.25,
+            zorder=1)
+for i10 in np.nonzero(is_cons10)[0]:
+    ax.plot(ell10[trust10], S10[i10, trust10], color=C["cons"], lw=1.0, alpha=0.8,
+            zorder=2)
+ax.axvspan(300, 3000, color="0.6", alpha=0.15, zorder=0, label="cosmic-shear range")
+ax.fill_between(ell10[trust10], band10[0, trust10], band10[2, trust10], color=C["band"],
+                alpha=0.30, zorder=3,
+                label=r"joint-posterior-weighted 16–84% ($\chi^2$-importance node weights)")
+ax.plot(ell10[trust10], band10[1, trust10], color=C["band"], lw=2.2, zorder=4,
+        label="joint-posterior-weighted median")
+ax.plot(ell10[trust10], S_truth10[trust10], color=C["fid"], lw=2.2, zorder=5,
+        label="TNG300-hydro (truth lightcone)")
+ax.plot(ell10[trust10], S10[strongest10, trust10], color="#9467bd", lw=2.0, zorder=5,
+        label=f"strongest-feedback node (run {run_strongest10})")
+ax.plot(ell10[trust10], S10[best_tsz10, trust10], color=C["best"], lw=2.0, zorder=5,
+        label=f"best-tSZ node (run {run_best_tsz10})")
+ax.plot([], [], color=C["nodes"], lw=0.8, alpha=0.6, label="all 253 SB35 nodes")
+ax.plot([], [], color=C["cons"], lw=1.0, alpha=0.8, label="kSZ-consistent subset (27)")
+ax.axhline(1.0, color="0.4", lw=0.8, zorder=0)
+ax.set_xscale("log")
+ax.set_xlim(100, ELL_TRUST_MAX)
+ax.set_xlabel(r"$\ell$")
+ax.set_ylabel(r"$S(\ell) = C_\ell^\kappa / C_\ell^\kappa({\rm DMO})$")
+ax.set_title("Fig 10 — the measurement's implication for weak-lensing suppression ($z_s=1$)")
+ax.legend(frameon=False, fontsize=8.0, ncol=2, loc="lower left")
+fig.savefig(FIGDIR / "fig10_suppression.png")
+plt.show()
+
+s_at_2000_10 = np.array([np.interp(2000, ell10, S10[i]) for i in range(S10.shape[0])])
+s_at_5000_10 = np.array([np.interp(5000, ell10, S10[i]) for i in range(S10.shape[0])])
+q2000_10 = _weighted_quantile(s_at_2000_10, wn10, [0.16, 0.5, 0.84])
+q5000_10 = _weighted_quantile(s_at_5000_10, wn10, [0.16, 0.5, 0.84])
+s_truth_2000 = float(np.interp(2000, ell10, S_truth10))
+s_strong_2000 = float(np.interp(2000, ell10, S10[strongest10]))
+s_best_2000 = float(np.interp(2000, ell10, S10[best_tsz10]))
+print(f"joint-posterior-weighted S(ell=2000): 16/50/84 = "
+      f"{q2000_10[0]:.3f} / {q2000_10[1]:.3f} / {q2000_10[2]:.3f}")
+print(f"joint-posterior-weighted S(ell=5000): 16/50/84 = "
+      f"{q5000_10[0]:.3f} / {q5000_10[1]:.3f} / {q5000_10[2]:.3f}")
+print(f"ESS(w_joint) = {ess10:.1f}  (design-level chi2-importance weights; "
+      f"design-level proxy for the R8 joint posterior, cf. Phase-L ESS caveat in Sec.5)")
+print(f"unweighted design median S(2000) = {np.median(s_at_2000_10):.3f}, "
+      f"S(5000) = {np.median(s_at_5000_10):.3f}")
+print(f"named curves at ell=2000: TNG300-hydro truth = {s_truth_2000:.3f}, "
+      f"strongest-feedback (run {run_strongest10}) = {s_strong_2000:.3f}, "
+      f"best-tSZ (run {run_best_tsz10}) = {s_best_2000:.3f}")
+""")
+
 # ===================================================================== s5
 md(r"""
 ## 5  Caveats & robustness
@@ -1033,6 +1169,13 @@ md(r"""
    satellites, CIB correlations, painting fidelity, external covariance
    audits — is where the conclusion is actually decided; consistency counts
    without that budget are close to meaningless (0 vs 119 on the same data).
+5. **Propagated to weak lensing** (Fig. 10, §4.1), the joint-posterior
+   weighting of the design implies a $z_s=1$ convergence-spectrum
+   suppression $S(\ell\!=\!2000) = 0.934^{+0.003}_{-0.012}$ (16–84%;
+   $S(\ell\!=\!5000) = 0.863^{+0.017}_{-0.014}$) — below the unweighted
+   design median ($1.01$) and the TNG300-hydro truth lightcone ($0.98$), at
+   the strong-suppression end of current cosmic-shear baryon priors (van
+   Daalen et al. 2020; Amon & Efstathiou 2022; Bigwood et al. 2024).
 """)
 
 # ===================================================================== s7

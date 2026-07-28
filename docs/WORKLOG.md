@@ -6,6 +6,32 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-28e — Rounds 2–3: paper at **93.5/100** (70 → 88.5 → 91.3 → 93.5)
+
+Round 2 (T1–T6): Fig 10 gains four external literature baryon-model curves
+(new engine `lightcone_external_suppression.py`: BCM, vD19-at-our-f̃gas,
+A_mod, HMcode-BAHAMAS via pyccl/camb Limber projection; Pk2D is_logp trap
+documented); **independent Planck MILCA y-map cross-check at the same LRGs**
+(new engine `planck_ycap_crosscheck.py`; χ²=6.5/5, PTE=0.26, θ≥4′;
+found+worked around the ESA R2.00 mask bug); all 14 figure-chain engines
+env-var-rooted; RA-half split PTE=0.72/0.79; GP held-out numbers + verified
+Schaller+24 (arXiv:2410.17109) box-convergence on the page. Round 3:
+covariance-robustness engine `_r3a_covariance_robustness.py` (kSZ external
+cov Hartlap scan — inflation only ENLARGES the consistent set 27→33,
+ρ≥0.998, i.e. the tension is conservative to the release's unpublished
+sample count; tSZ bootstrap-cov swap verdict-unchanged), split-flagging
+rule with the bgs1125 demotion as demonstrated teeth, SO falsifiability
+discriminant, REPRODUCING quick-start + validated provenance recovery
+scripts (`_recover_t1_verdict.py`, `_recover_t3_anchors.py`). Notable agent
+errors caught in orchestrator review: T4 compared the EBV variant against
+the wrong map (5.75σ "shift" was the CIB map difference; true like-for-like
+≤0.16σ); my own joint-GoF print initially asserted "fails jointly" when the
+computed PTE=0.11 says the kSZ dof dilute it (fixed to the honest framing).
+Remaining blockers to ~95+ need new data (second small-beam y-map; raw
+external-hydro S(ℓ) curves) — recorded in the plan doc.
+
+---
+
 ## 2026-07-28d — Improvement plan executed: paper re-graded **70 → 88.5/100**
 
 All five phases of `docs/paper_improvement_plan.md` executed by Sonnet/Haiku

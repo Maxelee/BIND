@@ -238,3 +238,31 @@ and never touch the builder; track 5 holds the builder serial slot; track
   (+legend/narrative), Planck cross-check → §2.2 + validation/caveats,
   split χ² → GoF/caveats. Rebuild + clean execution.
 - **T7 — re-grade** with the same two-grader protocol; record here.
+
+### ROUND-2 RE-GRADE: **91.3** (92.9 neutral / 89.75 adversarial)
+
+### ROUND 3 (executed): R3a covariance-robustness engine (kSZ Hartlap scan:
+inflation only ENLARGES the consistent set 27→33, ρ≥0.998; tSZ bootstrap-cov
+swap verdict-unchanged), R3b builder polish (robustness numbers, split rule
+with the bgs1125 demotion as teeth, SO falsifiability discriminant, R7
+budget line, env-var roots in the notebook), R3c REPRODUCING quick-start +
+Fig10/Planck rows + validated provenance recovery scripts.
+
+### ROUND-3 RE-GRADE: **93.5** (94.1 neutral / 92.9 adversarial)
+Trajectory: 70 → 88.5 → 91.3 → 93.5. Post-grade micro-pass applied
+(combined joint GoF honestly framed, R6b residual-gap row in the budget
+table, R7 single-point-calibration caveat, Fig 10 semi-analytic honesty
+note) — closes every remaining page-level split-verdict item.
+
+**Remaining consensus blockers (both graders, both rounds) require NEW
+DATA, not edits:**
+- **B1**: a second *small-beam* independently-produced y-map (SPT-3G
+  overlap, an ACT frequency-split ILC, or a future SO map) to confirm the
+  small-aperture tension itself — the Planck cross-check validates the
+  pipeline at θ≥4′ only.
+- **D1 (full credit)**: raw external full-hydro suppression lightcones
+  (FLAMINGO/BAHAMAS S(ℓ) products, or CAMELS-SIMBA/Astrid Pk) — the current
+  four external curves are semi-analytic translations, now labeled as such.
+Grading noise between fresh grader instantiations is ~±1; further
+edit-only rounds would oscillate within it. 95 is reachable with either
+blocker resolved.

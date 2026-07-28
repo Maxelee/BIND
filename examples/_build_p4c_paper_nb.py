@@ -69,7 +69,8 @@ DESI DR1 spectroscopic BGS $\times$ ACT kSZ aperture-photometry gas-fraction
 profile (Ried Guachalla et al. 2025), and **(ii)** our **own** Compton-$y$ CAP
 measurement on the ACT DR6 component-separated $y$-map at 160,150 DESI DR1 SGC
 spectroscopic LRGs ($0.4<z<0.6$; S/N per aperture 4–15, CIB-deprojected primary,
-validated against ACT DR5 clusters and Liu et al. 2025). After a
+validated against ACT DR5 clusters, Liu et al. 2025, and an independent Planck
+MILCA measurement at the same galaxies). After a
 referee-hardening program — jackknife+Hartlap statistics, a measured
 resampling-operator correction, per-node HOD satellite forward-modeling
 calibrated on the lensing mass anchor, a correlated CIB systematic covariance,
@@ -262,6 +263,19 @@ level (decision #19), outside the fit range.
 bootstrap errors agree with the spatial jackknife to within a factor that
 reflects the expected spatial-correlation loss in bootstrap resampling; the
 spatial jackknife is therefore primary.
+
+As an independent cross-check of the measurement pipeline against a
+different instrument, we also CAP-stack an independent 2015 Planck MILCA
+Compton-$y$ map (Planck Collaboration XXII 2016) at the same 160,150 DESI
+DR1 SGC LRGs, of which 98,325 survive the Planck Galactic and point-source
+masks, with the ACT DR6 CIB-deprojected primary map smoothed to match
+Planck's $10'$ beam. Over $\theta=4$–$10'$ the two agree, $\chi^2=6.5/5$
+(PTE$=0.26$), with MILCA sitting mildly ($\sim$25–40%, $<1\sigma$ per
+aperture) high — the direction expected from MILCA's known CIB leakage,
+which our deprojected primary map removes. Because Planck's $10'$ beam
+cannot reach the small-aperture fit range used for the tSZ confrontation
+(§3.2), this is a large-aperture pipeline-and-map consistency check, not a
+re-measurement of the headline data vector.
 """)
 code(r"""
 # ---- Fig 1: the y-CAP measurement -----------------------------------------
@@ -387,6 +401,21 @@ fig.savefig(FIGDIR / "fig2_validation.png")
 plt.show()
 r5c = V["R5"]["metrics"]["r5c_liu_reproduction"]
 print("R5c:", r5c["bins_resolved"])
+""")
+code(r"""
+# ---- Planck MILCA independent y-map cross-check (Round-2 T2/T6, B1) -------
+pc = np.load(LC / "planck_crosscheck.npz", allow_pickle=True)
+th_pc = pc["theta_arcmin"]
+ratio_pc = pc["cap_planck"] / pc["cap_act_smoothed"]
+
+print("Planck MILCA vs. beam-matched ACT DR6 (deproj-CIB) CAP y, same LRGs:")
+print(f"{'theta [arcmin]':>15} {'Planck CAP y':>24} {'ACT-smoothed CAP y':>24} {'ratio':>7}")
+for i in range(len(th_pc)):
+    planck_str = f"{pc['cap_planck'][i]:.2e} +/- {pc['err_planck'][i]:.2e}"
+    act_str = f"{pc['cap_act_smoothed'][i]:.2e} +/- {pc['err_act_smoothed'][i]:.2e}"
+    print(f"{th_pc[i]:>15.1f} {planck_str:>24} {act_str:>24} {ratio_pc[i]:>7.2f}")
+print(f"chi2 = {float(pc['chi2']):.1f} / {int(pc['dof'])} dof  (PTE = {float(pc['pte']):.2f});  "
+      f"n_gal (Planck-mask-surviving) = {int(pc['n_gal']):,}")
 """)
 
 # ===================================================================== s2.4
@@ -760,6 +789,17 @@ print(f"  fiducial: χ²={chi2_fid_tsz:.1f}  PTE={pte_fid_tsz:.2e}")
 print(f"  best node: χ²={chi2_best_tsz:.1f}  PTE={pte_best_tsz:.2e}")
 print(f"  consistent: {n_tsz_consistent} / 253")
 print(f"joint ranking coherence: Spearman ρ = {spearman_rho:.2f}")
+
+# T4/T6: internal-split consistency (RA-half jackknife + EBV like-for-like)
+with open(LC / "split_consistency.json") as f:
+    splitc = json.load(f)
+ra_xb = splitc["ra_half_split"]["xb"]
+ra_rap = splitc["ra_half_split"]["rap"]
+ebv_shift = splitc["ebv_variant"]["max_abs_shift_sigma"]
+print(f"internal splits: RA-half chi2={ra_xb['chi2']:.1f}/{ra_xb['dof']} "
+      f"(PTE={ra_xb['pte']:.2f}) on fit columns, "
+      f"{ra_rap['chi2']:.1f}/{ra_rap['dof']} (PTE={ra_rap['pte']:.2f}) on fixed apertures; "
+      f"EBV<0.15 like-for-like shift <={ebv_shift:.2f} sigma")
 """)
 
 # ===================================================================== s3.4
@@ -1017,7 +1057,14 @@ underlying every node sits just above the $\gtrsim200$ comoving Mpc
 threshold where Schaller et al. (2024) find the FLAMINGO baryonic
 suppression converged to $\sim1$–$2\%$, short of the $\ge1\,$Gpc scale
 needed for sub-percent convergence — the same shared-box caveat quantified
-in §5, here applying to suppression amplitude rather than rank.
+in §5, here applying to suppression amplitude rather than rank. Independent
+literature baryon-suppression models — none from the TNG family — bracket
+our joint-posterior-weighted band from the strong side at $\ell\sim2000$:
+the van Daalen et al. (2020) $f_{\rm bar}$ model evaluated at our
+joint-posterior gas fraction ($S\simeq0.893$) and HMcode-2020 with the
+BAHAMAS $T_{\rm AGN}=7.8$ calibration ($S\simeq0.894$) both sit below our
+$0.934$ weighted-band median, while the TNG300-hydro truth lightcone
+($S\simeq0.977$) sits well above all of them.
 """)
 code(r"""
 # ---- Fig 10: WL suppression-curve translation (S1) -------------------------
@@ -1054,6 +1101,17 @@ else:
 
 cl_truth10 = np.load(TRUTH_CL)
 S_truth10 = cl_truth10["cl"][ZS1_IDX, ZS1_IDX] / cl_dmo_zs1
+
+# T1/T6: external, non-TNG literature baryon-suppression models (Round-2 D1)
+ext10 = np.load(LC / "external_suppression_curves.npz", allow_pickle=True)
+assert np.array_equal(ext10["ell"], ell10), "external curve ell grid mismatch"
+EXT_CURVES10 = [
+    ("S_BCM_Schneider15", "BCM (Schneider & Teyssier 15)", "brown", "--"),
+    ("S_vanDaalen19_fgas", r"vD19 model at our $\tilde f_{\rm gas}$=0.45", "teal", "-."),
+    ("S_AmonEfstathiou22_Amod", r"$A_{\rm mod}=0.82$ (Amon & Efstathiou 22)",
+     "darkgoldenrod", "--"),
+    ("S_HMcode2020_TAGN7p8", r"HMcode-2020 $T_{\rm AGN}=7.8$ (BAHAMAS)", "magenta", "-."),
+]
 
 def _weighted_quantile(values, weights, qs):
     order = np.argsort(values)
@@ -1095,13 +1153,16 @@ ax.plot(ell10[trust10], S10[best_tsz10, trust10], color=C["best"], lw=2.0, zorde
         label=f"best-tSZ node (run {run_best_tsz10})")
 ax.plot([], [], color=C["nodes"], lw=0.8, alpha=0.6, label="all 253 SB35 nodes")
 ax.plot([], [], color=C["cons"], lw=1.0, alpha=0.8, label="kSZ-consistent subset (27)")
+for key10, lbl10, col10, ls10 in EXT_CURVES10:
+    ax.plot(ell10[trust10], ext10[key10][trust10], color=col10, lw=1.3, ls=ls10,
+            zorder=4.5, label=lbl10)
 ax.axhline(1.0, color="0.4", lw=0.8, zorder=0)
 ax.set_xscale("log")
 ax.set_xlim(100, ELL_TRUST_MAX)
 ax.set_xlabel(r"$\ell$")
 ax.set_ylabel(r"$S(\ell) = C_\ell^\kappa / C_\ell^\kappa({\rm DMO})$")
 ax.set_title("Fig 10 — the measurement's implication for weak-lensing suppression ($z_s=1$)")
-ax.legend(frameon=False, fontsize=8.0, ncol=2, loc="lower left")
+ax.legend(frameon=False, fontsize=6.8, ncol=2, loc="lower left")
 fig.savefig(FIGDIR / "fig10_suppression.png")
 plt.show()
 
@@ -1123,6 +1184,12 @@ print(f"unweighted design median S(2000) = {np.median(s_at_2000_10):.3f}, "
 print(f"named curves at ell=2000: TNG300-hydro truth = {s_truth_2000:.3f}, "
       f"strongest-feedback (run {run_strongest10}) = {s_strong_2000:.3f}, "
       f"best-tSZ (run {run_best_tsz10}) = {s_best_2000:.3f}")
+
+# T1/T6: external literature model S(ell=2000) values
+print("external (non-TNG) model S(ell=2000):")
+for key10, lbl10, _, _ in EXT_CURVES10:
+    s_ext_2000_10 = float(np.interp(2000, ell10, ext10[key10]))
+    print(f"  {key10:28s} = {s_ext_2000_10:.3f}   [{lbl10}]")
 """)
 
 # ===================================================================== s5
@@ -1168,6 +1235,12 @@ Other caveats, each quantified in its verdict:
 - **kSZ external covariance**: the release's own sample-covariance estimator
   count is unpublished, so its Hartlap factor cannot be applied (flagged in
   R6.json); the primary cut is the one stable under our unit fix.
+- **Independent-map check is large-aperture only**: the Planck MILCA
+  cross-check (§2.3) validates $\theta\ge4'$ against a second instrument and
+  component-separation pipeline; Planck's $10'$ beam cannot reach the
+  small-aperture columns that drive the tSZ tension, so it is a
+  large-aperture consistency check on the pipeline and map, not independent
+  confirmation of the small-aperture deficit itself.
 - **GP emulation**: likelihoods are GP-emulated over 253 nodes with
   coverage-calibrated uncertainties (temperature 1.2–1.5$\times$); posterior
   tails beyond the design hull are prior-dominated by construction.
@@ -1175,10 +1248,16 @@ Other caveats, each quantified in its verdict:
   (Phase L, ESS$\sim$6) produced a "stable constrained pair" that did NOT
   survive the Dirichlet null — retained here as a methodological warning
   that robustness checks are not null tests.
-- **Measured-but-secondary splits**: the EBV$<$0.15 dust-cut variant shifts the
-  data vector by only 0.05–0.07$\sigma$ (decision #18); a broader
-  $z=0.45$–0.9 window was measured (T2 products) and behaves consistently —
-  both retained as variants, not cuts.
+- **Measured-but-secondary splits**: a fine-grid, like-for-like
+  re-measurement of the EBV$<$0.15 dust-cut variant against the same
+  baseline map shifts the data vector by $\le0.16\sigma$ per column
+  (superseding an earlier coarse-grid estimate of 0.05–0.07$\sigma$ that
+  mixed in the CIB/dust map-variant difference, decision #18); an RA-half
+  split of the LRG sample is internally consistent ($\chi^2=3.7/6$,
+  PTE$=0.72$ on the fit columns; $3.1/6$, PTE$=0.79$ on fixed apertures),
+  positive evidence of footprint uniformity; a broader $z=0.45$–0.9 window
+  was measured (T2 products) and behaves consistently — all retained as
+  variants, not cuts.
 """)
 code(r"""
 # ---- Fig 9: counts by treatment (the honesty figure) -----------------------
@@ -1291,6 +1370,7 @@ where certain; verify all entries against ADS before submission.)*
 - Liu et al., 2025 (ACT DR6 y-CAP at DESI photometric LRGs)
 - McCarthy I.G., et al., 2025 (FLAMINGO vs stacked kSZ)
 - Ni Y., et al., 2023, ApJ (CAMELS extended parameter sweeps)
+- Planck Collaboration XXII, 2016, A&A 594, A22 (2015 SZ maps)
 - Popesso P., et al., 2024 (eROSITA group gas fractions)
 - Ried Guachalla B., et al., 2025 (DESI DR1 spectroscopic kSZ profiles)
 - Sailer N., et al., 2024 (DESI LRG lensing mass calibration)

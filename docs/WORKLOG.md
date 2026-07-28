@@ -6,6 +6,31 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-28 — R8 CLOSED: chains converged (739–1200 τ), verdict pass=true
+
+The `run_r8_chains.sh` sbatch extension (job 2454139, 4 concurrent legs,
+8h) took every chain 15–24× past the 50-τ gate: nsteps/τ_max = **1200
+(ksz) / 739 (tsz) / 875 (joint) / 841 (joint_noA2h)** — but its wall cut
+the finalize stage, which then needed three lessons of its own:
+finalize reads the full ~18–26 GB HDFBackend chain per leg (workstation
+cgroup OOM exit 137 → node job); each leg costs ~30 min (1h job 2454177
+timed out at 2/4 legs) → per-leg processed-chain caches keyed on step
+count (resumable); legs are independent → 4 parallel `--stage process`
+srun steps + cache-assembling finalize (job 2454180: legs 19 min, total
+23 min). `run_r8_finalize.sh`; engine commits 338f14e + parallel-finalize.
+
+**Final converged numbers (unchanged from the mid-flight preview, which
+is itself a stability check): joint f̃_gas(<R500)=0.453+0.059/−0.061,
+shell(R500→R200)=0.950+0.051/−0.053** of cosmic; kSZ and tSZ legs
+individually consistent (f_in 0.49±0.06 both); L's ESS~6 contour sits
+inside R8's everywhere. Look-elsewhere: only **WindFreeTravelDensFac**
+(wr=0.37) beats the ESS-matched Dirichlet null; A_2h posterior ≈ prior.
+`verdicts/R8.json` pass=**true** (GP coverage gate + all 3 primary
+chains ≥50τ). Campaign p4c-hardened is closed; R8 posteriors
+(`r8_posterior.npz`) supersede Phase L numbers for the paper.
+
+---
+
 ## 2026-07-27 — R8: GP+MCMC inference upgrade, replaces the ESS~6 pseudo-posterior
 
 Executed `docs/p4c_referee_hardening_plan.md` R8 (`examples/_r8_gp_mcmc.py`,

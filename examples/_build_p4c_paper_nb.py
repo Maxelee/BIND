@@ -548,6 +548,9 @@ ax.errorbar(d8["th"], d8["ratio"], d8["yerr"], fmt="o", ms=5, color=C["data"],
 ax.axvline(XB_ONEHALO_MAX * thr, color="0.7", ls=":", lw=1)
 ax.text(XB_ONEHALO_MAX * thr, ax.get_ylim()[0], " 1-halo fit range ", fontsize=8,
         color="0.4", ha="left", va="bottom")
+ax.axvline(thr, color="0.5", ls="--", lw=1)
+ax.text(thr, ax.get_ylim()[1], r" $\theta_{200}$", fontsize=8, color="0.35",
+        ha="left", va="top")
 ax.plot([], [], color=C["cons"], lw=1.3, label=f"consistent nodes ({len(cons_ids)}/253)")
 ax.plot([], [], color=C["nodes"], lw=0.8, label="other SB35 nodes")
 ax.set_ylabel(r"$\tilde f_{\rm gas}(<\theta_d)\,/\,f_{\rm b,cosmic}$")
@@ -641,7 +644,10 @@ ax.errorbar(xb[~valid], m17[~valid], sig_disp[~valid], fmt="o", ms=4, mfc="none"
             color="0.5", lw=1, capsize=2, zorder=5, label="outside fit range")
 ax.plot([], [], color=C["cons"], lw=1.2, label="kSZ-consistent nodes")
 ax.axvline(XB_ONEHALO_MAX, color="0.7", ls=":", lw=1)
+ax.axvline(1.0, color="0.5", ls="--", lw=1)
 ax.set_yscale("symlog", linthresh=2e-8)
+ax.text(1.0, ax.get_ylim()[1], r" $\theta_d=\theta_{200}$", fontsize=8, color="0.35",
+        ha="left", va="top")
 ax.set_ylabel(r"CAP $y$ [arcmin$^2$]")
 ax.set_title("Fig 5 — tSZ confrontation: the full design over-predicts the data")
 ax.legend(frameon=False, loc="lower right", fontsize=9)
@@ -771,7 +777,11 @@ Goodness-of-fit summary per probe (per-bin structure is visible in Figs 4-5):
 Consistency counts depend on the error treatment (§5), so quantitative
 statements come from a likelihood analysis (phase R8,
 `examples/_r8_gp_mcmc.py`): per-column GP emulators over the design
-(3-fold-validated, coverage-calibrated) feed a 33-dimensional `emcee` MCMC —
+(3-fold cross-validated; held-out RMSE 45–86% of the node-to-node spread
+per observable across the kSZ/tSZ/gas-plane columns, 1$\sigma$/2$\sigma$
+coverage 67–73%/93–96% after a 1.2–1.5$\times$ calibration temperature,
+propagated into the likelihood — numbers printed in the Fig. 8 cell) feed a
+33-dimensional `emcee` MCMC —
 30 astro parameters + satellite fraction $f_{\rm sat}$ + mass-anchor offset
 $\Delta\log M$ + two-halo amplitude $A_{2h}$ (Foreman-Mackey et al. 2013) —
 with all chains run 740–1200 autocorrelation times (gate: 50).
@@ -900,6 +910,33 @@ print()
 print("Nuisance posteriors (joint):")
 print(f"  f_sat = {fsat[1]:.3f} [{fsat[0]:.3f}, {fsat[2]:.3f}] (16-50-84th %ile)")
 print(f"  dlogM = {dlogm[1]:.3f} [{dlogm[0]:.3f}, {dlogm[2]:.3f}] dex (16-50-84th %ile)")
+
+# C3: GP held-out validation summary (gp_validation sub-keys: ksz, tsz, gasplane;
+# each holds one or more named observables with per-observable OOF metrics)
+gpv = V["R8"]["metrics"]["gp_validation"]
+
+def _gp_leaves(node):
+    if isinstance(node, dict):
+        if "rmse_over_spread" in node:
+            yield node
+        else:
+            for v in node.values():
+                yield from _gp_leaves(v)
+
+gp_leaves = list(_gp_leaves(gpv))
+ros_all = np.array([l["rmse_over_spread"] for l in gp_leaves])
+c1_all = np.array([l["coverage_1sigma"] for l in gp_leaves])
+c2_all = np.array([l["coverage_2sigma"] for l in gp_leaves])
+cal_all = np.array([l["calibration_factor"] for l in gp_leaves])
+print()
+print(f"=== GP held-out validation (R8, {len(gp_leaves)} observables across ksz/tsz/gasplane) ===")
+print(f"  held-out RMSE / node-to-node spread: {ros_all.min()*100:.0f}-{ros_all.max()*100:.0f}%")
+print(f"  1-sigma coverage (post-calibration): {c1_all.min()*100:.0f}-{c1_all.max()*100:.0f}% "
+      f"(nominal 68%)")
+print(f"  2-sigma coverage (post-calibration): {c2_all.min()*100:.0f}-{c2_all.max()*100:.0f}% "
+      f"(nominal 95%)")
+print(f"  calibration temperature applied: {cal_all.min():.2f}-{cal_all.max():.2f}x")
+print(f"  coverage_gate_ok: {gpv['coverage_gate_ok']}")
 """)
 
 # ===================================================================== s4
@@ -975,10 +1012,12 @@ lightcone (red) across the plotted range, including the DES/LSST-relevant
 $\ell\sim300$–$3000$ band (shaded grey). Two caveats keep this a translation
 rather than a calibrated forecast input: the weighting is a design-level
 importance proxy, not a draw from the actual R8 posterior (ESS quoted
-above), and the TNG300 (205 Mpc$/h$) box underlying every node is only
-marginally converged for the *absolute* amplitude of baryonic suppression
-(Schaller et al. 2024) — the same shared-box caveat noted for the node
-ranking in §5, here applying to suppression amplitude rather than rank.
+above), and the TNG300 (205 Mpc$/h$ = 302.6 comoving Mpc at $h=0.6774$) box
+underlying every node sits just above the $\gtrsim200$ comoving Mpc
+threshold where Schaller et al. (2024) find the FLAMINGO baryonic
+suppression converged to $\sim1$–$2\%$, short of the $\ge1\,$Gpc scale
+needed for sub-percent convergence — the same shared-box caveat quantified
+in §5, here applying to suppression amplitude rather than rank.
 """)
 code(r"""
 # ---- Fig 10: WL suppression-curve translation (S1) -------------------------
@@ -1116,10 +1155,16 @@ Other caveats, each quantified in its verdict:
   (Hartlap-corrected), but a single N-body box underlies everything. The
   measured per-node realization scatter in the CAP matrices is 19.4%
   (P6b.json `capmat_realization_scatter_pct`, bgs110) and enters each node's
-  covariance; separately, box-size convergence of baryonic suppression
-  itself requires large volumes (Schaller et al. 2024), which the 205 Mpc/h
-  TNG300 box only marginally satisfies — a caveat on absolute amplitudes,
-  not on the node ranking.
+  covariance; separately, Schaller et al. (2024) find, in the FLAMINGO
+  suite, that the baryonic matter-power suppression converges to the $\sim2\%$ level at
+  $z=0$ ($\sim1\%$ at $z=1$) for cubic volumes with side length
+  $\gtrsim200$ comoving Mpc, with sub-percent convergence only for
+  $\ge1\,$Gpc boxes. TNG300's $205\,{\rm Mpc}/h$ side is $302.6$ comoving
+  Mpc at $h=0.6774$ — above the $200\,$Mpc threshold — so box-size error on
+  the suppression amplitude is at the few-percent level: subdominant to the
+  $19.4\%$ per-node realization scatter already propagated into the
+  covariance, and immaterial to the node ranking that drives the
+  conclusions.
 - **kSZ external covariance**: the release's own sample-covariance estimator
   count is unpublished, so its Hartlap factor cannot be applied (flagged in
   R6.json); the primary cut is the one stable under our unit fix.
@@ -1249,7 +1294,7 @@ where certain; verify all entries against ADS before submission.)*
 - Popesso P., et al., 2024 (eROSITA group gas fractions)
 - Ried Guachalla B., et al., 2025 (DESI DR1 spectroscopic kSZ profiles)
 - Sailer N., et al., 2024 (DESI LRG lensing mass calibration)
-- Schaller J., et al., 2024 (FLAMINGO convergence)
+- Schaller M., Schaye J., Kugel R., Broxterman J.C., van Daalen M.P., 2024, MNRAS 539, 1337 (FLAMINGO baryon effects on the matter power spectrum — box-convergence threshold; arXiv:2410.17109)
 - Schaan E., et al., 2021, PRD 103, 063513 (ACT DR5 kSZ CAP)
 - Sunyaev R.A., Zel'dovich Ya.B., 1972, Comm. Astrophys. Space Phys. 4, 173
 - van Daalen M.P., McCarthy I.G., Schaye J., 2020, MNRAS 491, 2424

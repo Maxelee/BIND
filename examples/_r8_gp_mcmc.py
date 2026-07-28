@@ -662,11 +662,25 @@ def step_chain_budgeted(leg, log_prob_fn, rng, time_budget_sec, nwalkers=NWALKER
 def process_chain_from_backend(leg):
     """Read the (possibly multi-call-accumulated) HDFBackend for leg and do
     the autocorrelation / discard-burn-in / thin / flatten post-processing --
-    the read-only counterpart to step_chain_budgeted's writes."""
+    the read-only counterpart to step_chain_budgeted's writes.
+
+    Each leg takes ~30 min (full ~20 GB ceph read + autocorr FFTs over ~1M
+    steps x 33 dims), so the processed result is cached per leg; a finalize
+    that dies partway resumes from the completed legs. The cache is keyed on
+    the backend's step count and invalidates itself if the chain is extended."""
     import emcee
     backend = emcee.backends.HDFBackend(str(backend_path_for(leg)), read_only=True)
     ndim = NDIM
     nsteps = backend.iteration
+    cache = SCRATCH / f"r8_processed_{leg}.npz"
+    if cache.exists():
+        c = np.load(cache)
+        if int(c["total_steps"]) == nsteps:
+            conv = json.loads(str(c["conv_json"]))
+            log(f"chain[{leg}]: reusing processed cache ({cache.name}, "
+                f"total_steps={nsteps}, kept {int(c['chain'].shape[0])} samples)")
+            return c["chain"], c["logp"], conv
+        log(f"chain[{leg}]: cache stale ({int(c['total_steps'])} != {nsteps}), reprocessing")
     accept_frac = np.mean(backend.accepted) / max(nsteps, 1)
 
     try:
@@ -689,6 +703,8 @@ def process_chain_from_backend(leg):
                 mean_accept_frac=float(accept_frac), total_steps=int(nsteps))
     log(f"chain[{leg}]: total_steps={nsteps}, tau_max={tau_max}, nsteps/tau_max={n_tau}, "
         f"kept {chain.shape[0]} samples (discard={discard}, thin={thin})")
+    np.savez(cache, chain=chain, logp=logp, total_steps=nsteps,
+             conv_json=json.dumps(conv))
     return chain, logp, conv
 
 

@@ -44,10 +44,10 @@ def code(s): cells.append(nbf.v4.new_code_cell(s.strip("\n")))
 
 # ===================================================================== title
 md(r"""
-# Group-scale gas thermodynamics from kSZ + tSZ stacking versus the CAMELS-SB35 feedback space
+# DESI × ACT: group gas thermodynamics from kSZ + tSZ stacking versus a 253-node IllustrisTNG feedback design
 
-**A map-level confrontation of 253 IllustrisTNG feedback variants with DESI $\times$ ACT
-kinematic and thermal Sunyaev–Zel'dovich measurements**
+**A map-level confrontation of 253 CAMELS-SB35 IllustrisTNG feedback variants
+with DESI $\times$ ACT kinematic and thermal Sunyaev–Zel'dovich measurements**
 
 *Paper-structured notebook: every figure regenerates from the archived campaign
 products (no re-measurement); every quoted number is printed live from its
@@ -60,7 +60,7 @@ branch `analysis/ksz-desi-act-v2`.*
 ## Abstract
 
 Baryonic feedback redistributes gas in and around dark-matter halos, and is now
-the dominant systematic for small-scale weak-lensing cosmology. We confront a
+the dominant systematic for small-scale weak-lensing cosmology. This is, to our knowledge, the first map-level confrontation of a full (30-dimensional, 253-node) feedback parameter design with independent kSZ and tSZ measurements at the same galaxy population. We confront a
 253-node Sobol design over the 30-dimensional IllustrisTNG astrophysics
 parameter space — realized as ray-traced 25 deg$^2$ lightcones painted by the
 BIND generative emulator on a shared TNG300 dark-matter-only base — with two
@@ -197,6 +197,8 @@ GP-emulated MCMC over the design with nuisance marginalization and a
 look-elsewhere null — not from raw consistency counts, which we show are
 treatment-dependent (§3.4, §5).
 
+This is, to our knowledge, the first map-level confrontation of a full (30-dimensional, 253-node) feedback parameter design with independent kSZ and tSZ measurements at the same galaxy population.
+
 Section 2 describes the data, our measurement, and the error budget; §3 the
 kSZ selection, the tSZ tension, their coherence, and the posterior; §4–5
 discussion and caveats; §6–7 conclusions and future work.
@@ -205,6 +207,8 @@ discussion and caveats; §6–7 conclusions and future work.
 # ===================================================================== s2.1
 md(r"""
 ## 2  Data & methods
+
+*Sections 2.1–2.4 describe what was **measured**; §2.5 describes what is **modeled or assumed** on top of the measurements — mirroring the measurement/interpretation split this field uses (Schaan et al. 2021 vs Amodeo et al. 2021).*
 
 ### 2.1  The BIND lightcone suite (model bank)
 
@@ -756,6 +760,15 @@ data pull toward high `WindFreeTravelDensFac`, low wind energies, and flat
 IMF slope — i.e. configurations that move gas out of $R_{500}$ efficiently
 without over-heating what remains (Fig. 7's near-cosmic outskirt shell).
 
+**Per-probe ledger for the preferred (strong-feedback, gas-poor) region:**
+
+| probe | verdict |
+|---|---|
+| kSZ (DESI DR1 BGS × ACT, Ried Guachalla+25, R6-corrected) | 27/253 nodes consistent; selects the gas-poor edge |
+| tSZ (our ACT DR6 y-CAP at DESI LRGs) | 0/253 consistent under the full budget; fiducial p≈3×10⁻⁴; data below the entire design |
+| DES Y3 cosmic shear | no discrimination after amplitude marginalization (all 253 accepted); χ² co-ranking ρ≈0.70 retained as corroboration only |
+| X-ray (eROSITA groups, lit.) | same direction: measured gas fractions below all tested simulations |
+
 **What the gas plane means for lensing.** Through the van Daalen et al.
 (2020) relation, $\tilde f_{\rm gas}(<R_{500})\simeq0.45$ at
 $10^{13.2}\,M_\odot$ implies matter-power suppression at the strong end of
@@ -793,7 +806,13 @@ Other caveats, each quantified in its verdict:
 - **Shared DMO base**: all nodes share one TNG300-Dark realization; sample
   variance is common-mode across nodes (helps ranking, limits absolute
   covariance realism). BIND realization scatter is propagated per node
-  (Hartlap-corrected), but a single N-body box underlies everything.
+  (Hartlap-corrected), but a single N-body box underlies everything. The
+  measured per-node realization scatter in the CAP matrices is 19.4%
+  (P6b.json `capmat_realization_scatter_pct`, bgs110) and enters each node's
+  covariance; separately, box-size convergence of baryonic suppression
+  itself requires large volumes (Schaller et al. 2024), which the 205 Mpc/h
+  TNG300 box only marginally satisfies — a caveat on absolute amplitudes,
+  not on the node ranking.
 - **kSZ external covariance**: the release's own sample-covariance estimator
   count is unpublished, so its Hartlap factor cannot be applied (flagged in
   R6.json); the primary cut is the one stable under our unit fix.
@@ -804,6 +823,10 @@ Other caveats, each quantified in its verdict:
   (Phase L, ESS$\sim$6) produced a "stable constrained pair" that did NOT
   survive the Dirichlet null — retained here as a methodological warning
   that robustness checks are not null tests.
+- **Measured-but-secondary splits**: the EBV$<$0.15 dust-cut variant shifts the
+  data vector by only 0.05–0.07$\sigma$ (decision #18); a broader
+  $z=0.45$–0.9 window was measured (T2 products) and behaves consistently —
+  both retained as variants, not cuts.
 """)
 code(r"""
 # ---- Fig 9: counts by treatment (the honesty figure) -----------------------
@@ -906,6 +929,7 @@ where certain; verify all entries against ADS before submission.)*
 - Popesso P., et al., 2024 (eROSITA group gas fractions)
 - Ried Guachalla B., et al., 2025 (DESI DR1 spectroscopic kSZ profiles)
 - Sailer N., et al., 2024 (DESI LRG lensing mass calibration)
+- Schaller J., et al., 2024 (FLAMINGO convergence)
 - Schaan E., et al., 2021, PRD 103, 063513 (ACT DR5 kSZ CAP)
 - Sunyaev R.A., Zel'dovich Ya.B., 1972, Comm. Astrophys. Space Phys. 4, 173
 - van Daalen M.P., McCarthy I.G., Schaye J., 2020, MNRAS 491, 2424

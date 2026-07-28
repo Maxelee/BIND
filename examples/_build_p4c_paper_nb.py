@@ -253,9 +253,15 @@ is dust-contaminated at the innermost apertures ($-4$ to $-7\sigma$
 negative), consistent with Liu et al. (2025), whose fiducial is likewise
 deprojected. Errors are a 100-cell RA/Dec jackknife with Hartlap debiasing
 (Hartlap et al. 2007). Two nulls gate the measurement: 1.18M randoms in the
-same footprint, and an RA-rotated LRG catalog.
+same footprint, and an RA-rotated LRG catalog; both remain consistent with
+zero in the fit range (PTEs printed in Fig 1), though beyond $\sim4.75'$ the
+random null shows a $-3\sigma$ footprint systematic at the $\sim3\%$-of-signal
+level (decision #19), outside the fit range.
 
-**Fig. 1** shows the data vector, the CIB-variant band, and the nulls.
+**Fig. 1** shows the data vector, the CIB-variant band, and the nulls. Per-object
+bootstrap errors agree with the spatial jackknife to within a factor that
+reflects the expected spatial-correlation loss in bootstrap resampling; the
+spatial jackknife is therefore primary.
 """)
 code(r"""
 # ---- Fig 1: the y-CAP measurement -----------------------------------------
@@ -298,6 +304,24 @@ print(f"per-aperture S/N: {snr.min():.1f}-{snr.max():.1f};  n_gal = {int(a['n_ga
 print(f"nulls: random |max| = {np.abs(a['random_null']).max():.2e}, "
       f"rotated |max| = {np.abs(a['rotated_null']).max():.2e} "
       f"(vs signal {a['mean_rap'].max():.2e})")
+
+# N1: null significance (chi2 and PTE in fit range)
+from scipy.stats import chi2
+mask_fit = tr <= 4.5
+n_dof_fit = mask_fit.sum()
+chi2_rand = float(np.sum((a["random_null"][mask_fit] / a["random_null_err"][mask_fit])**2))
+pte_rand = chi2.sf(chi2_rand, n_dof_fit)
+chi2_rot = float(np.sum((a["rotated_null"][mask_fit] / a["err_jk_rap"][mask_fit])**2))
+pte_rot = chi2.sf(chi2_rot, n_dof_fit)
+print(f"random null: chi2={chi2_rand:.1f}/{n_dof_fit} (PTE={pte_rand:.2f}); "
+      f"rotated null: chi2={chi2_rot:.1f}/{n_dof_fit} (PTE={pte_rot:.2f})")
+
+# N2: bootstrap vs jackknife comparison
+d_t2f = np.load(LC / "T2f_lrg_z0406_cib1.7.npz")
+sel_xb = np.asarray(d_t2f["theta_kind"]).astype(str) == "xb"
+ratio_boot_jk = d_t2f["err_boot"][sel_xb] / d_t2f["err_jk"][sel_xb]
+ratio_min, ratio_max = ratio_boot_jk.min(), ratio_boot_jk.max()
+print(f"bootstrap/jackknife ratio on xb columns: {ratio_min:.3f}–{ratio_max:.3f}")
 """)
 
 # ===================================================================== s2.3
@@ -612,8 +636,59 @@ print(f"Spearman rho = {rho:.3f} (p = {pv:.1e}); "
       f"T3 verdict value: {t3m['counts']['spearman_ksz110_vs_tsz_chi2'][0]:.3f}")
 """)
 
+# ===================================================================== s3.3b
+code(r"""
+# N3: goodness-of-fit table
+from scipy.stats import chi2
+
+# kSZ data from R6 verdict
+r6_bgs110 = V["R6"]["metrics"]["per_sample"]["bgs110"]
+n_dof_ksz = r6_bgs110["n_dof"]
+n_consistent_ksz = r6_bgs110["n_new_consistent"]
+
+# tSZ data from T3 verdict
+t3_metrics = V["T3"]["metrics"]
+n_dof_tsz = t3_metrics["dof"]
+chi2_fid_tsz = t3_metrics["chi2_fid_over_dof"] * n_dof_tsz
+chi2_best_tsz = t3_metrics["chi2_nodes_min_med"][0]
+pte_fid_tsz = chi2.sf(chi2_fid_tsz, n_dof_tsz)
+pte_best_tsz = chi2.sf(chi2_best_tsz, n_dof_tsz)
+
+n_tsz_consistent = t3_metrics["counts"]["n_tsz_consistent"]
+spearman_rho = t3_metrics["counts"]["spearman_ksz110_vs_tsz_chi2"][0]
+
+# Node chi2 distribution for the kSZ leg (latent_constraints holds the final
+# per-node chain values; the TNG fiducial is a separate run, NOT among the
+# 253 nodes -- its kSZ verdict is qualitative: gas-rich of the data, Fig 4)
+lat = np.load(LC / "latent_constraints.npz", allow_pickle=True)
+chi2_ksz = lat["chi2_ksz"]
+chi2_best_ksz = np.nanmin(chi2_ksz)
+chi2_med_ksz = np.nanmedian(chi2_ksz)
+pte_best_ksz = chi2.sf(chi2_best_ksz, n_dof_ksz)
+
+print()
+print("=== Goodness-of-fit summary ===")
+print(f"kSZ bgs110 (n_dof={n_dof_ksz}):")
+print(f"  best node: χ²={chi2_best_ksz:.1f}  PTE={pte_best_ksz:.3f}")
+print(f"  median node: χ²={chi2_med_ksz:.1f}")
+print(f"  consistent: {n_consistent_ksz} / 253")
+print(f"tSZ (n_dof={n_dof_tsz}):")
+print(f"  fiducial: χ²={chi2_fid_tsz:.1f}  PTE={pte_fid_tsz:.2e}")
+print(f"  best node: χ²={chi2_best_tsz:.1f}  PTE={pte_best_tsz:.2e}")
+print(f"  consistent: {n_tsz_consistent} / 253")
+print(f"joint ranking coherence: Spearman ρ = {spearman_rho:.2f}")
+""")
+
 # ===================================================================== s3.4
 md(r"""
+Goodness-of-fit summary per probe (per-bin structure is visible in Figs 4-5):
+
+| probe | verdict |
+|---|---|
+| **kSZ (bgs110)** | 27/253 nodes consistent; best node $\chi^2=1.8/6$ (PTE=0.93), median node $\chi^2=61$; the fiducial sits in the rejected gas-rich tail (Fig 4) |
+| **tSZ** | 0/253 consistent; fiducial $\chi^2/{\rm dof}=4.2$ (PTE$\approx3\times10^{-4}$); best node $15.9/6$ (PTE=0.014) |
+| **joint ranking** | Spearman $\rho=0.82$; both probes order the design by the same gas property |
+
 ### 3.4  Posterior inference: the gas plane and the parameter forest
 
 Consistency counts depend on the error treatment (§5), so quantitative
@@ -644,6 +719,17 @@ pulled flat; `WindFreeTravelDensFac` high), but under an ESS-matched
 Dirichlet look-elsewhere null **only `WindFreeTravelDensFac`** remains
 individually significant — an honest statement of how much a 253-node
 design can localize 30 parameters.
+
+The nuisance posteriors stay physically plausible (mirroring the $A_{2h}$
+check): the effective in-catalog satellite fraction comes out
+$f_{\rm eff}=0.036^{+0.020}_{-0.019}$ — mildly below its $\kappa$-calibrated
+prior $0.08\pm0.04$ and corresponding to a true LRG satellite fraction
+$\simeq0.05$ versus the $\sim0.11$ HOD literature value (Yuan et al. 2023),
+a $\sim1\sigma$ preference for less satellite boost, not an implausible
+excursion — and the mass-anchor offset
+$\Delta\log M = -0.012^{+0.081}_{-0.081}$ dex sits comfortably within the
+Sailer et al. (2024) anchor uncertainty of $\pm0.1$ dex. No reconciliation
+freedom is being exercised at an implausible value.
 """)
 code(r"""
 # ---- Fig 7: gas-plane posterior corner ------------------------------------
@@ -729,6 +815,14 @@ print("A_2h posterior (joint):",
       np.round(V["R8"]["metrics"]["r4_two_halo_a2h_nuisance"]
                .get("a2h_posterior_165084", {}).get("joint", []), 3)
       if isinstance(V["R8"]["metrics"].get("r4_two_halo_a2h_nuisance"), dict) else "see R8.json")
+
+# N4: nuisance plausibility
+fsat = np.percentile(p8["chain_joint"][:, 30], [16, 50, 84])
+dlogm = np.percentile(p8["chain_joint"][:, 31], [16, 50, 84])
+print()
+print("Nuisance posteriors (joint):")
+print(f"  f_sat = {fsat[1]:.3f} [{fsat[0]:.3f}, {fsat[2]:.3f}] (16-50-84th %ile)")
+print(f"  dlogM = {dlogm[1]:.3f} [{dlogm[0]:.3f}, {dlogm[2]:.3f}] dex (16-50-84th %ile)")
 """)
 
 # ===================================================================== s4
@@ -934,6 +1028,7 @@ where certain; verify all entries against ADS before submission.)*
 - Sunyaev R.A., Zel'dovich Ya.B., 1972, Comm. Astrophys. Space Phys. 4, 173
 - van Daalen M.P., McCarthy I.G., Schaye J., 2020, MNRAS 491, 2424
 - Villaescusa-Navarro F., et al., 2021, ApJ 915, 71 (CAMELS)
+- Yuan H., et al., 2023 (DESI LRG HOD)
 
 ## Reproducibility appendix
 

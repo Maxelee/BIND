@@ -466,6 +466,7 @@ order, and registered in `docs/p4c_decisions_table.md`:
 | R5 | CIB residual | **correlated** $\Sigma_{\rm CIB}$ from 11 ILC deprojection variants | dominant off-diagonal term |
 | R7 | painting fidelity | truth-lightcone closure at the same halos/apertures; divided out of the model | $+16.4\%\pm2\%$ |
 | R4 | 2-halo / unpainted gas | analytic GNFW (Battaglia et al. 2012) template, $A_{2h}\sim\mathcal N(1,0.3)$, MCMC nuisance | 16–30% of data |
+| R6b | kSZ external covariance sample count (unpublished by the release) | **residual gap**, sensitivity-bounded: Hartlap factors up to 1.32 only *enlarge* the consistent set (27$\to$33) and preserve the ranking ($\rho\ge0.998$) | conservative direction |
 
 The jackknife covariance, $\Sigma_{\rm CIB}$, the satellite span, the mass
 template, and the BIND realization covariance sum to the full comparison
@@ -801,6 +802,17 @@ print(f"  fiducial: χ²={chi2_fid_tsz:.1f}  PTE={pte_fid_tsz:.2e}")
 print(f"  best node: χ²={chi2_best_tsz:.1f}  PTE={pte_best_tsz:.2e}")
 print(f"  consistent: {n_tsz_consistent} / 253")
 print(f"joint ranking coherence: Spearman ρ = {spearman_rho:.2f}")
+# combined joint GoF at the best JOINT node (kSZ + tSZ chi2 summed; the two
+# data vectors are independent measurements, so the chi2 add)
+chi2_sum = chi2_ksz + np.asarray(lat["chi2_tsz"])
+jbest = int(np.nanargmin(chi2_sum))
+dof_joint = n_dof_ksz + n_dof_tsz
+pte_joint = chi2.sf(float(chi2_sum[jbest]), dof_joint)
+print(f"combined joint GoF (best joint node, run {int(lat['node_ids'][jbest])}): "
+      f"χ²={float(chi2_sum[jbest]):.1f}/{dof_joint} (PTE={pte_joint:.2f}) — "
+      f"marginally acceptable in the combined statistic because the kSZ dof "
+      f"dilute it; the tension is localized in the tSZ leg, where the same "
+      f"node fails its own consistency threshold (0/253 pass)")
 
 # T4/T6: internal-split consistency (RA-half jackknife + EBV like-for-like)
 with open(LC / "split_consistency.json") as f:
@@ -1074,7 +1086,10 @@ threshold where Schaller et al. (2024) find the FLAMINGO baryonic
 suppression converged to $\sim1$–$2\%$, short of the $\ge1\,$Gpc scale
 needed for sub-percent convergence — the same shared-box caveat quantified
 in §5, here applying to suppression amplitude rather than rank. Independent
-literature baryon-suppression models — none from the TNG family — bracket
+literature baryon-suppression models — none from the TNG family, though we
+note they are *semi-analytic translations calibrated to* the named
+simulations (BCM, the vD19 $f_{\rm bar}$ relation, HMcode's BAHAMAS fit)
+rather than raw simulation lightcones — bracket
 our joint-posterior-weighted band from the strong side at $\ell\sim2000$:
 the van Daalen et al. (2020) $f_{\rm bar}$ model evaluated at our
 joint-posterior gas fraction ($S\simeq0.893$) and HMcode-2020 with the
@@ -1263,6 +1278,13 @@ Other caveats, each quantified in its verdict:
   small-aperture columns that drive the tSZ tension, so it is a
   large-aperture consistency check on the pipeline and map, not independent
   confirmation of the small-aperture deficit itself.
+- **Painting fidelity is a single-point calibration**: the R7 closure
+  (+16.4%±2%, divided out of the model) is measured against the one
+  hydrodynamic truth lightcone that exists — the *fiducial* TNG300 — and has
+  not been cross-validated at other design points, in particular the
+  strong-feedback edge where the headline conclusion lives. A cross-design
+  fidelity closure (additional truth boxes at non-fiducial parameters) is
+  the single most valuable follow-up validation.
 - **GP emulation**: likelihoods are GP-emulated over 253 nodes with
   coverage-calibrated uncertainties (temperature 1.2–1.5$\times$); posterior
   tails beyond the design hull are prior-dominated by construction.

@@ -6,6 +6,26 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-28b — Paper notebook: `examples/paper_p4c_tsz_ksz.ipynb`
+
+Paper-structured deliverable (builder `examples/_build_p4c_paper_nb.py`,
+same emit-only harness as the campaign notebook builders): abstract →
+intro → data/methods → results → discussion → caveats → conclusions →
+future work, with a literature-grounded narrative and **9 paper figures
+regenerated purely from the archived products** (act_ycap_lrg_real,
+R1/R2/R3/R5 correction npz, taucap/capmat + ksz_consistent_nodes_r6,
+latent_constraints, r8_posterior + verdict JSONs — no re-measurement,
+no raw maps; runs in ~3 min). Fig list: (1) y-CAP measurement+nulls,
+(2) DR5+Liu validation, (3) error-budget decomposition, (4) kSZ
+selection, (5) tSZ tension money plot, (6) χ² coherence, (7) gas-plane
+posterior, (8) parameter forest, (9) counts-by-treatment honesty bar.
+Figures also written to `KS/lightcone/figs/paper/`. Quoted numbers print
+live from verdicts (single source of truth). Note: S/N per aperture is
+4–15 in the final fine-res product (earlier "3–9" was the coarse T2
+run). References flagged for ADS verification before submission.
+
+---
+
 ## 2026-07-28 — R8 CLOSED: chains converged (739–1200 τ), verdict pass=true
 
 The `run_r8_chains.sh` sbatch extension (job 2454139, 4 concurrent legs,

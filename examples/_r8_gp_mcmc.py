@@ -1148,12 +1148,15 @@ def main():
 if __name__ == "__main__":
     import argparse
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--stage", choices=["all", "gp", "chain", "finalize"], default="all",
+    p.add_argument("--stage", choices=["all", "gp", "chain", "process", "finalize"],
+                   default="all",
                    help="all (default, one process) | gp (fit+validate GPs) | "
                         "chain (run/resume ONE leg's MCMC for --budget seconds) | "
+                        "process (autocorr/thin ONE leg into its cache -- lets the "
+                        "4 legs' ~30-min post-processing run as parallel steps) | "
                         "finalize (post-process all 4 chains, figures, verdict)")
     p.add_argument("--leg", choices=list(LEG_SEEDS), default=None,
-                   help="required with --stage chain")
+                   help="required with --stage chain / --stage process")
     p.add_argument("--budget", type=float, default=300.0,
                    help="wall-clock seconds for --stage chain (default 300)")
     args = p.parse_args()
@@ -1166,5 +1169,9 @@ if __name__ == "__main__":
         if args.leg is None:
             raise SystemExit("--stage chain requires --leg {ksz,tsz,joint,joint_noA2h}")
         stage_chain(args.leg, args.budget)
+    elif args.stage == "process":
+        if args.leg is None:
+            raise SystemExit("--stage process requires --leg {ksz,tsz,joint,joint_noA2h}")
+        process_chain_from_backend(args.leg)
     elif args.stage == "finalize":
         stage_finalize()

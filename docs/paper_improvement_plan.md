@@ -195,3 +195,46 @@ The remaining items above (second y-map measurement, external-code
 suppression curves, GP RMS surfacing, box-convergence propagation, full
 pipeline parameterization) are the next-round backlog — each needs either
 new measurement work or external data, i.e. beyond text/figure surfacing.
+
+---
+
+## ROUND 2 — target 95 (consensus ceiling ≈ 96–97 if all land)
+
+Point math (consensus Δ per criterion 1→2): D1 +1.75, B1/C3/C6 +1.375
+each, F2 +1.5, E3 +0.63, B7 +0.69; plus ~+2.8 recovered from the four
+post-regrade fixes (B4/E2/F4/F5) already applied. Tracks 1–4 are parallel
+and never touch the builder; track 5 holds the builder serial slot; track
+6 integrates; track 7 re-grades.
+
+- **T1 [Sonnet] D1 — external named baryon-model curves for Fig 10.**
+  Limber-project literature baryon-suppression models to S(ℓ, z_s=1) with
+  pyccl at the TNG300 cosmology: BCM (Schneider & Teyssier 15), the van
+  Daalen+19 f_bar model evaluated at our joint posterior gas fraction (if
+  available in the installed ccl), the Amon & Efstathiou A_mod curve, and
+  HMcode T_AGN if camb is present. Optionally CAMELS SIMBA/Astrid CV-mean
+  S(k) via exact repo-known paths only. Product:
+  `LC/external_suppression_curves.npz` + provenance strings.
+- **T2 [Sonnet] B1 — independent second y-map cross-check (Planck).**
+  Locate/download a Planck MILCA/NILC y-map; CAP-stack it at the SAME
+  160k LRGs (per-object ra/dec stored in the T2f npz) at large apertures
+  (≥4′); beam-match by smoothing the ACT DR6 deproj map to Planck's 10′
+  beam and re-measuring; χ²/PTE of the difference (footprint systematics
+  common to both cancel in the difference). Product:
+  `LC/planck_crosscheck.npz`. Fallback: honest report if the map cannot
+  be obtained.
+- **T3 [Sonnet] F2/F5 — de-hardcode the remaining campaign engines**
+  (the ~15 listed in REPRODUCING.md) with the `_products_root()` pattern
+  from P4; per-file syntax + --help verification; REPRODUCING.md updated.
+- **T4 [Haiku] B7 — internal-split consistency numbers.** RA-half split
+  of the LRG stack from the stored per-object arrays (jackknife within
+  each half), plus the EBV variant Δ; χ²/PTE per split. Product:
+  `LC/split_consistency.json`.
+- **T5 [Sonnet, builder slot] C3+C6+E3.** Surface the actual GP held-out
+  validation numbers from R8.json gp_validation (C3); upgrade the
+  box-convergence caveat to a quantitative statement with the verified
+  Schaller+24 threshold vs TNG300's 205 Mpc/h (C6); θ200 markers on
+  Figs 4/5 distinct from the fit-range line (E3).
+- **T6 [Sonnet, builder slot] integration:** external curves → Fig 10
+  (+legend/narrative), Planck cross-check → §2.2 + validation/caveats,
+  split χ² → GoF/caveats. Rebuild + clean execution.
+- **T7 — re-grade** with the same two-grader protocol; record here.

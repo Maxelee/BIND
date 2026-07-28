@@ -1176,6 +1176,12 @@ md(r"""
    design median ($1.01$) and the TNG300-hydro truth lightcone ($0.98$), at
    the strong-suppression end of current cosmic-shear baryon priors (van
    Daalen et al. 2020; Amon & Efstathiou 2022; Bigwood et al. 2024).
+
+**Released with this paper:** the measured y-CAP data vector and covariance
+(`RELEASE/act_ycap_lrg_real.npz`), the documented MCMC chains (`r8_posterior.npz`),
+and a drop-in 2-D Gaussian gas-plane prior for baryonification analyses
+(`RELEASE/gasplane_prior.npz`, with mean $(0.452, 0.949)$ and documented covariance;
+Gaussian fidelity 1.00) — see the reproducibility appendix for data dictionaries and usage.
 """)
 
 # ===================================================================== s7
@@ -1235,6 +1241,8 @@ where certain; verify all entries against ADS before submission.)*
 
 ## Reproducibility appendix
 
+### Campaign resources
+
 | item | location |
 |------|----------|
 | campaign plan / hardening plan | `docs/tsz_des_data_plan.md`, `docs/p4c_referee_hardening_plan.md` |
@@ -1247,6 +1255,21 @@ where certain; verify all entries against ADS before submission.)*
 | GP+MCMC | `examples/_r8_gp_mcmc.py` (chains: `r8_state/`, posterior: `r8_posterior.npz`) |
 | verdicts (all gates) | `KS/lightcone/verdicts/*.json` |
 | git tag | `p4c-hardened-v1` on `analysis/ksz-desi-act-v2` |
+
+### Figure-by-figure input products and engine chain
+
+| fig | data/verdict inputs | engine(s) that produced them | released as |
+|---|---|---|---|
+| **1** — ACT DR6 y-CAP measurement | `act_ycap_lrg_real.npz` (data vector, covariance, nulls) | `act_ycap_measure.py` (T1/T2/T2f LRG+null+variant measurement shards) → `lightcone_m2r_ycap_real.py` (merge, resample correction, CIB covariance) | `RELEASE/act_ycap_lrg_real.npz` |
+| **2** — pipeline validation | `T1_dr5_snr5.npz`, `R5_liu_pz{1..4}_cib1.7.npz`, `verdicts/T1.json`, `verdicts/R5.json` | `act_ycap_measure.py --mode dr5` (ACT DR5 clusters); `act_ycap_measure.py --mode liu` (Liu et al. 2025 photometric LRGs, pz bins 1–4); `_r5c_liu_figure.py` (reproduction metrics) | none |
+| **3** — error-budget decomposition | `R1_resample_correction.npz`, `R2_hod_model_curves.npz`, `R3_mass_template.npz`, `R5_cib_cov.npz`, `verdicts/R7.json`, `verdicts/R4.json` | `_r1_closure.py` → `lightcone_hod_stack.py` (+ HOD disBatch sweep) → `_r3_mass_anchor.py` → `_r5_cib_systematics.py` → `_r7_fidelity_closure.py` → `_r4_twohalo.py` | none |
+| **4** — kSZ selection | `taucap_lightcone.npz`, `capmat_lightcone.npz`, `ksz_consistent_nodes_r6.npz`, Ried Guachalla+2025 kSZ profile (Zenodo 19160138) | `lightcone_m1_fgas_desiact.py` (map-level f_gas vs. published kSZ) → `_r6_ksz_audit.py` (covariance-unit fix, consistency audit) | none |
+| **5** — tSZ tension | `act_ycap_lrg_real.npz`, `R2_hod_model_curves.npz`, `latent_constraints.npz`, `verdicts/T3.json`, `verdicts/R7.json` | `lightcone_m2r_ycap_real.py` (tSZ x BIND comparison, verdicts/T3.json) → `lightcone_latent_corner.py` (gas-latent PCA, chi2 aggregation) | none |
+| **6** — cross-probe ranking | `latent_constraints.npz` (keys: `chi2_ksz`, `chi2_tsz`) | `_r6_ksz_audit.py` (kSZ chi2 from covariance fix) → `lightcone_m2r_ycap_real.py` (tSZ chi2) → `lightcone_latent_corner.py` (merge into single npz) | none |
+| **7** — gas-plane posterior | `r8_posterior.npz` (keys: `chain_joint`, `gas_fin_joint`, `gas_fout_joint`), `latent_constraints.npz` (key: `w_joint`), `verdicts/R8.json` | `_r8_gp_mcmc.py --stage all` (GP emulation over 253 nodes, emcee MCMC over 33-d parameter + nuisance space, 740–1200 autocorr-time chains) → `run_r8_finalize.sh` (chain post-processing, gas-plane projection) | `r8_posterior.npz` |
+| **8** — 30-parameter forest | `r8_posterior.npz` (key: `chain_joint`), `verdicts/R8.json` (key: `look_elsewhere_null.per_param`) | `_r8_gp_mcmc.py --stage chain` (emcee chain over 30 astro + 3 nuisance) → `run_r8_finalize.sh` (look-elsewhere null assembly per parameter) | `r8_posterior.npz` |
+| **9** — consistency counts (honesty) | `verdicts/R5.json` (key: `counts_by_treatment`), `verdicts/T3.json` (key: `metrics.counts`) | `_r5_cib_systematics.py` (CIB covariance, count comparison across budget treatments) + `lightcone_m2r_ycap_real.py` (final-budget threshold scan) | none |
+| **10** — WL suppression ($S(\ell)$) | `latent_constraints.npz` (keys: `node_ids`, `w_joint`), `Sell_zs1_253.npz` (cached per-node `S(\ell,z_s=1)` suppression curves), `Cl_kappa.npz` from each bind_sb35 run node (via SB35_RUNS path), paired DMO trace (`runs/dmo/run_0000/Cl_kappa.npz`), truth lightcone (`runs/truth/run_0000/Cl_kappa.npz`) | assembled in-notebook by the Fig 10 cell from the stored per-run `Cl_kappa.npz` spectra (builds the `Sell_zs1_253.npz` cache on first run; recipe adapted from `lightcone_transfer.py` on branch `analysis/wl-cosmo-bias`) | none |
 
 This notebook: built by `examples/_build_p4c_paper_nb.py`; paper figures are
 written to `KS/lightcone/figs/paper/`.

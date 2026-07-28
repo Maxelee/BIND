@@ -348,31 +348,41 @@ code(r"""
 d5 = np.load(LC / "T1_dr5_snr5.npz")
 t1m = V["T1"]["metrics"]
 
-fig, ax = plt.subplots(1, 2, figsize=(10.6, 4.0))
+fig, axd = plt.subplot_mosaic([["a", "b"], ["a", "br"]], figsize=(10.6, 4.6),
+                              height_ratios=[3, 1], sharex=False)
+ax0, ax1, axr = axd["a"], axd["b"], axd["br"]
 th5 = d5["theta_value"].astype(float)
-ax[0].errorbar(th5, d5["mean"], d5["err_jk"], fmt="o", ms=4, color=C["data"],
-               capsize=2, label=f"ACT DR5 clusters (S/N>5, n={int(d5['n_gal'])})")
-ax[0].axhline(0, color="0.6", lw=0.7)
+ax0.errorbar(th5, d5["mean"], d5["err_jk"], fmt="o", ms=4, color=C["data"],
+             capsize=2, label=f"ACT DR5 clusters (S/N>5, n={int(d5['n_gal'])})")
+ax0.axhline(0, color="0.6", lw=0.7)
 amps = t1m["yc_tercile_amps_3.5arcmin"]
-ax[0].set_title("(a) DR5 cluster stack — S/N$_{3.5'}$=%.0f, $y_c$-tercile amps %.1e/%.1e/%.1e"
-                % (t1m["stack_snr_jk_at_3.5arcmin"], *amps), fontsize=9.5)
-ax[0].set_xlabel(r"$\theta_d$ [arcmin]"); ax[0].set_ylabel(r"CAP $y$ [arcmin$^2$]")
-ax[0].legend(frameon=False)
+ax0.set_title("(a) DR5 cluster stack — S/N$_{3.5'}$=%.0f, $y_c$-tercile amps %.1e/%.1e/%.1e"
+              % (t1m["stack_snr_jk_at_3.5arcmin"], *amps), fontsize=9.5)
+ax0.set_xlabel(r"$\theta_d$ [arcmin]"); ax0.set_ylabel(r"CAP $y$ [arcmin$^2$]")
+ax0.legend(frameon=False)
 
 liu = np.load(REPO / "examples/figures_ksz2/tsz_liu2025_official.npz")
 th_l = liu["theta"].astype(float)
 for i, c in zip(range(1, 5), ["#1f77b4", "#2ca02c", "#ff7f0e", "#d62728"]):
     d = np.load(LC / f"R5_liu_pz{i}_cib1.7.npz")
     rap = np.asarray(d["theta_kind"]).astype(str) == "rap"
-    ax[1].errorbar(d["theta_value"][rap].astype(float), d["mean"][rap],
-                   d["err_jk"][rap], fmt="o-", ms=3, lw=1, color=c, capsize=2,
-                   label=f"our $p_z${i}")
-ax[1].plot(th_l, liu["pz1_fiducial"], "k--", lw=2,
-           label="Liu+2025 csv (identical all bins)")
-ax[1].set_title("(b) Liu+2025 reproduction — csv $\\equiv p_z4$ "
-                "($\\chi^2/9=%.1f$ vs %.0f for $p_z1$)"
-                % (1.7, 46), fontsize=9.5)
-ax[1].set_xlabel(r"$\theta_d$ [arcmin]"); ax[1].legend(frameon=False, ncol=2)
+    ax1.errorbar(d["theta_value"][rap].astype(float), d["mean"][rap],
+                 d["err_jk"][rap], fmt="o-", ms=3, lw=1, color=c, capsize=2,
+                 label=f"our $p_z${i}")
+    if i == 4:  # ratio sub-panel: our pz4 vs their (duplicated) csv curve
+        th4 = d["theta_value"][rap].astype(float)
+        csv4 = np.interp(th4, th_l, liu["pz1_fiducial"])
+        axr.errorbar(th4, d["mean"][rap] / csv4, d["err_jk"][rap] / np.abs(csv4),
+                     fmt="o-", ms=3, lw=1, color=c, capsize=2)
+ax1.plot(th_l, liu["pz1_fiducial"], "k--", lw=2,
+         label="Liu+2025 csv (identical all bins)")
+ax1.set_title("(b) Liu+2025 reproduction — csv $\\equiv p_z4$ "
+              "($\\chi^2/9=%.1f$ vs %.0f for $p_z1$)"
+              % (1.7, 46), fontsize=9.5)
+ax1.legend(frameon=False, ncol=2)
+axr.axhline(1, color="0.6", lw=0.8)
+axr.set_ylabel(r"our $p_z4$ / csv")
+axr.set_xlabel(r"$\theta_d$ [arcmin]")
 fig.savefig(FIGDIR / "fig2_validation.png")
 plt.show()
 r5c = V["R5"]["metrics"]["r5c_liu_reproduction"]
@@ -421,8 +431,15 @@ order, and registered in `docs/p4c_decisions_table.md`:
 | R4 | 2-halo / unpainted gas | analytic GNFW (Battaglia et al. 2012) template, $A_{2h}\sim\mathcal N(1,0.3)$, MCMC nuisance | 16–30% of data |
 
 The jackknife covariance, $\Sigma_{\rm CIB}$, the satellite span, the mass
-template, and the BIND realization covariance (Hartlap-corrected) sum to the
-full comparison covariance. **Fig. 3** decomposes the diagonal at the six fit
+template, and the BIND realization covariance sum to the full comparison
+covariance. Each block's estimator bias is treated explicitly: the two
+*sampling* covariances — the 100-cell data jackknife and each node's
+50-realization BIND covariance — carry their own Hartlap factors
+$(n-1)/(n-p-2)$ before inversion; $\Sigma_{\rm CIB}$ is **not** a sampling
+covariance (the 11 deprojection variants are a bounded family scan, not
+random draws — a Hartlap correction is not applicable) and is used as a
+fully-specified systematic template, with the satellite span and mass
+template likewise entering as fully-correlated rank-one templates. **Fig. 3** decomposes the diagonal at the six fit
 columns ($x_b\le1.4$, the 1-halo range; beyond it the $\ge10^{13}$-only
 painting lacks the 2-halo floor that R4 quantifies).
 """)

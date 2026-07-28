@@ -167,3 +167,31 @@ Q → N → R → S → P (Q/N/P1/P2/P5 are Haiku-grade; R/S/P3/P4 Sonnet-grade;
 S is the single highest-value task). Phases are independent except S2
 depends on S1, and P5 is best done last. Re-grade with the same two-grader
 protocol after Q–S. Projected: 70 → ~86–90 (exemplar band).
+
+---
+
+## RE-GRADE (2026-07-28, all phases executed): **88.5 / 100** (graders: 91.4, 85.6)
+
+Consensus landed inside the projected band. Category A perfect (both
+graders); B 81–94%; C 87.5% (both); D 87.5% (both); E 92%; F 70–90%.
+Both graders now agree the paper *reads* like the exemplars; the remaining
+gaps are structural, not editorial:
+
+- **D1 partial (both graders):** Fig 10's three named curves are all
+  TNG-family — the van Daalen convention wants ≥2 *independent simulation
+  codes* (BAHAMAS/FLAMINGO/SIMBA curves, digitized or from CAMELS).
+- **B1 partial (both):** CIB-deprojection variants of one ACT DR6 pipeline
+  ≠ a second independent y-map (e.g. Planck NPIPE at the same LRGs).
+- **C3 partial (both):** GP coverage temperature is quoted, held-out RMS
+  accuracy number is not.
+- **C6 partial (both):** box-size convergence flagged, not propagated.
+- **F2 partial (both):** 2 of ~17 engines de-hardcoded.
+
+Post-re-grade quick fixes already applied (after the 88.5 was scored):
+chains copied into `RELEASE/` (F4 gap), Fig 2(b) ratio sub-panel (E2 gap),
+explicit per-block covariance-estimator statement in §2.5 (B4 gap).
+
+The remaining items above (second y-map measurement, external-code
+suppression curves, GP RMS surfacing, box-convergence propagation, full
+pipeline parameterization) are the next-round backlog — each needs either
+new measurement work or external data, i.e. beyond text/figure surfacing.

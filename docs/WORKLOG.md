@@ -6,6 +6,29 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-07-28d — Improvement plan executed: paper re-graded **70 → 88.5/100**
+
+All five phases of `docs/paper_improvement_plan.md` executed by Sonnet/Haiku
+agents (serial on the builder: Q → N → R → S → P5; parallel off-builder:
+P1–P4), each gated on builder-rebuild + clean nbconvert execution, each
+reviewed by the orchestrator before commit (caught: bogus kSZ-"fiducial"
+χ² from node[0], wrong hardcoded PTEs, f_eff-vs-f_sat framing, a
+wrong-branch engine credit, R500-shell mislabel + count typo in the release
+READMEs). Notebook now 30 cells / 10 figures. Highlights: Fig 10
+suppression-curve figure assembled from all 253 nodes' stored Cl_kappa
+(cache `Sell_zs1_253.npz`; joint-weighted S(ℓ=2000)=0.934 vs TNG300-hydro
+0.977); residual sub-panels on Figs 2b/4/5; null PTEs (0.20/0.72),
+boot-vs-jk ratio, GoF table, nuisance plausibility all surfaced;
+`LC/RELEASE/` now holds the documented data vector, chains, and the
+`gasplane_prior.npz` drop-in (2-D Gaussian, fidelity 1.00); REPRODUCING.md
++ `--products_root` on the two public-facing engines. Fresh two-grader
+re-score: **91.4 / 85.6 → consensus 88.5** (was 71.2/68.7). Remaining
+structural backlog (second y-map, external-code suppression curves, GP RMS
+number, box-convergence propagation, full de-hardcoding) recorded in the
+plan's RE-GRADE section.
+
+---
+
 ## 2026-07-28c — Paper rubric, grade (70/100), and improvement plan
 
 Three Sonnet research agents surveyed the niche's highest-impact papers

@@ -517,7 +517,8 @@ with np.errstate(invalid="ignore", divide="ignore"):
 cons_ids = set(int(i) for i in k6["node_ids_bgs110"])
 node_ids_all = k6["node_ids_all"]
 
-fig, ax = plt.subplots(figsize=(7.4, 4.6))
+fig, (ax, axr) = plt.subplots(2, 1, figsize=(7.4, 6.0), sharex=True,
+                               height_ratios=[3, 1])
 for i, nid in enumerate(node_ids_all):
     is_c = int(nid) in cons_ids
     ax.plot(xbk * thr, fgas_nodes[i], color=C["cons"] if is_c else C["nodes"],
@@ -532,10 +533,30 @@ ax.text(XB_ONEHALO_MAX * thr, ax.get_ylim()[0], " 1-halo fit range ", fontsize=8
         color="0.4", ha="left", va="bottom")
 ax.plot([], [], color=C["cons"], lw=1.3, label=f"consistent nodes ({len(cons_ids)}/253)")
 ax.plot([], [], color=C["nodes"], lw=0.8, label="other SB35 nodes")
-ax.set_xlabel(r"$\theta_d$ [arcmin]")
 ax.set_ylabel(r"$\tilde f_{\rm gas}(<\theta_d)\,/\,f_{\rm b,cosmic}$")
 ax.set_title("Fig 4 — kSZ gas-fraction profile vs the 253-node feedback design")
 ax.legend(frameon=False, loc="upper left")
+
+# bottom panel: model/data ratio, each node's curve interpolated onto the
+# data's theta grid and restricted to the 1-halo fit range (R1)
+mask4 = d8["th"] <= XB_ONEHALO_MAX * thr
+frac_err4 = d8["yerr"] / d8["ratio"]
+axr.fill_between(d8["th"][mask4], 1 - frac_err4[mask4], 1 + frac_err4[mask4],
+                  color="0.6", alpha=0.3, zorder=0)
+axr.axhline(1.0, color="0.4", lw=0.8, zorder=1)
+for i, nid in enumerate(node_ids_all):
+    is_c = int(nid) in cons_ids
+    interp_i = np.interp(d8["th"], xbk * thr, fgas_nodes[i])
+    ratio_i = interp_i / d8["ratio"]
+    axr.plot(d8["th"][mask4], ratio_i[mask4], color=C["cons"] if is_c else C["nodes"],
+              lw=1.3 if is_c else 0.5, alpha=0.9 if is_c else 0.35,
+              zorder=3 if is_c else 1)
+interp_fid = np.interp(d8["th"], xbk * thr, fgas_fid)
+ratio_fid = interp_fid / d8["ratio"]
+axr.plot(d8["th"][mask4], ratio_fid[mask4], color=C["fid"], lw=2.4, zorder=4)
+axr.set_ylabel("model / data")
+axr.set_xlabel(r"$\theta_d$ [arcmin]")
+
 fig.savefig(FIGDIR / "fig4_ksz_selection.png")
 plt.show()
 r6b = V["R6"]["metrics"]["per_sample"]["bgs110"]
@@ -567,10 +588,24 @@ node_mean_y = node_mean            # from Fig 3 cell: R2 kcal f0.08, R7-correcte
 fid_y = np.nanmean(hd["fid_kcal_f0.08"], axis=0) * BIND_PIX_AREA / fcorr
 sig_disp = np.sqrt((h_data * e17**2) + np.diag(r5c_["cov_cib"]))  # display error
 
-chi2_tsz_nodes = np.load(LC / "latent_constraints.npz")["chi2_tsz"]
+lat5 = np.load(LC / "latent_constraints.npz", allow_pickle=True)
+chi2_tsz_nodes = lat5["chi2_tsz"]
 best = int(np.nanargmin(chi2_tsz_nodes))
 
-fig, ax = plt.subplots(figsize=(7.4, 4.8))
+# R2: strongest-feedback node = lowest f_in (Phase-L latent), matched into
+# the Fig-5/Fig-4 node ordering (node_ids_all) by id, not by position
+f_in = lat5["f_in"]
+strongest = int(np.nanargmin(f_in))
+run_id_strongest = int(lat5["node_ids"][strongest])
+if np.array_equal(node_ids_all, lat5["node_ids"]):
+    strongest_idx = strongest
+else:
+    print("WARNING: node_ids_all != latent_constraints node_ids; matching by id")
+    match = np.nonzero(node_ids_all == run_id_strongest)[0]
+    strongest_idx = int(match[0]) if len(match) else None
+
+fig, (ax, axr) = plt.subplots(2, 1, figsize=(7.4, 6.4), sharex=True,
+                               height_ratios=[3, 1])
 for i in range(node_mean_y.shape[0]):
     is_c = int(node_ids_all[i]) in cons_ids
     ax.plot(xb, node_mean_y[i], color=C["cons"] if is_c else C["nodes"],
@@ -580,6 +615,9 @@ ax.plot(xb, fid_y, color=C["fid"], lw=2.4, zorder=4,
         label=r"TNG fiducial ($\chi^2/{\rm dof}=%.1f$)" % t3m["chi2_fid_over_dof"])
 ax.plot(xb, node_mean_y[best], color=C["best"], lw=2.2, zorder=4,
         label=r"best node ($\chi^2=%.1f/%d$)" % (t3m["chi2_nodes_min_med"][0], t3m["dof"]))
+if strongest_idx is not None:
+    ax.plot(xb, node_mean_y[strongest_idx], color="#9467bd", lw=2.0, zorder=4,
+            label=f"strongest-feedback node (run {run_id_strongest})")
 ax.errorbar(xb[iv], m17[iv], sig_disp[iv], fmt="o", ms=5.5, color=C["data"], lw=1.5,
             capsize=2.5, zorder=5, label="ACT DR6 $y$-CAP (fit cols, full budget)")
 ax.errorbar(xb[~valid], m17[~valid], sig_disp[~valid], fmt="o", ms=4, mfc="none",
@@ -587,15 +625,37 @@ ax.errorbar(xb[~valid], m17[~valid], sig_disp[~valid], fmt="o", ms=4, mfc="none"
 ax.plot([], [], color=C["cons"], lw=1.2, label="kSZ-consistent nodes")
 ax.axvline(XB_ONEHALO_MAX, color="0.7", ls=":", lw=1)
 ax.set_yscale("symlog", linthresh=2e-8)
-ax.set_xlabel(r"$x_b=\theta_d/\theta_{200}$")
 ax.set_ylabel(r"CAP $y$ [arcmin$^2$]")
 ax.set_title("Fig 5 — tSZ confrontation: the full design over-predicts the data")
 ax.legend(frameon=False, loc="lower right", fontsize=9)
+
+# bottom panel: model/data ratio, restricted to the fit columns (iv) --
+# data is near zero outside iv, so the ratio is not meaningful there
+band_lo = 1 - sig_disp[iv] / np.abs(m17[iv])
+band_hi = 1 + sig_disp[iv] / np.abs(m17[iv])
+axr.fill_between(xb[iv], band_lo, band_hi, color="0.6", alpha=0.3, zorder=0)
+axr.axhline(1.0, color="0.4", lw=0.8, zorder=1)
+for i in range(node_mean_y.shape[0]):
+    is_c = int(node_ids_all[i]) in cons_ids
+    axr.plot(xb[iv], node_mean_y[i][iv] / m17[iv], color=C["cons"] if is_c else C["nodes"],
+              lw=1.2 if is_c else 0.5, alpha=0.9 if is_c else 0.3,
+              zorder=3 if is_c else 1)
+axr.plot(xb[iv], fid_y[iv] / m17[iv], color=C["fid"], lw=2.4, zorder=4)
+axr.plot(xb[iv], node_mean_y[best][iv] / m17[iv], color=C["best"], lw=2.2, zorder=4)
+if strongest_idx is not None:
+    axr.plot(xb[iv], node_mean_y[strongest_idx][iv] / m17[iv], color="#9467bd", lw=2.0,
+              zorder=4)
+axr.set_yscale("log")
+axr.set_ylabel("model / data")
+axr.set_xlabel(r"$x_b=\theta_d/\theta_{200}$")
+
 fig.savefig(FIGDIR / "fig5_tsz_tension.png")
 plt.show()
 print(f"consistent with tSZ under full budget: {t3m['counts']['n_tsz_consistent']}/253")
 print("fiducial/data ratio over fit cols:",
       np.round(t3m["fid_over_data_ratio_valid"], 2))
+print(f"strongest-feedback node (min f_in): run {run_id_strongest}, "
+      f"f_in={f_in[strongest]:.3f}")
 """)
 
 # ===================================================================== s3.3

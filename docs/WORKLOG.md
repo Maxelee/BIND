@@ -59,6 +59,22 @@ scaling_f_star). SZ/τ stage's own gain is modest at this q but the corner shows
 tightening c_gas/logT̃; peaks add ~nothing except through scaling_f_star (as the noise
 audit predicted).
 
+**FAMILY↔KERNEL BRIDGE (author arc revision, same day)** — "wish each group related to
+the coefficients in some obvious way": it does, exactly, by the chain rule
+∂S/∂θ_j(ℓ) = Σᵢ cᵢ(ℓ)·∂λᵢ/∂θ_j. Out-of-design closure test (Sobol kernels ×
+twobound-measured fingerprints Δλ from the tb_* atlas rows × twobound-measured ΔS
+shapes): family-mean shapes reproduced at r = 1.00 (C1) / 0.99 (C2) / 0.98 (C3) / 0.98
+(C4) / 0.86 (SNII singleton); per-member amplitudes mostly 0.8–1.1 (outliers printed:
+SNIa_Rate_Norm noise-dominated; some C2 members 1.8–2.7). New figure
+pfig_family_kernel_bridge (in paper_s3b_clusters.py): 5 family panels (measured vs
+kernel mixture) + the fingerprint matrix (sign-aligned Δλ/σ_λ: C2 = partition family
++0.7 f̃_star; C3 = budget+concentration; C4 = moves everything; singleton = the odd sign
+pattern — why it's alone). Statement: a family is a set of parameters sharing a latent
+fingerprint; its ℓ-shape is that fixed mixture of the four kernels — the families exist
+BECAUSE there are only four kernels. Arc updated in PAPER_FIGURE_MAP: bridge becomes
+§3c main-3; fig20c (vD plane) demoted to appendix/optional (author: "doesn't fit"; vD
+stays as text motivation for f̃_bar).
+
 **PAPER FIGURE SET (author figure plan, same day)** — slot map in
 papers/01_pipeline/PAPER_FIGURE_MAP.md. New publication renders: §3b main
 pfig_s3b_cl_clusters + appendix pfig_s3b_pdf_clusters (paper_s3b_clusters.py — the scratch

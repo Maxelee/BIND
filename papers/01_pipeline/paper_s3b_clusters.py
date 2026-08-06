@@ -113,6 +113,7 @@ def snr_of(nm, stat):
     return float(np.abs(d[k]) / e[k])
 
 
+clk_clusters = None                    # captured for the bridge figure below
 for stat, slab, xlab, logx, outname in [
         ("clk", r"$\Delta C_\ell^{\kappa\kappa}$", r"$\ell$", True,
          "figs_v2/pfig_s3b_cl_clusters"),
@@ -140,6 +141,8 @@ for stat, slab, xlab, logx, outname in [
     clusters.sort(key=lambda c: -len(c[0]))
     multi = [c for c in clusters if len(c[0]) > 1]
     single = [c[0][0] for c in clusters if len(c[0]) == 1]
+    if stat == "clk":
+        clk_clusters = (multi, single)
 
     print(f"\n=== {stat} (S/N>={SNR_MIN:g}: {len(NAMES)}/30 params; "
           f"excluded: {', '.join(short_label(n) for n in excl) or 'none'}) ===")
@@ -188,3 +191,156 @@ for stat, slab, xlab, logx, outname in [
     save(fig, outname)
     plt.close(fig)
     print(f"  wrote {outname}.pdf")
+
+
+# ═══ BRIDGE FIGURE: family shapes = kernel mixtures (chain-rule closure) ════
+# (2026-08-06, author: "I wish each of the groups was related to the
+# coefficients in some obvious way".) They are, exactly, by the chain rule:
+#     dS/dtheta_j (ell) = sum_i c_i(ell) * (dlambda_i/dtheta_j)
+# so a family's ell-shape is a FIXED MIXTURE of the four kernel functions,
+# with mixture weights = the family's latent fingerprint Delta-lambda. This
+# is an OUT-OF-DESIGN closure: the kernels c_i come from the Sobol fit
+# (latent_model_coeffs.npz, the shipped table), while the fingerprints AND
+# the measured Delta-S shapes come from the independent twobound sims (tb_*
+# rows of the same atlas cube; paired_stats clk_resp). Panels: per-family
+# mean measured shape vs kernel-mixture prediction (shape r annotated) + the
+# fingerprint matrix (family-mean, sign-aligned Delta-lambda / sigma_lambda).
+# NOTE clk_resp convention: responses are ratios to a shared reference, so
+# bound-to-bound DIFFERENCES are reference-free to first order; amplitude
+# ratios pred/meas land at ~0.8-1.1 for most members (printed).
+from predict_from_latents import CACHE, build_cache  # noqa: E402
+
+if not CACHE.exists():
+    build_cache()
+coef = np.load(CACHE)
+assert int(np.atleast_1d(coef["version"])[0]) == 2, "pre-harmonization cache"
+zi_b = int(np.argmin(np.abs(coef["zs"] - 1.0)))
+Bk = coef["beta"][zi_b][:, :4]                     # (24, 4) kernels, z_s=1
+EDGb = coef["ell_edges"]
+ctr_b = coef["ell"]
+
+SB35 = CEPH / "bind_sb35"
+cz = np.load(SB35 / "analysis_cache/atlas_cubes/atlas_cube_snap096.npz")
+OB_OM = 0.0486 / 0.3089
+
+
+def latents_rows(prefix, rows):
+    mt = cz[f"{prefix}_m_tot_500c_bg"][rows]
+    mg = cz[f"{prefix}_m_gas_500c_bg"][rows]
+    g2 = cz[f"{prefix}_m_gas_200c_bg"][rows]
+    ms = cz[f"{prefix}_m_star_500c"][rows]
+    Tm = cz[f"{prefix}_T_mw_500c"][rows]
+    lm = np.log10(np.where(mt > 0, mt, np.nan))
+    out = np.full((len(rows), 4), np.nan)
+    for q in range(len(rows)):
+        s = (lm[q] >= 13.3) & (lm[q] < 13.6)
+        sg = s & (g2[q] > 0)
+        if s.sum() >= 5:
+            out[q, 0] = np.nanmedian(((mg + ms) / mt)[q, s]) / OB_OM
+            out[q, 1] = np.nanmedian((ms / mt)[q, s]) / OB_OM
+            out[q, 3] = np.log10(np.nanmedian(np.where(Tm[q, s] > 0,
+                                                       Tm[q, s], np.nan)))
+        if sg.sum() >= 5:
+            out[q, 2] = np.nanmedian((mg / g2)[q, sg])
+    return out
+
+
+LATtb = latents_rows("tb", np.arange(60))
+tbv = cz["tb_valid"]
+dsn = np.load(SB35 / "emulator_dataset_nu05.npz", allow_pickle=True)
+LATsob = latents_rows("sobol", dsn["run_ids"])
+sig_lam = np.nanstd(LATsob, axis=0)
+
+
+def bandS(r):
+    y = P[r]["clk_resp"][ZI]
+    return np.stack([np.nanmean(y[(ell >= EDGb[i]) & (ell < EDGb[i + 1])])
+                     for i in range(24)])
+
+
+from scipy.stats import pearsonr  # noqa: E402
+
+multi_clk, single_clk = clk_clusters
+panels_b = [(f"C{k+1}", mem) for k, (mem, _) in enumerate(multi_clk)]
+if single_clk:
+    panels_b.append(("singleton", single_clk))
+LNAM = [r"$\tilde f_{\rm bar}$", r"$\tilde f_\star$", r"$c_{\rm gas}$",
+        r"$\log\tilde T$"]
+
+fig, AXb = plt.subplots(2, 3, figsize=(TWO_COL[0], 4.3), sharex=False)
+AXb = AXb.ravel()
+fingerprints, fam_r = [], []
+for k, (fam, members) in enumerate(panels_b):
+    ax = AXb[k]
+    meas_c, pred_c, fps, drop = [], [], [], []
+    for nm in members:
+        rlo, rhi = pairs[nm]
+        if not (tbv[rlo] and tbv[rhi]):
+            drop.append((nm, "tb-atlas invalid"))
+            continue
+        dlam = LATtb[rhi] - LATtb[rlo]
+        if not np.isfinite(dlam).all():
+            drop.append((nm, "non-finite dlambda"))
+            continue
+        meas = bandS(rhi) - bandS(rlo)
+        pred = Bk @ dlam
+        kpk = int(np.nanargmax(np.abs(meas)))
+        meas_c.append(meas / meas[kpk])
+        pred_c.append(pred / meas[kpk])
+        fps.append(np.sign(meas[kpk]) * dlam / sig_lam)
+    for nm, why in drop:
+        print(f"  [bridge:{fam}] {short_label(nm)} skipped ({why})")
+    mc, pc = np.mean(meas_c, 0), np.mean(pred_c, 0)
+    r_fam = float(pearsonr(mc, pc)[0])
+    fam_r.append(r_fam)
+    fingerprints.append(np.mean(fps, 0))
+    for m in meas_c:
+        ax.plot(ctr_b, m, color="0.85", lw=0.5, zorder=1)
+    ax.plot(ctr_b, mc, color=COLORS["bind"], lw=1.6, zorder=4,
+            label="measured (twobound mean)")
+    ax.plot(ctr_b, pc, color=COLORS["highlight"], lw=1.3, ls="--", zorder=5,
+            label="kernel mixture $\sum_i c_i\,\Delta\lambda_i$")
+    ax.axhline(0, color="0.8", lw=0.5, zorder=0)
+    ax.set_xscale("log")
+    ax.set_xlim(300, 3e4)
+    panel_label(ax, f"{fam}  ($r$={r_fam:.2f})")
+    ax.tick_params(labelsize=5.5)
+    if k >= 3:
+        ax.set_xlabel(r"$\ell$")
+    if k % 3 == 0:
+        ax.set_ylabel(r"$\Delta S$ / peak", fontsize=6.5)
+    if k == 0:
+        ax.legend(fontsize=5.0, loc="center left", handletextpad=0.5)
+
+axF = AXb[len(panels_b)]
+FP = np.array(fingerprints)
+vmax_f = float(np.nanmax(np.abs(FP)))
+imF = axF.imshow(FP, cmap="coolwarm", vmin=-vmax_f, vmax=vmax_f,
+                 aspect="auto")
+for i in range(FP.shape[0]):
+    for j in range(4):
+        axF.text(j, i, f"{FP[i, j]:+.1f}", ha="center", va="center",
+                 fontsize=5.6,
+                 color="k" if abs(FP[i, j]) < 0.6 * vmax_f else "w")
+axF.set_xticks(range(4))
+axF.set_xticklabels(LNAM, fontsize=6.5)
+axF.set_yticks(range(len(panels_b)))
+axF.set_yticklabels([f for f, _ in panels_b], fontsize=6.5)
+axF.set_title(r"latent fingerprint  $\Delta\lambda/\sigma_\lambda$"
+              " (sign-aligned mean)", fontsize=6.3)
+axF.tick_params(length=0)
+for ax in AXb[len(panels_b) + 1:]:
+    ax.set_visible(False)
+fig.tight_layout()
+save(fig, "figs_v2/pfig_family_kernel_bridge")
+plt.close(fig)
+print("\nbridge [caption]: family-mean shape corr measured vs kernel "
+      "mixture: "
+      + ", ".join(f"{f} r={r:.2f}" for (f, _), r in zip(panels_b, fam_r))
+      + " -- OUT-OF-DESIGN closure (Sobol kernels x twobound fingerprints/"
+      "shapes): a family is a set of parameters sharing a latent "
+      "fingerprint; its ell-shape is that fixed mixture of the four "
+      "kernels. The families exist BECAUSE there are only four kernels.")
+print("bridge [caption]: fingerprint rows (Delta-lambda/sigma_lambda): "
+      + "; ".join(f"{f}: " + ",".join(f"{v:+.1f}" for v in fp)
+                  for (f, _), fp in zip(panels_b, fingerprints)))

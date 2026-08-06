@@ -17,16 +17,22 @@ same cell's live prints). §3b renders standalone via `paper_s3b_clusters.py`
 CUT: single-panel IMF-highlight overlay + old fig 21 (superseded by cluster
 membership; `imf_shape_clusters.py` remains the machinery reference).
 
-## §3c — the van Daalen bridge (3 mains)
+## §3c — the halo-latent bridge (3 mains; 2026-08-06 arc revision)
+
+Arc per the author: parameter effects → family breakdown (§3b) → **the
+family↔kernel bridge** → the analytic model (§4a). The vD anchor no longer
+carries the narrative.
 
 | slot | file | source |
 |---|---|---|
 | MAIN 1 | `fig20a_vandaalen_matrix` (as-is) | r(S, f̃_bar) ℓ×M matrix + vD20 box; numbers in FIGURE_NUMBERS. |
-| MAIN 2 | `pfig_s3c_hinge_plane` (composed) | (a) = fig20b hinge (r=0.977, OLS slope printed); (b) = fig20d latent plane (budget × partition, family compass, enhancement rings). Same node cloud, sequential stories. |
-| MAIN 3 | `fig20c_vandaalen_plane` (as-is) | the vD+20 external anchor (single supporting panel, calibrated coordinate). |
+| MAIN 2 | `pfig_s3c_hinge_plane` (composed) | (a) = fig20b hinge (r=0.977); (b) = fig20d latent plane (budget × partition, family compass, enhancement rings). |
+| MAIN 3 | `pfig_family_kernel_bridge` (`paper_s3b_clusters.py`) | **the families↔coefficients bridge**: chain-rule closure ∂S/∂θ_j = Σᵢ cᵢ(ℓ)·∂λᵢ/∂θ_j — each family's mean twobound shape vs its kernel mixture (r = 1.00/0.99/0.98/0.98/0.86, OUT-OF-DESIGN: Sobol kernels × twobound fingerprints) + the fingerprint matrix Δλ/σ_λ. The families exist because there are only four kernels. |
 
-CUT: the τ-profile S(5000)-split (fig20b right panel / fig12b) — arrangement-
-beyond-budget now carried by the plane panel and the kernels.
+DEMOTED: `fig20c_vandaalen_plane` — appendix/optional (author: "doesn't
+really fit"; the vD relation stays as text motivation for f̃_bar).
+CUT: the τ-profile S(5000)-split (fig20b right panel / fig12b) —
+arrangement-beyond-budget carried by the plane panel and the kernels.
 
 ## §4a — the analytic model (2 mains)
 

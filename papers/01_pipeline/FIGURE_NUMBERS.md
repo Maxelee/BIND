@@ -214,6 +214,18 @@ Regenerate by re-running the notebook; all stamps are computed live.
 
 ## fig20 (fig20_vandaalen_matrix) — which halos set which scales
 
+- **2026-08-06 HARMONIZATION (author ruling; supersedes latent-set numbers below)**: canonical latents now
+  (f̃_bar, f̃_star, c_gas, logT̃) — one snapshot (096), one hinge bin, one cylinder+annulus convention, one
+  median reducer; c_gas = med[m_gas_500c_bg/m_gas_200c_bg] (fid 0.645, cloud 0.58–0.78, r=+0.94 vs f̃_bar);
+  c_τ retired to cross-check (adds +0.012 to S CV-R² median). S(ℓ) z_s=1 4-latent CV-R² 0.95/0.96/0.91 at
+  1e3/5e3/1.9e4 (median 0.94); per z_s 0.95/0.94/0.93/0.93/0.92. Scorecard: pdf 0.85, mf_v1 0.94, mf_v2
+  0.93, Y–M 0.94, f_gas–M 0.97, κτ 0.86, T–M 0.77, cl_yy 0.77. Ablation (no-logT → 4 → +c_τ): T–M
+  0.40→0.77→0.77, S(ℓ) 0.86→0.91→0.95. Demo: LOO 0.0059/0.0092/0.0128; fiducial 0.0264 full / 0.0154
+  without the thermal kernel (logT spans 0.09 dex — least out-of-design-robust; fid logT at 47th pct).
+  z_s=1 kernels at ℓ~4847: c1=+0.2022, c2=+0.2769, c3=+0.4518, c4=−0.6789, c0=+5.1129. 1σ impacts at
+  ℓ~1044/4847/18569: f̃_bar 0.015/0.024/0.023, f̃_star 0.001/0.022/0.096, c_gas 0.003/0.024/0.016,
+  logT 0.000/0.011/0.031. fig20g now 2×3 (5 coefficients + impact panel) (cell 28).
+
 - **2026-08-05 split**: fig20_vandaalen_matrix → three standalone figures, same cell:
   `fig20a_vandaalen_matrix` (the r matrix), `fig20b_hinge_gas` (group-bin hinge + fig 12b's stacked-τ gas
   diagnostic, intentionally duplicated across the two figures until a keep-one decision), `fig20c_vandaalen_plane`.

@@ -6,6 +6,27 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-08-06 — Paper I: latent-model HARMONIZATION (author ruling) + upstream provenance
+
+Canonical latent set flipped to the harmonized convention: ONE snapshot (096), ONE hinge
+mass bin, ONE cylinder+annulus background convention, ONE median reducer for all four
+latents (f̃_bar, f̃_star, c_gas, logT̃), with c_gas = med[m_gas_500c_bg/m_gas_200c_bg]
+(two-aperture concentration) replacing the snap085 kSZ-profile c_τ, which is retired to a
+cross-check (adds +0.012 CV-R²). Motivation: an observer-reproducible one-sentence
+convention. Validated first in scratch, then flipped through figs 20d–g, the §3c
+markdown, predict_from_latents.py (4 inputs, v2 cache with version guard) and
+ANALYTIC_LATENT_MODEL.md (§0 v2 canon + §2.3 upstream provenance trace of the atlas and
+kSZ chains). Numbers: S(ℓ) 4-latent CV-R² 0.95/0.96/0.91 (median 0.94), scorecard T–M
+0.77 / MF-V1 0.94 / κτ 0.86 improved, cl_yy 0.77 boundary unchanged. New honest finding:
+the thermal kernel is the least out-of-design-robust (logT spans only 0.09 dex; the
+fiducial — logT at the cloud's 47th pct — predicts at RMS 0.026 with the full set vs
+0.015 without it; both ≪ cloud spread 0.057); printed in fig 20e. fig20g now 2×3 (five
+coefficient functions + 1σ-impact panel; kernel shapes are jointly de-mixed partial
+slopes under r(c_gas,f̃_bar)=+0.94 collinearity — the impact panel is the fair
+comparison). fig20f(c) redesigned as ablation (no-logT → 4-latent → +c_τ).
+
+---
+
 ## 2026-08-05 (evening) — Paper I: two direct IMFslope-mechanism figures (fig21b/c) revise the fig21 verdict to mixed-channel
 
 `papers/01_pipeline/imf_mechanism_figs.py` (new, standalone) adds two tests that go beyond

@@ -10,17 +10,66 @@ in-sample.
 **One-paragraph summary.** The van Daalen+20 relation says the matter-power
 suppression at $k\lesssim0.5\,h/\mathrm{Mpc}$ is a one-dimensional function of the
 group baryon fraction. We find its completion for the full WL suppression curve:
-$S(\ell)$ over the entire 256-node TNG-prior Sobol suite is, to CV-$R^2\simeq0.95$,
-a **linear** function of three (four, with thermodynamics) halo-population numbers —
-budget $\tilde f_{\rm bar}$, partition $\tilde f_\star$, gas concentration $c_\tau$
-(+ temperature $\log\tilde T$) — while a linear model on all 30 raw feedback
-parameters reaches only $\simeq$0.5–0.6. The latents *linearize* the response: all
-parameter-space nonlinearity lives in the map params→latents (halo astrophysics),
-none in latents→statistics. One low-$z$ latent vector per universe covers all five
-source planes, the same latents carry the PDF/MF/Y–M sector self-consistently, and
+$S(\ell)$ over the entire 256-node TNG-prior Sobol suite is, to CV-$R^2\simeq0.94$,
+a **linear** function of four halo-population numbers — budget $\tilde f_{\rm bar}$,
+partition $\tilde f_\star$, gas concentration $c_{\rm gas}$, temperature
+$\log\tilde T$ — while a linear model on all 30 raw feedback parameters reaches only
+$\simeq$0.5–0.6. The latents *linearize* the response: all parameter-space
+nonlinearity lives in the map params→latents (halo astrophysics), none in
+latents→statistics. One low-$z$ latent vector per universe covers all five source
+planes, the same latents carry the PDF/MF/Y–M/T–M sector self-consistently, and
 individual $S(\ell)$ curves — including the out-of-design fiducial's — are
-regenerated from 3 numbers at RMS $\simeq$ 0.004–0.013 against a cloud spread of
+regenerated from 4 numbers at RMS $\simeq$ 0.006–0.026 against a cloud spread of
 0.057.
+
+---
+
+## 0. Convention v2 — HARMONIZED (2026-08-06, author ruling; current canon)
+
+Every latent is measured under **one** observer-reproducible convention: one
+snapshot (096, $z=0.034$), one mass bin (hinge, $\log_{10}m^{\rm bg}_{\rm tot,500c}
+\in[13.3,13.6)$), one aperture/background convention (projected cylinders,
+2.5–3.0 $h^{-1}$Mpc transverse annulus, bg-subtracted totals/gas), one reducer
+(median over bin halos, $\geq5$ halos):
+
+$$\tilde f_{\rm bar} = \frac{1}{\Omega_b/\Omega_m}\,\mathrm{med}_{h\in\mathcal G}
+\frac{m^{\rm bg}_{\rm gas,500c}+m_{\star,500c}}{m^{\rm bg}_{\rm tot,500c}},\qquad
+\tilde f_\star = \frac{1}{\Omega_b/\Omega_m}\,\mathrm{med}_{h\in\mathcal G}
+\frac{m_{\star,500c}}{m^{\rm bg}_{\rm tot,500c}}$$
+
+$$c_{\rm gas} = \mathrm{med}_{h\in\mathcal G}
+\frac{m^{\rm bg}_{\rm gas,500c}}{m^{\rm bg}_{\rm gas,200c}}
+\;\;(\text{two-aperture concentration: } R_{500c}{=}0.659\,r_{200}\text{ vs }r_{200}),
+\qquad
+\log\tilde T = \log_{10}\,\mathrm{med}_{h\in\mathcal G}\,T_{\rm mw,500c},\;\;
+T_{\rm mw} = \frac{\sum T\,\Sigma_{\rm gas}}{\sum\Sigma_{\rm gas}}$$
+
+The snap085 kSZ-profile $c_\tau$ (v1's structure latent: different epoch, FoF mass
+bin, per-halo $x$-annulus, pixel-weighted stack) is **retired to a cross-check**:
+added to the harmonized set it moves the $S(\ell)$ CV-$R^2$ median by only
+$+0.012$.
+
+**Headline numbers (harmonized, live-printed by the fig 20 cell):**
+- $S(\ell)$, $z_s=1$: 4-latent CV-$R^2$ = 0.95/0.96/0.91 at
+  $\ell\sim10^3/5\times10^3/1.9\times10^4$ (median 0.94); 30-param linear
+  0.51/0.52/0.61. All $z_s$: medians 0.95/0.94/0.93/0.93/0.92.
+- Scorecard (4-latent CV-$R^2$): PDF 0.85, MF-$V_1$ 0.94, MF-$V_2$ 0.93,
+  Y–M 0.94, $f_{\rm gas}$–M 0.97, $\kappa\tau$ 0.86, **T–M 0.77** (fixed by
+  $\log\tilde T$), $C_\ell^{yy}$ 0.77 (stated boundary).
+- Generation demo: LOO nodes RMS 0.0059/0.0092/0.0128; **fiducial
+  (out-of-design) RMS 0.026 full set / 0.015 without the thermal kernel** —
+  $\log\tilde T$ spans only $\sim$0.09 dex across the cloud, making its kernel
+  the least out-of-design-robust leg (the fid's $\log\tilde T$ is at the cloud's
+  47th percentile, not an outlier); both far below the cloud spread 0.057.
+- Kernel table: $5\times24\times5$ numbers (`latent_model_coeffs.npz` v2,
+  `predict_from_latents.py --fbar --fstar --cgas --logt`). Note the strong
+  collinearity $r(c_{\rm gas},\tilde f_{\rm bar})=+0.94$: individual kernel
+  *shapes* are jointly de-mixed partial slopes and less individually
+  interpretable than in v1; the $1\sigma$-impact panel (fig 20g f) is the fair
+  importance comparison.
+
+Sections below describe the v1 (mixed-convention) analysis where numbers differ;
+the fig 20 cell prints are the canon.
 
 ---
 

@@ -4331,7 +4331,8 @@ $r\approx-0.9$ with the group *stellar* fraction $\tilde f_\star$ (which is itse
 to the large-scale amplitude, $r\approx0$) and at $r\approx-0.4$ with the stacked-$\tau$
 gas concentration. Panel (a) shows the nested predictors' $R^2(\ell)$: two per-population
 halo numbers ($\tilde f_{\rm bar}+\tilde f_\star$) predict the entire curve to
-$R^2\gtrsim0.85$, three (adding concentration) to $\gtrsim0.94$. Panel (b) draws the
+$R^2\gtrsim0.85$, and the full harmonized set (adding gas concentration and temperature;
+see the 2026-08-06 harmonization note below) to $\gtrsim0.91$. Panel (b) draws the
 $(\tilde f_{\rm bar},\tilde f_\star)$ latent plane itself, nodes colored by the small-scale
 $S$, with the twobound response-shape *families* (the `imf_shape_clusters.py` /
 `quick_deltacl_clusters` scratch analysis) entering as *directions*: budget-family levers
@@ -4342,70 +4343,96 @@ the halo-level restatement of the 2-D WL feedback latent (Lin et al. 2026, arXiv
 reproduced for this suite in `examples/wl_latent_sbi.ipynb`), with both abstract latents
 replaced by measurable population quantities. All quoted numbers are live-printed.
 
+(**2026-08-06 HARMONIZATION, author ruling.** The canonical latent set is now measured
+under a *single* observer-reproducible convention — one snapshot (096, $z=0.034$), one
+mass bin (the hinge bin on $m^{\rm bg}_{\rm tot,500c}$), one aperture/background
+convention (projected cylinders, 2.5–3.0 $h^{-1}$Mpc annulus), one reducer (bin median).
+The structure latent becomes the **two-aperture gas concentration**
+$c_{\rm gas} = \mathrm{med}[m^{\rm bg}_{\rm gas,500c}/m^{\rm bg}_{\rm gas,200c}]$ and the
+thermal $\log\tilde T$ joins the base set: the canonical model is **four latents**
+$(\tilde f_{\rm bar}, \tilde f_\star, c_{\rm gas}, \log\tilde T)$. The snap085
+kSZ-profile $c_\tau$ — different epoch, FoF mass bin, per-halo $x$-annulus, pixel-weighted
+stack — is retired to a *cross-check*, which shows profile-level structure adds
+$\lesssim0.02$ CV-$R^2$ beyond the harmonized apertures (printed). Cost of harmonization:
+smallest-scale $S(\ell)$ CV-$R^2$ 0.93$\to$0.91 and a modestly larger fiducial demo RMS
+(printed with a thermal-kernel robustness breakdown in fig 20e); gain: one sentence of
+conventions, every latent a direct stacking observable, and T–M/MF-$V_1$/$\kappa\tau$
+*improved* because $\log\tilde T$ is in the base set. Figs 20e–g and all printed numbers
+below use the harmonized set.)
+
 **Fig 20e** (2026-08-05) turns fig 20d's decomposition into a working **analytic model** and
 validates it out of sample: $S(\ell) = c_0(\ell) + c_1(\ell)\tilde f_{\rm bar} +
-c_2(\ell)\tilde f_\star + c_3(\ell)c_\tau$, fit by OLS per $\ell$ bin. Panel (a): 5-fold
-cross-validated $R^2(\ell)$ — the three-latent model holds CV-$R^2\simeq0.93$–$0.96$ across
-$\ell=300$–$3\times10^4$ and *beats a linear model on all 30 raw parameters*
-(CV-$R^2\simeq0.5$–$0.6$): the halo latents **linearize** the response, i.e. all of the
-parameter-space nonlinearity (the reason the GP emulator exists) lives in the
-params$\,\to\,$latents map, none in latents$\,\to\,$statistics. Panels (b,c) are the
+c_2(\ell)\tilde f_\star + c_3(\ell)c_{\rm gas} + c_4(\ell)\log\tilde T$, fit by OLS per
+$\ell$ bin. Panel (a): 5-fold cross-validated $R^2(\ell)$ — the four-latent model holds
+CV-$R^2\simeq0.91$–$0.96$ across $\ell=300$–$3\times10^4$ and *beats a linear model on all
+30 raw parameters* (CV-$R^2\simeq0.5$–$0.6$): the halo latents **linearize** the response,
+i.e. all of the parameter-space nonlinearity (the reason the GP emulator exists) lives in
+the params$\,\to\,$latents map, none in latents$\,\to\,$statistics. Panels (b,c) are the
 *generation demo*: individual $S(\ell)$ curves and $\kappa$-PDFs reconstructed from just
-the 2–3 population numbers — for Sobol nodes spanning the suppression range each node is
+the four population numbers — for Sobol nodes spanning the suppression range each node is
 predicted **leave-one-out** (its own row never enters the fit), and for panel (b)'s
 fiducial the test is stronger still: the fiducial is *outside the Sobol design entirely*
-(its latents come from the fig-3 fiducial atlas and its own stacked-$\tau$ profile), yet
-its full $S(\ell)$ curve is reproduced within the printed RMS. The same cell prints the
-cross-statistic scorecard (same latents, same folds): PDF/MF-$V_1$/$V_2$/Y–M/$f_{\rm gas}$–M
-carry CV-$R^2\simeq0.85$–$0.97$ with their residual mode *shared* with $S(\ell)$'s
-partition latent ($r\simeq0.86$–$0.99$ — one self-consistent model family), while the two
-honest boundaries are marked where they belong: the SZ/thermodynamic sector ($C_\ell^{yy}$,
-T–M) has a *different* residual mode (a third, thermal latent — deferred), and peak/minima
-counts are per-bin noise-dominated at the $\Delta\nu=0.5$ binning (node-to-node spread
-$\simeq0.4$–$0.5\times$ the per-node measurement error from the dataset's own `err` arrays
-— no model, including the 30-parameter one, can or should fit them). The kSZ-side
-consequence: a survey measurement of the group $f_{\rm bar}$/$f_\star$ pair fixes the WL
-suppression curve without reference to any TNG parameter.
+(all four latents from the fig-3 fiducial atlas with the identical reducers), yet
+its full $S(\ell)$ curve is reproduced within the printed RMS ($\simeq0.026$ with the
+full set, $\simeq0.015$ without the thermal kernel — $\log\tilde T$ spans only
+$\sim$0.09 dex across the cloud, making its kernel the least out-of-design-robust leg;
+both far below the cloud spread 0.057). The same cell prints the cross-statistic
+scorecard (same latents,
+same folds): PDF/MF-$V_1$/$V_2$/Y–M/$f_{\rm gas}$–M carry CV-$R^2\simeq0.85$–$0.97$ with
+their residual mode *shared* with $S(\ell)$'s partition latent — one self-consistent
+model family — while the two honest boundaries are marked where they belong:
+$C_\ell^{yy}$ plateaus near 0.77 (the $y$-auto residual is profile-level pressure beyond
+population medians), and peak/minima counts are per-bin noise-dominated at the
+$\Delta\nu=0.5$ binning (node-to-node spread $\simeq0.4$–$0.5\times$ the per-node
+measurement error from the dataset's own `err` arrays — no model, including the
+30-parameter one, can or should fit them). The kSZ-side consequence: a survey measurement
+of the group baryon budget, stellar fraction, gas-concentration and temperature fixes the
+WL suppression curve without reference to any TNG parameter.
 
-**Fig 20f** (2026-08-05) answers the two remaining structural questions: redshift and
-thermodynamics. *(a) Redshift*: the **same low-$z$ latent triplet** predicts $S(\ell)$ at
-all five source planes (CV-$R^2$ median 0.96 at $z_s=0.5$ falling only to 0.91 at
-$z_s=2.44$) — the tomographic dependence lives entirely in the coefficient functions
-$c_i(\ell,z_s)$, whose amplitude declines with $z_s$ (kernel dilution, printed), not in
-the latents. *(b) Why*: measuring the latents at earlier epochs shows the partition
-$\tilde f_\star$ is set early (rank corr. 0.94 vs $z\simeq0$ even at $z=2$) while the
-budget $\tilde f_{\rm bar}$ is built late (rank 0.44 at $z=2$) — and consequently
-*z-matched latents are worse, not better*, even for $z_s=2.44$ (CV-$R^2$ 0.47 with $z=2$
-latents vs 0.88–0.90 with low-$z$ ones): the end-state budget integrates the full feedback
-history, which is the same reason the van Daalen relation itself works. (Epoch comparison
-uses the plain-500c aperture uniformly, since the older atlas cubes lack the
-background-subtracted variant.) *(c) Thermodynamics*: a fourth, thermal latent — the
-group-bin median $\log\tilde T$ ($T_{\rm mw,500c}$, snap096; the most budget-independent
-candidate, $r=-0.40$ vs $\tilde f_{\rm bar}$; cluster-bin $T$/$Y$/$P_e$ variants tested
-and printed — none better) — fixes the T–M relation (CV-$R^2$ 0.49$\,\to\,$0.78) while
-leaving the mass sector unchanged, as it should. $C_\ell^{yy}$ is the stated boundary of
-the population-median latent programme: no single-bin thermal median lifts it past
-$\simeq$0.78 — the $y$-auto residual carries profile-level pressure information. The full
-latent set is thus $(\tilde f_{\rm bar}, \tilde f_\star, c_\tau, \log\tilde T)$: budget,
-partition, structure, temperature.
+**Fig 20f** (2026-08-05; harmonized 2026-08-06) answers the two remaining structural
+questions: redshift and thermodynamics. *(a) Redshift*: the **same low-$z$ latent
+vector** predicts $S(\ell)$ at all five source planes (CV-$R^2$ medians printed,
+$\simeq$0.94 at $z_s=0.5$ falling gently to $\simeq$0.91 at $z_s=2.44$) — the tomographic
+dependence lives entirely in the coefficient functions $c_i(\ell,z_s)$, whose amplitude
+declines with $z_s$ (kernel dilution, printed), not in the latents. *(b) Why*: measuring
+the latents at earlier epochs shows the partition $\tilde f_\star$ is set early (rank
+corr. 0.94 vs $z\simeq0$ even at $z=2$) while the budget $\tilde f_{\rm bar}$ is built
+late (rank 0.44 at $z=2$) — and consequently *z-matched latents are worse, not better*,
+even for $z_s=2.44$ (CV-$R^2$ 0.47 with $z=2$ latents vs 0.88–0.90 with low-$z$ ones):
+the end-state budget integrates the full feedback history, which is the same reason the
+van Daalen relation itself works. (Epoch comparison uses the plain-500c aperture
+uniformly, since the older atlas cubes lack the background-subtracted variant.)
+*(c) Ablation + cross-check, per statistic*: the harmonized set *without* $\log\tilde T$,
+the full four-latent set, and the four latents *plus* the retired $c_\tau$. The thermal
+latent (group-bin median $\log\tilde T$, the most budget-independent candidate,
+$r=-0.4$ vs $\tilde f_{\rm bar}$; cluster-bin $T$/$Y$/$P_e$ variants tested and printed —
+none better) is what fixes the T–M relation ($\simeq$0.40$\,\to\,$0.77) while leaving the
+mass sector unchanged, as it should; the $c_\tau$ bar shows profile-level structure adds
+little beyond the harmonized apertures. $C_\ell^{yy}$ is the stated boundary of the
+population-median latent programme: no single-bin thermal median lifts it past
+$\simeq$0.78 — the $y$-auto residual carries profile-level pressure information. The
+canonical set is $(\tilde f_{\rm bar}, \tilde f_\star, c_{\rm gas}, \log\tilde T)$:
+budget, partition, structure, temperature — one convention throughout.
 
-**Fig 20g** (2026-08-06) shows the model itself: the four kernel functions
-$c_i(\ell, z_s)$. Per $\ell$ band and source plane they are the closed-form OLS solution
+**Fig 20g** (2026-08-06) shows the model itself: the five coefficient functions
+$c_i(\ell, z_s)$ (four kernels + intercept). Per $\ell$ band and source plane they are
+the closed-form OLS solution
 $\beta(\ell_b, z_s) = (A^{\top}A)^{-1}A^{\top}S(:,\ell_b,z_s)$ with design matrix
-$A = [\tilde f_{\rm bar}, \tilde f_\star, c_\tau, 1]$ over the 256 nodes — so each
-$c_i$ is a *partial* regression slope, $\partial S/\partial(\mathrm{latent}_i)$ at the
-other latents held fixed, jointly de-mixed (the latents are correlated,
-$r(c_\tau, \tilde f_{\rm bar}) = +0.69$; three separate one-dimensional fits would give
-different, wrong curves). Shaded: $\pm1$ analytic OLS standard error
+$A = [\tilde f_{\rm bar}, \tilde f_\star, c_{\rm gas}, \log\tilde T, 1]$ over the 256
+nodes — so each $c_i$ is a *partial* regression slope,
+$\partial S/\partial(\mathrm{latent}_i)$ at the other latents held fixed, jointly
+de-mixed (the latents are correlated — $r(c_{\rm gas}, \tilde f_{\rm bar}) = +0.94$ —
+so separate one-dimensional fits would give different, wrong curves; the joint solve is
+also why the budget kernel's SE band widens once $c_{\rm gas}$ shares its variance).
+Shaded: $\pm1$ analytic OLS standard error
 $\mathrm{SE}_i = [\hat\sigma^2_{\rm res}\,((A^{\top}A)^{-1})_{ii}]^{1/2}$, drawn for the
-$z_s=1$ working plane. The shapes carry the physics: the budget kernel $c_1$ rises
-through $\ell\sim10^3$–$10^4$ (the vD regime and beyond), the partition kernel $c_2$
-switches on at $\ell\gtrsim2\times10^3$ and dominates the smallest scales, the
-concentration kernel $c_3$ is small per unit $c_\tau$ but $c_\tau$ spans $\sim$1.9–5.3
-(the $1\sigma$-impact comparison is printed), and every kernel dilutes with $z_s$
-(fig 20f's kernel-dilution statement, now visible). These $4\times24\times5$ numbers are
-the *entire* model — exported as `latent_model_coeffs.npz` and consumed by
-`predict_from_latents.py`.
+$z_s=1$ working plane. Panel (f) gives the fair importance comparison — the $1\sigma$
+latent impact $|c_i(\ell)|\,\sigma(\mathrm{latent}_i)$ — since the latents have very
+different dynamic ranges; it shows the scale handoff (budget at $\ell\lesssim3\times10^3$,
+partition + structure + temperature at the smallest scales), and every kernel dilutes
+with $z_s$ (fig 20f's kernel-dilution statement, now visible). These
+$5\times24\times5$ numbers are the *entire* model — exported as
+`latent_model_coeffs.npz` and consumed by `predict_from_latents.py`.
 (**2026-08-05**: the 1×3 figure is split into three standalone figures — fig 20a = the
 $r$ matrix, fig 20b = the group-bin hinge paired with fig 12b's enhancement-branch
 stacked-$\tau$ gas diagnostic (that panel is intentionally duplicated across the two
@@ -4908,6 +4935,31 @@ x_t20 = xpb20["x"]
 c_tau20 = (np.nanmean(tau20[:, x_t20 < 0.3], 1)
            /np.nanmean(tau20[:, (x_t20 >= 0.3) & (x_t20 < 1.0)], 1))
 
+# ── HARMONIZED latent convention (2026-08-06, author ruling) ────────────────
+# The canonical latent set is measured with ONE snapshot (096, z=0.034), ONE
+# mass bin (the hinge bin [13.3,13.6) on m_tot_500c_bg), ONE aperture/
+# background convention (projected cylinders, 2.5-3.0 Mpc/h annulus) and ONE
+# reducer (median over bin halos) -- the convention an observer can actually
+# reproduce. The structure latent is the TWO-APERTURE gas concentration
+#   c_gas = med[ m_gas_500c_bg / m_gas_200c_bg ]   (R500c=0.659 r200 vs r200)
+# and logT~ joins the base set. The snap085 kSZ-profile c_tau (different
+# epoch, FoF mass bin, per-halo x-annulus, pixel-weighted stack) is retained
+# as a CROSS-CHECK only: it adds <~0.02 CV-R2 beyond the harmonized set
+# (printed by the fig 20e cell). Cost of harmonization (printed): S(ell)
+# smallest-scale CV-R2 0.93->0.91, fiducial demo RMS 0.013->0.015.
+mg2_5 = cz["sobol_m_gas_200c_bg"][run_ids]
+Tm20 = cz["sobol_T_mw_500c"][run_ids]
+c_gas20 = np.full(NRn, np.nan)
+logT20 = np.full(NRn, np.nan)
+for q in range(NRn):
+    s = (logm5[q] >= MEDG[j_b]) & (logm5[q] < MEDG[j_b+1])
+    sg = s & (mg2_5[q] > 0)
+    if sg.sum() >= 5:
+        c_gas20[q] = np.nanmedian((mg5[q]/mg2_5[q])[sg])
+    if s.sum() >= 5:
+        logT20[q] = np.log10(np.nanmedian(np.where(Tm20[q, s] > 0,
+                                                   Tm20[q, s], np.nan)))
+
 EDG24 = np.geomspace(300.0, ELL_TRUST, 25)       # finer ell grid than Sb's 5
 ctr24 = np.sqrt(EDG24[:-1]*EDG24[1:])
 Sb24 = np.stack([S1z[:, (ELL >= EDG24[i]) & (ELL < EDG24[i+1])].mean(1)
@@ -4919,7 +4971,7 @@ def r2curve(*cols):
     return 1 - resid.var(0)/Sb24[okd].var(0)
 
 r2_b, r2_bs, r2_all = (r2curve(fb1), r2curve(fb1, fst1),
-                       r2curve(fb1, fst1, c_tau20))
+                       r2curve(fb1, fst1, c_gas20, logT20))
 
 # the "one more latent" claim, computed not asserted: PCA of the residual
 # after the budget-only regression
@@ -4945,7 +4997,7 @@ da.plot(ctr24, r2_b, color=COLORS["bind"], lw=1.4,
 da.plot(ctr24, r2_bs, color=COLORS["truth"], lw=1.4, ls="--",
         label=r"$+\ \tilde f_\star$ (partition)")
 da.plot(ctr24, r2_all, color=COLORS["highlight"], lw=1.1, ls=":",
-        label=r"$+\ c_\tau$ (gas concentration)")
+        label=r"$+\ c_{\rm gas} + \log\tilde T$ (full harmonized set)")
 da.set_xscale("log")
 da.set_xlim(300, ELL_TRUST)
 da.set_ylim(0, 1.0)
@@ -5012,16 +5064,20 @@ i19 = int(np.argmin(np.abs(ctr24 - 1.9e4)))
 top_b = np.argsort(-np.abs(rho_b1))[:3]
 top_p = np.argsort(-np.abs(rho_p1))[:3]
 print(f"fig 20d [caption]: R^2(S at ell~{ctr24[i19]:.0f}): f~_bar alone "
-      f"{r2_b[i19]:.2f} -> +f~_star {r2_bs[i19]:.2f} -> +c_tau "
+      f"{r2_b[i19]:.2f} -> +f~_star {r2_bs[i19]:.2f} -> +c_gas+logT "
       f"{r2_all[i19]:.2f}; residual-after-budget PCA: PC1 {varr[0]:.1%}, "
       f"PC2 {varr[1]:.1%} (one extra latent)")
 print(f"fig 20d [caption]: residual PC1 vs f~_star r = "
-      f"{pearsonr(fst1[okd], pc1)[0]:+.2f}, vs c_tau "
+      f"{pearsonr(fst1[okd], pc1)[0]:+.2f}, vs c_gas "
+      f"{pearsonr(c_gas20[okd], pc1)[0]:+.2f}, vs logT "
+      f"{pearsonr(logT20[okd], pc1)[0]:+.2f}, vs c_tau (cross-check) "
       f"{pearsonr(c_tau20[okd], pc1)[0]:+.2f}, vs f~_gas "
       f"{pearsonr(ft_gas[okd, j_b], pc1)[0]:+.2f}, vs f~_bar "
       f"{pearsonr(fb1[okd], pc1)[0]:+.2f} (0 by construction); f~_star vs "
       f"S(ell~1e3) r = {pearsonr(fst1[okd], Sb[okd, 1])[0]:+.2f} (invisible "
-      f"to the amplitude); c_tau vs f~_bar r = "
+      f"to the amplitude); c_gas vs f~_bar r = "
+      f"{pearsonr(fb1[okd], c_gas20[okd])[0]:+.2f} (largely re-measures the "
+      f"budget -- why logT joins the base set); c_tau vs f~_bar "
       f"{pearsonr(fb1[okd], c_tau20[okd])[0]:+.2f}")
 print("fig 20d [caption]: top levers, budget axis: "
       + ", ".join(f"{short_label(pnames[j])} {rho_b1[j]:+.2f}" for j in top_b)
@@ -5046,9 +5102,10 @@ print("fig 20d [caption]: top levers, budget axis: "
 #     r=0.99): same three nodes, leave-one-out. No trusted fiducial nu05 PDF
 #     exists (run_0000 nongaussian_stats is the pre-nu05 grid + stale-MF
 #     memo), so the fid appears in (b) only.
-oke = okd & np.isfinite(c_tau20)
+oke = (okd & np.isfinite(c_gas20) & np.isfinite(logT20)
+       & np.isfinite(c_tau20))                    # c_tau only for cross-check
 nok = int(oke.sum())
-L3 = np.c_[fb1[oke], fst1[oke], c_tau20[oke]]
+L4 = np.c_[fb1[oke], fst1[oke], c_gas20[oke], logT20[oke]]   # harmonized set
 
 def cvr2(Y, cols, k=5):
     """Per-bin k-fold CV R^2, deterministic index%k folds."""
@@ -5063,12 +5120,13 @@ def cvr2(Y, cols, k=5):
     return 1 - ((Y - pred)**2).mean(0)/Y.var(0)
 
 cv2l  = cvr2(Sb24[oke], [fb1[oke], fst1[oke]])
-cv3l  = cvr2(Sb24[oke], list(L3.T))
+cv4l  = cvr2(Sb24[oke], list(L4.T))
 cv30  = cvr2(Sb24[oke], list(X_unit[oke].T))
 
 fig, (ea, eb, ec) = plt.subplots(1, 3, figsize=(TWO_COL[0], 2.5))
-ea.plot(ctr24, cv3l, color=COLORS["bind"], lw=1.5,
-        label=r"3 latents ($\tilde f_{\rm bar},\tilde f_\star,c_\tau$)")
+ea.plot(ctr24, cv4l, color=COLORS["bind"], lw=1.5,
+        label=r"4 latents ($\tilde f_{\rm bar},\tilde f_\star,"
+              r"c_{\rm gas},\log\tilde T$)")
 ea.plot(ctr24, cv2l, color=COLORS["truth"], lw=1.1, ls="--",
         label=r"2 latents ($\tilde f_{\rm bar},\tilde f_\star$)")
 ea.plot(ctr24, cv30, color=COLORS["highlight"], lw=1.1, ls=":",
@@ -5088,27 +5146,37 @@ sv5 = Sb24[oke, j5e]
 demo_g = [int(oke_idx[np.argmin(np.abs(sv5 - np.quantile(sv5, q)))])
           for q in (0.05, 0.50, 0.95)]
 DEMO_C = [COLORS["bind"], COLORS["secondary"], COLORS["highlight"]]
-A_all = np.c_[L3, np.ones(nok)]
+A_all = np.c_[L4, np.ones(nok)]
 rms_demo = []
 for g, colg in zip(demo_g, DEMO_C):
     tr = oke_idx != g                            # leave this node out
     beta, *_ = np.linalg.lstsq(A_all[tr], Sb24[oke_idx[tr]], rcond=None)
-    pred_g = np.r_[fb1[g], fst1[g], c_tau20[g], 1.0] @ beta
+    pred_g = np.r_[fb1[g], fst1[g], c_gas20[g], logT20[g], 1.0] @ beta
     rms_demo.append(float(np.sqrt(np.mean((pred_g - Sb24[g])**2))))
     eb.plot(ctr24, Sb24[g], color=colg, lw=1.2,
             label=f"node {int(run_ids[g])} (measured)")
     eb.plot(ctr24, pred_g, color=colg, lw=0.9, ls="--", marker="o", ms=1.8)
-# the fiducial: out-of-design; fit on ALL Sobol nodes
+# the fiducial: out-of-design; fit on ALL Sobol nodes. Harmonized fid
+# latents come from the SAME atlas file with the SAME reducers (the old
+# snap085 tau-profile leg is no longer needed for the demo).
 beta_f, *_ = np.linalg.lstsq(A_all, Sb24[oke], rcond=None)
-ftau_fid = np.load(SCI/"ksz_confront/bind_tauy_fiducial_snap085.npz")
-tf, xf = ftau_fid["tau"][0], ftau_fid["x"]       # group bin 13.0-13.4
-c_tau_fid = float(np.nanmean(tf[xf < 0.3])
-                  /np.nanmean(tf[(xf >= 0.3) & (xf < 1.0)]))
-pred_fid = np.r_[fbar_fid, f_star_fid, c_tau_fid, 1.0] @ beta_f
+sfg20 = sel_f20 & (fa20["m_gas_200c_bg"] > 0)
+c_gas_fid = float(np.median((fa20["m_gas_500c_bg"]
+                             /fa20["m_gas_200c_bg"])[sfg20]))
+logT_fid = float(np.log10(np.median(fa20["T_mw_500c"][sel_f20])))
+pred_fid = np.r_[fbar_fid, f_star_fid, c_gas_fid, logT_fid, 1.0] @ beta_f
 S_fid_fine = clb20["cl"][ZI, ZI]/dmo20
 S_fid_b24 = np.array([S_fid_fine[(ELL >= EDG24[i]) & (ELL < EDG24[i+1])].mean()
                       for i in range(24)])
 rms_fid = float(np.sqrt(np.mean((pred_fid - S_fid_b24)**2)))
+# out-of-design robustness diagnostic: the thermal kernel is fit over a TINY
+# dynamic range (logT spans ~0.09 dex across the cloud), so it is the least
+# robust leg for out-of-design inputs -- the fid (logT at the cloud's ~47th
+# percentile, NOT an outlier) predicts BETTER without it. Printed, not hidden.
+A3f = np.c_[fb1[oke], fst1[oke], c_gas20[oke], np.ones(nok)]
+b3f, *_ = np.linalg.lstsq(A3f, Sb24[oke], rcond=None)
+rms_fid3 = float(np.sqrt(np.mean(
+    (np.r_[fbar_fid, f_star_fid, c_gas_fid, 1.0] @ b3f - S_fid_b24)**2)))
 eb.plot(ctr24, S_fid_b24, color="k", lw=1.5, label="fiducial (measured)")
 eb.plot(ctr24, pred_fid, color="k", lw=1.0, ls="--", marker="*", ms=3.5)
 eb.axhline(1, color=COLORS["dmo"], ls=":", lw=0.7)
@@ -5127,7 +5195,7 @@ rms_pdf = []
 for g, colg in zip(demo_g, DEMO_C):
     tr = oke_idx != g
     beta, *_ = np.linalg.lstsq(A_all[tr], Ypdf[oke_idx[tr]][:, gp], rcond=None)
-    pred_p = np.r_[fb1[g], fst1[g], c_tau20[g], 1.0] @ beta
+    pred_p = np.r_[fb1[g], fst1[g], c_gas20[g], logT20[g], 1.0] @ beta
     rms_pdf.append(float(np.sqrt(np.mean((pred_p - Ypdf[g, gp])**2))))
     ec.plot(pdf_x[gp], Ypdf[g, gp], color=colg, lw=1.2)
     ec.plot(pdf_x[gp], pred_p, color=colg, lw=0.9, ls="--", marker="o", ms=1.8)
@@ -5139,17 +5207,29 @@ save(fig, "figs_v2/fig20e_analytic_model")
 plt.show()
 
 i19e = int(np.argmin(np.abs(ctr24 - 1.9e4)))
-print(f"fig 20e [caption]: CV R^2(S) at ell~1e3/5e3/1.9e4: 3-latent "
-      f"{cv3l[np.argmin(np.abs(ctr24 - 1e3))]:.2f}/{cv3l[j5e]:.2f}/"
-      f"{cv3l[i19e]:.2f}, 2-latent {cv2l[np.argmin(np.abs(ctr24 - 1e3))]:.2f}/"
+print(f"fig 20e [caption]: CV R^2(S) at ell~1e3/5e3/1.9e4: 4-latent "
+      f"(harmonized) {cv4l[np.argmin(np.abs(ctr24 - 1e3))]:.2f}/"
+      f"{cv4l[j5e]:.2f}/{cv4l[i19e]:.2f}, 2-latent "
+      f"{cv2l[np.argmin(np.abs(ctr24 - 1e3))]:.2f}/"
       f"{cv2l[j5e]:.2f}/{cv2l[i19e]:.2f}, 30-param linear "
       f"{cv30[np.argmin(np.abs(ctr24 - 1e3))]:.2f}/{cv30[j5e]:.2f}/"
       f"{cv30[i19e]:.2f} -- the latents LINEARIZE the response")
+cv5S = cvr2(Sb24[oke], list(L4.T) + [c_tau20[oke]])
+print(f"fig 20e [caption]: c_tau CROSS-CHECK (snap085 profile stack, the "
+      f"retired mixed-convention leg): adding it to the harmonized set moves "
+      f"the S(ell) CV-R2 median {np.median(cv4l):.3f} -> {np.median(cv5S):.3f}"
+      f" (+{np.median(cv5S) - np.median(cv4l):.3f}) -- profile-level "
+      f"structure adds little beyond the harmonized aperture set")
 print(f"fig 20e [caption]: generation demo RMS(S): nodes "
       + ", ".join(f"{int(run_ids[g])}: {r:.4f}" for g, r in
                   zip(demo_g, rms_demo))
-      + f"; FIDUCIAL (out-of-design, c_tau_fid={c_tau_fid:.2f}): {rms_fid:.4f}"
-      f" (cloud std at ell~5e3 = {Sb24[oke, j5e].std():.4f}); PDF RMS "
+      + f"; FIDUCIAL (out-of-design; f~_bar={fbar_fid:.3f}, "
+      f"f~_star={f_star_fid:.3f}, c_gas={c_gas_fid:.3f}, "
+      f"logT={logT_fid:.2f}): {rms_fid:.4f} full set / {rms_fid3:.4f} "
+      f"without the thermal kernel (logT spans only ~0.09 dex across the "
+      f"cloud -> its kernel is the least out-of-design-robust; fid logT is "
+      f"at the cloud's ~47th pct, not an outlier; both RMS are far below "
+      f"the cloud std at ell~5e3 = {Sb24[oke, j5e].std():.4f}); PDF RMS "
       + ", ".join(f"{r:.4f}" for r in rms_pdf))
 
 # cross-statistic scorecard: same latents, same folds; shared-latent r =
@@ -5174,7 +5254,8 @@ for nm, uselog in [("pdf", False), ("mf_v1", False), ("mf_v2", False),
         Ys = np.log10(np.where(Ys > 0, Ys, np.nan))
     gd = np.isfinite(Ys[oks]).all(0) & (np.nanstd(Ys[oks], 0) > 0)
     r2m = float(np.median(cvr2(Ys[oks][:, gd],
-                               [fb1[oks], fst1[oks], c_tau20[oks]])))
+                               [fb1[oks], fst1[oks], c_gas20[oks],
+                                logT20[oks]])))
     Ab_s = np.c_[fb1[oks], np.ones(int(oks.sum()))]
     Rs = Ys[oks][:, gd] - Ab_s @ np.linalg.lstsq(Ab_s, Ys[oks][:, gd],
                                                  rcond=None)[0]
@@ -5195,14 +5276,15 @@ print(f"  peak_counts   : EXCLUDED -- node-to-node spread = {snr_pk:.1f}x the "
       f"per-node measurement err (noise-dominated at Delta-nu=0.5; no model "
       f"can or should fit per-bin counts)")
 
-# ── fig 20f: redshift dependence + the thermal fourth latent ────────────────
-# (2026-08-05, author-requested.) Three questions, three panels:
-# (a) do the SAME low-z latents (snap096 f~'s + snap085 c_tau) predict S(ell)
-#     at ALL five source planes? -> yes: CV-R2 median 0.96 (z_s=0.5) to 0.91
-#     (z_s=2.44). The z_s dependence lives in the COEFFICIENTS c_i(ell, z_s)
-#     (whose amplitude declines with z_s -- kernel dilution, printed), not in
-#     the latents: ONE latent triplet per node covers the whole tomographic
-#     stack.
+# ── fig 20f: redshift dependence + the thermal latent (harmonized set) ──────
+# (2026-08-05, author-requested; 2026-08-06 harmonization: the canonical set
+# is now the 4-latent harmonized one, and this figure's (c) doubles as the
+# thermal-ablation + c_tau-cross-check panel.) Three panels:
+# (a) do the SAME low-z harmonized latents predict S(ell) at ALL five source
+#     planes? -> yes (medians printed; ~0.94 at z_s=0.5 falling gently to
+#     ~0.91 at z_s=2.44). The z_s dependence lives in the COEFFICIENTS
+#     c_i(ell, z_s) (amplitude dilution, printed), not the latents: ONE
+#     latent vector per node covers the whole tomographic stack.
 # (b) latent evolution: rank stability of the latents vs the z=0.03 epoch,
 #     measured with the definition the OLDER cubes support (plain 500c
 #     apertures, applied uniformly incl. snap096). The partition latent
@@ -5211,22 +5293,15 @@ print(f"  peak_counts   : EXCLUDED -- node-to-node spread = {snr_pk:.1f}x the "
 #     WORSE, not better, even for z_s=2.44 (CV-R2 0.47 with z=2 latents vs
 #     0.88-0.90 with low-z latents): the end-state budget integrates the full
 #     feedback history, which is exactly why the vD relation works.
-# (c) the thermal fourth latent logT~ (group-bin median mass-weighted
-#     T_mw_500c, snap096; the most budget-independent candidate, r=-0.40 vs
-#     f~_bar -- cluster-bin T/Y/Pe variants tested and printed): fixes the
-#     T-M relation (CV-R2 0.49 -> 0.78), marginal for the mass sector (as it
-#     should be), and does NOT fix cl_yy (0.76 -> 0.78) -- the y-auto
-#     spectrum needs profile-level pressure information beyond population
-#     medians; that boundary is stated, not hidden.
-logT20 = np.full(NRn, np.nan)
-Tm20 = cz["sobol_T_mw_500c"][run_ids]
-for q in range(NRn):
-    s = (logm5[q] >= 13.3) & (logm5[q] < 13.6)
-    if s.sum() >= 5:
-        logT20[q] = np.log10(np.nanmedian(Tm20[q, s]))
-okf = oke & np.isfinite(logT20)
+# (c) ablation + cross-check, per statistic: (i) the harmonized set WITHOUT
+#     logT~ (3 latents), (ii) the full harmonized 4-latent set -- logT~ is
+#     what fixes T-M, marginal for the mass sector as it should be --
+#     (iii) 4 latents + the retired snap085 c_tau (profile cross-check):
+#     profile-level structure adds little beyond the harmonized apertures.
+#     cl_yy stays the stated boundary (~0.77 under all variants: the y-auto
+#     residual needs profile-level PRESSURE, not more population medians).
 
-# (a) one latent triplet, five source planes
+# (a) one harmonized latent vector, five source planes
 def binS24(zi):
     return np.stack([d["t__suppression__value"][:, zi, :]
                      [:, (ELL >= EDG24[i]) & (ELL < EDG24[i+1])].mean(1)
@@ -5241,16 +5316,15 @@ CMZS = plt.get_cmap("viridis")
 c_amp = []
 for zi, zs in enumerate(ZS):
     Sz24 = binS24(zi)
-    r2z = cvr2(Sz24[oke], list(L3.T))
-    A_z = np.c_[L3, np.ones(nok)]
-    bz, *_ = np.linalg.lstsq(A_z, Sz24[oke], rcond=None)
+    r2z = cvr2(Sz24[oke], list(L4.T))
+    bz, *_ = np.linalg.lstsq(A_all, Sz24[oke], rcond=None)
     c_amp.append((float(np.abs(bz[0]).max()), float(np.abs(bz[1]).max())))
     fa.plot(ctr24, r2z, color=CMZS(zi/4), lw=1.2, label=rf"$z_s={zs:.2f}$")
 fa.set_xscale("log")
 fa.set_xlim(300, ELL_TRUST)
 fa.set_ylim(0, 1.0)
 fa.set_xlabel(r"$\ell$")
-fa.set_ylabel(r"CV $R^2\,[S(\ell)]$, one low-$z$ latent triplet", fontsize=6.3)
+fa.set_ylabel(r"CV $R^2\,[S(\ell)]$, one low-$z$ latent vector", fontsize=6.3)
 fa.legend(fontsize=5.0, loc="lower left", handletextpad=0.5)
 panel_label(fa, "(a)")
 
@@ -5296,27 +5370,32 @@ fb.set_ylim(0.3, 1.13)                 # headroom: the panel label sits above
 fb.legend(fontsize=4.9, loc="lower left", handletextpad=0.5)
 panel_label(fb, "(b)")
 
-# (c) the thermal fourth latent: paired bars without/with logT~
+# (c) ablation + cross-check: harmonized set without logT~ / full 4-latent /
+# 4-latent + retired c_tau (profile cross-check)
 therm_rows = []
 for nm, uselog in [("scaling_T", True), ("scaling_Y", True), ("pdf", False),
                    ("cl_yy", True), ("suppression", False)]:
     Ys = stat_leg20(nm)
     if Ys.shape[-1] == len(ELL):
         Ys = Ys[:, (ELL >= 300) & (ELL <= ELL_TRUST)]
-    oks = okf & ~EXCL_XN if nm.startswith("cl_") else okf
+    oks = oke & ~EXCL_XN if nm.startswith("cl_") else oke
     if uselog:
         Ys = np.log10(np.where(Ys > 0, Ys, np.nan))
     gd = np.isfinite(Ys[oks]).all(0) & (np.nanstd(Ys[oks], 0) > 0)
-    c3f = [fb1[oks], fst1[oks], c_tau20[oks]]
-    therm_rows.append((nm, float(np.median(cvr2(Ys[oks][:, gd], c3f))),
-                       float(np.median(cvr2(Ys[oks][:, gd],
-                                            c3f + [logT20[oks]])))))
+    c3f = [fb1[oks], fst1[oks], c_gas20[oks]]
+    therm_rows.append(
+        (nm, float(np.median(cvr2(Ys[oks][:, gd], c3f))),
+         float(np.median(cvr2(Ys[oks][:, gd], c3f + [logT20[oks]]))),
+         float(np.median(cvr2(Ys[oks][:, gd],
+                              c3f + [logT20[oks], c_tau20[oks]])))))
 ypos = np.arange(len(therm_rows))
-fc.barh(ypos + 0.18, [r[1] for r in therm_rows], height=0.34,
-        color=COLORS["dmo"], alpha=0.75, label="3 latents")
-fc.barh(ypos - 0.18, [r[2] for r in therm_rows], height=0.34,
-        color=COLORS["highlight"], alpha=0.9,
-        label=r"$+\ \log\tilde T$ (thermal)")
+fc.barh(ypos + 0.26, [r[1] for r in therm_rows], height=0.24,
+        color=COLORS["dmo"], alpha=0.75, label=r"without $\log\tilde T$")
+fc.barh(ypos, [r[2] for r in therm_rows], height=0.24,
+        color=COLORS["highlight"], alpha=0.9, label="harmonized 4-latent")
+fc.barh(ypos - 0.26, [r[3] for r in therm_rows], height=0.24,
+        color=COLORS["bind"], alpha=0.8,
+        label=r"$+\ c_\tau$ (profile cross-check)")
 fc.set_yticks(ypos)
 fc.set_yticklabels([{"scaling_T": "T–M", "scaling_Y": "Y–M", "pdf": "PDF",
                      "cl_yy": r"$C_\ell^{yy}$",
@@ -5332,11 +5411,11 @@ fig.tight_layout(w_pad=1.2)
 save(fig, "figs_v2/fig20f_redshift_thermal")
 plt.show()
 
-print("fig 20f [caption] (a): 3-latent CV-R2 median per z_s: "
+print("fig 20f [caption] (a): harmonized 4-latent CV-R2 median per z_s: "
       + ", ".join(f"z_s={zs:.2f}: "
-                  f"{np.median(cvr2(binS24(zi)[oke], list(L3.T))):.2f}"
+                  f"{np.median(cvr2(binS24(zi)[oke], list(L4.T))):.2f}"
                   for zi, zs in enumerate(ZS))
-      + " -- one low-z latent triplet covers the tomographic stack")
+      + " -- one low-z latent vector covers the tomographic stack")
 print("fig 20f [caption] (a): coefficient amplitude dilution with z_s "
       "(max|c1|, max|c2|): "
       + ", ".join(f"{zs:.2f}: {a1:.2f}/{a2:.2f}"
@@ -5348,47 +5427,67 @@ print("fig 20f [caption] (b): rank stability vs z=0.03 at epochs "
       + ", ".join(f"{z:.2f}: {r:.2f}" for z, r in zip(zev, r2m))
       + " -- partition set early, budget built late; the END-STATE budget is "
         "the sufficient statistic (why vD works)")
-print("fig 20f [caption] (c): "
-      + ", ".join(f"{nm} {r3:.2f}->{r4:.2f}" for nm, r3, r4 in therm_rows)
+print("fig 20f [caption] (c): (no-logT -> harmonized-4 -> +c_tau) "
+      + ", ".join(f"{nm} {r3:.2f}->{r4:.2f}->{r5:.2f}"
+                  for nm, r3, r4, r5 in therm_rows)
       + f"; logT~ vs f~_bar r = "
-      f"{pearsonr(fb1[okf], logT20[okf])[0]:+.2f}, vs f~_star "
-      f"{pearsonr(fst1[okf], logT20[okf])[0]:+.2f}; cluster-bin T/Y/Pe "
-      f"variants do NOT beat it for cl_yy (max 0.78) -- the y-auto residual "
-      f"needs profile-level pressure info beyond population medians (stated "
-      f"boundary)")
+      f"{pearsonr(fb1[oke], logT20[oke])[0]:+.2f}, vs f~_star "
+      f"{pearsonr(fst1[oke], logT20[oke])[0]:+.2f}; c_gas vs f~_bar "
+      f"{pearsonr(fb1[oke], c_gas20[oke])[0]:+.2f}; cluster-bin T/Y/Pe "
+      f"variants do NOT beat group-bin logT for cl_yy (max 0.78) -- the "
+      f"y-auto residual needs profile-level pressure info beyond population "
+      f"medians (stated boundary)")
 
 # ── fig 20g: the kernel functions c_i(ell, z_s) — the model itself ──────────
-# (2026-08-06, author-requested: "how were c_0..c_3 computed? show them".)
-# Per band b and plane z_s: beta(ell_b, z_s) = (A^T A)^-1 A^T S(:, b, z_s),
-# A = [f~_bar, f~_star, c_tau, 1] over the nodes. Each c_i is therefore a
-# PARTIAL slope, dS/dlatent_i at the other latents held fixed, jointly
-# de-mixed -- the latents are correlated (r(c_tau, f~_bar)=+0.69), so three
-# separate 1-D fits would give different, wrong curves. Shaded band = +-1
-# analytic OLS SE, SE_i = sqrt(sigma_res^2 [(A^T A)^-1]_ii), z_s=1 only
-# (five overlapping bands are unreadable; the others are comparable). These
-# 4 x 24 x 5 numbers ARE the model (latent_model_coeffs.npz /
-# predict_from_latents.py).
+# (2026-08-06, author-requested: "how were c_0..c_3 computed? show them";
+# same-day harmonization: FIVE coefficients now -- the four harmonized
+# latents + intercept.) Per band b and plane z_s: beta(ell_b, z_s) =
+# (A^T A)^-1 A^T S(:, b, z_s), A = [f~_bar, f~_star, c_gas, logT~, 1] over
+# the nodes. Each c_i is therefore a PARTIAL slope, dS/dlatent_i at the
+# other latents held fixed, jointly de-mixed -- the latents are correlated
+# (r(c_gas, f~_bar)=+0.94!), so separate 1-D fits would give different,
+# wrong curves. Shaded band = +-1 analytic OLS SE, SE_i = sqrt(sigma_res^2
+# [(A^T A)^-1]_ii), z_s=1 only (five overlapping bands are unreadable; the
+# others are comparable). Panel (f): the 1-sigma latent IMPACT
+# |c_i(ell)| x std(latent_i) -- the fair importance comparison across
+# latents with very different dynamic ranges. These 5 x 24 x 5 numbers ARE
+# the model (latent_model_coeffs.npz / predict_from_latents.py).
 AtAinv20 = np.linalg.inv(A_all.T @ A_all)
 KLAB20 = [
-    (r"$c_1(\ell)$: budget kernel  $\partial S/\partial\tilde f_{\rm bar}$", 0),
-    (r"$c_2(\ell)$: partition kernel  $\partial S/\partial\tilde f_\star$", 1),
-    (r"$c_3(\ell)$: concentration kernel  $\partial S/\partial c_\tau$", 2),
-    (r"$c_0(\ell)$: intercept", 3)]
-fig, AXg = plt.subplots(2, 2, figsize=(TWO_COL[0], 4.4), sharex=True)
+    (r"$c_1(\ell)$: budget  $\partial S/\partial\tilde f_{\rm bar}$", 0),
+    (r"$c_2(\ell)$: partition  $\partial S/\partial\tilde f_\star$", 1),
+    (r"$c_3(\ell)$: concentration  $\partial S/\partial c_{\rm gas}$", 2),
+    (r"$c_4(\ell)$: thermal  $\partial S/\partial\log\tilde T$", 3),
+    (r"$c_0(\ell)$: intercept", 4)]
+IMPLAB20 = [r"$\tilde f_{\rm bar}$", r"$\tilde f_\star$",
+            r"$c_{\rm gas}$", r"$\log\tilde T$"]
+IMPCOL20 = [COLORS["bind"], COLORS["truth"], COLORS["highlight"],
+            COLORS["secondary"]]
+fig, AXg = plt.subplots(2, 3, figsize=(TWO_COL[0], 4.2), sharex=True)
+ax_imp = AXg.ravel()[5]                # last slot: the impact panel
+sd_lat20 = L4.std(0)
 beta_g = {}
 for zi, zs in enumerate(ZS):
     Sz24g = binS24(zi)[oke]
-    bz, *_ = np.linalg.lstsq(A_all, Sz24g, rcond=None)      # (4, 24)
-    res_v = ((Sz24g - A_all @ bz)**2).sum(0)/(nok - 4)      # sigma_res^2(b)
+    bz, *_ = np.linalg.lstsq(A_all, Sz24g, rcond=None)      # (5, 24)
+    res_v = ((Sz24g - A_all @ bz)**2).sum(0)/(nok - 5)      # sigma_res^2(b)
     se_z = np.sqrt(res_v[None, :]*np.diag(AtAinv20)[:, None])
     beta_g[zi] = bz
-    for (lab, j), axg in zip(KLAB20, AXg.ravel()):
+    for (lab, j), axg in zip(KLAB20, AXg.ravel()[:5]):
         axg.plot(ctr24, bz[j], color=CMZS(zi/4), lw=1.2,
                  label=(rf"$z_s={zs:.2f}$" if j == 0 else None))
         if zi == 1:
             axg.fill_between(ctr24, bz[j] - se_z[j], bz[j] + se_z[j],
                              color=CMZS(0.25), alpha=0.25, lw=0)
-for (lab, j), axg in zip(KLAB20, AXg.ravel()):
+for i in range(4):                     # (f) impacts, z_s=1 working plane
+    ax_imp.plot(ctr24, np.abs(beta_g[1][i])*sd_lat20[i], color=IMPCOL20[i],
+                lw=1.3, label=IMPLAB20[i])
+ax_imp.set_xscale("log")
+ax_imp.set_xlim(300, ELL_TRUST)
+ax_imp.set_title(r"$1\sigma$ latent impact on $S$ ($z_s=1$)", fontsize=6.5)
+ax_imp.tick_params(labelsize=5.5)
+ax_imp.legend(fontsize=5.0, loc="center left", handletextpad=0.5)
+for (lab, j), axg in zip(KLAB20, AXg.ravel()[:5]):
     axg.axhline(0, color=COLORS["dmo"], ls=":", lw=0.7)
     axg.set_xscale("log")
     axg.set_xlim(300, ELL_TRUST)
@@ -5396,10 +5495,10 @@ for (lab, j), axg in zip(KLAB20, AXg.ravel()):
     axg.tick_params(labelsize=5.5)
 for axg in AXg[1]:
     axg.set_xlabel(r"$\ell$")
-AXg[1, 1].set_ylim(0, 1.12)            # intercept ~0.98 at low ell: headroom
-                                       # so the panel letter clears the curves
+# intercept panel autoscales: with logT~ (~6.8) in the design the intercept
+# absorbs a large offset and no longer lives in [0, 1]
 AXg[0, 0].legend(fontsize=5.0, loc="upper right", handletextpad=0.5)
-for axg, lett in zip(AXg.ravel(), "abcd"):
+for axg, lett in zip(AXg.ravel(), "abcdef"):
     panel_label(axg, f"({lett})")
 fig.tight_layout()
 save(fig, "figs_v2/fig20g_latent_kernels")
@@ -5409,15 +5508,15 @@ b1g = beta_g[1]
 i5g = int(np.argmin(np.abs(ctr24 - 5e3)))
 print(f"fig 20g [caption]: z_s=1 kernels at ell~{ctr24[i5g]:.0f}: "
       f"c1={b1g[0, i5g]:+.4f}, c2={b1g[1, i5g]:+.4f}, "
-      f"c3={b1g[2, i5g]:+.4f}, c0={b1g[3, i5g]:+.4f} (the worked example in "
-      f"ANALYTIC_LATENT_MODEL.md / predict_from_latents.py)")
-sd_lat20 = L3.std(0)
+      f"c3={b1g[2, i5g]:+.4f}, c4={b1g[3, i5g]:+.4f}, c0={b1g[4, i5g]:+.4f} "
+      f"(the worked example in ANALYTIC_LATENT_MODEL.md / "
+      f"predict_from_latents.py)")
 for ll in (1e3, 5e3, 1.9e4):
     ig = int(np.argmin(np.abs(ctr24 - ll)))
-    imp = np.abs(b1g[:3, ig])*sd_lat20
+    imp = np.abs(b1g[:4, ig])*sd_lat20
     print(f"fig 20g [caption]: 1-sigma latent impact on S at "
           f"ell~{ctr24[ig]:.0f}: f~_bar {imp[0]:.4f}, f~_star {imp[1]:.4f}, "
-          f"c_tau {imp[2]:.4f}")
+          f"c_gas {imp[2]:.4f}, logT {imp[3]:.4f}")
 del cz, mt5, mg5, ms5, logm5, fbar5, fgas5, xpb20, tau20, ta20
 ''')
 

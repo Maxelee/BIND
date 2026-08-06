@@ -59,6 +59,20 @@ scaling_f_star). SZ/τ stage's own gain is modest at this q but the corner shows
 tightening c_gas/logT̃; peaks add ~nothing except through scaling_f_star (as the noise
 audit predicted).
 
+**PAPER FIGURE SET (author figure plan, same day)** — slot map in
+papers/01_pipeline/PAPER_FIGURE_MAP.md. New publication renders: §3b main
+pfig_s3b_cl_clusters + appendix pfig_s3b_pdf_clusters (paper_s3b_clusters.py — the scratch
+quick_deltacl clustering promoted to paper grade, families reproduced exactly: C1 n=12
+r̄=0.98, C2 n=7, C3 n=5 w/ IMFslope, C4 n=5, SNII singleton); §3c main-2
+pfig_s3c_hinge_plane (fig20b hinge + fig20d plane merged); §4a main-2 pfig_s4a_cv_buildup
+(one CV panel: 0.85→0.91→0.92→0.94 medians vs 30-param 0.53); §4b mains
+pfig_s4b_reconstruction (fig20e b+c) + pfig_s4b_generality (9-stat 3-vs-4-latent bars);
+appendix pfig_s4b_app_zs + pfig_s4b_app_epoch (fig20f a,b split; epoch = flex slot,
+appendix by default). As-is slots: fig20a (§3c-1), fig20c (§3c-3), fig20g (§4a-1),
+fig20h (§4b app), fig20i (§4c closer). Cuts per plan: IMF-highlight overlay, old fig21,
+the τ-profile S(5000)-split (fig20b right panel / fig12b) — roles carried by cluster
+membership, the plane panel, and the kernels.
+
 ---
 
 ## 2026-08-05 (evening) — Paper I: two direct IMFslope-mechanism figures (fig21b/c) revise the fig21 verdict to mixed-channel

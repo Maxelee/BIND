@@ -5854,6 +5854,210 @@ print("fig 20i [caption, why scores under SH]: raw-bin full-cov SH tested "
       "the all-statistics stack (p=346 > n_tr=252) is singular outright; "
       "q <= 24 scores keep SH in the regime where its guarantees hold "
       "EMPIRICALLY, as the coverage line above verifies")
+
+# ═══ PAPER COMPOSITIONS (2026-08-06 author figure plan) ═════════════════════
+# Re-compositions of panels already computed above into the paper's slots.
+# No new analysis here -- every panel replicates an existing one; captions
+# draw from the prints already emitted by this cell. Slot map + as-is reuse
+# (fig20a/c/g/h/i) documented in PAPER_FIGURE_MAP.md.
+
+# ── s3c main 2: hinge + latent plane (merged two-panel) ─────────────────────
+fig, (pA, pB) = plt.subplots(1, 2, figsize=(TWO_COL[0], 2.9),
+                             gridspec_kw=dict(width_ratios=[1.0, 1.15]))
+pA.scatter(ft_bar[:, j_b], Sb[:, i_b], c=X_unit[:, p_dom], cmap="coolwarm",
+           vmin=0, vmax=1, s=9, edgecolor="k", linewidths=0.15, alpha=0.9,
+           rasterized=True)
+pA.plot(xg20, np.polyval(ols20, xg20), color=COLORS["truth"], lw=1.0, ls="--")
+pA.plot(fbar_fid, S_fid20, marker="*", ms=10, color=COLORS["highlight"],
+        mec="k", mew=0.4, zorder=5, ls="none", label="fiducial")
+pA.axhline(1, color=COLORS["dmo"], ls=":", lw=0.7)
+pA.set_xlabel(rf"$\tilde f_{{\rm bar,500c}}\ (\log_{{10}}M\in"
+              rf"[{MEDG[j_b]:.1f},{MEDG[j_b+1]:.1f}))$", fontsize=6.3)
+pA.set_ylabel(rf"$S(\ell\simeq{LCEN[i_b]:.0f})$")
+pA.legend(loc="lower right", fontsize=6, handletextpad=0.2)
+cbA = fig.colorbar(ScalarMappable(cmap="coolwarm", norm=Normalize(0, 1)),
+                   ax=pA, fraction=0.045, pad=0.03)
+cbA.set_label(short_label(pnames[p_dom]) + " (prior units)", fontsize=6)
+cbA.set_ticks([0, 1])
+panel_label(pA, "(a)")
+scB = pB.scatter(fb1[okd], fst1[okd], c=S_hi20[okd], cmap="coolwarm",
+                 norm=norm_d, s=10, edgecolor="k", linewidths=0.15,
+                 alpha=0.9, rasterized=True)
+pB.scatter(fb1[okd & hiS20], fst1[okd & hiS20], facecolor="none",
+           edgecolor=COLORS["highlight"], s=28, lw=0.7,
+           label=r"enhancement ($S(5000)>1$)")
+pB.plot(fbar_fid, f_star_fid, marker="*", ms=11,
+        color=plt.get_cmap("coolwarm")(norm_d(S_fid_hi)), mec="k", mew=0.5,
+        ls="none", label="fiducial", zorder=5)
+pB.set_ylim(-0.012, float(np.nanmax(fst1[okd]))*1.2)
+for lev, fam, col in [("IMFslope", "C3", COLORS["bind"]),
+                      ("VariableWindVelFactor", "C2", COLORS["highlight"])]:
+    jL = pnames.index(lev)
+    u = X_unit[okd, jL]
+    dxa = np.polyfit(u, fb1[okd], 1)[0]/np.diff(pB.get_xlim())[0]
+    dya = np.polyfit(u, fst1[okd], 1)[0]/np.diff(pB.get_ylim())[0]
+    nrm = float(np.hypot(dxa, dya))
+    dxa, dya = 0.13*dxa/nrm, 0.13*dya/nrm
+    pB.annotate("", xy=(0.30 + dxa, 0.62 + dya), xytext=(0.30, 0.62),
+                xycoords="axes fraction", textcoords="axes fraction",
+                arrowprops=dict(arrowstyle="->", color=col, lw=1.3))
+    pB.text(0.30 + 1.5*dxa, 0.62 + 1.5*dya, f"{short_label(lev)} ({fam})",
+            fontsize=5.0, color=col, ha="center", va="center",
+            transform=pB.transAxes)
+pB.set_xlabel(rf"$\tilde f_{{\rm bar,500c}}$ -- budget", fontsize=6.3)
+pB.set_ylabel(rf"$\tilde f_{{\star,500c}}$ -- partition", fontsize=6.5)
+pB.legend(fontsize=5.2, loc="upper right", handletextpad=0.4)
+cbB = fig.colorbar(scB, ax=pB, fraction=0.045, pad=0.03)
+cbB.set_label(rf"$S$ ($\ell\in[{LEDG[4]/1e3:.0f}\mathrm{{k}},"
+              rf"{LEDG[5]/1e3:.0f}\mathrm{{k}}]$)", fontsize=6.5)
+cbB.ax.tick_params(labelsize=5.5)
+panel_label(pB, "(b)")
+fig.tight_layout(w_pad=1.2)
+save(fig, "figs_v2/pfig_s3c_hinge_plane")
+plt.show()
+print("pfig_s3c_hinge_plane: (a) = fig20b hinge, (b) = fig20d plane -- same "
+      "node cloud, sequential stories (budget is a line; at fixed budget the "
+      "arrangement separates); captions from the fig20b/20d prints above")
+
+# ── s4a main 2: single CV-R^2(ell) buildup panel ────────────────────────────
+cv1l = cvr2(Sb24[oke], [fb1[oke]])
+cv3g = cvr2(Sb24[oke], [fb1[oke], fst1[oke], c_gas20[oke]])
+fig, pC = plt.subplots(figsize=(ONE_COL[0]*1.35, 3.0))
+for crv, lab_c, col_c, ls_c, lw_c in [
+        (cv1l, r"$\tilde f_{\rm bar}$ only (the vD latent)",
+         COLORS["dmo"], "-", 1.1),
+        (cv2l, r"$+\ \tilde f_\star$", COLORS["truth"], "--", 1.2),
+        (cv3g, r"$+\ c_{\rm gas}$", COLORS["secondary"], "-.", 1.2),
+        (cv4l, r"$+\ \log\tilde T$ (full model)", COLORS["bind"], "-", 1.6),
+        (cv30, "all 30 raw params (linear)", COLORS["highlight"], ":", 1.2)]:
+    pC.plot(ctr24, crv, color=col_c, ls=ls_c, lw=lw_c, label=lab_c)
+pC.set_xscale("log")
+pC.set_xlim(300, ELL_TRUST)
+pC.set_ylim(0, 1.0)
+pC.set_xlabel(r"$\ell$")
+pC.set_ylabel(r"5-fold CV $R^2\,[S(\ell)]$, $z_s=1$", fontsize=6.5)
+pC.legend(fontsize=5.4, loc="lower left", handletextpad=0.5)
+fig.tight_layout()
+save(fig, "figs_v2/pfig_s4a_cv_buildup")
+plt.show()
+print("pfig_s4a_cv_buildup: 'how many numbers is feedback' -- CV buildup "
+      f"medians {np.median(cv1l):.2f} -> {np.median(cv2l):.2f} -> "
+      f"{np.median(cv3g):.2f} -> {np.median(cv4l):.2f} vs 30-param "
+      f"{np.median(cv30):.2f}")
+
+# ── s4b main 1: reconstruction (S(ell) LOO + fid | kappa-PDF LOO) ───────────
+fig, (pD, pE) = plt.subplots(1, 2, figsize=(TWO_COL[0]*0.82, 2.9))
+for g, colg in zip(demo_g, DEMO_C):
+    tr = oke_idx != g
+    beta_r, *_ = np.linalg.lstsq(A_all[tr], Sb24[oke_idx[tr]], rcond=None)
+    pred_r = np.r_[fb1[g], fst1[g], c_gas20[g], logT20[g], 1.0] @ beta_r
+    pD.plot(ctr24, Sb24[g], color=colg, lw=1.2,
+            label=f"node {int(run_ids[g])}")
+    pD.plot(ctr24, pred_r, color=colg, lw=0.9, ls="--", marker="o", ms=1.8)
+pD.plot(ctr24, S_fid_b24, color="k", lw=1.5, label="fiducial")
+pD.plot(ctr24, pred_fid, color="k", lw=1.0, ls="--", marker="*", ms=3.5)
+pD.axhline(1, color=COLORS["dmo"], ls=":", lw=0.7)
+pD.set_xscale("log")
+pD.set_xlim(300, ELL_TRUST)
+pD.set_xlabel(r"$\ell$")
+pD.set_ylabel(r"$S(\ell)$, $z_s=1$ (dashed = latent model)", fontsize=6.5)
+pD.legend(fontsize=5.2, loc="lower left", handletextpad=0.5)
+panel_label(pD, "(a)")
+for g, colg in zip(demo_g, DEMO_C):
+    tr = oke_idx != g
+    beta_r, *_ = np.linalg.lstsq(A_all[tr], Ypdf[oke_idx[tr]][:, gp],
+                                 rcond=None)
+    pred_p = np.r_[fb1[g], fst1[g], c_gas20[g], logT20[g], 1.0] @ beta_r
+    pE.plot(pdf_x[gp], Ypdf[g, gp], color=colg, lw=1.2)
+    pE.plot(pdf_x[gp], pred_p, color=colg, lw=0.9, ls="--", marker="o",
+            ms=1.8)
+pE.set_xlabel(r"$\kappa/\sigma_\kappa$", fontsize=6.5)
+pE.set_ylabel(r"$\kappa$ PDF (dashed = latent model)", fontsize=6.5)
+panel_label(pE, "(b)")
+fig.tight_layout(w_pad=1.0)
+save(fig, "figs_v2/pfig_s4b_reconstruction")
+plt.show()
+print("pfig_s4b_reconstruction: fig20e panels (b,c) recomposed; RMS numbers "
+      "from the fig20e prints above (nodes + out-of-design fiducial)")
+
+# ── s4b main 2: generality bars (per-statistic CV-R^2, 3- vs 4-latent) ──────
+GEN_STATS = [("suppression", False, r"$S(\ell)$"),
+             ("pdf", False, r"$\kappa$ PDF"),
+             ("mf_v1", False, r"MF $V_1$"), ("mf_v2", False, r"MF $V_2$"),
+             ("scaling_Y", True, "Y–M"), ("scaling_f_gas", False,
+                                          r"$f_{\rm gas}$–M"),
+             ("scaling_T", True, "T–M"),
+             ("cl_kappa_tau", True, r"$C_\ell^{\kappa\tau}$"),
+             ("cl_yy", True, r"$C_\ell^{yy}$")]
+gen_rows = []
+for nm, uselog, glab in GEN_STATS:
+    Ys = stat_leg20(nm)
+    if Ys.shape[-1] == len(ELL):
+        Ys = Ys[:, (ELL >= 300) & (ELL <= ELL_TRUST)]
+    oks = oke & ~EXCL_XN if nm.startswith("cl_") else oke
+    if uselog:
+        Ys = np.log10(np.where(Ys > 0, Ys, np.nan))
+    gd = np.isfinite(Ys[oks]).all(0) & (np.nanstd(Ys[oks], 0) > 0)
+    r3g = float(np.median(cvr2(Ys[oks][:, gd],
+                               [fb1[oks], fst1[oks], c_gas20[oks]])))
+    r4g = float(np.median(cvr2(Ys[oks][:, gd],
+                               [fb1[oks], fst1[oks], c_gas20[oks],
+                                logT20[oks]])))
+    gen_rows.append((glab, r3g, r4g))
+fig, pF = plt.subplots(figsize=(ONE_COL[0]*1.35, 3.0))
+ypos_g = np.arange(len(gen_rows))
+pF.barh(ypos_g + 0.19, [r[1] for r in gen_rows], height=0.36,
+        color=COLORS["dmo"], alpha=0.75, label="3 latents (mass sector)")
+pF.barh(ypos_g - 0.19, [r[2] for r in gen_rows], height=0.36,
+        color=COLORS["bind"], alpha=0.9,
+        label=r"4 latents ($+\log\tilde T$)")
+pF.set_yticks(ypos_g)
+pF.set_yticklabels([r[0] for r in gen_rows], fontsize=6)
+pF.set_xlim(0, 1.12)
+pF.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
+pF.set_xlabel(r"CV $R^2$ (median over bins)", fontsize=6.5)
+pF.invert_yaxis()
+pF.legend(fontsize=5.4, loc="lower right", handletextpad=0.4)
+fig.tight_layout()
+save(fig, "figs_v2/pfig_s4b_generality")
+plt.show()
+print("pfig_s4b_generality: one model, every statistic -- "
+      + ", ".join(f"{g} {r3:.2f}/{r4:.2f}" for g, r3, r4 in gen_rows))
+
+# ── s4b appendix: z_s stability + epoch panels (fig20f a,b as singles) ──────
+fig, pG = plt.subplots(figsize=(ONE_COL[0]*1.35, 3.0))
+for zi, zs in enumerate(ZS):
+    pG.plot(ctr24, cvr2(binS24(zi)[oke], list(L4.T)), color=CMZS(zi/4),
+            lw=1.2, label=rf"$z_s={zs:.2f}$")
+pG.set_xscale("log")
+pG.set_xlim(300, ELL_TRUST)
+pG.set_ylim(0, 1.0)
+pG.set_xlabel(r"$\ell$")
+pG.set_ylabel(r"CV $R^2\,[S(\ell)]$, one low-$z$ latent vector",
+              fontsize=6.3)
+pG.legend(fontsize=5.0, loc="lower left", handletextpad=0.5)
+fig.tight_layout()
+save(fig, "figs_v2/pfig_s4b_app_zs")
+plt.show()
+
+fig, pH = plt.subplots(figsize=(ONE_COL[0]*1.35, 3.0))
+pH.plot(zev, rkb, marker="o", ms=3, lw=1.2, color=COLORS["bind"],
+        label=r"rank$(\tilde f_{\rm bar}(z),\,\tilde f_{\rm bar}(0))$")
+pH.plot(zev, rks, marker="s", ms=3, lw=1.2, color=COLORS["truth"],
+        label=r"rank$(\tilde f_\star(z),\,\tilde f_\star(0))$")
+pH.plot(zev, r2m, marker="^", ms=3, lw=1.2, ls="--",
+        color=COLORS["highlight"],
+        label=r"CV $R^2$ med $[S(\ell,z_s{=}2.44)]$, $z$-epoch latents")
+pH.set_xlabel(r"latent measurement epoch $z$")
+pH.set_ylabel("rank corr.  /  CV $R^2$", fontsize=6.5)
+pH.set_ylim(0.3, 1.13)
+pH.legend(fontsize=4.9, loc="lower left", handletextpad=0.5)
+fig.tight_layout()
+save(fig, "figs_v2/pfig_s4b_app_epoch")
+plt.show()
+print("pfig_s4b_app_zs + pfig_s4b_app_epoch: fig20f panels (a,b) as "
+      "standalone appendix figures (epoch panel = the flex slot, appendix "
+      "by default per the author plan)")
 del cz, mt5, mg5, ms5, logm5, fbar5, fgas5, xpb20, tau20, ta20
 ''')
 

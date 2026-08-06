@@ -59,6 +59,13 @@ DEPS = {"fig20a_vandaalen_matrix": ["fig03_halo_validation"],
         "fig20g_latent_kernels": ["fig03_halo_validation"],
         "fig20h_theta_to_latents": ["fig03_halo_validation"],
         "fig20i_latent_corner": ["fig03_halo_validation"],
+        # paper compositions (2026-08-06 figure plan) -- same fig20 cell
+        "pfig_s3c_hinge_plane": ["fig03_halo_validation"],
+        "pfig_s4a_cv_buildup": ["fig03_halo_validation"],
+        "pfig_s4b_reconstruction": ["fig03_halo_validation"],
+        "pfig_s4b_generality": ["fig03_halo_validation"],
+        "pfig_s4b_app_zs": ["fig03_halo_validation"],
+        "pfig_s4b_app_epoch": ["fig03_halo_validation"],
         # fig03a reuses fa/ta/logM/edges/SCT/TAIL/MLAB/PIV3 (and fg_f/fg_t for
         # the comparison print) from the fig03 cell.
         "fig03a_halo_raw": ["fig03_halo_validation"],

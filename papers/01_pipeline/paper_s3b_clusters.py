@@ -387,13 +387,25 @@ yj = S24s[oks, ib_c]
 cb.scatter(xj, yj, s=6, color="0.6", alpha=0.55, rasterized=True)
 xg = np.linspace(xj.min(), xj.max(), 10)
 oth = LATsob[oks].mean(0)
+# BOTH slopes, deliberately: the marginal 1-D fit tracks the scatter but
+# double-counts the latents that ride along with f~_bar (r(c_gas, f~_bar)
+# = +0.94); the model's coefficient is the flatter PARTIAL slope from the
+# joint fit -- change f~_bar with the other three held fixed. The visible
+# gap between the two lines IS the de-mixing (author-flagged: a lone
+# partial line through a marginal scatter "looks terrible" -- correctly).
+mar = np.polyfit(xj, yj, 1)
+cb.plot(xg, np.polyval(mar, xg), color="0.35", lw=1.1, ls=":",
+        label=rf"marginal 1-D fit: slope $+{mar[0]:.2f}$")
 cb.plot(xg, beta_s[4, ib_c] + beta_s[0, ib_c]*xg + beta_s[1, ib_c]*oth[1]
         + beta_s[2, ib_c]*oth[2] + beta_s[3, ib_c]*oth[3],
-        color=COLORS["bind"], lw=1.8)
+        color=COLORS["bind"], lw=1.8,
+        label=rf"joint partial slope $c_1 = +{beta_s[0, ib_c]:.2f}$")
+cb.legend(fontsize=5.0, loc="upper left", handletextpad=0.5)
 cb.set_xlabel(r"$\tilde f_{\rm bar}$", fontsize=6.5)
 cb.set_ylabel(r"$S(\ell\simeq4847)$", fontsize=6.5)
-cb.set_title(f"one $\\ell$: the (partial) slope = "
-             f"$c_1$ = +{beta_s[0, ib_c]:.2f}", fontsize=6.8)
+cb.set_title("one $\\ell$: marginal vs partial slope\n"
+             "(correlated latents ride along; the model uses $c_1$)",
+             fontsize=6.4)
 panel_label(cb, "(b)")
 # (c)
 for j in range(4):

@@ -71,6 +71,33 @@ $+0.012$.
 Sections below describe the v1 (mixed-convention) analysis where numbers differ;
 the fig 20 cell prints are the canon.
 
+### 0.0b Latent selection ablation (2026-08-06, author-requested)
+
+The canonical quad was chosen sequentially (vD import → residual-PCA →
+mechanism → thermal mini-ablation). Post-hoc systematic validation: a
+15-candidate pool from the same atlas cube (budget: f̃_bar/f̃_gas/f̃_star/
+f̃_bar,200c; structure: c_gas/c_star/f_out(R500–R200); thermo: logT̃/logK̃/
+logP̃e/logỸ; cluster-bin f̃_bar/logT/logY; + the snap085 c_τ), scored by the
+mean over 9 statistics of the median per-bin 5-fold CV-R².
+
+- **Exhaustive over all C(15,4)=1365 quads**: ours ranks **50th (top 3.7%)**,
+  **0.007 below the global optimum** (0.900 vs 0.907) — the landscape is a
+  broad plateau; the *roles* (partition + budget + thermal + one more) matter,
+  the specific proxies barely do.
+- **Universal ingredients**: f̃_star appears in *every* top-12 quad (the
+  irreplaceable partition dial); a thermal variable in nearly all. The budget
+  slot is fungible (f̃_bar ≈ f̃_gas ≈ 200c ≈ cluster-bin ≈ even entropy —
+  forward selection picks **logK̃ first**, 0.534 alone, since K ~ T/n^{2/3}
+  blends budget and thermo). The structure slot is the weakest: c_gas appears
+  in no top-12 quad; a second thermal (logP̃e or cluster-bin logT) is worth
+  the +0.007. c_gas keeps its seat on interpretability (the
+  enhancement-branch mechanism) and the single-convention story.
+- **Size**: forward selection scores 0.53/0.82/0.89/0.90/0.92/0.93 for sizes
+  1–6 — elbow at 3–4; gains beyond 4 (+0.015/step) come mostly from the
+  SZ/T–M sector wanting extra thermal freedom.
+- Per-stat, best-vs-ours differs by ≤0.02 everywhere (printed by
+  `latent_ablation` scratch; promote to an appendix table on request).
+
 ### 0.1 The first leg: θ → λ (fig 20h, 2026-08-06)
 
 GP regression (ARD RBF + white noise, deterministic CV) of each harmonized latent

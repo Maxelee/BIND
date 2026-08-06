@@ -71,6 +71,39 @@ $+0.012$.
 Sections below describe the v1 (mixed-convention) analysis where numbers differ;
 the fig 20 cell prints are the canon.
 
+### 0.1 The first leg: θ → λ (fig 20h, 2026-08-06)
+
+GP regression (ARD RBF + white noise, deterministic CV) of each harmonized latent
+on the 30 unit-cube parameters, with a linear baseline. CV-$R^2$ (GP / linear):
+$\tilde f_{\rm bar}$ 0.74/0.52, $\tilde f_\star$ 0.83/0.69, $c_{\rm gas}$
+0.77/0.55, $\log\tilde T$ 0.66/0.50. The ceiling is partly
+**irreducible**: one painted realization per node → paint stochasticity +
+2933-halo sample variance live in $\lambda$ but not in $\theta$. Consequence:
+$\theta\to\lambda$ is the noisy, nonlinear leg (the simulation's job);
+$\lambda\to$statistics is linear and tight — the latents are the model interface.
+
+### 0.2 Latent posteriors from statistics (fig 20i, 2026-08-06)
+
+Because the forward model is linear in $\lambda$, the posterior is **analytic**:
+$P = B^\top C^{-1} B$, $\hat\lambda = P^{-1}B^\top C^{-1}(D - b_0)$, with $B, b_0$
+fit on the 255 training nodes, $D$ = the held-out node's measured statistics
+("maps as input"), $C$ = diag(training residual var). Raw diagonal-$C$ posteriors
+are overconfident (LOO 68% coverage 0.05–0.21) because bin–bin residual
+correlations are ignored; each stage's covariance is **temperature-calibrated** so
+LOO 68% coverage over all 256 nodes is exact (per-halo-SBI precedent).
+Stage-wise calibrated marginal σ (vs prior stds 0.119/0.079/0.052/0.016):
+
+| data stack | σ(f̃_bar) | σ(f̃_star) | σ(c_gas) | σ(logT̃) |
+|---|---|---|---|---|
+| S(ℓ) | 0.045 | 0.16 (≈unconstrained) | 0.053 | 0.11 (unconstrained) |
+| + κ-PDF | 0.023 | 0.040 | 0.032 | 0.016 |
+| + MF V₁V₂ | 0.024 | 0.046 | 0.022 | 0.013 |
+| + Y/f_gas/T–M | 0.014 | 0.019 | 0.013 | 0.007 |
+
+Physics: the WL spectrum alone measures the *budget*; the κ-PDF pins the
+*partition*; the halo-side scalings tighten all four to 3–9× below the prior.
+An observational application adds measurement noise to $C$, machinery unchanged.
+
 ---
 
 ## 1. Context and question

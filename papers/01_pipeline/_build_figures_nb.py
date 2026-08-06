@@ -4247,7 +4247,7 @@ else:
 
 # ═════════════════════════════════════════════════════════════════════════════
 md(r'''
-## §3c — Figs 20a–g: which halos set which scales — the van Daalen relation over the feedback space
+## §3c — Figs 20a–i: which halos set which scales — the van Daalen relation over the feedback space
 
 van Daalen, McCarthy & Schaye (2020, MNRAS 491, 2424; arXiv:1906.00968) showed that across
 independent hydro simulations the matter-power suppression at
@@ -4433,6 +4433,34 @@ partition + structure + temperature at the smallest scales), and every kernel di
 with $z_s$ (fig 20f's kernel-dilution statement, now visible). These
 $5\times24\times5$ numbers are the *entire* model — exported as
 `latent_model_coeffs.npz` and consumed by `predict_from_latents.py`.
+
+**Fig 20h** (2026-08-06) quantifies the factorization's *first* leg: predicting the four
+harmonized latents from the 30 feedback parameters (GP with ARD RBF, deterministic CV,
+linear baseline). CV-$R^2$ tops out at $\simeq$0.6–0.8 — and part of that ceiling is
+*irreducible*: each node is a single painted realization, so $\lambda(\theta)$ carries
+paint stochasticity and 2933-halo sample variance that no regressor can recover. This is
+the quantitative version of the claim that the latents are the better model interface
+than the parameters: $\theta\!\to\!\lambda$ is noisy and nonlinear (the simulation's
+job), $\lambda\!\to\!$statistics is linear and tight (figs 20e–g).
+
+**Fig 20i** (2026-08-06) turns the model into an inference engine: posteriors on the four
+latents given statistics measured from held-out maps. Because the forward model is linear
+in $\lambda$, the posterior is *analytic* (Gaussian; no MCMC, fully deterministic): with
+kernel matrix $B$ and intercepts $b_0$ fit on the 255 training nodes and
+$C=\mathrm{diag}[\mathrm{residual\ var}]$, the held-out node's data vector $D$ gives
+precision $P = B^\top C^{-1}B$ and mean $\hat\lambda = P^{-1}B^\top C^{-1}(D-b_0)$.
+Diagonal $C$ ignores bin–bin residual correlations, so the raw posteriors are
+overconfident (LOO 68% coverage 0.05–0.21, printed); following the per-halo-SBI
+precedent, each stage's covariance is *temperature-calibrated* so the leave-one-out 68%
+coverage over all 256 nodes is exact by construction (temperatures printed). The corner
+shows the calibrated 1/2$\sigma$ ellipses for the median demo node under four cumulative
+data stages — $S(\ell)$ → $+\kappa$-PDF → +MF $V_1V_2$ → +scaling relations — against the
+prior cloud. The physics of the shrinkage: the WL spectrum alone measures the *budget*
+($\sigma(\tilde f_{\rm bar})\simeq0.045$, $2.7\times$ below prior) but leaves the
+partition and temperature at or above the prior width; the $\kappa$-PDF is what pins the
+partition; the halo-side scaling relations tighten everything to $3$–$9\times$ below the
+prior ($\sigma \simeq 0.014/0.019/0.013/0.007$). An observational application would add
+measurement noise to $C$ and inherit the same machinery unchanged.
 (**2026-08-05**: the 1×3 figure is split into three standalone figures — fig 20a = the
 $r$ matrix, fig 20b = the group-bin hinge paired with fig 12b's enhancement-branch
 stacked-$\tau$ gas diagnostic (that panel is intentionally duplicated across the two
@@ -4451,8 +4479,11 @@ code(r'''
 # fig20c (the vD universal plane, redesigned then demoted same session) —
 # plus fig20d (budget x partition: the two halo-level latents of S(ell), the
 # section's main figure), fig20e (the analytic latent model: CV validation
-# + leave-one-out/fiducial generation demo + cross-statistic scorecard) and
-# fig20f (redshift dependence + the thermal fourth latent).
+# + leave-one-out/fiducial generation demo + cross-statistic scorecard),
+# fig20f (redshift dependence + thermal/ablation), fig20g (the kernel
+# functions), fig20h (theta -> latents: the nonlinear first leg) and fig20i
+# (analytic latent posteriors from statistics -- the shrinkage corner).
+# NOTE: the fig20h GP fits add ~2 min to this cell's runtime.
 # data: bind_sb35/analysis_cache/atlas_cubes/atlas_cube_snap096.npz — ALL 256
 #       nodes' background-subtracted projected-500c aperture masses at the
 #       shared 2933-halo sample (z=0.0337; same reducer as fig 3's fid/truth
@@ -5517,6 +5548,205 @@ for ll in (1e3, 5e3, 1.9e4):
     print(f"fig 20g [caption]: 1-sigma latent impact on S at "
           f"ell~{ctr24[ig]:.0f}: f~_bar {imp[0]:.4f}, f~_star {imp[1]:.4f}, "
           f"c_gas {imp[2]:.4f}, logT {imp[3]:.4f}")
+
+# ── fig 20h: the first leg — theta -> latents (30 params -> 4 numbers) ──────
+# (2026-08-06, author-requested.) The factorization's nonlinear leg,
+# quantified: 5-fold-CV (deterministic index%5) predictions of each
+# harmonized latent from the 30 unit-cube feedback parameters, GP (ARD RBF +
+# white noise, n_restarts=0, random_state=0 -- deterministic) vs the linear
+# baseline. CV-R2 tops out at ~0.6-0.8: the residual is NOT all model error
+# -- each node is a single painted realization, so lambda(theta) carries
+# irreducible paint-stochasticity + halo-sample variance. That floor is
+# exactly why the latents (measured, not predicted) are the better model
+# interface than theta, and why direct theta->statistics emulation needs a
+# GP yet still trails the latent model (fig 20e panel a).
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
+
+LNAMES20 = [r"$\tilde f_{\rm bar}$", r"$\tilde f_\star$", r"$c_{\rm gas}$",
+            r"$\log\tilde T$"]
+fold_h = np.arange(nok) % 5
+Xh = X_unit[oke]
+pred_gp = np.empty((nok, 4))
+pred_ln = np.empty((nok, 4))
+for j in range(4):
+    y_h = L4[:, j]
+    for f in range(5):
+        tr = fold_h != f
+        ker = ConstantKernel(1.0)*RBF(np.ones(Xh.shape[1])) + WhiteKernel(1e-3)
+        gp_h = GaussianProcessRegressor(kernel=ker, n_restarts_optimizer=0,
+                                        normalize_y=True, random_state=0)
+        gp_h.fit(Xh[tr], y_h[tr])
+        pred_gp[fold_h == f, j] = gp_h.predict(Xh[fold_h == f])
+        bl, *_ = np.linalg.lstsq(np.c_[Xh[tr], np.ones(tr.sum())], y_h[tr],
+                                 rcond=None)
+        pred_ln[fold_h == f, j] = np.c_[Xh[fold_h == f],
+                                        np.ones((fold_h == f).sum())] @ bl
+
+fig, AXh = plt.subplots(1, 4, figsize=(TWO_COL[0], 2.2))
+r2h_gp, r2h_ln = [], []
+for j, (axh, nm) in enumerate(zip(AXh, LNAMES20)):
+    y_h = L4[:, j]
+    r2g = 1 - ((y_h - pred_gp[:, j])**2).mean()/y_h.var()
+    r2l = 1 - ((y_h - pred_ln[:, j])**2).mean()/y_h.var()
+    r2h_gp.append(r2g); r2h_ln.append(r2l)
+    axh.scatter(y_h, pred_gp[:, j], s=6, color=COLORS["bind"], alpha=0.55,
+                lw=0, rasterized=True)
+    lo_h, hi_h = y_h.min(), y_h.max()
+    axh.plot([lo_h, hi_h], [lo_h, hi_h], color=COLORS["dmo"], ls=":", lw=0.8)
+    axh.set_xlabel(f"{nm} (measured)", fontsize=6.5)
+    axh.set_ylabel(f"{nm} (GP from $\\theta$, CV)" if j == 0
+                   else "", fontsize=6.5)
+    axh.set_title(rf"CV-$R^2$: GP {r2g:.2f} / lin {r2l:.2f}", fontsize=6.3)
+    axh.tick_params(labelsize=5.5)
+    panel_label(axh, f"({chr(97 + j)})")
+fig.tight_layout(w_pad=1.0)
+save(fig, "figs_v2/fig20h_theta_to_latents")
+plt.show()
+for j, nm in enumerate(("f~_bar", "f~_star", "c_gas", "logT")):
+    rho_h = np.array([spearmanr(Xh[:, p], L4[:, j])[0]
+                      for p in range(Xh.shape[1])])
+    tp = np.argsort(-np.abs(rho_h))[:3]
+    print(f"fig 20h [caption]: {nm} CV-R2 GP {r2h_gp[j]:.2f} / linear "
+          f"{r2h_ln[j]:.2f}; top levers: "
+          + ", ".join(f"{short_label(pnames[p])} {rho_h[p]:+.2f}" for p in tp))
+print("fig 20h [caption]: the ~0.6-0.8 ceiling is partly IRREDUCIBLE "
+      "(single painted realization per node: paint stochasticity + "
+      "2933-halo sample variance), not pure regression error -- the reason "
+      "lambda is the better interface than theta")
+
+# ── fig 20i: latent posteriors from statistics — shrinkage corner ───────────
+# (2026-08-06, author-requested: 'corner plot on the latents with this as a
+# forward model given some maps as input; posteriors shrink as we add more
+# statistics'.) The forward model is LINEAR in lambda (the kernel tables),
+# so with a Gaussian data model the latent posterior is ANALYTIC -- no
+# MCMC, fully deterministic. Protocol per stage (stat stack):
+#   B, b0 fit on the 255 training nodes (held-out node g = the 'observed
+#   maps': its measured statistics are the data vector D);
+#   C = diag(training residual var);  P = B^T C^-1 B;
+#   mu = P^-1 B^T C^-1 (D - b0).
+# Diagonal C ignores bin-bin residual correlations -> RAW LOO coverage is
+# overconfident (printed); following the per-halo-SBI precedent the
+# covariance is TEMPERATURE-calibrated per stage so the LOO 68% coverage
+# over all 256 held-out nodes is exact by construction (temperatures
+# printed). Stages: S(ell) -> +kappa-PDF -> +MF V1+V2 -> +scaling Y/fgas/T
+# (all z_s=1, same clean-bin masks as the scorecard). The corner shows the
+# median demo node; the sigma table + coverage prints are population-level.
+from matplotlib.patches import Ellipse
+
+BLOCKS20 = [("$S(\\ell)$", Sb24[oke]),
+            ("$+\\kappa$ PDF", Ypdf[oke][:, gp]),
+            ("+MF $V_1V_2$", None), ("+Y/f/T--M", None)]
+v1_i = stat_leg20("mf_v1"); v2_i = stat_leg20("mf_v2")
+gd1 = np.isfinite(v1_i[oke]).all(0) & (v1_i[oke].std(0) > 0)
+gd2 = np.isfinite(v2_i[oke]).all(0) & (v2_i[oke].std(0) > 0)
+BLOCKS20[2] = ("+MF $V_1V_2$", np.c_[v1_i[oke][:, gd1], v2_i[oke][:, gd2]])
+sy_i = np.log10(np.where(stat_leg20("scaling_Y") > 0,
+                         stat_leg20("scaling_Y"), np.nan))
+st_i = np.log10(np.where(stat_leg20("scaling_T") > 0,
+                         stat_leg20("scaling_T"), np.nan))
+sf_i = stat_leg20("scaling_f_gas")
+sc_i = np.c_[sy_i[oke], sf_i[oke], st_i[oke]]
+gds = np.isfinite(sc_i).all(0) & (sc_i.std(0) > 0)
+BLOCKS20[3] = ("+Y/f/T--M", sc_i[:, gds])
+
+from scipy.stats import chi2 as chi2_20
+g_show = int(np.where(oke_idx == demo_g[1])[0][0])   # the median demo node
+STAGE_C = [plt.get_cmap("magma")(x) for x in (0.75, 0.55, 0.35, 0.15)]
+stage_out = []            # (label, mu, cov_cal, raw_cov, temp, sig_marg)
+Ystack = None
+for lab, blk in BLOCKS20:
+    Ystack = blk if Ystack is None else np.c_[Ystack, blk]
+    z2 = np.empty(nok)
+    mus = np.empty((nok, 4))
+    covs = np.empty((nok, 4, 4))
+    for g in range(nok):
+        tr = np.arange(nok) != g
+        beta_i, *_ = np.linalg.lstsq(A_all[tr], Ystack[tr], rcond=None)
+        Cinv = 1.0/np.maximum((Ystack[tr] - A_all[tr] @ beta_i).var(0), 1e-20)
+        B_i = beta_i[:4].T
+        P_i = (B_i.T*Cinv) @ B_i
+        mus[g] = np.linalg.solve(P_i, (B_i.T*Cinv)
+                                 @ (Ystack[g] - beta_i[4]))
+        covs[g] = np.linalg.inv(P_i)
+        dlt = L4[g] - mus[g]
+        z2[g] = dlt @ P_i @ dlt
+    raw_cov = float((z2 < chi2_20.ppf(0.68, 4)).mean())
+    temp = float(np.quantile(z2, 0.68)/chi2_20.ppf(0.68, 4))
+    stage_out.append((lab, mus[g_show], covs[g_show]*temp, raw_cov, temp,
+                      np.sqrt(np.diag(covs[g_show]))*np.sqrt(temp)))
+
+fig, AXc = plt.subplots(4, 4, figsize=(ONE_COL[0]*1.85, ONE_COL[0]*1.85))
+lat_mu, lat_sd = L4.mean(0), L4.std(0)
+RNG_C = [(lat_mu[j] - 2.8*lat_sd[j], lat_mu[j] + 2.8*lat_sd[j])
+         for j in range(4)]
+for i in range(4):
+    for j in range(4):
+        axc = AXc[i, j]
+        if j > i:
+            axc.axis("off"); continue
+        if i == j:
+            xg_c = np.linspace(*RNG_C[j], 300)
+            axc.plot(xg_c, np.exp(-0.5*((xg_c - lat_mu[j])/lat_sd[j])**2),
+                     color=COLORS["dmo"], lw=0.9, ls="--")
+            for (lab, mu_s, cv_s, _, _, _), col in zip(stage_out, STAGE_C):
+                s_j = np.sqrt(cv_s[j, j])
+                axc.plot(xg_c, np.exp(-0.5*((xg_c - mu_s[j])/s_j)**2),
+                         color=col, lw=1.1)
+            axc.axvline(L4[g_show, j], color=COLORS["truth"], lw=0.9, ls=":")
+            axc.set_yticks([])
+        else:
+            for (lab, mu_s, cv_s, _, _, _), col in zip(stage_out, STAGE_C):
+                sub = cv_s[np.ix_([j, i], [j, i])]
+                ev, evec = np.linalg.eigh(sub)
+                ang = float(np.degrees(np.arctan2(evec[1, -1], evec[0, -1])))
+                for ns in (1, 2):
+                    axc.add_patch(Ellipse(
+                        (mu_s[j], mu_s[i]), 2*ns*np.sqrt(ev[-1]),
+                        2*ns*np.sqrt(ev[0]), angle=ang, fill=False,
+                        edgecolor=col, lw=1.0 if ns == 1 else 0.6,
+                        alpha=1.0 if ns == 1 else 0.6))
+            axc.plot(L4[g_show, j], L4[g_show, i], marker="*", ms=8,
+                     color=COLORS["truth"], mec="k", mew=0.3, ls="none",
+                     zorder=5)
+            axc.scatter(L4[:, j], L4[:, i], s=2, color=COLORS["dmo"],
+                        alpha=0.25, lw=0, rasterized=True, zorder=0)
+            axc.set_ylim(*RNG_C[i])
+        axc.set_xlim(*RNG_C[j])
+        axc.tick_params(labelsize=5)
+        if i < 3:
+            axc.set_xticklabels([])
+        if j > 0:
+            axc.set_yticklabels([])
+        if i == 3:
+            axc.set_xlabel(LNAMES20[j], fontsize=7)
+        if j == 0 and i > 0:
+            axc.set_ylabel(LNAMES20[i], fontsize=7)
+from matplotlib.lines import Line2D
+fig.legend(handles=[Line2D([], [], color=c, lw=1.4, label=lab)
+                    for (lab, *_), c in zip(stage_out, STAGE_C)]
+           + [Line2D([], [], color=COLORS["dmo"], lw=0.9, ls="--",
+                     label="prior cloud"),
+              Line2D([], [], color=COLORS["truth"], marker="*", ls="none",
+                     ms=8, label=f"truth (node {int(run_ids[demo_g[1]])})")],
+           loc="upper right", bbox_to_anchor=(0.98, 0.97), fontsize=6.2)
+fig.tight_layout()
+save(fig, "figs_v2/fig20i_latent_corner")
+plt.show()
+print("fig 20i [caption]: temperature-calibrated marginal sigmas "
+      "(vs prior stds "
+      + ", ".join(f"{s:.4f}" for s in lat_sd) + "):")
+for lab, _, _, raw_c, temp, sig_m in stage_out:
+    print(f"  {lab:14s}: raw 68% LOO coverage {raw_c:.2f} -> temperature "
+          f"{temp:5.1f}; sigmas "
+          + ", ".join(f"{s:.4f}" for s in sig_m)
+          + "; shrink vs prior "
+          + ", ".join(f"{p/s:.1f}x" for s, p in zip(sig_m, lat_sd)))
+print("fig 20i [caption]: diagonal-C posteriors are raw-overconfident "
+      "(bin-bin residual correlations ignored) -- the temperature "
+      "calibration (per-halo-SBI precedent) makes the LOO 68% coverage "
+      "exact by construction; an observational application would add "
+      "measurement noise to C")
 del cz, mt5, mg5, ms5, logm5, fbar5, fgas5, xpb20, tau20, ta20
 ''')
 

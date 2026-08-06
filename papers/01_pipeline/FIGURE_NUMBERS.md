@@ -214,6 +214,16 @@ Regenerate by re-running the notebook; all stamps are computed live.
 
 ## fig20 (fig20_vandaalen_matrix) — which halos set which scales
 
+- **2026-08-06 fig20h + fig20i added** (same cell; +~2 min GP runtime): **fig20h** θ→λ (GP ARD, det. CV vs
+  linear): f̃_bar 0.74/0.52, f̃_star 0.83/0.69, c_gas 0.77/0.55, logT̃ 0.66/0.50; ceiling partly irreducible
+  (paint stochasticity + halo-sample variance). Top levers: f̃_bar IMFslope −0.48/WindEnergy +0.35;
+  f̃_star VarWindVel −0.55/WindEnergy −0.39; c_gas IMFslope −0.47/WindEnergy +0.42; logT̃ WindEnergy −0.36.
+  **fig20i** analytic latent posteriors (linear-Gaussian, no MCMC; diag training-residual C,
+  temperature-calibrated so LOO 68% coverage exact): raw coverage 0.21/0.10/0.05/0.06, temperatures
+  4.6/8.4/13.9/11.5 per stage. Calibrated σ (vs prior 0.119/0.079/0.052/0.016): S(ℓ) 0.046/0.164/0.053/0.110
+  (budget only, 2.6×); +PDF 0.024/0.040/0.032/0.016 (pins partition+T); +MF 0.023/0.046/0.022/0.013;
+  +Y/f/T–M 0.014/0.019/0.013/0.007 (8.8×/4.2×/4.0×/2.3× below prior). Corner = median demo node 216,
+  truth inside contours at every stage (cell 28).
 - **2026-08-06 HARMONIZATION (author ruling; supersedes latent-set numbers below)**: canonical latents now
   (f̃_bar, f̃_star, c_gas, logT̃) — one snapshot (096), one hinge bin, one cylinder+annulus convention, one
   median reducer; c_gas = med[m_gas_500c_bg/m_gas_200c_bg] (fid 0.645, cloud 0.58–0.78, r=+0.94 vs f̃_bar);

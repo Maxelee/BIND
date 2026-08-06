@@ -25,6 +25,18 @@ coefficient functions + 1σ-impact panel; kernel shapes are jointly de-mixed par
 slopes under r(c_gas,f̃_bar)=+0.94 collinearity — the impact panel is the fair
 comparison). fig20f(c) redesigned as ablation (no-logT → 4-latent → +c_τ).
 
+**Same day, the inference legs (author-requested)**: **fig20h** θ→λ regression — GP (ARD
+RBF, deterministic CV) vs linear: CV-R² 0.74/0.83/0.77/0.66 vs 0.52/0.69/0.55/0.50 for
+(f̃_bar, f̃_star, c_gas, logT̃); ceiling partly irreducible (one painted realization per
+node: paint stochasticity + halo-sample variance) — the quantitative reason λ, not θ, is
+the model interface. **fig20i** latent-posterior shrinkage corner — the forward model is
+linear in λ so posteriors are ANALYTIC (no MCMC, deterministic); diagonal training-residual
+C is raw-overconfident (LOO 68% coverage 0.05–0.21), fixed by per-stage temperature
+calibration (per-halo-SBI precedent; temps 4.6–13.9). Stages S(ℓ) → +κPDF → +MF V₁V₂ →
++Y/f/T–M: σ(f̃_bar) 0.046→0.014 (8.8× below prior), f̃_star unconstrained→0.019 (the PDF
+is what pins the partition), logT̃ unconstrained→0.007. Corner = held-out node 216, truth
+inside contours at every stage. Cell runtime +~2 min (GP fits).
+
 ---
 
 ## 2026-08-05 (evening) — Paper I: two direct IMFslope-mechanism figures (fig21b/c) revise the fig21 verdict to mixed-channel

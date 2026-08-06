@@ -36,7 +36,11 @@ Order within the section:
 | 8 | tie-back MAIN | `pfig_family_kernel_bridge` (script) | family shapes = kernel mixtures (r = 0.98–1.00 out-of-design) + fingerprint matrix — closes the loop to C1–C5. |
 
 Appendix for this section: `pfig_s4b_app_zs` (one latent vector, five source
-planes), `pfig_s4b_app_epoch` (partition early / budget late; flex slot).
+planes), `pfig_s4b_app_epoch` (partition early / budget late; flex slot),
+`pfig_s4b_error_budget` (`paper_error_budget.py`: the model error decomposed —
+intrinsic vs λ-measurement vs kernel-coefficient vs S-realization noise; at
+ℓ≲500 the residual is pure measurement noise, i.e. the model saturates the
+data there; reliability R = 0.96–1.00, attenuation ≤4% and only for log T̃).
 
 ## Astrophysics constraints (closing section)
 

@@ -120,6 +120,34 @@ Verdict: the linear kernels stay canonical. "The latents linearize the
 response" is now backed by a direct nonlinear challenge, not just by the
 linear fit's success.
 
+### 0.0d Error budget (2026-08-06; `paper_error_budget.py`, `pfig_s4b_error_budget`)
+
+The shipped $\sigma_{\rm model}(\ell)$ (CV residual; used by the predictor and,
+as the empirical score covariance, by the corner) lumps four sources. Measured
+separately (split-half latent errors, deterministic; 50 seed-paired
+realizations for S; average-leverage term for the kernels):
+
+| ℓ | σ_CV | S-meas | λ→S | kernel | intrinsic |
+|---|---|---|---|---|---|
+| 1044 | 0.0027 | 0.0008 | 0.0004 | 0.0004 | 0.0025 |
+| 4847 | 0.0120 | 0.0006 | 0.0024 | 0.0017 | 0.0116 |
+| 18569 | 0.0359 | 0.0005 | 0.0065 | 0.0050 | 0.0349 |
+
+- **Intrinsic dominates** (86–97% of the variance): genuine model deficiency +
+  paint stochasticity. Measurement pieces are subdominant everywhere.
+- **At ℓ ≲ 500 the residual is pure measurement noise** (S-meas ≥ σ_CV;
+  intrinsic clips to zero): the model saturates the data at large scales.
+- **Latent measurement errors are tiny vs the cloud**: σ_λ =
+  0.0034/0.0011/0.0027/0.0033 against cloud stds 0.119/0.079/0.052/0.016 →
+  reliability R = 0.999/1.000/0.997/**0.957**. Errors-in-variables attenuation
+  of the kernels is ≤0.3% except log T̃ (≤4% — its tiny 0.016-dex cloud range
+  again; the same reason its kernel is the least out-of-design-robust).
+  Cross-latent error correlations ≤0.23 (included via the split-half Σ_λ).
+- **Observer-side propagation** is analytic and separate:
+  $\sigma_{\rm obs}^2(\ell) = c(\ell)^\top \Sigma_{\rm obs}\, c(\ell)$ added in
+  quadrature to $\sigma_{\rm model}$ (recipe step 4; the corner adds
+  measurement covariance to $C$ the same way).
+
 ### 0.1 The first leg: θ → λ (fig 20h, 2026-08-06)
 
 GP regression (ARD RBF + white noise, deterministic CV) of each harmonized latent

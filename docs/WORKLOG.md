@@ -43,6 +43,22 @@ temperature; full-cov upgrade would need SH at p=107/n=255 (Hartlap α→0.57); 
 fid set is a measurement covariance (additive), not a model-error replacement. Mandatory
 internal-recovery framing sentence added to print/markdown/doc.
 
+**fig20i FINAL FORM — all statistics via MOPED scores + Sellentin–Heavens** (author:
+"include C_τ τ/C_yy/peaks/minima/crosses — all statistics somehow", then "replace
+temperatures with a proper SH likelihood"). Three-step empirical adjudication, all
+recorded: (1) raw-bin diagonal-C all-stats stack fails structurally (p=346>n_tr, temps
+4.6→31, non-monotone); (2) raw-bin full-cov SH verifies perfectly at p=24 (coverage 0.68)
+but degrades 0.60/0.45/0.43 at p=44/86/107 — SH assumptions exceeded at p~0.4n; (3)
+MOPED score compression (4 per family, q≤24) + SH multivariate-t on the full empirical
+score covariance = the defensible endpoint: analytic Student-t posteriors (ν=248), no
+Hartlap, no temperature, LOO coverage 0.73/0.73/0.69/0.66/0.66/0.64 as pure verification.
+Six families incl. SZ/τ spectra (Cl_ττ, Cl_yy, Cl_κy, Cl_κτ, Cl_yτ; n=253, repaint trio
+excluded everywhere) and peaks/minima+rest. σ: S alone 0.030/0.061/0.016/0.035 → all six
+0.0035/0.0009/0.0040/0.0031 (34×/89×/13×/5× under prior; f̃_star flagged circular via
+scaling_f_star). SZ/τ stage's own gain is modest at this q but the corner shows it
+tightening c_gas/logT̃; peaks add ~nothing except through scaling_f_star (as the noise
+audit predicted).
+
 ---
 
 ## 2026-08-05 (evening) — Paper I: two direct IMFslope-mechanism figures (fig21b/c) revise the fig21 verdict to mixed-channel

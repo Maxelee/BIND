@@ -4443,37 +4443,41 @@ the quantitative version of the claim that the latents are the better model inte
 than the parameters: $\theta\!\to\!\lambda$ is noisy and nonlinear (the simulation's
 job), $\lambda\!\to\!$statistics is linear and tight (figs 20e–g).
 
-**Fig 20i** (2026-08-06) turns the model into an inference engine: posteriors on the four
-latents given statistics measured from held-out maps. Because the forward model is linear
-in $\lambda$, the posterior is *analytic* (Gaussian; no MCMC, fully deterministic): with
-kernel matrix $B$ and intercepts $b_0$ fit on the 255 training nodes and
-$C=\mathrm{diag}[\mathrm{residual\ var}]$, the held-out node's data vector $D$ gives
-precision $P = B^\top C^{-1}B$ and mean $\hat\lambda = P^{-1}B^\top C^{-1}(D-b_0)$.
-Diagonal $C$ ignores bin–bin residual correlations, so the raw posteriors are
-overconfident (LOO 68% coverage 0.05–0.21, printed); following the per-halo-SBI
-precedent, each stage's covariance is *temperature-calibrated* so the leave-one-out 68%
-coverage over all 256 nodes is exact by construction (temperatures printed). The corner
-shows the calibrated 1/2$\sigma$ ellipses for the median demo node under four cumulative
-data stages — $S(\ell)$ → $+\kappa$-PDF → +MF $V_1V_2$ → +scaling relations — against the
-prior cloud. The physics of the shrinkage: the WL spectrum alone measures the *budget*
-($\sigma(\tilde f_{\rm bar})\simeq0.045$, $2.7\times$ below prior) but leaves the
-partition and temperature at or above the prior width; the $\kappa$-PDF is what pins the
-partition; the halo-side scaling relations tighten everything to $3$–$9\times$ below the
-prior ($\sigma \simeq 0.014/0.019/0.013/0.007$). **Framing (mandatory)**: this is an
-*internal recovery test* — the "data" are the held-out node's own seed-paired suite
-measurements, with no observational noise, no systematics, and a same-suite prior; it
-demonstrates information content and calibration, *not* a survey forecast. Covariance
-treatment, stated exactly: data-vector sizes are $p = 24/44/86/107$ per stage; $C$ is
-*diagonal by assumption* (per-bin training-residual variance — a plug-in variance, so no
-sample covariance is inverted and no Hartlap/Sellentin–Heavens factor applies); the
-ignored joint residual correlations, measured on the same training nodes, are large
-(median $|r|$ up to $\sim$0.7 within the $S$ block, $\sim$0.55 cross-family $S\times$MF)
-— which is precisely why the raw coverage is low and the temperature absorbs it. The
-full-joint-covariance upgrade would face Hartlap $\alpha = 0.90/0.82/0.66/0.57$ per stage
-at $n_{\rm train}=255$ ($p=107$ approaches the cap; Sellentin–Heavens preferred), and the
-planned 550-realization fiducial set is a *measurement* covariance of one universe — an
-additive noise term for survey application, not a replacement for this model-error $C$
-($\alpha\simeq0.80$ at $p=107$, $n=550$).
+**Fig 20i** (2026-08-06; extended same day to *all* statistics) turns the model into an
+inference engine: posteriors on the four latents given statistics measured from held-out
+maps. The likelihood is **score-compressed** (MOPED-style), in two deterministic steps.
+*Compression*: each statistic family $f$ — $S(\ell)$, $\kappa$-PDF, MF $V_1V_2$, the
+Y/f$_{\rm gas}$/T–M scalings, the SZ/$\tau$ spectra
+($C_\ell^{\tau\tau}, C_\ell^{yy}, C_\ell^{\kappa y}, C_\ell^{\kappa\tau},
+C_\ell^{y\tau}$; log, band-averaged like $S$), and peaks/minima + remaining statistics —
+is reduced to its 4-dim score $t_f = B_f^\top C_f^{-1}(D-b_{0,f})$, where the diagonal
+$C_f$ is only a *compression weighting* (a fixed linear map cannot bias the inference;
+for a linear model the score is lossless). *Inference*: a **Sellentin–Heavens (2016)
+likelihood** on the stacked scores ($q=4k\le24$) — their full empirical covariance, all
+cross-family correlations included, with the covariance-estimation noise marginalized
+via the SH multivariate-$t$. Because the model is linear in $\lambda$ and the prior
+flat, the latent posterior is itself an *analytic 4-dim Student-$t$* (mean = the GLS
+solution, dof $\nu = n_{\rm tr}-4$, scale
+$(n_{\rm tr}-1+\chi^2_{\rm min})/\nu\,(M^\top S^{-1}M)^{-1}$): **no Hartlap factor, no
+temperature** — the printed LOO 68% coverage (0.64–0.73 vs nominal 0.68, binomial
+$\pm$0.03 at $n=253$) is a *verification*, not a calibration knob, so the contour
+shapes are defensible rather than disclaimed. Shrinkage is monotone: $S(\ell)$ alone
+gives $\sigma \simeq 0.030/0.061/0.016/0.035$; all six families reach
+$\sigma \simeq 0.004/0.001/0.004/0.003$ — up to $\sim$30–80$\times$ below the prior —
+with the printed *circularity flag* that the last family contains the f$_\star$–M
+scaling, nearly the $\tilde f_\star$ latent itself rebinned. Why scores even under SH
+(tested, printed): the raw-bin stack verifies perfectly at $p=24$ ($S$ alone, coverage
+0.68) but degrades at $p=44/86/107$ (0.60/0.45/0.43, numerically pathological
+$t$-scales — $S^{-1}$ direction noise at $p\sim0.4\,n_{\rm tr}$ plus non-Gaussian
+model-error residuals exceed SH's assumptions), and the all-statistics stack
+($p=346>n_{\rm tr}$) is singular outright; $q\le24$ keeps SH in the regime where its
+guarantees hold *empirically*. Runs 114/115/117 are excluded throughout (SZ cross-norm
+memo; $n=253$). **Framing (mandatory)**: this is an *internal recovery test*
+— the "data" are the held-out node's own seed-paired suite measurements, with no
+observational noise, no systematics, and a same-suite prior; it demonstrates information
+content and calibration, *not* a survey forecast. For survey application the planned
+550-realization fiducial set supplies the additive *measurement* covariance — a separate
+object from the model-error score covariance used here.
 (**2026-08-05**: the 1×3 figure is split into three standalone figures — fig 20a = the
 $r$ matrix, fig 20b = the group-bin hinge paired with fig 12b's enhancement-branch
 stacked-$\tau$ gas diagnostic (that panel is intentionally duplicated across the two
@@ -5628,71 +5632,142 @@ print("fig 20h [caption]: the ~0.6-0.8 ceiling is partly IRREDUCIBLE "
       "2933-halo sample variance), not pure regression error -- the reason "
       "lambda is the better interface than theta")
 
-# ── fig 20i: latent posteriors from statistics — shrinkage corner ───────────
-# (2026-08-06, author-requested: 'corner plot on the latents with this as a
-# forward model given some maps as input; posteriors shrink as we add more
-# statistics'.) The forward model is LINEAR in lambda (the kernel tables),
-# so with a Gaussian data model the latent posterior is ANALYTIC -- no
-# MCMC, fully deterministic. Protocol per stage (stat stack):
-#   B, b0 fit on the 255 training nodes (held-out node g = the 'observed
-#   maps': its measured statistics are the data vector D);
-#   C = diag(training residual var);  P = B^T C^-1 B;
-#   mu = P^-1 B^T C^-1 (D - b0).
-# Diagonal C ignores bin-bin residual correlations -> RAW LOO coverage is
-# overconfident (printed); following the per-halo-SBI precedent the
-# covariance is TEMPERATURE-calibrated per stage so the LOO 68% coverage
-# over all 256 held-out nodes is exact by construction (temperatures
-# printed). Stages: S(ell) -> +kappa-PDF -> +MF V1+V2 -> +scaling Y/fgas/T
-# (all z_s=1, same clean-bin masks as the scorecard). The corner shows the
-# median demo node; the sigma table + coverage prints are population-level.
+# ── fig 20i: latent posteriors from ALL statistics — scores + SH likelihood ─
+# (2026-08-06, author-requested in three refinements: the shrinkage corner;
+# 'include ALL the statistics somehow'; and 'replace temperatures-as-patch
+# with a proper Sellentin-Heavens likelihood'.) Design, fully deterministic
+# and analytic end to end:
+#
+# 1. COMPRESSION (MOPED-style): each statistic FAMILY f -> its 4-dim score
+#    t_f = B_f^T C_f^-1 (D - b0_f); the diagonal C_f is only a compression
+#    WEIGHTING (a fixed linear map cannot bias the inference; for a linear
+#    model the score is lossless).
+# 2. LIKELIHOOD (Sellentin-Heavens 2016): the stacked scores (q = 4k <= 24)
+#    get their FULL empirical covariance S (all cross-family correlations)
+#    from the n_tr = 252 training nodes, and the covariance-estimation noise
+#    is marginalized via the SH multivariate-t: L propto
+#    (1 + chi^2/(n_tr-1))^(-n_tr/2). With the linear model and a flat prior
+#    the LATENT posterior is itself a 4-dim Student-t -- analytic: mean =
+#    the GLS solution, dof nu = n_tr - 4, scale Sig_t = (n_tr - 1 +
+#    chi^2_min)/nu * (M^T S^-1 M)^-1. NO Hartlap factor, NO temperature:
+#    the printed LOO 68% coverage is a VERIFICATION (0.64-0.73 vs nominal
+#    0.68; binomial noise at n=253 is +-0.03), not a calibration knob.
+#
+# WHY scores even under SH (printed): raw-bin stacks were tested at every
+# stage -- p=24 (S alone) gives perfect SH coverage 0.68, but p=44/86/107
+# degrade to 0.60/0.45/0.43 with numerically pathological t-scales (S^-1
+# direction noise at p ~ 0.4 n_tr + non-Gaussian model-error residuals
+# exceed SH's assumptions), and the all-statistics stack (p=346 > n_tr) is
+# outright singular. q <= 24 keeps covariance estimation in the regime
+# where SH's guarantees hold EMPIRICALLY, which the coverage print proves.
+#
+# Families (all z_s=1; spectra log10, band-averaged onto EDG24 like S; runs
+# 114/115/117 excluded EVERYWHERE here -- SZ cross-norm memo -- so n = 253):
+#   S(ell) | kappa-PDF | MF V1+V2 | scalings Y/fgas/T | SZ/tau spectra
+#   (Cl_tautau, Cl_yy, Cl_kappa-y, Cl_kappa-tau, Cl_y-tau) | peaks/minima +
+#   rest (peak_counts, minima_counts, dm_pdf, dm_moments, moments,
+#   scaling_f_star, peak_R, peak_y -- guarded on presence).
+# CIRCULARITY FLAG (printed): scaling_f_star in the last family is very
+# nearly the f~_star latent itself rebinned (CV-R2 0.99), so the final-stage
+# sigma(f~_star) is close to a self-measurement -- flagged, not hidden.
 from matplotlib.patches import Ellipse
+from scipy.stats import f as f_20
 
-BLOCKS20 = [("$S(\\ell)$", Sb24[oke]),
-            ("$+\\kappa$ PDF", Ypdf[oke][:, gp]),
-            ("+MF $V_1V_2$", None), ("+Y/f/T--M", None)]
-v1_i = stat_leg20("mf_v1"); v2_i = stat_leg20("mf_v2")
-gd1 = np.isfinite(v1_i[oke]).all(0) & (v1_i[oke].std(0) > 0)
-gd2 = np.isfinite(v2_i[oke]).all(0) & (v2_i[oke].std(0) > 0)
-BLOCKS20[2] = ("+MF $V_1V_2$", np.c_[v1_i[oke][:, gd1], v2_i[oke][:, gd2]])
-sy_i = np.log10(np.where(stat_leg20("scaling_Y") > 0,
-                         stat_leg20("scaling_Y"), np.nan))
-st_i = np.log10(np.where(stat_leg20("scaling_T") > 0,
-                         stat_leg20("scaling_T"), np.nan))
-sf_i = stat_leg20("scaling_f_gas")
-sc_i = np.c_[sy_i[oke], sf_i[oke], st_i[oke]]
-gds = np.isfinite(sc_i).all(0) & (sc_i.std(0) > 0)
-BLOCKS20[3] = ("+Y/f/T--M", sc_i[:, gds])
+ok9 = oke & ~EXCL_XN                             # SZ legs in the stack
+LAT9 = np.c_[fb1[ok9], fst1[ok9], c_gas20[ok9], logT20[ok9]]
+m9 = int(ok9.sum())
+A9 = np.c_[LAT9, np.ones(m9)]
+g_show = int(np.where(np.where(ok9)[0] == demo_g[1])[0][0])
 
-from scipy.stats import chi2 as chi2_20
-g_show = int(np.where(oke_idx == demo_g[1])[0][0])   # the median demo node
-STAGE_C = [plt.get_cmap("magma")(x) for x in (0.75, 0.55, 0.35, 0.15)]
-stage_out = []            # (label, mu, cov_cal, raw_cov, temp, sig_marg)
-Ystack = None
-for lab, blk in BLOCKS20:
-    Ystack = blk if Ystack is None else np.c_[Ystack, blk]
-    z2 = np.empty(nok)
-    mus = np.empty((nok, 4))
-    covs = np.empty((nok, 4, 4))
-    for g in range(nok):
-        tr = np.arange(nok) != g
-        beta_i, *_ = np.linalg.lstsq(A_all[tr], Ystack[tr], rcond=None)
-        Cinv = 1.0/np.maximum((Ystack[tr] - A_all[tr] @ beta_i).var(0), 1e-20)
+def leg9(name):
+    if f"t__{name}__value" not in d.files:
+        return None
+    a = d[f"t__{name}__value"].astype(float)
+    if a.ndim == 4:
+        a = a[:, ZI, ZI, :]
+    elif a.ndim == 3 and a.shape[1] == 5:
+        a = a[:, ZI, :]
+    return a[ok9]
+
+def clean9(Y):
+    gd = np.isfinite(Y).all(0) & (np.nanstd(Y, 0) > 0)
+    return Y[:, gd]
+
+def bin24_9(Y):
+    return np.stack([np.nanmean(Y[:, (ELL >= EDG24[i]) & (ELL < EDG24[i+1])],
+                                1) for i in range(24)], axis=1)
+
+def logbin9(name):
+    Y = leg9(name)
+    return clean9(bin24_9(np.log10(np.where(Y > 0, Y, np.nan))))
+
+FAM9 = [(r"$S(\ell)$", clean9(bin24_9(leg9("suppression")))),
+        (r"$+\kappa$ PDF", clean9(leg9("pdf"))),
+        (r"+MF $V_1V_2$", np.c_[clean9(leg9("mf_v1")), clean9(leg9("mf_v2"))]),
+        (r"+Y/f/T--M", np.c_[
+            clean9(np.log10(np.where(leg9("scaling_Y") > 0,
+                                     leg9("scaling_Y"), np.nan))),
+            clean9(leg9("scaling_f_gas")),
+            clean9(np.log10(np.where(leg9("scaling_T") > 0,
+                                     leg9("scaling_T"), np.nan)))]),
+        (r"+SZ/$\tau$ spectra", np.c_[logbin9("cl_tt"), logbin9("cl_yy"),
+                                       logbin9("cl_kappa_y"),
+                                       logbin9("cl_kappa_tau"),
+                                       logbin9("cl_yt")])]
+rest9 = [clean9(leg9(nm)) for nm in
+         ("peak_counts", "minima_counts", "dm_pdf", "dm_moments", "moments",
+          "scaling_f_star", "peak_R", "peak_y") if leg9(nm) is not None]
+FAM9.append((r"+peaks/min/rest", np.c_[tuple(rest9)]))
+
+# per-LOO-node, per-family fits ONCE; stages assemble cumulative slices
+nfam = len(FAM9)
+M_g = np.empty((m9, nfam, 4, 4))
+scores_tr = np.empty((m9, nfam, m9, 4))          # all rows under g's fit
+for g in range(m9):
+    tr = np.arange(m9) != g
+    for fi, (lab, blk) in enumerate(FAM9):
+        beta_i, *_ = np.linalg.lstsq(A9[tr], blk[tr], rcond=None)
+        Cinv = 1.0/np.maximum((blk[tr] - A9[tr] @ beta_i).var(0), 1e-20)
         B_i = beta_i[:4].T
-        P_i = (B_i.T*Cinv) @ B_i
-        mus[g] = np.linalg.solve(P_i, (B_i.T*Cinv)
-                                 @ (Ystack[g] - beta_i[4]))
-        covs[g] = np.linalg.inv(P_i)
-        dlt = L4[g] - mus[g]
-        z2[g] = dlt @ P_i @ dlt
-    raw_cov = float((z2 < chi2_20.ppf(0.68, 4)).mean())
-    temp = float(np.quantile(z2, 0.68)/chi2_20.ppf(0.68, 4))
-    stage_out.append((lab, mus[g_show], covs[g_show]*temp, raw_cov, temp,
-                      np.sqrt(np.diag(covs[g_show]))*np.sqrt(temp)))
+        W = Cinv[:, None]*B_i
+        scores_tr[g, fi] = (blk - beta_i[4]) @ W
+        M_g[g, fi] = B_i.T @ W
+
+stage_out = []      # (label, mu, Sig_t, raw_cov, nu, marginal sigma [t-cov])
+for k in range(1, nfam + 1):
+    q9 = 4*k
+    z2 = np.empty(m9)
+    mus = np.empty((m9, 4))
+    scls = np.empty((m9, 4, 4))
+    for g in range(m9):
+        tr = np.arange(m9) != g
+        ntr9 = int(tr.sum())
+        T9 = scores_tr[g, :k].transpose(1, 0, 2).reshape(m9, q9)
+        M9 = M_g[g, :k].reshape(q9, 4)
+        Rt = T9[tr] - LAT9[tr] @ M9.T
+        Si = np.linalg.inv(np.cov(Rt.T))
+        P9 = M9.T @ Si @ M9
+        r0 = T9[g] - Rt.mean(0)
+        mu9 = np.linalg.solve(P9, M9.T @ Si @ r0)
+        rmin = r0 - M9 @ mu9
+        chi2min = float(rmin @ Si @ rmin)         # stable, non-negative
+        nu9 = ntr9 - 4
+        Sig_t = (ntr9 - 1 + chi2min)/nu9*np.linalg.inv(P9)
+        mus[g] = mu9
+        scls[g] = Sig_t
+        dlt = LAT9[g] - mu9
+        z2[g] = dlt @ np.linalg.solve(Sig_t, dlt)
+    lvl68 = 4*f_20.ppf(0.68, 4, nu9)
+    raw_cov = float((z2 < lvl68).mean())
+    stage_out.append((FAM9[k-1][0], mus[g_show], scls[g_show], raw_cov, nu9,
+                      np.sqrt(np.diag(scls[g_show])*nu9/(nu9 - 2))))
 
 fig, AXc = plt.subplots(4, 4, figsize=(ONE_COL[0]*1.85, ONE_COL[0]*1.85))
-lat_mu, lat_sd = L4.mean(0), L4.std(0)
+lat_mu, lat_sd = LAT9.mean(0), LAT9.std(0)
 RNG_C = [(lat_mu[j] - 2.8*lat_sd[j], lat_mu[j] + 2.8*lat_sd[j])
          for j in range(4)]
+STAGE_C = [plt.get_cmap("magma")(x) for x in
+           np.linspace(0.82, 0.10, len(stage_out))]
 for i in range(4):
     for j in range(4):
         axc = AXc[i, j]
@@ -5702,27 +5777,28 @@ for i in range(4):
             xg_c = np.linspace(*RNG_C[j], 300)
             axc.plot(xg_c, np.exp(-0.5*((xg_c - lat_mu[j])/lat_sd[j])**2),
                      color=COLORS["dmo"], lw=0.9, ls="--")
-            for (lab, mu_s, cv_s, _, _, _), col in zip(stage_out, STAGE_C):
-                s_j = np.sqrt(cv_s[j, j])
-                axc.plot(xg_c, np.exp(-0.5*((xg_c - mu_s[j])/s_j)**2),
-                         color=col, lw=1.1)
-            axc.axvline(L4[g_show, j], color=COLORS["truth"], lw=0.9, ls=":")
+            for (lab, mu_s, sc_s, _, nu_s, _), col in zip(stage_out, STAGE_C):
+                s_j = np.sqrt(sc_s[j, j])         # 1-D t marginal, scale s_j
+                axc.plot(xg_c, (1 + ((xg_c - mu_s[j])/s_j)**2/nu_s)
+                         ** (-(nu_s + 1)/2), color=col, lw=1.1)
+            axc.axvline(LAT9[g_show, j], color=COLORS["truth"], lw=0.9,
+                        ls=":")
             axc.set_yticks([])
         else:
-            for (lab, mu_s, cv_s, _, _, _), col in zip(stage_out, STAGE_C):
-                sub = cv_s[np.ix_([j, i], [j, i])]
+            for (lab, mu_s, sc_s, _, nu_s, _), col in zip(stage_out, STAGE_C):
+                sub = sc_s[np.ix_([j, i], [j, i])]
                 ev, evec = np.linalg.eigh(sub)
                 ang = float(np.degrees(np.arctan2(evec[1, -1], evec[0, -1])))
-                for ns in (1, 2):
+                for lv, lwv, alv in ((0.68, 1.0, 1.0), (0.95, 0.6, 0.6)):
+                    rad2 = 4*f_20.ppf(lv, 4, nu_s)   # t credible level
                     axc.add_patch(Ellipse(
-                        (mu_s[j], mu_s[i]), 2*ns*np.sqrt(ev[-1]),
-                        2*ns*np.sqrt(ev[0]), angle=ang, fill=False,
-                        edgecolor=col, lw=1.0 if ns == 1 else 0.6,
-                        alpha=1.0 if ns == 1 else 0.6))
-            axc.plot(L4[g_show, j], L4[g_show, i], marker="*", ms=8,
+                        (mu_s[j], mu_s[i]), 2*np.sqrt(rad2*ev[-1]),
+                        2*np.sqrt(rad2*ev[0]), angle=ang, fill=False,
+                        edgecolor=col, lw=lwv, alpha=alv))
+            axc.plot(LAT9[g_show, j], LAT9[g_show, i], marker="*", ms=8,
                      color=COLORS["truth"], mec="k", mew=0.3, ls="none",
                      zorder=5)
-            axc.scatter(L4[:, j], L4[:, i], s=2, color=COLORS["dmo"],
+            axc.scatter(LAT9[:, j], LAT9[:, i], s=2, color=COLORS["dmo"],
                         alpha=0.25, lw=0, rasterized=True, zorder=0)
             axc.set_ylim(*RNG_C[i])
         axc.set_xlim(*RNG_C[j])
@@ -5742,42 +5818,42 @@ fig.legend(handles=[Line2D([], [], color=c, lw=1.4, label=lab)
                      label="prior cloud"),
               Line2D([], [], color=COLORS["truth"], marker="*", ls="none",
                      ms=8, label=f"truth (node {int(run_ids[demo_g[1]])})")],
-           loc="upper right", bbox_to_anchor=(0.98, 0.97), fontsize=6.2)
+           loc="upper right", bbox_to_anchor=(0.98, 0.97), fontsize=6.0)
 fig.tight_layout()
 save(fig, "figs_v2/fig20i_latent_corner")
 plt.show()
-print("fig 20i [caption]: temperature-calibrated marginal sigmas "
-      "(vs prior stds "
-      + ", ".join(f"{s:.4f}" for s in lat_sd) + "):")
-for lab, _, _, raw_c, temp, sig_m in stage_out:
-    print(f"  {lab:14s}: raw 68% LOO coverage {raw_c:.2f} -> temperature "
-          f"{temp:5.1f}; sigmas "
-          + ", ".join(f"{s:.4f}" for s in sig_m)
-          + "; shrink vs prior "
+
+print("fig 20i [caption, MANDATORY FRAMING]: INTERNAL RECOVERY test -- the "
+      f"'data' are held-out node {int(run_ids[demo_g[1]])}'s own seed-paired "
+      "suite measurements (no observational noise, no systematics, "
+      "same-suite prior); information-content demo, NOT a survey forecast")
+print(f"fig 20i [caption]: Sellentin-Heavens likelihood on MOPED scores over "
+      f"{m9} nodes (runs 114/115/117 excluded everywhere: SZ cross-norm "
+      f"memo); family sizes "
+      + ", ".join(f"{b.shape[1]}" for _, b in FAM9)
+      + " bins -> 4-dim scores; cumulative q = "
+      + "/".join(str(4*(k+1)) for k in range(nfam))
+      + "; posterior = analytic 4-dim Student-t (nu = n_tr - 4 = "
+      f"{stage_out[0][4]}); NO Hartlap, NO temperature")
+print("fig 20i [caption]: per stage (raw 68% LOO coverage [VERIFICATION; "
+      "nominal 0.68 +- 0.03 binomial] | marginal sigmas [t-cov] | shrink vs "
+      "prior " + ", ".join(f"{s:.4f}" for s in lat_sd) + "):")
+for lab, _, _, raw_c, nu_s, sig_m in stage_out:
+    print(f"  {lab:20s}: {raw_c:.2f} | "
+          + ", ".join(f"{s:.4f}" for s in sig_m) + " | "
           + ", ".join(f"{p/s:.1f}x" for s, p in zip(sig_m, lat_sd)))
-print("fig 20i [caption, MANDATORY FRAMING]: this is an INTERNAL RECOVERY "
-      "test -- the 'data' are held-out node "
-      f"{int(run_ids[demo_g[1]])}'s own seed-paired suite measurements "
-      "(no observational noise, no systematics, same-suite prior); it "
-      "demonstrates information content and calibration, NOT a survey "
-      "forecast")
-p_stage = np.cumsum([b[1].shape[1] for b in BLOCKS20])
-print("fig 20i [caption, covariance treatment]: data-vector sizes p = "
-      + "/".join(str(int(p)) for p in p_stage)
-      + f" per stage (blocks {'/'.join(str(b[1].shape[1]) for b in BLOCKS20)})"
-      f"; C is DIAGONAL BY ASSUMPTION (per-bin training-residual variance -- "
-      f"a plug-in variance, so NO sample covariance is inverted and no "
-      f"Hartlap/Sellentin-Heavens factor applies); the ignored joint "
-      f"residual correlations (measured on the same training nodes) are "
-      f"large -- median |r| within blocks up to ~0.7 (S bands), "
-      f"cross-family up to ~0.55 (S x MF) -- which is exactly why the raw "
-      f"coverage is 0.05-0.21 and the LOO temperature absorbs it. "
-      f"Full-joint-covariance upgrade path: at n_train=255, Hartlap alpha = "
-      + ", ".join(f"{(nok - 1 - p - 2)/(nok - 2):.2f}" for p in p_stage)
-      + " per stage (p=107 approaches the cap -> prefer Sellentin-Heavens); "
-      "the planned 550-real fiducial set is a MEASUREMENT covariance of one "
-      "universe -- an additive noise term for survey use, not a replacement "
-      "for this model-error C (alpha ~ 0.80 at p=107, n=550)")
+print("fig 20i [caption, circularity flag]: the final family contains "
+      "scaling_f_star, which is very nearly the f~_star latent itself "
+      "rebinned (CV-R2 0.99) -- the last-stage sigma(f~_star) is close to a "
+      "self-measurement")
+print("fig 20i [caption, why scores under SH]: raw-bin full-cov SH tested "
+      "at every stage -- p=24 (S alone) verifies perfectly (coverage 0.68) "
+      "but p=44/86/107 degrade to 0.60/0.45/0.43 with numerically "
+      "pathological t-scales (S^-1 direction noise at p ~ 0.4 n_tr + "
+      "non-Gaussian model-error residuals exceed SH's assumptions), and "
+      "the all-statistics stack (p=346 > n_tr=252) is singular outright; "
+      "q <= 24 scores keep SH in the regime where its guarantees hold "
+      "EMPIRICALLY, as the coverage line above verifies")
 del cz, mt5, mg5, ms5, logm5, fbar5, fgas5, xpb20, tau20, ta20
 ''')
 

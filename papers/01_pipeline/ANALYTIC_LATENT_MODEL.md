@@ -103,6 +103,33 @@ Stage-wise calibrated marginal σ (vs prior stds 0.119/0.079/0.052/0.016):
 Physics: the WL spectrum alone measures the *budget*; the κ-PDF pins the
 *partition*; the halo-side scalings tighten all four to 3–9× below the prior.
 
+**v2.1 upgrade (2026-08-06, same day): ALL statistics via score compression.**
+The staged-diagonal treatment above is retired for the corner. Extending to all
+families (adding the SZ/τ spectra $C_\ell^{\tau\tau,yy,\kappa y,\kappa\tau,
+y\tau}$ and peaks/minima + remaining statistics) by stacking raw bins fails
+structurally: $p = 346 > n_{\rm train} = 252$ (singular covariance) and
+diagonal-$C$ temperatures grow 4.6→31 with *non-monotone* calibrated
+constraints. The fix is MOPED-style **score compression**: each family →
+its 4-dim score $t_f = B_f^\top C_f^{-1}(D - b_{0,f})$ (diagonal $C_f$ is only
+the compression weighting — cannot bias, only lose); the stacked scores
+($q = 4k \le 24$) then enter a **Sellentin–Heavens (2016) likelihood** with
+their full empirical covariance (all cross-family correlations, estimation
+noise marginalized via the SH multivariate-$t$). With the linear model and a
+flat prior the latent posterior is an *analytic 4-dim Student-$t$*: mean = GLS,
+$\nu = n_{\rm tr}-4$, scale $(n_{\rm tr}-1+\chi^2_{\rm min})/\nu\,(M^\top
+S^{-1}M)^{-1}$. **No Hartlap factor, no temperature** — LOO 68% coverage ≈
+0.64–0.73 (nominal 0.68, binomial ±0.03) is a *verification*, and the contour
+shapes are defensible rather than disclaimed. SH on raw-bin stacks was tested
+and rejected empirically: perfect at $p=24$ (coverage 0.68) but degrading to
+0.60/0.45/0.43 at $p=44/86/107$ (covariance direction-noise at
+$p\sim0.4\,n_{\rm tr}$ + non-Gaussian model-error residuals), singular at
+$p=346$. Monotone shrinkage, 253 nodes (runs 114/115/117 excluded everywhere —
+SZ cross-norm memo): $S(\ell)$ alone σ ≈ 0.030/0.061/0.016/0.035; all six
+families σ ≈ 0.004/0.001/0.004/0.003 (≈31×/79×/12×/4.6× below prior).
+**Circularity flag**: the final family contains the f★–M scaling — very nearly
+the $\tilde f_\star$ latent rebinned (CV-$R^2$ 0.99) — so the last-stage
+σ(f̃_star) is close to a self-measurement. Live cell prints are canon.
+
 **Framing (mandatory).** Fig 20i is an *internal recovery test*: the "data" are a
 held-out Sobol node's own seed-paired suite measurements — no observational
 noise, no systematics, same-suite prior. It demonstrates information content and

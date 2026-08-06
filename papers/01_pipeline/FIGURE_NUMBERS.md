@@ -224,7 +224,17 @@ Regenerate by re-running the notebook; all stamps are computed live.
   (budget only, 2.6×); +PDF 0.024/0.040/0.032/0.016 (pins partition+T); +MF 0.023/0.046/0.022/0.013;
   +Y/f/T–M 0.014/0.019/0.013/0.007 (8.8×/4.2×/4.0×/2.3× below prior). Corner = median demo node 216,
   truth inside contours at every stage (cell 28).
-- **2026-08-06 fig20i verification pass** (audit queue): p = 24/44/86/107 per stage (blocks 24/20/42/21);
+- **2026-08-06 fig20i FINAL FORM — all statistics, Sellentin–Heavens on MOPED scores** (author: "include all
+  statistics" + "replace temperatures with a proper SH likelihood"): 6 families (S 24 / κPDF 20 / MF 42 /
+  scalings 21 / SZ-τ spectra 120 / peaks+rest 119 bins) → 4-dim scores each, q=4→24; SH multivariate-t on the
+  full empirical score covariance → analytic 4-dim Student-t posterior (ν=248), NO Hartlap, NO temperature.
+  LOO 68% coverage = VERIFICATION: 0.73/0.73/0.69/0.66/0.66/0.64 (nominal 0.68 ± 0.03 binomial). σ per stage:
+  S alone 0.030/0.061/0.016/0.035 → all six 0.0035/0.0009/0.0040/0.0031 (34×/89×/13×/5× below prior;
+  f̃_star flagged circular via scaling_f_star). Raw-bin full-cov SH tested and rejected empirically: perfect
+  at p=24 (0.68) but 0.60/0.45/0.43 at p=44/86/107, singular at p=346>n_tr=252. n=253 (repaint trio excluded
+  everywhere). Supersedes both the diagonal-C staged version and the Hartlap-scores interim (cell 28).
+- **2026-08-06 fig20i verification pass** (audit queue; treatment superseded by the SH-scores final form above,
+  numbers kept for the record): p = 24/44/86/107 per stage (blocks 24/20/42/21);
   C diagonal BY ASSUMPTION (plug-in variance — no sample-cov inversion, no Hartlap/SH applies); ignored joint
   residual correlations measured: median |r| within-S 0.73, S×MF 0.55, S×PDF 0.42, ×scalings 0.12–0.14
   (why raw coverage 0.05–0.21). Full-cov upgrade: Hartlap α=0.90/0.82/0.66/0.57 at n_train=255 (p=107 near

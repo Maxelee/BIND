@@ -26,7 +26,8 @@ Order within the section:
 | # | slot | file | role |
 |---|---|---|---|
 | 1 | construction MAIN | `pfig_s4a_model_construction` (script) | the tutorial formalized: (a) universe → four halo numbers; (b) one ℓ: the partial slope is the coefficient; (c) every ℓ → the four kernels; (d) one knob's ΔS = fingerprint-weighted kernel sum (chain rule, no fitting). Motivates the methodology before any equation. |
-| 2 | latent choice | text + `latent_ablation.py` numbers | why (f̃_bar, f̃_star, c_gas, log T̃): roles + exhaustive C(15,4) ablation (ours top 3.7%, plateau; f̃_star irreplaceable). Appendix table on request. |
+| 2 | latent measurement MAIN | `pfig_s4a_latent_measurement` (`paper_latent_measurement.py`) | HOW the four latents are measured: one real hinge-bin halo in four channels (Σ_tot, Σ_gas, Σ_star, T) with R500c/R200/annulus geometry drawn where each computation happens; below, the population step (per-halo values across the 632 hinge-bin halos, median = the latent — reproduces the fiducial's vector 0.801/0.097/0.645/6.833). |
+| 2b | latent choice | text + `latent_ablation.py` numbers | why (f̃_bar, f̃_star, c_gas, log T̃): roles + exhaustive C(15,4) ablation (ours top 3.7%, plateau; f̃_star irreplaceable). Appendix table on request. |
 | 3 | kernels MAIN | `fig20g_latent_kernels` (cell) | the five coefficient functions × z_s fan + 1σ-impact panel — the centerfold. |
 | 4 | buildup MAIN | `pfig_s4a_cv_buildup` (cell) | one CV-R²(ℓ) panel: f̃_bar → +f̃_star → +c_gas → +log T̃ vs the 30-param baseline ("how many numbers is feedback"). |
 | 5 | validation MAIN | `pfig_s4b_model_curves` (cell) | **fig09c layout, analytic model instead of the GP**: 7 LOO nodes × 13 statistics, measured (black) vs model (blue dashed), per-panel error stamps. |

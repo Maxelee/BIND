@@ -52,13 +52,18 @@ cloud — one number ($c_1(\ell\!\simeq\!4847) = +0.20$). **The kernels**
 (panel c): the per-band slopes strung across $\ell$,
 
 $$\beta(\ell_b) = \big(c_1, c_2, c_3, c_4, c_0\big)(\ell_b)
-= (A^{\top}A)^{-1} A^{\top} S(:, \ell_b),
+= (A^{\top}A)^{-1} A^{\top}\, \boldsymbol{S}_{\ell_b},
 \qquad A = \big[\lambda_{q,1}, \lambda_{q,2}, \lambda_{q,3}, \lambda_{q,4}, 1\big]_{q}$$
 
-($A$ is the **design matrix** — nothing spectral: the plain data table with
-one row per universe, columns = its four measured latent values and a
-constant 1 for the intercept, shape $N \times 5$. E.g. row for run_0000:
-$[0.980,\ 0.101,\ 0.772,\ 6.809,\ 1]$.)
+Notation: $A$ is the **design matrix** — nothing spectral: the plain data
+table with one row per universe, columns = its four measured latent values
+and a constant 1 for the intercept, shape $N \times 5$ (e.g. the run_0000
+row is $[0.980,\ 0.101,\ 0.772,\ 6.809,\ 1]$). $\boldsymbol{S}_{\ell_b}
+\in \mathbb{R}^N$ is the vector of all $N$ universes' suppression values at
+band $\ell_b$ — one column of the $(N \times 24)$ suppression table. The
+solve is repeated independently for each of the 24 columns (same $A$ every
+time); stringing the 24 solutions across $\ell$ is what turns the
+coefficients into the kernel *functions* $c_i(\ell)$.
 
 Joint, not marginal: the latents are collinear
 ($r(c_{\rm gas}, \tilde f_{\rm bar}) = +0.94$), so one-variable slopes would

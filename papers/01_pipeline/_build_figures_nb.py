@@ -6040,6 +6040,96 @@ plt.show()
 print("pfig_s4b_app_zs + pfig_s4b_app_epoch: fig20f panels (a,b) as "
       "standalone appendix figures (epoch panel = the flex slot, appendix "
       "by default per the author plan)")
+# ── s4b (new arc): analytic-model curves, fig09c layout ────────────────────
+# (2026-08-06 arc revision.) The fig09c GP-emulator validation figure,
+# rebuilt with the ANALYTIC latent model in place of the GP: measured
+# (black) vs latent-model prediction (blue dashed) for 7 leave-one-out
+# Sobol nodes spanning the S(5000) range, across 13 statistics. All fits
+# on the ok9 universe (repaint trio excluded so SZ panels share nodes);
+# per-panel stamp = median|pred-meas| / median|meas| x 100 over shown
+# nodes+bins (robust to zero crossings, unlike a plain % error).
+MC_STATS = [
+    ("suppression", "band", False, r"$S(\ell)$"),
+    ("pdf", "pdf_bins", False, r"$P(\nu)$"),
+    ("peak_counts", "nu", False, r"$N_{\rm pk}$"),
+    ("minima_counts", "nu", False, r"$N_{\rm min}$"),
+    ("mf_v0", "mf_nu", False, r"$V_0$"),
+    ("mf_v1", "mf_nu", False, r"$V_1$"),
+    ("mf_v2", "mf_nu", False, r"$V_2$"),
+    ("scaling_Y", "log_mass_bins", True, r"$\log Y_{500c}$"),
+    ("scaling_f_gas", "log_mass_bins", False, r"$f_{\rm gas,500c}$"),
+    ("scaling_T", "log_mass_bins", True, r"$\log T_{500c}$"),
+    ("cl_kappa_tau", "band", True, r"$\log C_\ell^{\kappa\tau}$"),
+    ("cl_yy", "band", True, r"$\log C_\ell^{yy}$"),
+    ("cl_kappa_y", "band", True, r"$\log C_\ell^{\kappa y}$"),
+]
+sv9 = np.stack([d["t__suppression__value"][:, ZI, :]
+                [:, band_masks[3]].mean(1)])[0][ok9]   # S(~5e3 band) on ok9
+ok9_idx = np.where(ok9)[0]
+mc_nodes = [int(ok9_idx[np.argmin(np.abs(sv9 - np.quantile(sv9, q)))])
+            for q in (0.05, 0.2, 0.35, 0.5, 0.65, 0.8, 0.95)]
+A9full = np.c_[fb1[ok9], fst1[ok9], c_gas20[ok9], logT20[ok9],
+               np.ones(int(ok9.sum()))]
+fig, AXm = plt.subplots(4, 4, figsize=(TWO_COL[0], 8.2))
+AXm = AXm.ravel()
+for kst, (nm, xkind, uselog, ylab) in enumerate(MC_STATS):
+    axm = AXm[kst]
+    Ys = stat_leg20(nm)
+    if xkind == "band":
+        if uselog:
+            Ys = np.log10(np.where(Ys > 0, Ys, np.nan))
+        Ys = np.stack([np.nanmean(Ys[:, (ELL >= EDG24[i])
+                                      & (ELL < EDG24[i+1])], 1)
+                       for i in range(24)], axis=1)
+        xv = ctr24
+    else:
+        if uselog:
+            Ys = np.log10(np.where(Ys > 0, Ys, np.nan))
+        xv = d[f"a__{nm}__{xkind}"]
+    Ys = Ys[ok9]
+    gd = np.isfinite(Ys).all(0) & (np.nanstd(Ys, 0) > 0)
+    Ys, xg9 = Ys[:, gd], np.asarray(xv)[gd]
+    errs = []
+    for gnode in mc_nodes:
+        gpos = int(np.where(ok9_idx == gnode)[0][0])
+        tr = np.arange(int(ok9.sum())) != gpos
+        bmc, *_ = np.linalg.lstsq(A9full[tr], Ys[tr], rcond=None)
+        pred = A9full[gpos] @ bmc
+        axm.plot(xg9, Ys[gpos], color="k", lw=0.8, alpha=0.75)
+        axm.plot(xg9, pred, color=COLORS["bind"], lw=0.9, ls="--")
+        errs.append(np.abs(pred - Ys[gpos]))
+    stamp = 100*np.median(np.concatenate(errs))/np.median(np.abs(Ys))
+    axm.text(0.04, 0.05, f"{stamp:.1f}%", transform=axm.transAxes,
+             fontsize=6, color=COLORS["bind"])
+    if xkind == "band":
+        axm.set_xscale("log")
+        axm.set_xlabel(r"$\ell$", fontsize=6.5)
+    elif xkind == "log_mass_bins":
+        axm.set_xlabel(r"$\log_{10} M_{500c}$", fontsize=6.5)
+    else:
+        axm.set_xlabel(r"$\nu$", fontsize=6.5)
+    axm.set_ylabel(ylab, fontsize=6.5)
+    axm.tick_params(labelsize=5.5)
+    panel_label(axm, f"({chr(97 + kst)})")
+for axm in AXm[len(MC_STATS):]:
+    axm.set_visible(False)
+# figure-level legend in the empty bottom-right grid region (a per-axes
+# legend in panel (a) covered its panel label)
+from matplotlib.lines import Line2D as _L2
+fig.legend(handles=[_L2([], [], color="k", lw=1.2,
+                        label="measured (7 leave-one-out nodes)"),
+                    _L2([], [], color=COLORS["bind"], lw=1.2, ls="--",
+                        label="analytic latent model")],
+           loc="lower center", bbox_to_anchor=(0.62, 0.10), fontsize=7)
+fig.tight_layout()
+save(fig, "figs_v2/pfig_s4b_model_curves")
+plt.show()
+print("pfig_s4b_model_curves: fig09c layout with the analytic latent model; "
+      "7 LOO nodes, 13 statistics, per-panel median-|err|/median-|val| "
+      "stamps; note peaks/minima panels predict the population-mean curve "
+      "(per-bin node scatter is noise-dominated at Delta-nu=0.5 -- the "
+      "stamps there measure shape agreement, not per-node discrimination)")
+
 del cz, mt5, mg5, ms5, logm5, fbar5, fgas5, xpb20, tau20, ta20
 ''')
 

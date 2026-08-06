@@ -344,3 +344,92 @@ print("\nbridge [caption]: family-mean shape corr measured vs kernel "
 print("bridge [caption]: fingerprint rows (Delta-lambda/sigma_lambda): "
       + "; ".join(f"{f}: " + ",".join(f"{v:+.1f}" for v in fp)
                   for (f, _), fp in zip(panels_b, fingerprints)))
+
+
+# ═══ MODEL-CONSTRUCTION FIGURE (2026-08-06 arc revision) ════════════════════
+# The tutorial (figs_preview/tutorial_family_kernels.png) formalized into a
+# paper figure motivating the methodology, four panels:
+#  (a) each universe -> four measured halo numbers (standardized strips);
+#  (b) at ONE ell, suppression vs one number: the partial slope IS the
+#      coefficient there (joint-fit line drawn);
+#  (c) the slope at every ell -> the four kernel functions (from the shipped
+#      table; the (b) slope circled);
+#  (d) one knob (WindEnergy, twobound pair): its measured Delta-S equals the
+#      fingerprint-weighted kernel sum -- the chain rule, zero fitting.
+S24s = None
+dsn_S = dsn["t__suppression__value"][:, ZI, :]
+S24s = np.stack([np.nanmean(dsn_S[:, (dsn["a__suppression__ell"] >= EDGb[i])
+                                  & (dsn["a__suppression__ell"] < EDGb[i+1])],
+                            1) for i in range(24)], axis=1)
+oks = np.isfinite(LATsob).all(1)
+A_s = np.c_[LATsob[oks], np.ones(int(oks.sum()))]
+beta_s, *_ = np.linalg.lstsq(A_s, S24s[oks], rcond=None)
+
+LNAMF = [r"$\tilde f_{\rm bar}$", r"$\tilde f_\star$",
+         r"$c_{\rm gas}$", r"$\log\tilde T$"]
+KC = [COLORS["bind"], "#111111", COLORS["highlight"], COLORS["secondary"]]
+ib_c = int(np.argmin(np.abs(ctr_b - 4847)))
+
+fig, ((ca, cb), (cc, cd)) = plt.subplots(2, 2, figsize=(TWO_COL[0], 4.8))
+# (a)
+for j in range(4):
+    xz = (LATsob[oks, j] - LATsob[oks, j].mean())/LATsob[oks, j].std()
+    ca.plot(xz, np.full(len(xz), 3 - j), "|", ms=9, color="0.6", alpha=0.45)
+ca.set_yticks([3, 2, 1, 0])
+ca.set_yticklabels(LNAMF, fontsize=7)
+ca.set_xlabel("standardized value (cloud mean 0, width 1)", fontsize=6.5)
+ca.set_xlim(-3.4, 3.4)
+panel_label(ca, "(a)")
+ca.set_title(r"each universe $\to$ four halo numbers", fontsize=6.8)
+# (b)
+xj = LATsob[oks, 0]
+yj = S24s[oks, ib_c]
+cb.scatter(xj, yj, s=6, color="0.6", alpha=0.55, rasterized=True)
+xg = np.linspace(xj.min(), xj.max(), 10)
+oth = LATsob[oks].mean(0)
+cb.plot(xg, beta_s[4, ib_c] + beta_s[0, ib_c]*xg + beta_s[1, ib_c]*oth[1]
+        + beta_s[2, ib_c]*oth[2] + beta_s[3, ib_c]*oth[3],
+        color=COLORS["bind"], lw=1.8)
+cb.set_xlabel(r"$\tilde f_{\rm bar}$", fontsize=6.5)
+cb.set_ylabel(r"$S(\ell\simeq4847)$", fontsize=6.5)
+cb.set_title(f"one $\\ell$: the (partial) slope = "
+             f"$c_1$ = +{beta_s[0, ib_c]:.2f}", fontsize=6.8)
+panel_label(cb, "(b)")
+# (c)
+for j in range(4):
+    cc.plot(ctr_b, Bk[:, j], color=KC[j], lw=1.4, label=LNAMF[j])
+cc.plot(ctr_b[ib_c], Bk[ib_c, 0], "o", ms=8, mfc="none",
+        mec=COLORS["bind"], mew=1.6)
+cc.axhline(0, color="0.8", lw=0.6)
+cc.set_xscale("log")
+cc.set_xlabel(r"$\ell$", fontsize=6.5)
+cc.set_ylabel(r"kernel $c_i(\ell)$", fontsize=6.5)
+cc.set_title("the slope at every $\\ell$ $\\to$ the kernels",
+             fontsize=6.8)
+cc.legend(fontsize=5.2, loc="lower left", ncol=2, handletextpad=0.4)
+panel_label(cc, "(c)")
+# (d)
+rlo_w, rhi_w = pairs["WindEnergyIn1e51erg"]
+dlam_w = LATtb[rhi_w] - LATtb[rlo_w]
+dS_w = bandS(rhi_w) - bandS(rlo_w)
+for j in range(4):
+    cd.plot(ctr_b, Bk[:, j]*dlam_w[j], color=KC[j], lw=1.0, ls="--",
+            alpha=0.8)
+tot_w = Bk @ dlam_w
+cd.plot(ctr_b, tot_w, color="k", lw=2.0, label="kernel sum")
+cd.plot(ctr_b, dS_w, "o", ms=3.2, color=COLORS["highlight"],
+        label="measured (twobound)")
+r_w = float(np.corrcoef(tot_w, dS_w)[0, 1])
+cd.axhline(0, color="0.8", lw=0.6)
+cd.set_xscale("log")
+cd.set_xlabel(r"$\ell$", fontsize=6.5)
+cd.set_ylabel(r"$\Delta S(\ell)$", fontsize=6.5)
+cd.set_title(f"one knob (WindEnergy): chain rule, no fitting "
+             f"($r$={r_w:.2f})", fontsize=6.8)
+cd.legend(fontsize=5.2, loc="lower left", handletextpad=0.4)
+panel_label(cd, "(d)")
+fig.tight_layout()
+save(fig, "figs_v2/pfig_s4a_model_construction")
+plt.close(fig)
+print(f"pfig_s4a_model_construction: c1(ell~4847)={beta_s[0, ib_c]:+.3f} "
+      f"(panel b), WindEnergy chain-rule r={r_w:.2f} (panel d)")

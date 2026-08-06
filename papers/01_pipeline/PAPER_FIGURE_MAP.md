@@ -1,68 +1,65 @@
-# Paper figure map — 2026-08-06 author figure plan
+# Paper figure map — 2026-08-06 arc revision (v2)
 
-Slot → file → caption source. Files live in `figs_v2/` (PDF) + `figs_preview/`
-(PNG). "As-is" figures are the existing fig20 family members; "composed"
-figures are re-compositions rendered by the PAPER COMPOSITIONS block at the end
-of the §3c cell (`_run_subset.py pfig_...` renders them; captions draw from the
-same cell's live prints). §3b renders standalone via `paper_s3b_clusters.py`
-(twobound caches, no Sobol-cell dependency).
+Author's flow: methods → halo-level validation → map-level validation →
+parameter effects + shape families → **pivot to the analytic model**
+(construction → latent choice → kernels → model validation → tie back to
+families) → astrophysics constraints (corner). The van Daalen material is out
+of the main arc.
 
-## §3b — response-shape families (1 main, 1 appendix)
+Files in `figs_v2/` (PDF) + `figs_preview/` (PNG). "Cell" = the §3c cell of
+`_build_figures_nb.py` (any `pfig_`/`fig20` name via `_run_subset.py` renders
+all of them); "script" = `paper_s3b_clusters.py` (twobound side).
 
-| slot | file | source / caption numbers |
-|---|---|---|
-| MAIN | `pfig_s3b_cl_clusters` | `paper_s3b_clusters.py` (clk leg). C1 n=12 r̄=0.98 (BH/AGN accretion + misc), C2 n=7 r̄=0.95 (wind velocity), C3 n=5 r̄=0.96 (RadioFdbk + **IMFslope** — the mechanism conclusion), C4 n=5 r̄=0.96 (WindEnergy), singleton SNII_MinMass. 30/30 params pass S/N≥3. |
-| APPENDIX | `pfig_s3b_pdf_clusters` | same script (pdf leg): families persist across statistics (C1 n=17 r̄=0.97 incl. IMFslope; WindEnergy family intact n=4 r̄=0.98). One text sentence. |
+## Locked sections (methods / halo / map validation / parameter effects)
 
-CUT: single-panel IMF-highlight overlay + old fig 21 (superseded by cluster
-membership; `imf_shape_clusters.py` remains the machinery reference).
-
-## §3c — the halo-latent bridge (3 mains; 2026-08-06 arc revision)
-
-Arc per the author: parameter effects → family breakdown (§3b) → **the
-family↔kernel bridge** → the analytic model (§4a). The vD anchor no longer
-carries the narrative.
+Existing figs 1–8 + 12 arrangement unchanged. Families:
 
 | slot | file | source |
 |---|---|---|
-| MAIN 1 | `fig20a_vandaalen_matrix` (as-is) | r(S, f̃_bar) ℓ×M matrix + vD20 box; numbers in FIGURE_NUMBERS. |
-| MAIN 2 | `pfig_s3c_hinge_plane` (composed) | (a) = fig20b hinge (r=0.977); (b) = fig20d latent plane (budget × partition, family compass, enhancement rings). |
-| MAIN 3 | `pfig_family_kernel_bridge` (`paper_s3b_clusters.py`) | **the families↔coefficients bridge**: chain-rule closure ∂S/∂θ_j = Σᵢ cᵢ(ℓ)·∂λᵢ/∂θ_j — each family's mean twobound shape vs its kernel mixture (r = 1.00/0.99/0.98/0.98/0.86, OUT-OF-DESIGN: Sobol kernels × twobound fingerprints) + the fingerprint matrix Δλ/σ_λ. The families exist because there are only four kernels. |
+| families MAIN | `pfig_s3b_cl_clusters` (script) | ΔC_ℓ families C1–C4 + singleton, r̄ = 0.95–0.98; IMFslope rides C3. |
+| families APPENDIX | `pfig_s3b_pdf_clusters` (script) | family consistency on the κ-PDF (one sentence in text). |
 
-DEMOTED: `fig20c_vandaalen_plane` — appendix/optional (author: "doesn't
-really fit"; the vD relation stays as text motivation for f̃_bar).
-CUT: the τ-profile S(5000)-split (fig20b right panel / fig12b) —
-arrangement-beyond-budget carried by the plane panel and the kernels.
+## The analytic-model section (the pivot; replaces the vD/bridge material)
 
-## §4a — the analytic model (2 mains)
+Order within the section:
 
-| slot | file | source |
+| # | slot | file | role |
+|---|---|---|---|
+| 1 | construction MAIN | `pfig_s4a_model_construction` (script) | the tutorial formalized: (a) universe → four halo numbers; (b) one ℓ: the partial slope is the coefficient; (c) every ℓ → the four kernels; (d) one knob's ΔS = fingerprint-weighted kernel sum (chain rule, no fitting). Motivates the methodology before any equation. |
+| 2 | latent choice | text + `latent_ablation.py` numbers | why (f̃_bar, f̃_star, c_gas, log T̃): roles + exhaustive C(15,4) ablation (ours top 3.7%, plateau; f̃_star irreplaceable). Appendix table on request. |
+| 3 | kernels MAIN | `fig20g_latent_kernels` (cell) | the five coefficient functions × z_s fan + 1σ-impact panel — the centerfold. |
+| 4 | buildup MAIN | `pfig_s4a_cv_buildup` (cell) | one CV-R²(ℓ) panel: f̃_bar → +f̃_star → +c_gas → +log T̃ vs the 30-param baseline ("how many numbers is feedback"). |
+| 5 | validation MAIN | `pfig_s4b_model_curves` (cell) | **fig09c layout, analytic model instead of the GP**: 7 LOO nodes × 13 statistics, measured (black) vs model (blue dashed), per-panel error stamps. |
+| 6 | fiducial demo | `pfig_s4b_reconstruction` (cell) | the out-of-design fiducial + 3 LOO nodes, S(ℓ) + κ-PDF (the "it actually works on a universe the fit never saw" figure). |
+| 7 | generality MAIN | `pfig_s4b_generality` (cell) | 9-statistic bars, 3- vs 4-latent — one model, every statistic. |
+| 8 | tie-back MAIN | `pfig_family_kernel_bridge` (script) | family shapes = kernel mixtures (r = 0.98–1.00 out-of-design) + fingerprint matrix — closes the loop to C1–C5. |
+
+Appendix for this section: `pfig_s4b_app_zs` (one latent vector, five source
+planes), `pfig_s4b_app_epoch` (partition early / budget late; flex slot).
+
+## Astrophysics constraints (closing section)
+
+| slot | file | note |
 |---|---|---|
-| MAIN 1 | `fig20g_latent_kernels` (as-is) | five kernels × z_s fan + 1σ-impact panel — the physics centerfold. |
-| MAIN 2 | `pfig_s4a_cv_buildup` (composed) | ONE CV-R²(ℓ) panel: f̃_bar → +f̃_star → +c_gas → +log T̃ (+ 30-raw-param baseline). Medians printed by the cell ("how many numbers is feedback"). |
+| MAIN | `fig20i_latent_corner` (cell) | the staged SH-scores corner. **Already in the requested form**: the prior cloud and the held-out test are *measured* latents from the simulations — the 30→4 regression is not used anywhere in this figure. Mandatory internal-recovery framing in the caption prints. |
 
-## §4b — validation & generality (2 mains, 2–3 appendix)
+## Cut / demoted (2026-08-06 author rulings)
 
-| slot | file | source |
-|---|---|---|
-| MAIN 1 | `pfig_s4b_reconstruction` (composed) | fig20e (b,c): S(ℓ) for 3 LOO nodes + out-of-design fiducial, κ-PDF subpanel. RMS from fig20e prints (incl. the thermal-kernel robustness breakdown). |
-| MAIN 2 | `pfig_s4b_generality` (composed) | per-statistic CV-R² bars, 3- vs 4-latent, 9 statistics — "one model, every statistic". |
-| APPENDIX | `pfig_s4b_app_zs` (composed) | fig20f(a) standalone: one low-z latent vector, five source planes. One sentence in text. |
-| APPENDIX | `fig20h_theta_to_latents` (as-is) | θ→λ map validation 4-panel; GP/linear CV-R² numbers in text. |
-| FLEX (appendix by default) | `pfig_s4b_app_epoch` (composed) | fig20f(b) standalone: partition set early / budget built late / z-matched-worse. Promotable to main per the author's flex ruling. |
-
-## §4c — inference (1 main)
-
-| slot | file | source |
-|---|---|---|
-| MAIN | `fig20i_latent_corner` (as-is) | the staged SH-scores corner (analytic Student-t, coverage-verified). Mandatory internal-recovery framing sentence in the caption (printed by the cell). |
+- `fig20c_vandaalen_plane` — CUT from the paper (vD relation survives as text
+  motivation for f̃_bar; figure remains in the repo).
+- `pfig_s3c_hinge_plane` — CUT (its two stories are carried by the
+  construction figure panel (b) and the corner's prior cloud).
+- `fig20a_vandaalen_matrix` — not in the new arc; park as appendix/optional
+  pending author confirmation.
+- `fig20h_theta_to_latents` — appendix/optional (not needed by the corner;
+  documents the θ→λ leg's accuracy if a referee asks).
+- earlier cuts stand: IMF-highlight overlay, old fig 21, τ-profile
+  S(5000)-split.
 
 ## Render commands
 
 ```bash
 cd papers/01_pipeline
-python paper_s3b_clusters.py                      # §3b main + appendix
-python _run_subset.py pfig_s3c_hinge_plane        # any pfig_/fig20 name runs
-                                                  # the whole §3c cell (all
-                                                  # fig20* + pfig_* files)
+python paper_s3b_clusters.py            # families + bridge + construction
+python _run_subset.py pfig_s4b_model_curves   # whole §3c cell (all pfig_/fig20)
 ```

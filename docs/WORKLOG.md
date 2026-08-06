@@ -59,6 +59,20 @@ scaling_f_star). SZ/τ stage's own gain is modest at this q but the corner shows
 tightening c_gas/logT̃; peaks add ~nothing except through scaling_f_star (as the noise
 audit predicted).
 
+**ARC REVISION v2 (author, same day)** — the paper's flow is now: methods → halo
+validation → map validation → parameter effects + families (all locked) → PIVOT to the
+analytic model (construction → latent choice → kernels → buildup → validation → family
+tie-back) → constraints corner. vD material OUT of the arc: fig20c CUT, pfig_s3c_hinge_plane
+CUT, fig20a parked appendix/optional, fig20h appendix (the corner never used the 30→4
+regression — its prior and test are measured latents, as the author wanted). Two NEW paper
+figures: **pfig_s4a_model_construction** (the tutorial formalized: universe→4 numbers /
+partial slope at one ℓ = the coefficient / slopes at every ℓ = kernels / one-knob chain-rule
+demo, WindEnergy r=0.99) and **pfig_s4b_model_curves** (fig09c's layout with the ANALYTIC
+model replacing the GP: 7 LOO nodes × 13 statistics incl. peaks/minima/SZ spectra, per-panel
+median-|err|/median-|val| stamps 0.1–1.0%; peaks/minima panels predict the population-mean
+curve — per-bin node scatter is noise, stated in the print). PAPER_FIGURE_MAP.md rewritten
+to the new arc with the eight-slot analytic-model section ordering.
+
 **FAMILY↔KERNEL BRIDGE (author arc revision, same day)** — "wish each group related to
 the coefficients in some obvious way": it does, exactly, by the chain rule
 ∂S/∂θ_j(ℓ) = Σᵢ cᵢ(ℓ)·∂λᵢ/∂θ_j. Out-of-design closure test (Sobol kernels ×

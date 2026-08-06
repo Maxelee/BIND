@@ -98,6 +98,28 @@ mean over 9 statistics of the median per-bin 5-fold CV-R².
 - Per-stat, best-vs-ours differs by ≤0.02 everywhere (printed by
   `latent_ablation` scratch; promote to an appendix table on request).
 
+### 0.0c Nonlinear-in-λ challenge (2026-08-06, author-requested)
+
+Does a nonlinear map λ→statistics beat the linear kernels? Tested with
+kernel-ridge (RBF, hyperparameter grid, standardized λ) and a per-band GP
+(ARD RBF + white noise), same deterministic CV:
+
+- $S(\ell)$: linear median CV-$R^2$ 0.939 → KRR 0.950 (+0.011; +0.013/+0.006
+  at $\ell\sim10^3/5\times10^3$). Genuine curvature ≈ 1% of variance.
+- PDF 0.854→0.892 (+0.04, the largest gain), MF-$V_2$ +0.015, Y–M +0.005.
+- **T–M 0.771→0.749 (worse)**: the thermal sector's missing variance is
+  *information absent from the four latents*, not curvature — consistent with
+  the profile-level boundary.
+- **Out-of-design fiducial**: GP RMS 0.035 vs linear 0.026 — nonlinear models
+  extrapolate worse.
+- Caveat: per-band GP with no optimizer restarts is fragile (one band
+  collapsed to CV-$R^2$ = 0.32, an optimizer artifact; KRR with a global
+  grid is the cleaner nonlinear reference).
+
+Verdict: the linear kernels stay canonical. "The latents linearize the
+response" is now backed by a direct nonlinear challenge, not just by the
+linear fit's success.
+
 ### 0.1 The first leg: θ → λ (fig 20h, 2026-08-06)
 
 GP regression (ARD RBF + white noise, deterministic CV) of each harmonized latent

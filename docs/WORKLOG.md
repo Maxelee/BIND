@@ -6,6 +6,652 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-08-05 (evening) — Paper I: two direct IMFslope-mechanism figures (fig21b/c) revise the fig21 verdict to mixed-channel
+
+`papers/01_pipeline/imf_mechanism_figs.py` (new, standalone) adds two tests that go beyond
+fig21's observable-shape resemblance: **fig21b** per-halo mass-scale fingerprint (marginal
+Spearman across the 256 Sobol runs vs per-M200-bin ⟨f_gas,200⟩ / ⟨log Y_200⟩, z=0.034 slice of
+`analysis_cache/integrated.parquet`) and **fig21c** Sobol interaction corner (design scatters
+colored by WL deficit D=1−⟨S⟩_{1e3–1e4} + bootstrap-t of IMF×θ_j OLS product terms for all 29
+partners, both D and band Cl_yy). Verdict: IMFslope has the *lowest-mass* per-halo footprint of
+the focal set (|ρ|-centroid 13.5 vs 13.9, no BH-style sign flip — wind-like WHERE, but
+AGN-direction SIGN: top-heavy → less gas, opposite to WindEnergy's BH-starvation positive ρ),
+and its WL effect is modulated by BOTH channels (WindFreeTravelDens t=+4.2, BHRadEff t=−3.5;
+ρ(IMF,D) +0.51→+0.22 across BHRadEff halves; family mean |t| tied 1.16/1.16). Fig21's "AGN-like"
+is thus the observable-morphology half of a genuinely mixed mechanism. Lesson recorded: profile-
+Pearson shape stamps are non-discriminative on ~8 near-monotone mass bins (dropped from fig21b).
+
+Follow-up same session: `imf_mechanism_blend.py` → **fig21d** generalizes the bound-to-bound
+ΔC_ℓ shape test (scratch fig `figs_preview/quick_deltacl_shapes.png`: IMF frac-ΔC_ℓ^κκ =
+0.81·BH + 0.50·VWSM, R²=0.99) to ALL twobound params × 7 statistics (Cl_κκ, Cl_yy from per-run
+`Cl_kappa_y.npz` ratios, band-integrated N_pk/N_min, V0/V1/V2), each decomposed on the
+(BHRadEff, VarWindVel) template pair. Meta-finding: the basis is only well-conditioned where the
+two channel templates differ — r_templ = +0.24 for Cl_yy vs +0.78 (Cl_κκ), ±0.9 (MFs) — i.e.
+**κ 2-pt and MFs see feedback through nearly one shape; y is the channel-tomography statistic**
+(echoes the 2D-latent result). In the clean yy basis IMFslope = (a=0.89 AGN, b=0.24 wind),
+between the AGN cluster (b≈0) and wind cluster (b≈0.4–0.55), closer to AGN. Twobound N_pk Δ is
+noise-dominated (S/N<3 for all params — honest null). Notables: RadioFdbkReorient yy shape has
+R²=0.11 at S/N=333 (a genuine third shape beyond the 2-template basis); SofteningComType01 shows
+strong AGN-shaped responses at its 1P bounds despite ranking "degenerate" in the Sobol latent.
+3 one-sided pairs flagged (VWSM/UVBH0Deltaz/UVBHepDeltaz second bound = fiducial-valued run).
+
+---
+
+## 2026-08-05 (later still) — Paper I: fig 20 split into fig20a/b/c; panel-(c) construction audited
+
+`papers/01_pipeline/_build_figures_nb.py` §3c: the 1×3 `fig20_vandaalen_matrix` is now three
+standalone figures saved by the same cell — `fig20a_vandaalen_matrix` (the ℓ-band × mass-bin
+r matrix), `fig20b_hinge_gas` (the group-bin hinge paired with fig 12b's enhancement-branch
+stacked-τ diagnostic; that panel is intentionally duplicated in both figures until a keep-one
+call), `fig20c_vandaalen_plane` (the vD universal plane). fig20c was then REDESIGNED on the
+author's confirmation of the audit (which found its vD+20 curve and obs-groups band drawn
+in bottom-axis cylinder-f̃ coordinates while being 3-D quantities — the visual comparison
+was off by the whole ×1.16 calibration). New design: two stacked panels in one
+3-D-equivalent coordinate (secondary axis = pure relabeling back to cylinder). Panel (a) =
+literature z≈0 relation only, cloud as a rug (no ΔP/P is measured); panel (b) = measured
+ΔS_ℓ on its own y-scale (slopes differ 3.7×, printed). Calibration applied once to the
+data with a LIVE mass-matched anchor (truth-atlas cylinder f̃=0.929 in the exact vD bin /
+Nelson+24 0.81 → CAL=1.147, ±0.03 anchor sensitivity printed: in-band fraction 0.11 →
+0.19/0.06). Band-0 fragility quantified: per-node σ(ΔS)=5e-4 from the 50 seed-paired
+fid/DMO realization pairs (cloud spread = 9σ → scatter is signal), drawn as an error bar.
+ℓ↔k demoted to a band selection with its full k coverage (0.26–0.66 h/Mpc at χ*) in the
+legend; epochs clean by construction (panel a all-z≈0; panel b a rank-stable response).
+The 10 f̃^cyl>1 over-closure nodes are open markers, not an axvspan. §3c markdown rewritten
+to match. `_run_subset.py`: DEPS keys updated for the three names + same-cell dedupe. Also
+fixed the dangling minor-tick dash column next to fig20a's k axis
+(`tick_params(which="both")`). Old combined pdf/png removed; all rendered via
+`_run_subset.py` (n=256 dataset).
+
+**fig20c demoted / fig20d promoted (author ruling, same day)**: fig20c slimmed to the
+single literature panel (vD fit + obs band + calibrated-f̃ rug; the measured-ΔS panel was
+redundant with figs 20b/20d); fig20d is §3c's main figure. **Follow-up scratch analysis
+(analytic latent model)**: a 3-number linear model S(ℓ) = c0(ℓ) + c1(ℓ)f̃_bar +
+c2(ℓ)f̃_star + c3(ℓ)c_τ achieves 5-fold-CV R² = 0.94–0.96 at ℓ = 10³–2×10⁴ (RMSE
+0.0025/0.012/0.031 at ℓ=1e3/5e3/1.9e4 vs cloud std 0.011/0.058/0.120) and BEATS a linear
+model on all 30 raw params (CV-R² 0.49–0.63) — the halo latents linearize the response;
+the parameter nonlinearity lives entirely in params→latents. Cross-statistic: same
+3 latents give CV-R² ≈ 0.85–0.99 for PDF/MF-V1/V2/Y–M/f_gas–M/f_star–M with the residual
+mode SHARED with S(ℓ)'s partition latent (r = 0.86–0.99 — self-consistent); κ×τ 0.83;
+cl_yy/T–M need a separate THERMAL latent (residual r ≈ −0.1/−0.2); peak/minima counts are
+unpredictable by ANY model at Δν=0.5 per-bin (node spread = 0.4–0.5× per-node
+measurement err — noise-dominated, checked against t__*__err). **Productized as fig20e
+(`fig20e_analytic_model`, same cell, author-approved)**: (a) 5-fold-CV R²(ℓ) — 3-latent
+0.93–0.96 vs 30-raw-param linear 0.51–0.61 (deterministic index%5 folds, cell stays
+RNG-free); (b) generation demo — S(ℓ) curves reconstructed from 3 numbers for
+leave-one-out Sobol nodes spanning the S range (RMS 0.004–0.010) AND the out-of-design
+fiducial (latents from the fid atlas + bind_tauy_fiducial_snap085.npz, c_τ=2.15;
+RMS 0.013 vs cloud std 0.057); (c) same demo for the κ-PDF (RMS 5e-4–1e-3). Cross-stat
+scorecard printed live (pdf 0.85|r0.99 … cl_yy 0.76|r0.05, T–M 0.48|r0.17 → thermal
+latent deferred; peaks excluded as noise-dominated). §3c markdown + DEPS updated.
+
+**fig20f (`fig20f_redshift_thermal`, same cell) — redshift + the thermal fourth latent**
+(author-approved follow-ups + "what about redshift dependence?"): (a) ONE low-z latent
+triplet predicts S(ℓ) at all five source planes — CV-R² median 0.96→0.91 from z_s=0.5→2.44;
+the z_s dependence lives in the coefficients c_i(ℓ,z_s) (amplitudes dilute 0.38→0.22 /
+2.10→1.14 — kernel dilution). (b) latent evolution (plain-500c defn, older cubes lack _bg):
+f̃_star rank vs z=0.03 stays 0.94 even at z=2 (partition set EARLY); f̃_bar decays to 0.44
+(budget built LATE); z-MATCHED latents are WORSE even for z_s=2.44 (0.47 at z=2 vs 0.88–0.90
+low-z) — the end-state budget integrates the feedback history (same reason vD works).
+(c) thermal latent logT̃ (group-bin T_mw_500c, r=−0.39 vs f̃_bar; cluster-bin T/Y/Pe tested,
+none better): T–M 0.48→0.78, mass sector unchanged; cl_yy stays ≈0.77 (needs profile-level
+pressure — stated boundary). Full latent set: (f̃_bar, f̃_star, c_τ, logT̃). bind.emulator
+`latents` backend scoped (LinearBackend + `inputs="latents"` X-swap + dataset latent table)
+but NOT implemented — core/dataset/transforms carry ~480 uncommitted lines from the
+repaint/refit campaign; do it on a settled base.
+from the author's "connect vD's 1-D law to the ΔC_ℓ shape families" idea: regressing S(ℓ)
+on the group f̃_bar alone (the vD latent) holds R²≈0.83–0.95 at ℓ≲3000 and collapses to
+0.20 at ℓ~2e4; the residual is 97.9% ONE small-scale mode, and that mode is the
+gas↔star PARTITION of the budget (r=−0.90 with group f̃_star, itself invisible to the
+amplitude at r=+0.08; −0.44 with stacked-τ concentration). Two population numbers
+(f̃_bar+f̃_star) predict the whole curve to R²≥0.85, three (+c_τ) ≥0.94. The twobound
+ΔC_ℓ shape families (imf_shape_clusters.py / quick_deltacl_clusters.png) map onto the two
+axes: budget = IMFslope/WindEnergy/BHRadEff (C3/C4/C1), partition = VarWindVelFactor/
+WindFreeTravelDens (the C2 wind-velocity family); the enhancement branch is the partition
+extreme. Halo-level restatement of the Lin+2026 2-D WL latent with both abstract latents
+replaced by measurable population quantities. Panel (a) nested-predictor R²(ℓ); panel (b)
+the (f̃_bar, f̃_star) plane colored by small-scale S with a family-direction compass.
+
+---
+
+## 2026-08-05 (later) — Paper I: repaint-3 cross-norm double-correction fixed (fig 7 "three lines") + fig 7 band removal
+
+**Root cause of fig07_covariation panels j/k/l showing "only three lines"**: `apply_xpkfix.py`
+(2026-08-04) scaled the whole 256-run array by F=1.2015796e7 assuming the repainted runs
+0114/0115/0117's caches carried the pre-xpkfix norm — but the repaint rebuilt their stats
+with the *fixed* pipeline, so their XPk-path entries were already physical and got
+double-corrected (ratios vs the field_cache fiducial ~1.2e7 → axis blows to ×10⁷, the 253
+good curves + unity guide squash onto 0). Audit's "peaks at 1.25e-5, physically sane"
+verification was satisfied by the outlier rows alone (physical C^κy peaks ~5e-13; 1.25e-5
+violates Cauchy–Schwarz vs the y auto by ~7 decades). Two further gaps found: the `__err`
+companions were never scaled (released bak253 vintage carries errs in the physical
+convention, so the 253's cross errs sat 1.2e7 low vs their own values — the emulator
+consumes these), and `t__cl_kappa__{value,err}`'s *off-diagonal* (plane-cross XPk path)
+elements carry the same 3-run inconsistency (diagonal, the only consumed part, is fine).
+
+**Fix**: `papers/01_pipeline/apply_repaint3fix.py` (dry-run + refuse-don't-guess
+preconditions + bak253 exactness verify) applied to both `emulator_dataset_nu05.npz` and
+`emulator_dataset_xpkfix.npz` (pre-fix files kept as `*.pre_repaint3fix_20260805.npz`):
+repainted cross value rows := their own caches (bit-exact physical); 253 cross err rows :=
+bak253 rows (bit-exact release restore); repainted cl_kappa off-diagonals ÷F (column stays
+in the legacy bak253 convention). `apply_xpkfix.py` hardened: scales only bak253-member
+rows and now includes `__err` keys. Post-fix repainted response ratios O(1), inside the
+Sobol spread. Figs 5a/5/7/8 re-rendered; fig 4b unaffected (16–84 band can't see 3/256
+outliers); `imf_mechanism.py`/mech_cache (consumes κy/κτ) + emulator refit
+(`build_emulator.py`; stale bundles auto-reject via DS_PATH fingerprint) still pending.
+
+**Fig 7 style (author ruling, amends the earlier 2026-08-05 ν-tails ruling)**: the
+±√N_fid/N_fid Poisson band on the peak/minima-count panels is removed — those two panels
+now match the PDF/MF panels exactly (solid/faded split only).
+
+## 2026-08-05 — Paper I: seed-paired DMO denominator (fig-4b noise regression) + 550-cube OOM hardening + fig 4b measured survey bands
+
+**Regression root-caused**: the 550-real retrace overwrote `runs/dmo/run_0000/Cl_kappa.npz`
+(Aug 5 ~06:00) with a 550-real mean while every S(ℓ) numerator still averages the old 50
+seed-paired rotations → un-cancelled cosmic variance (~3% rms low-ℓ wiggles + ~2% offset)
+in fig 4 panel (b) and every other S(ℓ) consumer. Seed ladder verified intact (per-real
+low-ℓ corr DMO↔BIND +0.9998). **Fix**: setup-cell `dmo_paired_cl(n)` in
+`papers/01_pipeline/_build_figures_nb.py` — paired-prefix per-real DMO spectra, disk-cached
+(`Cl_kappa_paired.npz`), rebuilt on parent change, refuses on pairing-corr < 0.99; all 7
+denominator sites switched (figs 4, 7, 12, 20, cov-prep, 15b, 10). Low-ℓ S(ℓ) rms
+3.1→0.15% (BIND), mean 0.981→1.0001. Auto-upgrades to n=550 when BIND-side regen lands.
+
+**OOM hardening**: the retrace's 550-real truth/τ cubes are 11.5 GB decompressed each —
+full-cube `np.load`s OOM-killed two interactive subset runs (dmesg 13:35, 13:53). New
+setup-cell `load_maps_prefix()` streams the seed-paired first-N prefix (one plane or all);
+applied in figs 4 (loads now live only in the field-cache-miss branch), 4b (both blocks),
+7, 18. Emulator-chain cells (sbatch-only) untouched. Side effect: fat-node runs decompress
+1/11th of the old volume.
+
+**Fig 4b band alignment** (author request): the yy/ττ/κy/κτ/yτ residual strips' analytic
+Knox CV floor replaced with the *measured* fig-4-v2 recipe (rel-std of 8-bin-rebinned
+per-real BIND Cl, area-scaled √(25 deg²/f_sky=0.44), sign-safe, no noise term). Measured
+bands run ×3.5–13 the Gaussian floor (yy 0.41% [×13.1], ky 0.33%, tt 0.09%, yt 0.25%,
+kt 0.21%) — the non-Gaussianity the Knox floor hid. Legend + markdown updated. Truth τ
+landed Aug 4 → `HAS_TRUTH_TAU` now true: first τ-family closure numbers (median |resid|
+ℓ=300–5000: tt 11.2%, kt 6.8%, yt 3.0%; χ²/dof 1259/317/388). Re-rendered locally:
+figs 4, 4b, 7, 12(+12b), 20 (+deps 3, 5a). Emulator figs (10, 15b, 15, 16) need the user's
+`sbatch papers/01_pipeline/run_figures.sbatch`; FIGURE_NUMBERS.md stale until that run.
+
+## 2026-08-05 — Paper I fig 6: per-halo radial-profile rebuild (all 4 bins, real bands, residual rows)
+
+Author rulings: all four mass bins, no legacy constants, per-halo medians with real errorbands,
+fig-3a-style residual sub-panels. **New data product** `profiles/perhalo_{fid,truth}_snap096.npz`
+(`papers/01_pipeline/build_perhalo_profiles.py`): 2933 halos × 18 log annuli in NATIVE x=r/R200c
+(0.05–3.0) — kills the 0.659-undo constant — RAW pixel means (no 2.5–3.0 Mpc/h annulus subtraction,
+fig-3a convention; profiles flatten onto the LOS floor instead of crossing zero), paired-identity
+guards (M/r200/npix equal across fid/truth). Old stacked cache no longer read by fig 6 (still used by
+fig 11); its "bootstrap-not-possible" caveat SUPERSEDED. Fig 6 now: 4 bins (top edge 5e14→1e15,
+counts 1887/728/254/64), viridis by mass, BIND solid/truth dashed, 16–84 per-halo bands, residual
+sub-panels of per-halo (truth−BIND)/BIND (y/τ ±25%, stars ±45% — star deficit reaches ~+35%).
+Resolution floor is data-driven: annulus resolved iff ≥80% halos contribute AND bin-median ≥4 px,
+drawn as the contiguous tail past the last failure (lattice rings make plain thresholds
+non-monotonic/holey); floors x0 = 0.28/0.17/0.14/0.11. **Round 6 (both fig 3a + fig 6): estimator made
+explicit** — residuals in ln (Δ_H = ln r_H, seed-paired), thin error bars on Δ-panel medians = bootstrap
+SE of the median (fig 3a per 0.2-dex bin via running_stat boot=400; fig 6 per annulus, B=500, rng(11));
+fat band = scatter, thin bars = offset knowledge. Global fig-3a stamps (B=2000, rng(7), N=2933; analytic
+1.2533σ/√N agrees): Y r̂=1.037 SE 0.0058 z=6.4; τ/M_gas r̂=1.065 SE 0.0023 z=27.6; M⋆ r̂=0.943 SE
+0.0057 z=10.4. Fig-6 |z| ranges (drawn annuli r<r200c): τ group bins 9–24 (unambiguous), star deficit
+up to 15, y low-mass 4–9 but high-mass y consistent with noise at most radii (min |z|≈0). Round 7
+(author): all Δ sub-panels (fig 3a + fig 6) flipped to (BIND−truth)/truth — same orientation as the
+printed (BIND/truth−1) calibrations, so plotted and printed signs now agree; the old sign-gymnastics
+caveats removed from both cells (τ reads +5–9%, stars −10…−30%, fig-3a top-bin Y −24%). New closure stamps (mean med-ratio, x0–r200c):
+y 1.062/1.016/0.990/1.024, τ 1.080/1.057/1.037/1.040, M⋆ 0.686/0.758/0.804/0.886 (raw − the old
+bg-subtracted 0.867/0.923 star numbers are NOT comparable), DM control 0.990–0.995. FIGURE_NUMBERS.md
+fig6 section stale until the full notebook re-run.
+
+## 2026-08-05 — Paper I fig 3: single-aperture (all-200c) rebuild + cluster tail restored
+
+Author ruling: no mixed apertures in one figure — fig 3 now plots $Y_{200c}$, $f_{\rm gas,200c}$,
+$M_{\star,200c}$, all in the same projected $R_{200c}$ aperture as the mass axis (was Y/f_gas at 500c).
+**Data product**: 200c thermo keys (`Y_200c`, `T/K/Pe_mw_200c`) added to
+`bind_science/halo_atlas/{fid,truth}_snap096.npz` by `papers/01_pipeline/build_atlas_200c.py` — the
+sobol-sb35 `examples/halo_atlas.py` reduction re-run with the thermo block at both apertures, gated on
+every pre-existing key reproducing bit-exact (passed; originals kept as `*.pre200c.npz`; median
+$Y_{200c}/Y_{500c}=1.41$). **Mass axis**: bins/xlim extended 14.8→15.0/15.05 — the "missing 10^15
+halos" were always painted (max $9.6\times10^{14}\,M_\odot/h$ = $1.4\times10^{15}\,M_\odot$) but hidden
+by xlim 14.7 + `::4` scatter thinning; every halo above logM 14.2 is now drawn, tail at full opacity.
+New headline stamps (subset-run printout): median ratios Y 1.037±0.006 (6σ), f_gas 1.062, M⋆ 0.943;
+calibrations ΔY = +3.42% −5.95%/dex, Δf_gas = +5.95% −4.68%/dex (pivot 13.5; M⋆ −5.05% +5.96%/dex).
+**Follow-up round (same day):** occupancy floor removed (min_n=1 on all fig-3 running_stat calls —
+the top two 0.2-dex bins draw 3-halo medians; NB the top-bin Y median is −24.1% ± 13.2%, ~1.8σ, noisy
+not significant), and a new **fig03a_halo_raw** companion: raw pixel sums within R200c, no annulus
+background subtraction anywhere — (a) Y_200c (identical to fig 3a by construction), (b) raw M_gas,200c,
+(c) raw M⋆,200c. Raw-gas headline: median ratio 1.065 vs 1.062 bg-subtracted — the annulus subtraction
+moves the gas number by only ~0.3%. DEPS entry added in `_run_subset.py` (fig03a reuses the fig03
+cell's bindings). Round 3 (author): fig03a scatter points removed; each panel gains a smaller residual
+sub-panel of per-halo (truth−BIND)/BIND in % (binned median + 16–84 band; 6-axes gridspec 2.6:1) —
+NB opposite sign to the printed (BIND/truth−1) calibrations, stated on-cell. Round 4 (author): fig03a
+panel (b) M_gas → raw gas FRACTION f_gas,200c^raw = m_gas/(m_dm+m_gas+m_star) (raw cylinder sums; no
+raw m_tot key exists, sum = raw total, matches halo_atlas.py _fgas denom='tot'), with Ω_b/Ω_m guide +
+0.172 headroom; all three residual sub-panels on a common ±25% frame (top-bin Y +32% clips,
+deliberate). Raw f_gas headline: median ratio 1.058, Δ = +5.67% −3.76%/dex [+7.5→+1.6%] vs 1.062
+bg-subtracted. Round 5 (author): fig03a panel (b) f_gas → aperture-integrated τ_200c = ∫τ dA =
+K_τ·PIX²·m_gas,200c [(Mpc/h)²] so the channel set (Y, τ, ⋆) mirrors fig 6; pure scalar × raw M_gas —
+ratio 1.065, Δ = +6.34% −4.01%/dex, identical to raw M_gas by construction; Ω_b/Ω_m guide removed
+with the fraction panel. Stale until
+the next full notebook run: FIGURE_NUMBERS.md fig3 section (500c-era 1.054/1.074) and the main.tex fig3
+passage (which still describes the pre-overhaul figs_raw 3-panel figure — the known tex↔figs_v2
+divergence).
+
+## 2026-08-05 — Paper I: figure-edit round (5 ruled items) + Lee+23 noisy-statistics machinery
+
+**Builder edits** (`audits/edits0805.md`, backup `audits/_build_figures_nb.pre-edits0805.py`): mass labels
+→ exactly $\log_{10} M_{200c}/{\rm M}_\odot$, TEXT-ONLY by explicit author ruling (values remain
+M_⊙/h-native; the 0.169 dex display-conversion option was surfaced and declined — do not "fix" this);
+fig 5a ℓ=5000 axhline removed; fig 7 ν tails → full 22-bin grid with `nu_solid_drawn()`
+solid/faded/undrawn convention + Poisson band on the unity guide (2%-floor retired); fig 4/4b paired
+bands now derive N from the arrays (√550 auto-activates when the paired cache catches up — NB fig 4
+reads the PACKAGED fiducial `bind_science/runs/bind/run_0000`, still 50-real vintage; the 550-real
+products live in `bind_lightcone_tng`); guarded noisy twins `fig04n`/`fig07n` + a guarded Lee+23-form
+LSST band for fig 4. **Noisy cache** (`audits/noisy_cache_design.md`): `noisy_grid.py` +
+`build_noisy_cache.py` + `run_noisy_cache.sbatch` implement Lee+2023 (arXiv:2201.08320 — the author's
+own paper) §2.3–2.5 exactly with LSST-Y10 numbers: Eq.-7 noise (σ_e=0.26, n_gal=27) BEFORE Eq.-6
+smoothing (θ_G=1′ is the 1/e radius → filter σ=θ_G/√2=2.4136 px — "the single easiest way to silently
+break this cache"), ν normalized by the fiducial noisy suite's per-plane κ_rms, sha256-seeded
+independent noise per target; validated locally (noisy peaks 8–10× noiseless at low ν, as physics
+demands). All-550 covariance program COMPLETE (fid/truth/DMO). Pending: user submits
+`run_noisy_cache.sbatch` + the `bind.cli.paired_stats` 550-real regeneration, then the closing
+`run_figures.sbatch` lights every guard.
+
+## 2026-08-04 (night) — Paper I: ℓ-convention re-measured and moved — ELL_TRUST 1.5e4→3.0e4, axes to Nyquist
+
+Author challenged the inherited "aliasing region" shading; measurement vindicated it: raw C_ℓ^κκ
+log-slope steepens smoothly through 1.5–3e4 (−2.3→−2.5) and only hardens (−2.5→−1.7 = the CIC/pixel
+upturn) at ≈3e4 ≈ 0.8 ℓ_Nyq; the old "response-ratio explosion above 1.5e4" does not reproduce on the
+corrected dataset (spreads grow smoothly 25→89%). RULED + implemented (`audits/elltrust3e4_migration.md`,
+backup `audits/_build_figures_nb.pre-elltrust3e4.py`): ELL_TRUST=3.0e4 (measured onset, provenance in the
+setup cell), ELL_MAX_PLOT=36864 (axis Nyquist; corner-mode zone dropped from all axes), ALL aliasing
+axvspan shading removed, thin onset vline on raw-spectrum panels only; χ²/§3a-null ranges inherit; the
+emulator ℓ-mask moved in lockstep + refit. Measured cost of the wider fit-mask (every masked head worse:
+cl_yy 4.74→7.77%, cl_tt 4.59→7.56%, crosses 14–20→26–32%) was put to the author with a revert option —
+**RULED: keep the 3e4 mask** (one consistent ℓ-story; contract table carries the honest numbers; the old
+mask's gain was partly "excluding difficulty", not contamination). Also caught: fig 10/§4b″ RBK=8 would
+have made N_bins(51) > N_real(50) at the new cut → negative Hartlap; fixed (RBK=16, N_b=25 restored,
+guard assertions). fig12 render verified; remaining renders + numbers regenerate at the next
+`run_figures.sbatch` (the true freeze). fig18/fig20 windows widened but not re-measured — that run
+refreshes them.
+
+## 2026-08-04 (evening) — Paper I: FREEZE RUN complete (job 2457841) — full package on final conventions
+
+All 23 figures regenerated end-to-end on: corrected crosses, ν=0.5/22-centre grid, composed-C_κκ
+13-head emulator, 550-realization fid+truth covariance, and the **first truth-τ closure in project
+history** — fig 4b's guard fired: median |resid| ℓ=300–5000 = ττ 11.2%, κτ 6.8%, yτ 3.0%.
+Headline §4 numbers (RECOMPUTED-ON-RUN, for the transcription pass): 13 heads median |frac err|
+3.33%, median response R² 0.74; §4b yardstick = 0.54 (WL) / 0.62 (SZ/cross) / 0.61 (all) × the
+Sobol response half-width (the cross artifact is gone); composed C_κκ panel-level 1.73% (= the
+suppression head exactly, as designed; full-tensor blend 14.7% dominated by off-diagonals);
+identity exact (2e-16); α_cov: suppression 1.19 (applied in fig 10), ν-heads ~1.0–1.16, crosses
+over-conservative 0.05–0.07, global 0.50; new-grid nulls: per-param 0.201, whole-grid 0.253,
+72/360 significant, top cl_tt×VarWindVel |ρ|=0.708; fig 23 opener: 19.7% Sobol span = 38× LSST-Y10.
+fig 15b ν-head OOD leg skips gracefully (pre-nu05 twobound caches; shape-guards added after run
+2457835 crashed on np.allclose raising for (68,)≠(22,)) — spectra-leg OOD intact. Remaining
+compute: DMO 550-trace (overnight; release-completeness only) + optional twobound nu05 shards.
+
+## 2026-08-04 (later) — Paper I: xpkfix repaired, ν=0.5 grid convention live, emulator refit on corrected data
+
+**xpkfix repair**: `papers/01_pipeline/apply_xpkfix.py` derives the dropped cross-normalization
+empirically from the kept `bak253` backup — measured uniform ×1.201580e7 on C^κy/C^κτ/C^yτ to 2e-16,
+applied to all 256 runs, exactness-asserted vs the backup; `wst`/partial-coverage keys correctly
+identified as recompute-drift (ratio~1) and left alone; broken file preserved
+(`…broken_norm_20260803.npz`); correction baked into `jobs/job2_repair_caches.sbatch` step [2b].
+**ν=0.5 convention** (author-ruled): `nu_grid.py` → 23 edges/22 centres (−3…8), versioned
+`nu05_shards/` + `emulator_dataset_nu05.npz` (histograms on edges, MFs at centres); fig 4 rebuilt from
+the fiducial-pair shards — uniform Δstat/stat×100 strips, per-panel LSST-like bands (area-scaled +
+ngal10 shape noise where cached), Poisson points (PDF/peaks/minima) + realization-scatter points
+(MFs, flagged); DS_PATH → nu05 in setup + `build_emulator.py` (lockstep); grid sweeps of
+fig05a/05/07/08/9c fixed three real pre-existing bugs (fig07 FID σ0 double-division; fig08
+`_count_nsr` (68,)-shape broadcast; fig9c PDF-panel κ-unit mask). Emulator refit on the corrected
+nu05 (364 s CPU), verified; crosses now 14–20 % frac-err (sane). Remaining renders
+(fig05a/05/07/08 + fig04 stamp confirm) deferred to the next full figure run — the shared-node
+cgroup OOMs at ~13.4 GB (documented in `audits/nu05_stage2.md`). Fid + truth 550-real traces
+COMPLETE (truth stats collecting; first truth-τ products imminent); DMO mid-trace.
+
+## 2026-08-04 — Paper I: new fig 5a (bin-resolved S(ℓ) response) + cross-norm regression found in the 256-run dataset
+
+**Fig 5a** (`figs_v2/fig05a_sl_response`): new figure preceding fig 5 — signed Spearman ρ(θ_j, S(ℓ_b)),
+30 params × 45 pre-averaged ℓ bins, RdBu_r, columns in fig-5 order; circles mark each column's peak-|ρ|
+bin, whose value IS fig 5's S(ℓ) row (asserted in code). Shows what the max-over-bins collapse discards —
+notably the WindEnergy1e51erg sign flip with scale (enhancement at low ℓ, suppression at high ℓ; only 42%
+sign-coherent) that a max|ρ| cell is blind to. Refactor: the canonical STATS table + Spearman grids
+(Ys/Rs/IMPg/col_order) moved from the fig-5 cell into the fig-5a cell (single source of truth);
+`_run_subset.py` DEPS updated (fig05 and fig07 now depend on fig05a). Verified via `_check_builder.py` +
+subset renders of fig05a/fig05/fig07.
+
+**⚠ Regression found (not fixed)**: yesterday's `jobs/job2_repair_caches.sbatch` step [2/4] reassembled
+`emulator_dataset_xpkfix.npz` (253→256 runs, folding in repainted 0114/0115/0117) with plain
+`bind-emulator-assemble`, which reads the per-run caches that still carry the PRE-xpkfix cross norm →
+C^κy/C^κτ/C^yτ are now a uniform ×8.32e-08 (1.20e7 low) vs the kept `…xpkfix.bak253.npz`; autos and
+S(ℓ) bit-identical; file shrank 126→108 MB (job README expected ~127–130 MB growth). `repair3_caches`
+(2457571) FAILED at 16:19, yet `emu_fit` (2457604) and `paper1_figs` (2457607) COMPLETED on the broken
+file — so last night's figs_v2 package + retrained emulator carry wrong cross normalization (visible as
+fig07 panels j/k/l ratio≈0). Rank-based figs (5/5a cross rows) are unaffected (common factor). The
+xpkfix correction needs re-applying (or teaching to `bind-emulator-assemble`) before the §4 chain re-runs.
+
+## 2026-08-03 — Paper I: full TODO campaign — builder edits landed, repaint done, covariance traces live
+
+11-agent workflow over `BIND_lightcone_paper_TODO.md` (plan: `papers/01_pipeline/TODO_EXECUTION_PLAN.md`;
+verdicts: `TODO_STATUS_2026-08-03.md`; builder backup: `audits/_build_figures_nb.pre-todo-20260803.py`).
+**Builder**: S(ℓ) primary — C_κκ dropped as emulator head + matrix row, C_yτ added (12-row matrix, nulls
+recompute live; 12-head `STATS_EMU` mirrored in `build_emulator.py` — keep in lockstep or the fit bundle
+is rejected); whole fig16 → Appendix B; "hydro-pasted" rename (13/13); teaser (e,f) y→Δκ (legible,
+seed-paired); fig07 → response ratios (all panels, tail-masked — scope confirm pending); peak-count
+high-ν rebin + Poisson; one `ELL_TRUST` aliasing convention everywhere; measured-cov LSST-Y10 band
+("smoothing" sub-item dropped — flagged); fig04b + C_yτ panel with truth-τ overlays guarded on file
+existence; new §4 machinery: error-to-response yardstick, Sellentin–Heavens option, GP-σ coverage
+recalibration, fig15b two-bound OOD. Non-emulator figs re-rendered clean; §4 figs regenerate at the
+post-retrain full run. **Compute**: corrupted runs 0114/0115/0117 root-caused (0-byte `_work` composite
+× existence-only idempotency check) and repainted (COMPLETED 14:00); SLURM pack
+`papers/01_pipeline/jobs/README.md` (Jobs 1–7); 550-realization covariance traces (fid/truth/DMO,
+seed 1992 unchanged) running — truth replane produced the first-ever truth τ planes. fig13(d)
+"177/253" = an interrupted 2026-06 `dm_stats` backfill, NOT missing data — backfill folded into
+`jobs/job2_repair_caches.sbatch` [1b]; memo `audits/newimage2_memo.md` recommends demoting panel (d)
+to §6 (not cutting to Paper IV). **Analyses**: IMFslope clusters with the AGN/energy-injection knobs
+against kinematic winds (`audits/imf_mechanism_results.md`); shell-straddling 2.22 % count / 2.80 %
+mass-wt, snapshot-seam 0.53 % (`audits/shell_straddle_results.md`); "57 vs 60" twobound = 3 runs
+generated at fiducial params (needs 3 new runs, not a cache rebuild); NI1(a) prototype
+`proto_bridge_hero.py` (bridge r=0.71 on Sobol; ejection–heating coupled r=0.86 at population level —
+the 1P decorrelation may be a design artifact). **Open**: NI2 §6-vs-cut + NI1(a) confirm + spaghetti
+scope + 4c scope; fig06 bootstrap infeasible (profile cache has no per-halo axis).
+**Late-day decisions (author), all implemented**: New Image 2 → demoted out of fig 13 (now 3
+panels) into a compact §6 release figure `fig22_dm_release` (live n/N coverage stamp; dm_stats
+backfill added to `jobs/job2_repair_caches.sbatch` [1b] — the 177/253 gap was an interrupted
+2026-06 backfill, not missing data); New Image 1(a) NOT wired in (prototype's ejection–heating
+panel unconvincing at population level), 1(b) = §3c cross-reference to fig 13(a,b); fig 7 ℓ
+panels unified to one (trusted) range — no shaded strip, S(ℓ) tail stays in figs 4b/12;
+"57 vs 60" twobound reframed as structural (3 params prior-bounded at fiducial; no new runs)
+in fig 15b/fig 19 text.
+
+## 2026-08-04 — Paper I: C-head emulator redesign (measured), covariance convergence, DMO trace postmortem
+
+**Emulator C-heads** (ruled: compose; `audits/spectrum_head_experiment.md` → `audits/emulator_improvement_wiring.md`):
+controlled 206/50 experiment showed ℓ≤1.5e4 target-masking ~2× better on positive spectra (aliased tail
+polluted the PCA), asinh(x/MAD)+per-bin standardization fixes the numerically-broken raw crosses, and
+C_κκ diag = S×C_DMO exactly (6e-15) while off-diagonals are NOT run-invariant under any composition
+(~9× CoV) → implemented: composed diagonal + small asinh/masked GP for the 10 off-diag pairs, ℓ-masked
+spectrum heads (predictions keep full grids; masked bins = train-mean + inflated err), `asinh_std`
+transform in `bind.emulator.transforms`, fingerprint bumped. Refit CPU 336 s, verified. New held-out:
+cl_yy 4.7% (was 11.7), cl_tt 4.6% (9.6), crosses 14–20% honest (was ~1e7% artifact). Caveat: cross-head
+response R² ≈ 0 under the new per-bin-median metric — amplitude-calibrated, response-weak; final paper
+numbers come from the notebook rerun (uniform metric). fig-9 metric gained a 5th-pct amplitude floor
+(the 1e7% numerator artifact). **Covariance convergence** (`audits/cov_convergence.md`, 477/550 fid
+realizations): diagonal converged to ~3% since N≈400, σ_A stable to 0.1%; only Hartlap still moves
+(0.469@50 → 0.945@477 → 0.953@550, p=25); cov-of-cov 19%→7%. 550 comfortably sufficient; note the
+recorded N=50 Hartlap is 0.47 (not the remembered 0.39). **DMO retrace postmortem**: job 2457497 died
+at lux startup (lensplanes/ was cleaned by the June stats run; jobs-pack §5d wrongly said no replane
+needed — corrected) while 191 ranks hung ~18 h; fix = `run_dmo_lensplane.sh` then resubmit 5d. Fid/truth
+traces healthy and ~2× ahead of estimate.
+
+## 2026-08-03 (later) — Paper I: post-adjudication rulings implemented
+
+All four adjudication rulings landed same-day (annotated TODO is the ledger). **13th head (fork A)**:
+`cl_kappa` restored as a directly-trained emulator head — `build_emulator.py` STATS + fig 9
+`STATS_EMU` = 13 heads in lockstep, landed BEFORE any refit; identity paragraph moved fig 4b→§4a;
+"users reconstruct S×DMO" language deleted; fig 5 matrix stays 12-row. **New Image 2 removed
+entirely**: fig 13 + fig 22 cells excised (234 lines) with full cascade cleanup; builder = 22 figures.
+**§3 opener wired** (`fig23_s3_opener`, from the prototype's panel (a)): Sobol 5–95 % span of
+S(5000, z_s=1) = 19.8 % vs LSST-Y10 σ 0.52 % (38×) / Euclid 0.67 % (30×), bridge r=0.71.
+**57-structural propagated**: 30×2−3 sentence (fig 0 md), §6 manifest (256+57+1)×3×5×50 = 235,500
+maps + DMO κ set, coverage rows updated. **3c-companion evaluation** (`audits/companion3c_eval.md`):
+the r=0.86 ejection–heating coupling is INTRINSIC (survives 30-param partialling → 0.78; lnY↔lnf_gas
+r=0.988 at group scale, slope 1.35; PC2 = 7 %; orthogonalized heating adds ΔR²~1e-4) — the 1P
+decorrelation was the design artifact; recommendation: §3c stands on fig 20(b) alone. **Five pins**
+(`audits/small_items_2026-08-03.md`): τ constant = fully-ionized primordial plasma (X_H=0.76 →
+x_e=0.88; 2.219785e-14 is _tau_per_gas_pixel at snap-96 geometry, not a pipeline hardcode; verified
+6 sig figs); fig 3 sample N=2933, logM 13.00–14.98, sparse top; fig 6 window = pixel floor +
+hand-set outer bound (comment honesty-fixed); f̃_bar,500c^cyl pinned equation-style in §3c ¶1
+(unblocked); **map-rescale check: the halo Y-offset (1.054) does NOT explain the C_yy residual**
+(mid-ℓ wrong sign, χ²/dof 177→250 after rescale) → scale-dependent texture effect; §2b audit ¶ added
+and the [draft - confirm] ¶ rewritten to match the measurement.
+
+## 2026-08-03 — Paper I: IMFslope mechanism-check figure (standalone notebook)
+
+New `papers/01_pipeline/mechanism_check.ipynb` (built by `_build_mechanism_nb.py`, run by
+`_run_mechanism_nb.py` — same builder/runner idiom as the main figure notebook, but standalone: no
+paper1_figures builder rerun needed). Tests whether IMFslope's 1P response *morphology* tracks the AGN
+channel (BHRadiativeEff) or the wind channel (VarWindVelFactor), amplitude normalized away (unit-peak
+curves). Data: `runs/twobound` paired_stats (50 shared-sky realizations) + per-realization
+$C_\ell^{yy}$ computed once from `y_maps.npz` and cached in `mech_cache/` (twobound stores no tau maps,
+so Compton-y is the gas statistic). $N_{\rm pk}$ rebuilt band-integrated (0.5-wide nu bands from
+`pk_real`, fid count >= 2/map) per the bind-paired-stats warning — the stored per-bin `pk_resp` is
+noise-dominated at high nu. Result (steep −2.8 bound): AGN-shaped in
+$C_\ell^{\kappa\kappa}$/$V_2$/$C_\ell^{yy}$ (r = +0.99/+1.00/+0.97), moderately in $N_{\rm pk}$
+(+0.44 vs −0.01 wind); concatenated similarity matrix puts IMFslope in the AGN block (+0.94
+BHRadiativeEff, +0.93 QuasarThreshold vs −0.39 VarWindVelFactor). Top-heavy (−1.8) bound shows the
+predicted *mixed* morphology (wind-like in yy +0.81 and N_pk +0.65). Figure:
+`figs_v2/fig21_mechanism_imfslope.pdf`.
+
+## 2026-07-30 — Paper I: 10-request figure overhaul, two data bugs found, three caches added
+
+**Figures.** Author-directed pass over the whole `figs_v2/` package, driven from
+`_build_figures_nb.py` (source of truth) by two sequential agent batches (13 agents, 0 errors) after a
+18-agent audit workflow. fig02_map_suite and fig17_feedback_sky **deleted** as redundant with fig 0;
+fig03 split into scaling relations + new `fig06_radial_profiles` (y/tau/stars, common M200c bins,
+r/r200c); fig04 split into the 8 WL statistics + new `fig04b_spectra` (3 autos + 2 crosses, 5 source
+planes); fig05 collapsed to a single 12-statistic x 30-parameter importance heatmap; fig07 recast as 12
+panels coloured by VarWindVelFactor; fig08 onto the same canonical list; fig09 split into three.
+20 -> 22 figures. Plan + per-item audited specs in `papers/01_pipeline/FIGURE_EDIT_PLAN.md` and
+`audits/edit_spec_*.json`.
+
+**Two real data bugs, both found by guards rather than by eye.**
+1. `runs/bind/run_0000/nongaussian_stats.npz` **Minkowski functionals are stale** w.r.t. its own kappa
+   maps. This cell's live recompute and the independently-built `paired_perreal_fid.npz` agree to 0.0 and
+   both differ from that summary file by 3.6e-4 / 2.5e-3 / 5.6e-3 (V0/V1/V2, peak-relative). Truth side is
+   bit-exact. **Other analyses reading that file may be affected.** fig 4 now uses the recomputed values
+   on both sides and prints the discrepancy.
+2. fig04b's cross-spectra initially took 4 of 5 source planes from `Cl_kappa_y.npz` / `Cl_tau.npz`, which
+   still carry the **pre-`xpkfix` XPk_plane normalization** — low by ~1.2e7 and ell-dependently
+   (1.11-1.31e7), so unrescalable. Now computed live from the maps, guarded against fig 4's independent
+   paired leg. `fig11` is unaffected (it uses those files only as a BIND/truth ratio, where it cancels).
+
+**Caches** (all with refuse-don't-guess guards; a mismatch means recompute, never a wrong number):
+`mf_cache.py` (Minkowski on nu in [-3,8], 398 kB, disBatch 10 tasks, 98 s) — MF cost 130 s -> 0 s;
+`field_cache.py` (per-realization spectra + counts + PDF, 11.2 MB, disBatch 10 tasks) — retires ~750
+`power_spectrum` calls and five ~1 GB npz decompressions per run; `emulator_cache.py` (persists the GP
+fit — `Emulator.save()/load()` existed and round-trips bit-exactly but was unused). The emulator bundle
+**is** the release artifact behind "theta -> any statistic in milliseconds"; `load_matching()`
+fingerprints the training indices so a bundle from a different split can never turn a held-out test into
+a training-set test.
+
+**Tooling.** `_check_builder.py` (rebuild + AST-parse every cell, seconds) gates every edit;
+`_run_subset.py` renders named figures in ~30-120 s instead of the 1 h GPU job, with a `DEPS` map for the
+cells that legitimately read state from earlier ones (fig20<-fig03, fig04b/fig08<-fig04, fig07<-fig05).
+
+**Limits stated, not papered over:** ell cannot reach 70,000 (1024^2 / 5 deg -> corner mode 52,134);
+`C_l^tautau` and `C_l^kappatau` have **no** seed-paired hydro truth anywhere, so they ship BIND-only with
+the Sobol 16-84% spread in place of a closure residual. `M_fof` in the halo atlas is already M_200c
+(verified to 3.5e-4) and `profiles/r_cen` converts to r/r200c by an exact x0.659.
+
+**Full run** (job 2454889): 22 figures, 1102 s vs the 1 h 05 m baseline — the caches and the persisted
+emulator (`loaded from the persisted bundle in 1s`) are the difference. `FIGURE_NUMBERS.md` re-stamped
+from it, verified claim-by-claim (964/988 confirmed on the first pass).
+
+**One number genuinely moved: the Minkowski chi2/dof, 0.2 -> 62.2 / 35.0 / 24.4 (V0/V1/V2, nu<=4),**
+plus a new full-range nu=-3..8 set 49.2 / 22.7 / 16.1. Cause is a BAND REDEFINITION, not new data: the
+old band used sqrt(2) x BIND-only scatter as a proxy for the truth-side scatter; the extended-nu
+recompute made genuine paired per-realization difference scatter available on both sides, and because
+the traces are seed-paired that difference scatter is much smaller. **This changes what section 2 can
+claim** — the MFs move from "consistent with closure" to a resolved, characterized systematic alongside
+the PDF (128) and the spectra (kk 19, ky 120, yy 177). Residual amplitudes are unchanged.
+
+**A bug I introduced and then caught:** wiring `field_cache` into fig 4, I took `C^yy` from `[:, ZI]`
+instead of `[:, -1]`. The y maps are cumulative per plane, so z_s=1 is a 0.22x shallower column — this
+silently redefined the statistic and produced a spurious cluster of "changes" (chi2 177->63, resid
+5.6->5.7%, full-cov 34->12, T2 9.6->4.3), all of which I initially reported as real. The tell was the
+fig-4b `cumulative-column guard` reading 372.110% where it should read 0.000%. Fixed and verified
+(`yy_bind[:, -1]` reproduces the live total-column spectrum to 0.0); all four numbers snapped back.
+Lesson: when several related numbers move at once and one guard disagrees, believe the guard.
+
+**Follow-ups:** rerun `run_figures.sbatch` (fig 4 / 4b in `figs_v2/` carry the bad yy);
+`main.tex` still points at the old `figs/` set.
+
+---
+
+## 2026-07-29 — Paper I: fig 0 + fig 2 legibility/colorbar pass
+
+- **fig 0 (hero)** bottom row was two raw $y$ skies that looked identical — a 4–8% mean shift is invisible
+  against 2 decades of halo brightness. Now the **response** $y_{\rm node}/y_{\rm fid}$ on a symmetric log-
+  diverging norm (weak-wind node reads blue at 0.92×, strong red at 1.04×). Note the direction is inverted
+  vs fig 17 (which prints fid/node) — deliberate, so color = the node's own effect; bars label it explicitly.
+- **`TwoSlopeNorm` retired for κ in both fig 0 and fig 2** — piecewise-linear, so equal color steps meant
+  unequal κ steps (fig 2's lower half spanned 0.02, upper half 0.06). Replaced by linear symmetric
+  ±2σ_κ with saturating peaks + extend arrow. This also retires the 2026-07-28 mpl-3.10
+  `set_ticks`-blanks-the-bar workaround, which only existed because of the TwoSlopeNorm.
+- Text: multi-line white-on-image stamps at 5.6–7.5 pt → short tags above the axes, depth/scope clauses
+  stated once in a one-line footer. Log bars now in fixed units ($10^{-3}$, $10^{-6}$) on 1–3–10 ticks;
+  sci notation had put a single `10^-3` label on τ's 1.5-decade range.
+- Edited `_build_figures_nb.py` (source of truth) + patched the notebook and re-executed only cells 2/4/8
+  (`nbclient` `execute_cell`, ~80 s) so the rest of the executed outputs survive; builder↔notebook verified
+  cell-for-cell in sync. Numbers crib updated in `papers/01_pipeline/FIGURE_NUMBERS.md`.
+
+---
+
+## 2026-07-28 (evening) — Paper I: Ferraro-persona review → full fix campaign + van Daalen section
+
+- Persona review ("Simone Ferraro" lens; 10-agent workflow: web profile, notebook/figure audit, 3 critics) of the
+  figure package; findings in memory `ferraro-lens-paper1-review`. All fixes then applied via a 7-editor campaign
+  on `_build_figures_nb.py` (~75 items), + verification (3 visual agents + printed-number cross-check).
+- Verified bugs fixed: fig4 peak/minima band double-divided the truth SE by √50 (χ² restamped: peaks 1.1, minima
+  1.3; κ-PDF now honestly χ²/dof≈128 = characterized systematic); fig13d DM–τ formula (now DM=τ/(σ_T·pc));
+  fig02 empty κ-colorbar (matplotlib 3.10.1: TwoSlopeNorm + post-hoc `set_ticks` blanks the bar — pass ticks at
+  creation). fig13 "no beam" labels were wrong the other way: released y-CAP curves already carry a 1.6′
+  ACT-like beam (`examples/_reduce_ycap_lrg.py`) — now stated, with one-halo/M200c-selection stamps.
+- Structure: fig4b→fig4(i,j); fig5+6→`fig05_param_response`; fig9bc→fig15; new `fig00_hero`;
+  fig18/fig16c/fig19 (restored eROSITA f_gas) → appendix. fig3 reframed **mass-dependent**
+  (+12%→0 over logM 13.1–14.5; linear-in-logM calibration shipped). fig8 "one response plane" retired
+  (ρ1/ρ2 shown). fig11 templates bootstrapped w/ coefficient errors. Package = 20 figures, 53-cell notebook.
+- NEW coverage test (50 held-out nodes): the S(ℓ)-only posterior is **overconfident** — 68%/95% intervals cover
+  0.40/0.73 empirically; width claims (43–66% of prior) must carry this. Inference now uses the shipped
+  gpytorch backend.
+- NEW §3c/`fig20_vandaalen_matrix` (author request): van Daalen over the 253-node Sobol cloud — S(ℓ-band) ×
+  f̃(mass-bin) matrix; single 13.3–13.6 group bin predicts S(ℓ≈970) at r=0.975; f̃_gas-alone ceiling r≈0.85.
+  Author flagged f̃>1 → investigation: projected-cylinder measure inflated ×1.16 vs 3D (transverse geometry over
+  the halo's own 1–2 R200 outskirts ~80%, paint bias ~18%; annulus over-subtraction rejected; rank structure
+  definition-robust, Spearman 0.997). Fix: renamed f̃^cyl, 3D-equivalent secondary axis (truth-calibrated;
+  TNG300 3D≈0.81 per Nelson+24), closure-regime shading; eROSITA tension softened 3.1×→2.3× with caveat.
+- Executed via `run_figures.sbatch` (EDITS_READY-gated; 19 min on A100+16 CPUs, coverage 271 s/12 workers), then
+  a local re-run after the final amendments (86 min, 1 CPU Popeye; zero cell errors; all 20 renders visually
+  re-verified). Verified per-figure numbers → `papers/01_pipeline/FIGURE_NUMBERS.md` (crib sheet for writing).
+  `main.tex` deliberately untouched (author writes the text; story-change checklist preserved in the session
+  HANDOFF).
+- OPEN: enhancement-branch real-hydro closure test built but not yet run — `examples/enhancement_closure.py` +
+  `run_enhancement_closure.sbatch` (13 SB35 L50n512 sims: 7 weak-wind corner, 4 strong, 2 control; paired
+  P_hydro/P_DMO + P_BIND/P_DMO at k=0.5–8 h/Mpc). Must run on RUSTY (raw CAMELS data locality; this session =
+  Popeye/sdceph). Submit with `RUN_DIR=weights/fm_redshift_thermo MODEL_NAME=fm_redshift_thermo` for
+  same-model-as-lightcone closure. Decides whether the 38–46% enhancement branch is TNG physics or paint texture.
+
+## 2026-07-28 (later) — Paper I: author-directed revision (8 packages, Sonnet+Haiku)
+
+Author feedback round: noise-accounting challenge settled by **null tests** (truth-half vs
+truth-half χ²/dof 0.6–0.9, realization corr ≈ −0.02 → N_eff≈50: the paired noise model is
+VALID) and the three-tier covariance the author requested: T1 paired full-cov (Hartlap)
+κκ 15 / κy 101 / yy 34, **T2 unpaired (truth+bind cov, user-facing) κκ 0.2 / κy 6.7 /
+yy 9.6** — WL indistinguishable from hydro at user scale; y-channels modest. Fig 4 rebuilt
+as the full WL vector (Cl, S, PDF, peaks, minima, V0-2; peaks/MFs χ² 0.1–0.8 = consistent)
++ fig 4b SZ companion. Emulator upgraded: k-cap and kernel-bounds hypotheses falsified;
+**gpytorch backend wins** (enhancement subset 11.1→9.6%, worst run 13.9→12.0%, 1.7× faster),
+now fit on **14 statistic heads** (371 s) incl. C^ττ and all crosses, any-z/any-grid predict
+demoed (z_s=0.75, custom ℓ). Fig 17 → 2×3 ratio maps (fid/weak, fid/strong × Δκ, τ, y);
+fig 3 → 4×2 (f_b + 3D-pressure dropped); fig 18 rebuilt as the yy-misfit mechanism figure
+(mask localization + audits/ annulus texture); fig 1 ray-trace column removed + lightcone-
+construction paragraph added to §1d; fig 2 labels outlined; all retrain framing reworded to
+"v1 calibrations now; retrain deferred (~10³ GPU-h)". Run 12: 46 cells, 0 errors.
+
+---
+
+## 2026-07-28 — Paper I: paper-narrative layer + systematics root-caused → 95.1/100
+
+Confirmed the lightcone/SB35 painting used the **redshift-conditioned** checkpoint
+(fm_redshift_thermo, condition_redshift=True verified). Wrote the full paper-narrative
+markdown layer into `paper1_figures.ipynb` (45 cells: abstract, §1 Intro, methods math —
+FM objective, τ/y conventions, ray-trace; per-figure discussions; SVD/CCA + GP/likelihood
+equations; §7 Conclusions), applied in place (outputs preserved) + builder-mirrored. Three
+Sonnet investigations root-caused the residual systematics (memory:
+bind-systematics-root-causes; artifacts archived in `papers/01_pipeline/audits/`):
+**z-drift = high-z under-supervision** (conventions ruled out by code audit; per-channel
+slopes T −0.11 / Y −0.18 / P_e −0.53 / K +0.11, low-mass 2× faster; fix = retrain w/ denser
+multi-z supervision); **+5–7% amplitude = pre-composite model regression bias** (gas 1.042
+flat in mass, DM 0.995, stars −12%; fix = calibration at `_denormalize_to_physical`);
+**y-texture reversed** (interiors over-textured +19–29%, outskirts under-textured −40%;
+smoothing mitigation falsified; fix = spectral loss at retrain). Sonnet panel score:
+**95.1/100** (84.5 → 92.6 → 94.0 → 95.1); panel's provenance catches (audit numbers
+markdown-only; ΔAIC runner-up mislabel) fixed by archiving audits/ + text corrections.
+Remaining: resolution gate (compute), DOI (logistics), truth τ trace, retrain items.
+
+---
+
+## 2026-07-27 (final) — Paper I: Sonnet upgrade round → 94.0/100
+
+Dispatched 4 Sonnet agents (cost control) to prototype the remaining accessible points
+against the real caches; spliced their verified blocks into the builder (run 11, 43 cells,
+0 errors): fig 17 → 3×3 with a difference row (Δy flips sign per object between wind
+extremes; Δκ concentrated at the same halos) + on-figure headline footnote; **new fig 18** —
+brightness-decomposition attribution of fig 4's high-ℓ y excess (cores carry a deficit,
+diffuse field a +20–30% excess that partially cancels); fig 11/§5b now **ship quadratic
+redshift de-bias templates** (AIC-selected, coefficients + scope); micro-consistency sweep
+(126 MB/23 targets, 38τ, drawn coverage error bars). Sonnet re-grade panel: **94.0/100**
+(84.5 → 92.6 → 94.0). Panel caught one overclaim (ΔAIC>10 "in every case" — actually
++16/+34/+7), fixed in builder + notebook. Remaining ≈2.75 pts blocked on new compute
+(resolution gate, truth τ trace), physics (field-y excess mechanism), and release logistics
+(DOI). Scorecard: papers/01_pipeline/SCORECARD.md.
+
+---
+
+## 2026-07-27 (later still) — Paper I: rubric, grading, and score-raising round
+
+Built a 100-pt impact rubric (`papers/01_pipeline/SCORECARD.md`), graded the 16-figure
+package with a 4-persona panel (**84.5/100**), implemented the consensus improvements
+(fig 17 "one sky, three feedbacks" hero; fig 1 ray-trace stage; on-figure headline/χ²/offset
+stamps; fig 13 → 2×2 with FRB/DM panel + observing conventions; §6 access box w/ proposed
+name BIND-LS v1, sha256, load snippets + suite-positioning table; fitted GP error-inflation
+α̂=1.76 replacing ad-hoc factors, width ratio 0.99 = calibration loop closed; main chain to
+38τ/ESS 4400; craft sweep), and re-graded with the same panel under anti-inflation rules:
+**92.6/100 (+8.1)**, every credit verified against the figures. Notebook now 41 cells /
+17 figures. Remaining ≈4 accessible pts are blocked on: resolution gate (new compute),
+fig 17 difference row, high-ℓ κy/yy closure physics, live DOI, truth τ trace.
+
+---
+
+## 2026-07-27 (later) — Paper I: two referee→revise rounds on the figure notebook
+
+Two full referee cycles (4-expert panels: WL, SZ/kSZ, ML/emulation, statistics) on
+`papers/01_pipeline/paper1_figures.ipynb`. Round 1 (unanimous "major revision") →
+implemented: paired ±1σ bands + χ² on all validation (fig 4 spectra recomputed
+per-realization from cached maps, retiring the XPk patch), figs 11–16 added
+(z-closure — Y_500c BIND/truth drifts 1.05→1.30 by z=2, ∝a^−0.2; survey-context
+envelope + enhancement-branch τ diagnostic; 256-node τ/y observable profiles;
+low-mass completeness; GP calibration + learning curve; posterior robustness with
+full Hartlap covariance, DE moves, τ_int/ESS), sections §2.0/§3d/§4.0/§5b/§6, and a
+real `MLPEnsemble` bug fixed in `src/bind/emulator/backends.py`. Round 2 (unanimous
+"minor revision", all round-1 fixes verified genuine) → fixed its catches: fig 12
+shape-noise unit inversion (A2SR), Abel-projected Arnaud overlay in fig 3(c),
+correct noise-dominated framing for the peaks R² ceiling, full-covariance χ² for
+fig 4, map-level κy closure per plane in fig 11, GP σ×1.2 robustness chain,
+Amon–Efstathiou vs Bigwood/Hadzhiyska citation fix, §4.0 contract table. Final:
+38 cells / 16 figures in `figs_v2/`. Verdict trajectory: major → minor revision.
+
+---
+
+## 2026-07-27 — Paper I re-outlined as the release paper: 10-figure notebook
+
+New outline for the lightcone paper (release the 256-node κ/τ/y Sobol suite + astro
+effects + latents + TNG emulator). Built `papers/01_pipeline/paper1_figures.ipynb`
+(generated by `_build_figures_nb.py`, executed via `_run_figures_nb.py` — nbclient with
+the kernel pinned to the BIND venv) making all 10 outline figures from cached data only
+(no engines/GPU/Slurm; ~12 min CPU). Figures land in `figs_v2/` so the current draft's
+`figs/` is untouched. Highlights: fig 1 pipeline diagram reuses the shared stage-1
+conditions + the same halo index across Sobol runs; figs 5–8 run off
+`emulator_dataset_xpkfix.npz`; fig 9 trains a held-out `bind.emulator` GP (response R²:
+S 0.70, C_yy 1.00, C_ττ 0.83, f_gas(M) 0.86; peaks 0.21 — feedback-blind); fig 10 is an
+emcee corner on the fiducial S(ℓ) (BHRadiativeEff/VarWindVel/WindEnergy most
+constrained; fiducial recovered, genuinely out-of-design). A 4-agent adversarial verify
+pass (style / science claims / independent numerics / outline coverage) was applied; all
+numeric spot-checks reproduced, and its blocker + caption fixes are in. Gotchas recorded
+in the notebook caveats cell: 253/256 runs, no truth C_ττ closure, WST absent from
+fiducial caches and 40/253 in the dataset, τ = velocity-free electron column,
+`tau_profiles_snap096.npz` mass bins are linear Msun.
+
+---
+
 ## 2026-07-16 — The BIND Lightcone Suite: 5 paper drafts produced on branch `papers`
 
 Turned the June-campaign branches into five compiled preprint drafts under `papers/`

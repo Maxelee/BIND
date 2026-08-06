@@ -4762,27 +4762,9 @@ a.set_yticks(range(5))
 a.set_yticklabels([f"{LCEN[i]:.0f}" for i in range(5)], fontsize=6)
 a.set_xlabel(r"$\log_{10}\, M_{500c}/{\rm M}_\odot$")
 a.set_ylabel(r"$\ell$")
-# k twin: float location (axes fraction) puts the spine, ticks and label
-# outboard of the ell tick labels on the LEFT — the right side now belongs to
-# the colorbar, and tight_layout still reserves the room (child axes are in
-# the parent's tight bbox)
-# Companion k axis. Two fixes over v3: (i) a secondary_yaxis draws its own spine and
-# tick MARKS, which showed up as stray ticks floating to the left of panel (a) with
-# nothing attached to them -- the axis carries labels only, so hide both; (ii) the
-# rows are log-spaced in ell, so label them in log10 k rather than as the unrounded
-# decimals 0.4/0.8/1.8/4.0/8.8, which read as arbitrary.
-sec20 = a.secondary_yaxis(-0.16)   # standalone axes are far wider than the
-                                   # old 1x3 panel: -0.30 axes-fraction would
-                                   # strand the k labels ~1 in out; retuned
-sec20.set_yticks(range(5))
-sec20.set_yticklabels([f"{np.log10(k_cen[i]):+.2f}" for i in range(5)], fontsize=6)
-sec20.set_ylabel(r"$\log_{10} k$,  $k \simeq (\ell+1/2)/\chi_\star$  [$h$/Mpc]",
-                 fontsize=6.5)
-sec20.tick_params(which="both", length=0)      # labels only -- no dangling tick
-                                               # marks (2026-08-05: which="both";
-                                               # major-only left the style's minor
-                                               # ticks dangling as a dash column)
-sec20.spines["left"].set_visible(False)
+# 2026-08-06 (author ruling): the companion log10-k twin axis is REMOVED --
+# ell axis only. The ell<->k correspondence (k ~ (ell+1/2)/chi_star) stays
+# caption text via this cell's printed chi*/k_cen mapping.
 # vD-comparable cells (k~0.4-0.5; ~1e14 straddles the top two mass bins)
 a.add_patch(Rectangle((1.5, -0.5), 2.0, 1.0, fill=False,
                       edgecolor=COLORS["secondary"], lw=1.2))

@@ -94,7 +94,17 @@ f̃_star rank vs z=0.03 stays 0.94 even at z=2 (partition set EARLY); f̃_bar de
 low-z) — the end-state budget integrates the feedback history (same reason vD works).
 (c) thermal latent logT̃ (group-bin T_mw_500c, r=−0.39 vs f̃_bar; cluster-bin T/Y/Pe tested,
 none better): T–M 0.48→0.78, mass sector unchanged; cl_yy stays ≈0.77 (needs profile-level
-pressure — stated boundary). Full latent set: (f̃_bar, f̃_star, c_τ, logT̃). bind.emulator
+pressure — stated boundary). Full latent set: (f̃_bar, f̃_star, c_τ, logT̃).
+
+**2026-08-06 additions**: `ANALYTIC_LATENT_MODEL.md` (full method + procedure record, for
+the paper's emulator-section rewrite); `predict_from_latents.py` (user-facing predictor:
+fits + caches the kernel table latent_model_coeffs.npz — 24 bands × 5 planes × 4 coeffs +
+per-band CV model error + prior-cloud ranges with extrapolation warnings; reproduces the
+out-of-design fiducial at RMS 0.013); **fig20g** (`fig20g_latent_kernels`): the four kernel
+functions c_i(ℓ, z_s) with ±1 OLS SE — c1 bump peaking at the group one-halo scale
+(ℓ≈4–6e3), c2 monotonic small-scale rise, c3 sigmoid, all diluting with z_s; 1σ-impact
+prints show the budget→partition handoff (ℓ~1e3: 0.012/0.000; ℓ~1.9e4: 0.016/0.084).
+bind.emulator
 `latents` backend scoped (LinearBackend + `inputs="latents"` X-swap + dataset latent table)
 but NOT implemented — core/dataset/transforms carry ~480 uncommitted lines from the
 repaint/refit campaign; do it on a settled base.

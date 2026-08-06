@@ -4247,7 +4247,7 @@ else:
 
 # ═════════════════════════════════════════════════════════════════════════════
 md(r'''
-## §3c — Figs 20a–f: which halos set which scales — the van Daalen relation over the feedback space
+## §3c — Figs 20a–g: which halos set which scales — the van Daalen relation over the feedback space
 
 van Daalen, McCarthy & Schaye (2020, MNRAS 491, 2424; arXiv:1906.00968) showed that across
 independent hydro simulations the matter-power suppression at
@@ -4388,6 +4388,24 @@ the population-median latent programme: no single-bin thermal median lifts it pa
 $\simeq$0.78 — the $y$-auto residual carries profile-level pressure information. The full
 latent set is thus $(\tilde f_{\rm bar}, \tilde f_\star, c_\tau, \log\tilde T)$: budget,
 partition, structure, temperature.
+
+**Fig 20g** (2026-08-06) shows the model itself: the four kernel functions
+$c_i(\ell, z_s)$. Per $\ell$ band and source plane they are the closed-form OLS solution
+$\beta(\ell_b, z_s) = (A^{\top}A)^{-1}A^{\top}S(:,\ell_b,z_s)$ with design matrix
+$A = [\tilde f_{\rm bar}, \tilde f_\star, c_\tau, 1]$ over the 256 nodes — so each
+$c_i$ is a *partial* regression slope, $\partial S/\partial(\mathrm{latent}_i)$ at the
+other latents held fixed, jointly de-mixed (the latents are correlated,
+$r(c_\tau, \tilde f_{\rm bar}) = +0.69$; three separate one-dimensional fits would give
+different, wrong curves). Shaded: $\pm1$ analytic OLS standard error
+$\mathrm{SE}_i = [\hat\sigma^2_{\rm res}\,((A^{\top}A)^{-1})_{ii}]^{1/2}$, drawn for the
+$z_s=1$ working plane. The shapes carry the physics: the budget kernel $c_1$ rises
+through $\ell\sim10^3$–$10^4$ (the vD regime and beyond), the partition kernel $c_2$
+switches on at $\ell\gtrsim2\times10^3$ and dominates the smallest scales, the
+concentration kernel $c_3$ is small per unit $c_\tau$ but $c_\tau$ spans $\sim$1.9–5.3
+(the $1\sigma$-impact comparison is printed), and every kernel dilutes with $z_s$
+(fig 20f's kernel-dilution statement, now visible). These $4\times24\times5$ numbers are
+the *entire* model — exported as `latent_model_coeffs.npz` and consumed by
+`predict_from_latents.py`.
 (**2026-08-05**: the 1×3 figure is split into three standalone figures — fig 20a = the
 $r$ matrix, fig 20b = the group-bin hinge paired with fig 12b's enhancement-branch
 stacked-$\tau$ gas diagnostic (that panel is intentionally duplicated across the two
@@ -5338,6 +5356,68 @@ print("fig 20f [caption] (c): "
       f"variants do NOT beat it for cl_yy (max 0.78) -- the y-auto residual "
       f"needs profile-level pressure info beyond population medians (stated "
       f"boundary)")
+
+# ── fig 20g: the kernel functions c_i(ell, z_s) — the model itself ──────────
+# (2026-08-06, author-requested: "how were c_0..c_3 computed? show them".)
+# Per band b and plane z_s: beta(ell_b, z_s) = (A^T A)^-1 A^T S(:, b, z_s),
+# A = [f~_bar, f~_star, c_tau, 1] over the nodes. Each c_i is therefore a
+# PARTIAL slope, dS/dlatent_i at the other latents held fixed, jointly
+# de-mixed -- the latents are correlated (r(c_tau, f~_bar)=+0.69), so three
+# separate 1-D fits would give different, wrong curves. Shaded band = +-1
+# analytic OLS SE, SE_i = sqrt(sigma_res^2 [(A^T A)^-1]_ii), z_s=1 only
+# (five overlapping bands are unreadable; the others are comparable). These
+# 4 x 24 x 5 numbers ARE the model (latent_model_coeffs.npz /
+# predict_from_latents.py).
+AtAinv20 = np.linalg.inv(A_all.T @ A_all)
+KLAB20 = [
+    (r"$c_1(\ell)$: budget kernel  $\partial S/\partial\tilde f_{\rm bar}$", 0),
+    (r"$c_2(\ell)$: partition kernel  $\partial S/\partial\tilde f_\star$", 1),
+    (r"$c_3(\ell)$: concentration kernel  $\partial S/\partial c_\tau$", 2),
+    (r"$c_0(\ell)$: intercept", 3)]
+fig, AXg = plt.subplots(2, 2, figsize=(TWO_COL[0], 4.4), sharex=True)
+beta_g = {}
+for zi, zs in enumerate(ZS):
+    Sz24g = binS24(zi)[oke]
+    bz, *_ = np.linalg.lstsq(A_all, Sz24g, rcond=None)      # (4, 24)
+    res_v = ((Sz24g - A_all @ bz)**2).sum(0)/(nok - 4)      # sigma_res^2(b)
+    se_z = np.sqrt(res_v[None, :]*np.diag(AtAinv20)[:, None])
+    beta_g[zi] = bz
+    for (lab, j), axg in zip(KLAB20, AXg.ravel()):
+        axg.plot(ctr24, bz[j], color=CMZS(zi/4), lw=1.2,
+                 label=(rf"$z_s={zs:.2f}$" if j == 0 else None))
+        if zi == 1:
+            axg.fill_between(ctr24, bz[j] - se_z[j], bz[j] + se_z[j],
+                             color=CMZS(0.25), alpha=0.25, lw=0)
+for (lab, j), axg in zip(KLAB20, AXg.ravel()):
+    axg.axhline(0, color=COLORS["dmo"], ls=":", lw=0.7)
+    axg.set_xscale("log")
+    axg.set_xlim(300, ELL_TRUST)
+    axg.set_title(lab, fontsize=6.5)
+    axg.tick_params(labelsize=5.5)
+for axg in AXg[1]:
+    axg.set_xlabel(r"$\ell$")
+AXg[1, 1].set_ylim(0, 1.12)            # intercept ~0.98 at low ell: headroom
+                                       # so the panel letter clears the curves
+AXg[0, 0].legend(fontsize=5.0, loc="upper right", handletextpad=0.5)
+for axg, lett in zip(AXg.ravel(), "abcd"):
+    panel_label(axg, f"({lett})")
+fig.tight_layout()
+save(fig, "figs_v2/fig20g_latent_kernels")
+plt.show()
+
+b1g = beta_g[1]
+i5g = int(np.argmin(np.abs(ctr24 - 5e3)))
+print(f"fig 20g [caption]: z_s=1 kernels at ell~{ctr24[i5g]:.0f}: "
+      f"c1={b1g[0, i5g]:+.4f}, c2={b1g[1, i5g]:+.4f}, "
+      f"c3={b1g[2, i5g]:+.4f}, c0={b1g[3, i5g]:+.4f} (the worked example in "
+      f"ANALYTIC_LATENT_MODEL.md / predict_from_latents.py)")
+sd_lat20 = L3.std(0)
+for ll in (1e3, 5e3, 1.9e4):
+    ig = int(np.argmin(np.abs(ctr24 - ll)))
+    imp = np.abs(b1g[:3, ig])*sd_lat20
+    print(f"fig 20g [caption]: 1-sigma latent impact on S at "
+          f"ell~{ctr24[ig]:.0f}: f~_bar {imp[0]:.4f}, f~_star {imp[1]:.4f}, "
+          f"c_tau {imp[2]:.4f}")
 del cz, mt5, mg5, ms5, logm5, fbar5, fgas5, xpb20, tau20, ta20
 ''')
 

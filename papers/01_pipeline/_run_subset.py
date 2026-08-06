@@ -56,6 +56,7 @@ DEPS = {"fig20a_vandaalen_matrix": ["fig03_halo_validation"],
         "fig20d_budget_partition": ["fig03_halo_validation"],
         "fig20e_analytic_model": ["fig03_halo_validation"],
         "fig20f_redshift_thermal": ["fig03_halo_validation"],
+        "fig20g_latent_kernels": ["fig03_halo_validation"],
         # fig03a reuses fa/ta/logM/edges/SCT/TAIL/MLAB/PIV3 (and fg_f/fg_t for
         # the comparison print) from the fig03 cell.
         "fig03a_halo_raw": ["fig03_halo_validation"],

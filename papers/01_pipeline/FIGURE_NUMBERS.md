@@ -238,6 +238,14 @@ Regenerate by re-running the notebook; all stamps are computed live.
   4th latent logT̃ (group-bin T_mw_500c; r=−0.39 vs f̃_bar): T–M 0.48→0.78, Y–M 0.92→0.94, PDF 0.85→0.87,
   S(ℓ) unchanged, cl_yy 0.76→0.77 (cluster-bin T/Y/Pe ≤0.78 — y-auto residual = profile-level pressure,
   stated boundary). Full latent set: (f̃_bar, f̃_star, c_τ, logT̃) (cell 28).
+- **2026-08-06 fig20g added** (`fig20g_latent_kernels`, same cell): the four kernel functions c_i(ℓ, z_s)
+  — the model itself, per-band OLS β = (AᵀA)⁻¹AᵀS with A = [f̃_bar, f̃_star, c_τ, 1]; ±1 analytic OLS SE
+  shaded (z_s=1). z_s=1 values at ℓ~4847: c1=+0.3154, c2=+0.1629, c3=+0.0288, c0=+0.6207 (the worked
+  example). 1σ latent impact on S: ℓ~1044 f̃_bar 0.0117 / f̃_star 0.0002 / c_τ 0.0002; ℓ~4847 0.0376 /
+  0.0129 / 0.0190; ℓ~18569 0.0156 / 0.0839 / 0.0507 — the budget→partition handoff, now visible as kernel
+  shapes: c1 peaks at ℓ≈4–6×10³ (group one-halo scale), c2 switches on ℓ≳2×10³ and dominates the smallest
+  scales, c3 sigmoid saturating ~10⁴, all diluting with z_s. Exported: latent_model_coeffs.npz via
+  predict_from_latents.py (cell 28).
 - **2026-08-05 (later) fig20c DEMOTED** (author ruling): slimmed to the single literature panel (vD fit + obs
   band + calibrated-f̃ rug, over-closure nodes highlighted); the measured-ΔS panel was redundant with figs
   20b/20d and is gone; fig 20d is the section's main figure. σ(ΔS) and slope-ratio numbers stay printed.

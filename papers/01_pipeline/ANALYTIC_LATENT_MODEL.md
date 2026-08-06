@@ -95,6 +95,67 @@ $\Omega_b/\Omega_m = 0.0486/0.3089$. Fiducial latents (never in any fit) come fr
 the identical reducers applied to `halo_atlas/fid_snap096.npz` and
 `bind_tauy_fiducial_snap085.npz` ($c_{\tau,\rm fid}=2.15$).
 
+### 2.3 Upstream computation chain (how the per-halo inputs are actually made)
+
+Everything starts from the BIND per-halo patches stored in the runs'
+`composite_slab*.npz` files: for every halo above $10^{13}\,M_\odot$, a
+$6.25\times6.25\,(h^{-1}\mathrm{Mpc})^2$ projected cutout ($128^2$ px, pixel
+$=48.8\,h^{-1}$kpc) with `generated_patches` = 3 mass channels
+$[\Sigma_{\rm DM},\Sigma_{\rm gas},\Sigma_\star]$ (surface mass per pixel,
+full-slab line of sight) and `thermo_patches` = 4 gas channels
+$[y, T, K, P_e]$.
+
+**$\tilde f_{\rm bar}$, $\tilde f_\star$, $\log\tilde T$ — the atlas chain**
+(per-halo reducer: `examples/halo_atlas.py::reduce_file` on `analysis/sobol-sb35`,
+mirrored in `papers/01_pipeline/build_atlas_200c.py`; the 256-node cubes are built
+by `examples/sobol_atlas_mpi.py` via `run_sobol_atlas.sh`, viewed by
+`_build_sobol_atlas_nb.py`):
+
+1. circular projected aperture $R_{500c} = 0.659\,r_{200}$ around the patch
+   center; $m_X = \sum_{r<R_{500c}} \Sigma_X$ per species $X$;
+2. background: mean surface density in the fixed transverse annulus
+   $2.5$–$3.0\,h^{-1}$Mpc (total and gas separately);
+   $m^{\rm bg}_{\rm tot} = m_{\rm dm}+m_{\rm gas}+m_\star - \bar\Sigma^{\rm ann}_{\rm tot} N_{\rm pix}$,
+   $m^{\rm bg}_{\rm gas} = m_{\rm gas} - \bar\Sigma^{\rm ann}_{\rm gas} N_{\rm pix}$.
+   **The stellar mass is *not* background-subtracted** (no uniform stellar
+   background at this depth);
+3. thermodynamics: $T_{\rm mw,500c} = \sum (T\,\Sigma_{\rm gas})\,/\sum
+   \Sigma_{\rm gas}$ over the same aperture — gas-mass-weighted with the *raw*
+   (not bg-subtracted) gas weights; $Y_{500c} = \sum y\,\cdot$ pixel area; no
+   background subtraction on the thermo channels;
+4. the cube stacks these per-halo arrays over all 256 nodes at the shared
+   2933-halo sample (`atlas_cube_snapNNN.npz`, `sobol_*` keys + `fid_*`/`tb_*`
+   twins); the latent is then the hinge-bin median as defined above (mass bin on
+   $m^{\rm bg}_{\rm tot,500c}$).
+
+**$c_\tau$ — the kSZ-profile chain**
+(node cache: `examples/ksz_tau_gnfw.py::stack_node_snap` on
+`analysis/ksz-desi-act-v2`, writing `bind_tauy_xprof_snap{085,046}.npz`; fiducial
+twin: `examples/_reduce_tauy_fiducial.py`):
+
+1. per halo (snap 085, $z=0.18$), convert the gas patch to Thomson optical depth
+   per pixel: $\tau = \Sigma_{\rm gas}\,\sigma_T\,(x_e/m_p)\,/\,A^{\rm phys}_{\rm pix}$
+   with $x_e = 0.88$ electrons per proton mass and the pixel area converted to
+   physical cm$^2$ at the snapshot's $a$;
+2. radial coordinate $x = R/r_{200c}$ (each halo scaled by its own $r_{200}$);
+   per-halo background = mean $\tau$ over the annulus $x\in(2.5, 3.0)$,
+   subtracted;
+3. stack: all halos in the $\log_{10}M \in [13.0, 13.4)$ bin (note: **FoF-mass
+   binned** — a different bin convention from the atlas's cylinder-mass hinge
+   bin), pixel values accumulated into 17 geometric $x$-bins over $[0.08, 3.0]$,
+   profile = pixel mean per bin → `tau[massbin, x]` per node;
+4. the latent is the inner/outer ratio of that stacked profile
+   ($x<0.3$ vs $0.3$–$1.0$).
+
+Convention differences worth stating in a methods section: the three latents do
+**not** share a mass-bin convention ($\tilde f$'s and $\log\tilde T$: cylinder-mass
+hinge bin 13.3–13.6 at $z=0.034$; $c_\tau$: FoF bin 13.0–13.4 at $z=0.18$), the
+background treatments differ (fixed-Mpc annulus vs per-halo $x$-annulus; stars and
+thermo channels unsubtracted), and $c_\tau$ is a pixel-weighted stack (halos enter
+$\propto$ their pixel counts). None of this affects the model's internal
+consistency — the kernels are fit to whatever the latents *are* — but an
+observational reproduction must match these definitions, not idealized ones.
+
 ## 3. The two-latent decomposition (fig 20d)
 
 Procedure, in order (all per-band operations use the 24-band $S$ matrix

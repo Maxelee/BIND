@@ -224,6 +224,12 @@ Regenerate by re-running the notebook; all stamps are computed live.
   (budget only, 2.6×); +PDF 0.024/0.040/0.032/0.016 (pins partition+T); +MF 0.023/0.046/0.022/0.013;
   +Y/f/T–M 0.014/0.019/0.013/0.007 (8.8×/4.2×/4.0×/2.3× below prior). Corner = median demo node 216,
   truth inside contours at every stage (cell 28).
+- **2026-08-06 fig20i verification pass** (audit queue): p = 24/44/86/107 per stage (blocks 24/20/42/21);
+  C diagonal BY ASSUMPTION (plug-in variance — no sample-cov inversion, no Hartlap/SH applies); ignored joint
+  residual correlations measured: median |r| within-S 0.73, S×MF 0.55, S×PDF 0.42, ×scalings 0.12–0.14
+  (why raw coverage 0.05–0.21). Full-cov upgrade: Hartlap α=0.90/0.82/0.66/0.57 at n_train=255 (p=107 near
+  cap → prefer Sellentin–Heavens); 550-real fid set = MEASUREMENT cov of one universe (additive, not a
+  replacement). Mandatory internal-recovery framing sentence added to cell print + markdown + doc.
 - **2026-08-06 HARMONIZATION (author ruling; supersedes latent-set numbers below)**: canonical latents now
   (f̃_bar, f̃_star, c_gas, logT̃) — one snapshot (096), one hinge bin, one cylinder+annulus convention, one
   median reducer; c_gas = med[m_gas_500c_bg/m_gas_200c_bg] (fid 0.645, cloud 0.58–0.78, r=+0.94 vs f̃_bar);

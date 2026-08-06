@@ -102,7 +102,26 @@ Stage-wise calibrated marginal σ (vs prior stds 0.119/0.079/0.052/0.016):
 
 Physics: the WL spectrum alone measures the *budget*; the κ-PDF pins the
 *partition*; the halo-side scalings tighten all four to 3–9× below the prior.
-An observational application adds measurement noise to $C$, machinery unchanged.
+
+**Framing (mandatory).** Fig 20i is an *internal recovery test*: the "data" are a
+held-out Sobol node's own seed-paired suite measurements — no observational
+noise, no systematics, same-suite prior. It demonstrates information content and
+calibration, **not** a survey forecast.
+
+**Covariance treatment, stated exactly.** Data-vector sizes $p = 24/44/86/107$
+per stage (blocks: S 24, κ-PDF 20, MF $V_1V_2$ 42, scalings 21). $C$ is
+**diagonal by assumption** — per-bin training-residual variance, a plug-in
+variance, so *no sample covariance is inverted and no Hartlap/Sellentin–Heavens
+factor applies* to the current pipeline. The ignored joint residual correlations
+(measured jointly on the same training nodes) are large — median $|r|$ within
+blocks 0.16–0.73 (S bands 0.73), cross-family 0.12–0.55 (S×MF 0.55, S×PDF 0.42)
+— which is exactly why raw coverage is 0.05–0.21 and the LOO temperature is
+required. Upgrade paths: (a) full joint residual covariance at $n_{\rm train}=255$
+→ Hartlap $\alpha = 0.90/0.82/0.66/0.57$ per stage; $p=107$ approaches the
+inversion cap, so a Sellentin–Heavens $t$-likelihood is preferred over a Hartlap
+factor; (b) the planned 550-realization fiducial set is a *measurement*
+covariance of one universe — an additive observational-noise term, **not** a
+replacement for this model-error $C$ ($\alpha \simeq 0.80$ at $p=107$, $n=550$).
 
 ---
 

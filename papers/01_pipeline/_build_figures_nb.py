@@ -4459,8 +4459,21 @@ prior cloud. The physics of the shrinkage: the WL spectrum alone measures the *b
 ($\sigma(\tilde f_{\rm bar})\simeq0.045$, $2.7\times$ below prior) but leaves the
 partition and temperature at or above the prior width; the $\kappa$-PDF is what pins the
 partition; the halo-side scaling relations tighten everything to $3$–$9\times$ below the
-prior ($\sigma \simeq 0.014/0.019/0.013/0.007$). An observational application would add
-measurement noise to $C$ and inherit the same machinery unchanged.
+prior ($\sigma \simeq 0.014/0.019/0.013/0.007$). **Framing (mandatory)**: this is an
+*internal recovery test* — the "data" are the held-out node's own seed-paired suite
+measurements, with no observational noise, no systematics, and a same-suite prior; it
+demonstrates information content and calibration, *not* a survey forecast. Covariance
+treatment, stated exactly: data-vector sizes are $p = 24/44/86/107$ per stage; $C$ is
+*diagonal by assumption* (per-bin training-residual variance — a plug-in variance, so no
+sample covariance is inverted and no Hartlap/Sellentin–Heavens factor applies); the
+ignored joint residual correlations, measured on the same training nodes, are large
+(median $|r|$ up to $\sim$0.7 within the $S$ block, $\sim$0.55 cross-family $S\times$MF)
+— which is precisely why the raw coverage is low and the temperature absorbs it. The
+full-joint-covariance upgrade would face Hartlap $\alpha = 0.90/0.82/0.66/0.57$ per stage
+at $n_{\rm train}=255$ ($p=107$ approaches the cap; Sellentin–Heavens preferred), and the
+planned 550-realization fiducial set is a *measurement* covariance of one universe — an
+additive noise term for survey application, not a replacement for this model-error $C$
+($\alpha\simeq0.80$ at $p=107$, $n=550$).
 (**2026-08-05**: the 1×3 figure is split into three standalone figures — fig 20a = the
 $r$ matrix, fig 20b = the group-bin hinge paired with fig 12b's enhancement-branch
 stacked-$\tau$ gas diagnostic (that panel is intentionally duplicated across the two
@@ -5742,11 +5755,29 @@ for lab, _, _, raw_c, temp, sig_m in stage_out:
           + ", ".join(f"{s:.4f}" for s in sig_m)
           + "; shrink vs prior "
           + ", ".join(f"{p/s:.1f}x" for s, p in zip(sig_m, lat_sd)))
-print("fig 20i [caption]: diagonal-C posteriors are raw-overconfident "
-      "(bin-bin residual correlations ignored) -- the temperature "
-      "calibration (per-halo-SBI precedent) makes the LOO 68% coverage "
-      "exact by construction; an observational application would add "
-      "measurement noise to C")
+print("fig 20i [caption, MANDATORY FRAMING]: this is an INTERNAL RECOVERY "
+      "test -- the 'data' are held-out node "
+      f"{int(run_ids[demo_g[1]])}'s own seed-paired suite measurements "
+      "(no observational noise, no systematics, same-suite prior); it "
+      "demonstrates information content and calibration, NOT a survey "
+      "forecast")
+p_stage = np.cumsum([b[1].shape[1] for b in BLOCKS20])
+print("fig 20i [caption, covariance treatment]: data-vector sizes p = "
+      + "/".join(str(int(p)) for p in p_stage)
+      + f" per stage (blocks {'/'.join(str(b[1].shape[1]) for b in BLOCKS20)})"
+      f"; C is DIAGONAL BY ASSUMPTION (per-bin training-residual variance -- "
+      f"a plug-in variance, so NO sample covariance is inverted and no "
+      f"Hartlap/Sellentin-Heavens factor applies); the ignored joint "
+      f"residual correlations (measured on the same training nodes) are "
+      f"large -- median |r| within blocks up to ~0.7 (S bands), "
+      f"cross-family up to ~0.55 (S x MF) -- which is exactly why the raw "
+      f"coverage is 0.05-0.21 and the LOO temperature absorbs it. "
+      f"Full-joint-covariance upgrade path: at n_train=255, Hartlap alpha = "
+      + ", ".join(f"{(nok - 1 - p - 2)/(nok - 2):.2f}" for p in p_stage)
+      + " per stage (p=107 approaches the cap -> prefer Sellentin-Heavens); "
+      "the planned 550-real fiducial set is a MEASUREMENT covariance of one "
+      "universe -- an additive noise term for survey use, not a replacement "
+      "for this model-error C (alpha ~ 0.80 at p=107, n=550)")
 del cz, mt5, mg5, ms5, logm5, fbar5, fgas5, xpb20, tau20, ta20
 ''')
 

@@ -35,7 +35,13 @@ C is raw-overconfident (LOO 68% coverage 0.05–0.21), fixed by per-stage temper
 calibration (per-halo-SBI precedent; temps 4.6–13.9). Stages S(ℓ) → +κPDF → +MF V₁V₂ →
 +Y/f/T–M: σ(f̃_bar) 0.046→0.014 (8.8× below prior), f̃_star unconstrained→0.019 (the PDF
 is what pins the partition), logT̃ unconstrained→0.007. Corner = held-out node 216, truth
-inside contours at every stage. Cell runtime +~2 min (GP fits).
+inside contours at every stage. Cell runtime +~2 min (GP fits). **Verification pass
+(audit queue)**: stage sizes p=24/44/86/107 confirmed; C is diagonal by assumption (no
+sample-cov inversion → no Hartlap/SH in the current pipeline); ignored joint residual
+correlations measured (|r| within-S 0.73, S×MF 0.55) — the quantified reason for the
+temperature; full-cov upgrade would need SH at p=107/n=255 (Hartlap α→0.57); the 550-real
+fid set is a measurement covariance (additive), not a model-error replacement. Mandatory
+internal-recovery framing sentence added to print/markdown/doc.
 
 ---
 

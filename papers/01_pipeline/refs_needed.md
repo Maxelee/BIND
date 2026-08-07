@@ -160,3 +160,91 @@ paper's methods+validation+bridge scope) — e.g. `Salcido2025kSZ`,
   in-repo beyond a MEMORY note." We used a `\todo{}` in the Discussion (tSZ auto-spectrum
   deficit paragraph) instead of guessing the citation — **do not add `Planck2015XXII` to
   references.bib until the Cite step confirms which Planck y-map release is meant.**
+
+## New — fig20/"New Image 3" van Daalen comparison, flags (ii)/(iii) (`ni3-flags` audit, 2026-08-03)
+
+Not yet cited in `main.tex` (fig20's markdown/caption text lives only in
+`_build_figures_nb.py` today) but needed once New Image 3's caption is written. All four
+arXiv IDs below were fetched and read directly (arXiv abstract + full text), not guessed.
+
+- **Flag (ii) verdict: CONFIRMED, with one caveat already correctly implemented but not yet
+  in a citable caption sentence.** Read van Daalen, McCarthy & Schaye 2020 (arXiv:1906.00968,
+  §3.9 "The baryon fraction as a predictor of power suppression", eq. 4, Fig. 16) directly:
+  their exponential fit $-\exp(-5.990\,\tilde f_{\rm bar,500c}-0.5107)$ — exactly the
+  coefficients hardcoded in the builder — is presented AT $k=0.5\,h\,{\rm Mpc}^{-1}$
+  specifically (their Fig. 16), for the renormalized baryon fraction (gas+stars, within
+  $R_{500c}$, normalized by $\Omega_b/\Omega_m$) of haloes with $M_{500c}\in[6\times10^{13},
+  2\times10^{14}]\,M_\odot$ (their eq. 4) — both the $k$ and the mass bin used by the builder
+  match exactly. The one real mismatch: van Daalen+20's $\tilde f_{\rm bar,500c}$ is a true
+  3-D spherical quantity (halo-finder $R_{500c}$ sphere); the builder's `sobol_m_*_500c_bg`
+  fields (used identically in figs 3/19/20) are a *projected-cylinder*, annulus-subtracted
+  proxy at the same nominal aperture. Panel (c) already corrects for this via a $\times1.16$
+  truth calibration (own TNG300-hydro $\tilde f^{\rm cyl}=0.93$ vs. `Nelson2024TNGCluster`
+  3-D $\tilde f\approx0.81$); panels (a)/(b) do not overlay the literature curve so carry no
+  apples-to-oranges risk, but use the same cylinder quantity. See
+  `audits/report_ni3-flags.md` for the full verdict and recommended caption sentence.
+- **`Nelson2024TNGCluster`** — Nelson et al. 2024, "Introducing the TNG-Cluster Simulation:
+  overview and physical properties of the gaseous intracluster medium," A&A 686, A157
+  (arXiv:2311.06338). Already named in-text in the fig20 markdown cell (the source of the
+  3-D $\tilde f\approx0.81$ used for the $\times1.16$ calibration) but missing from
+  `references.bib`. High confidence, verified directly (arXiv abstract).
+- **Flag (iii) — the uncited "obs. groups" band (`axvspan(0.55, 0.76, ...)`).** This band
+  reproduces van Daalen et al. (2020)'s own green band (their Figs. 15/16), which is itself a
+  12-paper compilation in their footnote 10 (Vikhlinin+06, Maughan+08, Sun+09, Pratt+09,
+  Rasmussen & Ponman+09, Lin+12, Sanderson+13, Gonzalez+13, Budzynski+14, Lovisari+15,
+  Pearson+17, Kravtsov+18 — confirmed by reading van Daalen+20's own reference list). Rather
+  than add all 12 (most otherwise unused in this paper), we recommend citing `vanDaalen2020`
+  itself (already in `references.bib`) as the direct source of the reproduced band, plus four
+  representative primary papers matching the task's own "usual suspects" list — all four
+  *are* confirmed in van Daalen+20's footnote 10; `Akino2022` (the fifth suspect) is NOT,
+  since it postdates van Daalen+20 by two years and cannot be part of that specific
+  compilation — do not cite it for this band.
+  - **`Vikhlinin2006`** — Vikhlinin et al. 2006, "Chandra Sample of Nearby Relaxed Galaxy
+    Clusters: Mass, Gas Fraction, and Mass-Temperature Relation," ApJ 640, 691
+    (arXiv:astro-ph/0507092). Verified directly.
+  - **`Sun2009`** — Sun et al. 2009, "Chandra Studies of the X-Ray Gas Properties of Galaxy
+    Groups," ApJ 693, 1142 (arXiv:0805.2320). Verified directly.
+  - **`Gonzalez2013`** — Gonzalez et al. 2013, "Galaxy Cluster Baryon Fractions Revisited,"
+    ApJ 778, 14 (arXiv:1309.3565). Verified directly.
+  - **`Lovisari2015`** — Lovisari, Reiprich & Schellenberger 2015, "Scaling properties of a
+    complete X-ray selected galaxy group sample," A&A 573, A118 (arXiv:1409.3845). Verified
+    directly. NOTE: this key was already flagged above (the Eckert/Lovisari X-ray f_gas
+    entry) as a candidate for the eROSITA-tension paragraph — it is now independently needed
+    here too; one `references.bib` entry covers both uses.
+  Full bibtex for all five (`Nelson2024TNGCluster` + the four X-ray papers) is in
+  `audits/report_ni3-flags.md`.
+
+## Positioning refs for the analytic latent model (2026-08-07 literature check, verified via arXiv)
+
+Budget→suppression lineage (our f̃_bar kernel is this thread's WL projection):
+- van Daalen+2011 (the original P(k) challenge); Semboloni+2011 (WL tomography + f_gas-informed correction)
+- van Daalen, McCarthy & Schaye 2020 (ΔP/P at k=0.5 ↔ f̃_bar,500c universality)
+- Salcido+2023 SP(k) (arXiv:2305.09710): mean f_b(M) → P(k) suppression, ~percent level
+- FLAMINGO "resummation" model (arXiv:2509.04552, 2025): observed f_b at R500c+R200m (+stellar
+  fractions for k≤25) → P(k) suppression ≲1% to k≤10, ZERO free params. State of the art of the
+  thread. NB: they independently need STELLAR fractions to reach small scales = convergent with
+  our partition latent (we discovered it via residual PCA).
+
+One-model-many-statistics competitor:
+- Zhou, Gatti, Anbajagane+2025 (arXiv:2505.07949, JCAP): map-level baryonification (3-param BCM,
+  FLAMINGO-calibrated) unifying WL 2pt + HOS within 2% at ℓ<2000. FORWARD model (modify DMO sims);
+  ours is a RESPONSE model on measured halo-population properties, no profile assumption, ℓ→3e4,
+  + scalings & SZ/τ statistics.
+
+Latent/analytic descriptions:
+- Lin+2025 "One latent" (arXiv:2509.01881): 2 abstract PCA latents for feedback on matter
+  distribution — we name them with measured halo observables + add structure/thermal.
+- Schaller & Schaye 2025 (arXiv:2504.15633): analytic z-independent 1-param sigmoid (A_mod
+  family) for P(k) suppression, k<3, z≤1 — parallels our "z_s lives in the coefficients" at P(k) level.
+- syren-baryon (arXiv:2506.08783): symbolic-regression analytic emulators, params→P(k).
+- BACCO baryonification NN emulator (arXiv:2011.15018).
+
+Observational-inference side (what our corner formalizes at latent level):
+- arXiv:2512.02954 (2025): suppression from X-ray f_gas + kSZ profiles + GGL.
+- arXiv:2511.10975: DMO counterpart of the observed Universe from WL + baryon censuses.
+- Bigwood+2024 (arXiv:2404.06098): WL + kSZ joint feedback constraints.
+
+Apparently novel in our work (no equivalent found in searches): the family↔kernel chain-rule
+closure (parameter-response families explained as kernel mixtures via measured fingerprints);
+the multi-statistic latent scorecard with a single measured latent set; the SH-scores analytic
+latent posteriors with LOO coverage verification; the decomposed error budget.

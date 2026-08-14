@@ -145,10 +145,19 @@ def reduce_mass(items):
     for rec, d in items:
         if "params" not in d:
             continue
-        Plist.append(d["params"])
+        pvec = np.asarray(d["params"], np.float64).ravel()
         masses = np.asarray(d["masses"], np.float64)
+        # A simulation with no halos above the mass cut stores an *empty*
+        # params array (the key exists, so a presence check is not enough).
+        # It contributes nothing to a parameter-response correlation, and
+        # indexing it raises IndexError. Seen at the 1e13 cut: SB35_665.
+        if pvec.size < C.N_PARAMS or masses.size == 0:
+            print(f"  skip {rec['suite']}/{rec['sim_id']}: "
+                  f"{masses.size} halos, {pvec.size} params")
+            continue
+        Plist.append(pvec)
         row = {"suite": rec["suite"], "sim_id": rec["sim_id"]}
-        row.update({f"p{j+1}": float(d["params"][j]) for j in range(C.N_PARAMS)})
+        row.update({f"p{j+1}": float(pvec[j]) for j in range(C.N_PARAMS)})
         for w, win in C.PARAM_WINDOWS.items():
             sel = _window_mask(masses, win)
             tmf, gmf = d["tm_full"][sel], d["gm_full"][sel]
@@ -290,6 +299,9 @@ def _spearman_grid(P, arr):
 
 
 def reduce_profiles_r200(items):
+    # A sim can have zero halos above the mass floor (e.g. SB35_665 at 1e13),
+    # leaving an empty partial — drop those rather than crash the stack.
+    items = [(r, d) for r, d in items if np.size(d["params"]) == C.N_PARAMS]
     P = np.array([d["params"] for _, d in items])
     out = dict(r_over_r200=R_OVER_R200, params=P,
                suites=[r["suite"] for r, _ in items], sims=[r["sim_id"] for r, _ in items],

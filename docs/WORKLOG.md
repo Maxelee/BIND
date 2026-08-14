@@ -4,6 +4,231 @@ Reverse-chronological log of notable sessions: what changed, why, and decisions
 worth remembering. Newest entries on top. Keep entries short — link commits and
 files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
+## 2026-08-14 — Referee response + full revision of the BIND methods paper
+
+Referee report received (17 points) and verified: **right on all 17** — recomputed
+every claim against the caches (two adversarial agent passes + spot checks). Key
+confirmations: stellar bias is ±10% and sign-flips CV/1P→SB35 (7.2σ, traced to the
+fiducial vector sitting on a face of the SB35 prior — p14/p29/p31 at edges; the 1P
+p15 sweep spans the flip monotonically on fm_thermo but is FLAT on fm_redshift, so
+the attribution is joint, not single-parameter); P(k) error is UNDER-suppression
+(+14%/+18%/+7% peaks CV/1P/SB35) not over-; the §6.3 gas–star "anticorrelation" was
+a mixed-x fit artifact (truth is +0.42); `train.py` uses the test split as the
+validation set (checkpoint selection saw SB35-test); the UNet input is 7 channels
+(large_scale undocumented); captions wrong on 11 of 13 figures.
+
+Revision executed on branch `paper/referee-revision` (paper dir now in git):
+**model frozen to fm_redshift @ z=0** (suite eval complete for all 3 suites), spine
+cache rebuilt (`paper_cache/fm_redshift_snap090/`, ~19 min pool 16 + pk_fixed;
+`reduce_profiles_r200` now drops empty partials — SB35_665 has no ≥1e13 halos).
+All figures regenerated from the spine via `tools/paper_cache/referee_figs/*.py`
+(8-agent fleet): fig5 now 3×3 with the P_BIND/P_hydro-replace row, shapes carry the
+DMO baseline in all 9 panels, Spearman figs are SB35-only with paired bootstrap,
+plus new figs: p15 sweep, matched per-halo residuals, per-halo shapes/misalignment.
+§5.5 Redshift Dependence restored from main.tex (then main.tex retired). Manuscript
+compiles clean (41 pp). Posterior-calibration ensemble (200×100) + paired-seed ODE
+convergence re-run on the spine (GPU). Full record:
+`BIND__methods_paper (1)/response_to_referee.md` + `revision_plan.md`; analysis
+artifacts at `/mnt/home/mlee1/ceph/paper_cache/referee_response/`.
+
+## 2026-08-13 — Fig. 1 showcase: trained-regime cut, no title, no residual row
+
+`examples/paper_figures/fig1_showcase_composite.{pdf,png}` remade per review: dropped
+the `BIND2 showcase — CV/sim_0` suptitle and the bottom fractional-residual row (now a
+plain 2x4 Truth/BIND grid), and restricted the BIND rows to the **trained regime**
+(M200c >= 1e13). The §1 cell of `examples/paper_figures2.ipynb` (and its builder
+`_build_paper_nbs.py`, kept byte-identical) now masks the halo catalog at
+`10**MIN_LOG_M200` and, when the suite was evaluated at a lower threshold, rebuilds the
+composite from that subset with the standard shared-content paste
+(`build_bind_composite(paste_mode="shared", r200_factor=4)`, same recipe as
+`build_pk_fixed.compute_fixed`); a suite already cut at 1e13 just loads its cached
+composite. Both variants are emitted (`fig1_showcase` = patches-on-black `hydro_canvas`,
+`fig1_showcase_composite` = Gas/Stars from the blended `composite`, DM from the
+unblended `canvas`). The composite's DM channel is
+`(1-alpha)*DMO + alpha*canvas`, so its BIND panel was a near-copy of column 1 --
+inside the apertures alpha is ~1 and the DMO fill carries only 5.7% of the DM mass;
+the rest of the box is pure DMO. Showing `canvas[0]` there makes the panel display
+what the model generated. Gas/Stars need no such swap (zero background).
+
+Committed figure is the dev suite (`fm_lowmass`/`fm_thermo_ema`, 45/382 halos survive the
+cut). The `fm_redshift` spine (`PAPER_SUITE_ROOT=.../fm_redshift_suite
+PAPER_MODEL_SUBDIR=fm_redshift PAPER_MASS_DIR=mass_threshold_1p000e13`) is natively 45/45
+and renders indistinguishably — same halos, same paste.
+
+## 2026-08-13 — Fig. `fig:flow_matching` builder (the missing `imgs/` figure)
+
+`main.tex` includes `imgs/flow_matching_diagram.pdf`, which existed nowhere in
+the repo or on ceph. Added `tools/paper_cache/make_flow_matching_fig.py`: it
+picks the CV/sim_0 halo nearest M200c=1e14 (halo 2, log M=14.06), re-runs the
+sampler live and snapshots the Euler trajectory at t=0 / 0.5 / 1, then plots
+3 mass channels x [t=0, t=0.5, t=1, truth, signed residual].
+
+`FlowMatching.sample` returns only the endpoint, so the script re-implements its
+Euler loop (`sample_trajectory`) — same `normalize_cutout` /
+`_denormalize_to_physical` / bf16-autocast path, same `last.ckpt`, n_steps=20,
+a=1 as the suite eval in `summary.json`, so the t=1 panel is the production
+sampler and not a lookalike. Patch-mass check vs the cached realization:
+DM +0.9%, Gas +1.0%, Stars -13% (cached draw +7%) — within FM draw-to-draw
+scatter. Output: `examples/paper_figures/flow_matching_diagram.{pdf,png}`,
+PDF copied to `imgs/`.
+
+## 2026-08-13 — BUG: suite-eval path dropped `scale_factor` for redshift models
+
+`bind-camels-suite` never passed the conditioning scale factor to the model.
+`generate_halo_patches` had no `scale_factor` argument and called
+`fm.sample(cond, ls, params, n_steps=)`; `UNet.forward` then defaults a missing
+`scale_factor` to **a=1 (z=0)** for a redshift-conditioned model. So
+`--snapshot 60` with `fm_redshift` read the z=1.045 DMO field and z=1.045 truth
+but generated **z=0** baryons, and charged the mismatch to the model.
+
+Measured on 800 snap_060 (z=1.045) patches, error within R200c:
+
+| | DM | Gas | Stars |
+|---|---|---|---|
+| correct a=1/(1+z) | +0.35% | +0.94% | −8.45% |
+| a=1 fallback (old) | +0.41% | +6.20% | **−39.55%** |
+
+i.e. 4.7× inflated stellar error, 6.6× gas, worsening with z — a fabricated
+"accuracy degrades with redshift" result. DM is nearly immune (its structure
+comes from the DMO input, not the label), which is why the bug was easy to miss.
+
+Fixed: `scale_factor` threaded `generate_halo_patches` → `run_single_simulation`
+→ `run_suite`, derived per-sim from `spec.snapshot` via `SNAPSHOT_REDSHIFTS`, and
+`load_model_bundle` now reports `condition_redshift` from the model hparams. An
+unknown snapshot raises instead of silently defaulting. `bind.paint()` was always
+correct (`_resolve_scale_factor`); only the CAMELS-suite path was affected — which
+is why no released z=0 result changes (a=1 is correct at z=0).
+
+Context: needed because Fig. R1 (`fig_z_mass_error`) is SB35-only while the
+paper's Fig. 3 median is over CV+1P+SB35 — the "~5% stars" vs "−10% stars"
+discrepancy is a *suite-composition* artifact, not a model difference
+(`fm_thermo` restricted to SB35 gives −8.3%, vs `fm_redshift` −9.9%). Making them
+concordant requires a multi-z CV+1P+Test suite eval, which requires this fix.
+Data checked: CV has all 6 snapshots; 1P has `snapdir_080`, not `082`.
+
+
+### Addendum — second silent-corruption bug caught in pre-flight
+
+`run_lowmass_suite.sh` built the SB35 test manifest with the correct
+`snapdir_<SNAPSHOT>` in every entry but wrote it to ONE fixed filename
+(`manifests/sb35_test_manifest.json`), with a single shared `.manifest.lock`.
+Evaluating several snapshots into one `OUTPUT_ROOT` would have had each
+snapshot's chunk 0 overwrite the shared file while other chunks read whichever
+version was on disk — silently pairing one snapshot's DMO field with another
+snapshot's hydro truth. Both are now namespaced:
+`sb35_test_manifest_snap<NNN>.json` / `.manifest_snap<NNN>.lock`, and
+`TEST_MANIFEST` was moved below the `SNAPSHOT` default so it cannot fall back
+to 90. All snapshots can now be submitted concurrently.
+
+Pre-flight (all 6 snapshots): CV 27/27 complete for DMO+hydro+FoF. 1P has 141
+param entries; its astro variants correctly share `1P_p1_0` DMO+FoF via
+`build_1p_specs`, and that shared catalog exists at every snapshot — but hydro
+`snapdir_082` exists for only 12/176 sims, so 1P is skipped at z=0.209. SB35
+Test manifest holds 102 sims. Driver: `run_zsuite_submit.sh` (dry-run by
+default, 17 array submissions).
+
+### Addendum 2 — downstream figure path proven against the pilot before the arrays land
+
+`tools/paper_cache/build_zmass.py` (new) drives the *existing*
+`build_metric.py mass` reducer once per snapshot via `PAPER_SNAP` and stitches
+the per-snapshot `mass_table.pkl` into one multi-z table with `snapshot`/`z`
+columns; it warns if any snapshot lacks CV+1P+Test so a partial table cannot
+masquerade as a matched population. `make_z_figures.fig_r1_matched()` (new)
+plots R1 from that table: left column = combined CV+1P+SB35 (concordant with
+Fig. 3), right column = the stellar channel split by suite, so the +5%/-10%
+spread is shown rather than left to look like a contradiction.
+
+Two things verified on the pilot rather than assumed:
+- **R200c is already correct at z>0 in the existing reducer.** `paper_config.
+  r200_pix_patch` prefers the catalog's stored `r200s` (FoF `Group_R_Crit200`).
+  Measured on the z=1.045 pilot catalog: stored/E(z)-corrected = **1.0001**,
+  stored/z=0-formula = **1.3785**. No aperture change was needed, and this
+  independently re-validates `build_zcache.r200c_comoving` on real catalog data.
+- **`PAPER_MASS_DIR` gotcha:** `paper_config` defaults it to
+  `mass_threshold_1p000e12` (the low-mass study) while this eval runs at 1e13;
+  the mismatch silently discovers **zero** simulations. `build_zmass.py` sets it
+  explicitly (`--mass_dir`, default 1e13).
+
+Pilot cross-check reinforcing the suite-composition diagnosis: CV_0 at z=1.045
+gives Stars **+9.55%** within R200c, versus **-7.6%** for SB35 at the same
+redshift — the stellar bias flips sign by suite at z>0 exactly as it does at z=0.
+
+### Addendum 3 — arrays landed; R1 rebuilt per-suite (pooling would have been an artifact)
+
+Multi-z suite eval complete: `ceph/fm_redshift_suite`, **35,140 halos** over 6
+snapshots (z=0: 1P 6823 / CV 1154 / SB35 4272 — the SB35 counts match the
+patch-cache exactly, and the z=0 total of 12,249 matches the >=1e13 subset of the
+old `fm_thermo` table). `fm_redshift_mass_table_multiz.pkl` built by
+`build_zmass.py`.
+
+Two bugs fixed to get there:
+- **`reduce_mass` IndexError on zero-halo sims.** Pre-existing in
+  `build_metric.py`: the guard is `if "params" not in d`, but a sim with no halos
+  above the cut stores an *empty* params array, so the key exists and
+  `d["params"][j]` raises. 13 SB35 sims hit this at the 1e13 cut (SB35_585, _661,
+  _665, _745, _758, _805, _817, _86, _865, _929, _933, _953, _982). Now skipped
+  with a log line.
+- **`build_zmass.run_metric` ignored the subprocess exit code**, so the crash
+  above passed unnoticed while a stitched table was written anyway. Now raises.
+
+**R1 is per-suite, NOT pooled.** The suite mix varies strongly with z (1P is 56%
+of the population at z=0, 20% at z=2, and 0% at z=0.209 — no `snapdir_082`), and
+the stellar bias differs in *sign* between suites, so a pooled median swings
++4.3 / -4.2 / +6.4 / +7.6 / +9.2 / +0.4 percent from composition alone. Fig. 3
+also separates the suites, so per-suite is both the honest and the concordant
+choice. `make_z_figures.fig_r1_matched()` now plots 2 apertures x 4 channels with
+one line per suite; `main.tex` R1 prose + caption rewritten, figure promoted to
+`figure*`. Subsection recompiles clean (0 errors, 0 undefined refs, 6 pages).
+
+**New result worth keeping:** within R200c over 0<=z<=2, DM stays +0.3..+1.1% and
+Total +0.2..+2.6% in all suites. SB35 (the generalization test) is flattest: gas
+<+1%, stars -8.3..-5.7%. But **1P stellar error grows monotonically +9.6% ->
++29%**. NOT mass selection — a fixed 13.0-13.5 bin reproduces it (+10.0 ->
++29.1%) and the median mass drifts <0.1 dex. Likely the 1P design: single
+parameters pushed to the prior edge, plus shared initial conditions, so its
+halos are not independent (the 178 halos at z=2 are far fewer distinct
+structures). Documented in the paper text as the least constraining suite.
+
+## 2026-08-13 — Redshift-dependence paper subsection: 4 figures + LOO-in-z plumbing
+
+Filled the empty `\subsection{Redshift Dependence}` skeleton in `main.tex` with
+prose, a snapshot table and the four figures it reserved, all built from
+`fm_redshift` (last.ckpt, raw weights as in `bind.inference.runner`) over 4,674
+held-out multi-z test patches.
+
+- **New tooling** `tools/paper_cache/build_zcache.py` (one GPU pass → `zcache.npz`
+  per-patch truth-vs-BIND masses/profiles/thermo + `zsweep.npz` fixed-DMO z-sweep)
+  and `make_z_figures.py` (load-only; also emits `tab_z_snapshots.tex`). Cache in
+  `ceph/paper_cache/fm_redshift/`; figures in `examples/paper_figures/`.
+- **R200c must carry E(z).** `bind.data.m200c_to_r200c` is z=0-only; the maps are
+  comoving, so the aperture is `r0·(1+z)/E(z)^(2/3)` with **per-sim Ω_m**. Using the
+  z=0 form undersizes it by 8.5–110% over SB35's z and Ω_m range and manufactures a
+  fake f_b(z) trend. New `r200c_comoving()` reproduces catalog `Group_R_Crit200` to
+  0.01%. Mass channels carry **no** a-factors (verified: box mass = Ω_m ρ_c V to
+  ≲1% at every z), so the f_b evolution figure is clean of the documented z>0
+  *thermo* a-factor caveat.
+- **Results:** ΔM/M flat in z (DM/gas/total sub-percent to z=2, stars ~−8%);
+  profile error flat in radius and z (DM 1%, gas 2%); f_b(<R200c)/f_b0 evolves
+  +8.9% (true) vs +9.5% (BIND) over z=0→2, matched to <2.4% per bin; SHMR evolution
+  reproduced but ~10–17% low in normalization. Fixed-DMO z-sweep is strictly
+  monotone and **off-grid redshifts (0.10/0.33/0.70/1.25/1.75) fall on the same
+  smooth curve** — continuous in a, not memorized snapshots.
+- **Gotcha:** per-file `redshift` scatters up to 6e-3 between sims (different
+  cosmologies) — group by snapshot number, use the per-file z for physics.
+- **`--exclude_snaps`** added to `bind.data.load_file_list`/`bind.train` for the
+  referee-grade LOO-in-z retrain; filters **both** splits so `ModelCheckpoint`'s
+  val/loss selection never sees the held-out z, and never writes a truncated cache.
+  Verified: 151,685→131,302 train maps for snap_060, 256 steps/epoch. Cost ≈117
+  GPU-h / 14.6 h wall on 8×H100. **Not submitted** — user submits.
+- **Blocker found:** `run_train.sh` does not parse on this branch (`bash -n` fails
+  at line 103; unterminated `elif` from the observable-conditioning merge `24d9ea5`),
+  and `REDSHIFT=1` silently selects the z=0 data root because line 52 sets
+  `DATA_ROOT` unconditionally. Clean source: `git show feature/redshift:run_train.sh`.
+- **main.tex fix:** Appendix A `eq:embedding` said `e = e_t + e_θ`, contradicting
+  `model.py` (`emb += redshift_emb(a)`); now includes `e_a`. Added a redshift row to
+  `tab:validation_summary`.
+
+
 ---
 
 ## 2026-07-23 — wlemu v2 implementation complete (T1–T4 on `feature/wl-emu`)

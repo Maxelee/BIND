@@ -30,6 +30,10 @@ compiles clean (41 pp). Posterior-calibration ensemble (200×100) + paired-seed 
 convergence re-run on the spine (GPU). Full record:
 `BIND__methods_paper (1)/response_to_referee.md` + `revision_plan.md`; analysis
 artifacts at `/mnt/home/mlee1/ceph/paper_cache/referee_response/`.
+2026-08-15 close-out: SB35 ODE leg re-run after a dropped connection; paired-seed
+convergence result (S(k) at n=20 converged <0.3% at k<20; stellar patch mass −6%
+vs converged, suite-uniform) written into §7.1 — all 17 points now closed, full
+bibtex compile clean at 42 pp.
 
 ## 2026-08-13 — Fig. 1 showcase: trained-regime cut, no title, no residual row
 

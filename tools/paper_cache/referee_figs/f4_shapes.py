@@ -197,24 +197,23 @@ for col, (key, name) in enumerate(CHANNELS):
                                    edgecolor='none', pad=2.5))
 
     # ── bottom: major-axis misalignment ────────────────────────────────────
+    # misalignment of the true and generated axes from the DMO reference axis
     dphi = wrap_dphi(phi_of(f'gen_{key}')[cv] - phi_of(f'truth_{key}')[cv])
-    abs_dphi_deg = np.degrees(np.abs(dphi))
-    med_dphi = np.median(abs_dphi_deg)
+    med_dphi = np.median(np.degrees(np.abs(dphi)))
     mean_cos = np.mean(np.cos(2 * dphi))
-    dphi_dmo = wrap_dphi(phi_of('dmo')[cv] - phi_of(f'truth_{key}')[cv])
-    abs_dmo_deg = np.degrees(np.abs(dphi_dmo))
-    med_dmo = np.median(abs_dmo_deg)
+    tr_dmo = np.degrees(np.abs(wrap_dphi(phi_of(f'truth_{key}')[cv] - phi_of('dmo')[cv])))
+    bd_dmo = np.degrees(np.abs(wrap_dphi(phi_of(f'gen_{key}')[cv] - phi_of('dmo')[cv])))
+    med_tr_dmo, med_bd_dmo = np.median(tr_dmo), np.median(bd_dmo)
 
     ax = axes[1, col]
     dbins = np.linspace(0, 90, 31)
-    ax.hist(abs_dphi_deg, bins=dbins, density=True, histtype='stepfilled',
-            alpha=0.40, color=CV_COLOR)
-    ax.hist(abs_dphi_deg, bins=dbins, density=True, histtype='step',
-            lw=2.0, color=CV_COLOR, label=r'BIND vs truth')
-    ax.hist(abs_dmo_deg, bins=dbins, density=True, histtype='step',
-            lw=1.6, ls='--', color='0.45', label=r'DMO vs truth')
+    ax.hist(tr_dmo, bins=dbins, density=True, histtype='stepfilled',
+            alpha=0.40, color=CV_COLOR, label=r'truth vs DMO')
+    ax.hist(bd_dmo, bins=dbins, density=True, histtype='step',
+            lw=2.0, color=CV_COLOR, label=r'BIND vs DMO')
     ax.axhline(1.0 / 90.0, color='0.35', ls='--', lw=1.4)
-    ax.axvline(med_dphi, color=CV_COLOR, ls=':', lw=1.5)
+    ax.axvline(med_tr_dmo, color=CV_COLOR, ls=':', lw=1.5, alpha=0.7)
+    ax.axvline(med_bd_dmo, color=CV_COLOR, ls='-.', lw=1.3)
     if col == 0:
         ax.legend(fontsize=9, loc='center right', framealpha=0.9)
     ax.set_xlim(0, 90)
@@ -227,8 +226,11 @@ for col, (key, name) in enumerate(CHANNELS):
                 ha='right', va='bottom', fontsize=9, color='0.35')
 
     perhalo_stats[key] = dict(r_gen=r_gen, r_dmo=r_dmo, med_dphi=med_dphi,
-                              mean_cos=mean_cos, med_dphi_dmo=med_dmo)
+                              mean_cos=mean_cos, med_truth_dmo=med_tr_dmo,
+                              med_bind_dmo=med_bd_dmo)
 
+for k,v in perhalo_stats.items():
+    print('  [perhalo]', k, {kk: round(float(vv),2) for kk,vv in v.items()})
 save_fig(fig, 'fig_shape_perhalo')
 plt.close(fig)
 

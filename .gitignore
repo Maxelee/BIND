@@ -55,6 +55,11 @@ paper_figures_thermo/
 paper_figures_thermo
 *_figs/
 *_figs
+# ...but the paper-figure *builder scripts* are source, not artifacts:
+!tools/paper_cache/referee_figs/
+tools/paper_cache/referee_figs/*
+!tools/paper_cache/referee_figs/*.py
+!tools/paper_cache/referee_figs/*.tex
 imgs
 # Allow figures/gifs that live under the documentation static directory.
 !docs/_static/**

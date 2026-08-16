@@ -441,8 +441,7 @@ def make_figure(df, npz):
            CH_COLORS, CH_DISP, offs)
     ax.axhline(0, color="k", lw=0.8, ls="--", alpha=0.6)
     ax.set_xlabel(r"$\log_{10} M_{200c}\ [M_\odot/h]$")
-    ax.set_ylabel(r"$M^{50}/M^{6.25} - 1$ within $R_{200c}$ [%]")
-    ax.set_title("Line-of-sight excess")
+    ax.set_ylabel(r"$M^{50}_{R_{200c}}/M^{6.25}_{R_{200c}} - 1$ [%]")
     ax.legend(fontsize=9, loc="upper right", framealpha=0.9)
     ax.grid(alpha=0.25, lw=0.5)
     ax.set_axisbelow(True)
@@ -453,8 +452,7 @@ def make_figure(df, npz):
     binned(ax, F, FRAC_COLORS, FRAC_DISP, offs)
     ax.axhline(0, color="k", lw=0.8, ls="--", alpha=0.6)
     ax.set_xlabel(r"$\log_{10} M_{200c}\ [M_\odot/h]$")
-    ax.set_ylabel(r"$f^{\,\rm proj}/f^{\,\rm halo} - 1$ [%]")
-    ax.set_title("Projected-fraction bias")
+    ax.set_ylabel(r"$f^{\,50}_{R_{200c}}/f^{\,6.25}_{R_{200c}} - 1$ [%]")
     ax.legend(fontsize=9, loc="upper right", framealpha=0.9)
     ax.grid(alpha=0.25, lw=0.5)
     ax.set_axisbelow(True)
@@ -465,20 +463,19 @@ def make_figure(df, npz):
     for ci, ch in enumerate(CHANNELS):
         med = np.nanmedian(ratio[:, ci], 0)
         lw, alpha = (1.4, 0.85) if ch == "Stars" else (2.0, 1.0)
-        ax.plot(r[sl], 1.0 + med[sl], "-", lw=lw, alpha=alpha,
+        ax.plot(r[sl], 100.0 * med[sl], "-", lw=lw, alpha=alpha,
                 color=CH_COLORS[ch], label=CH_DISP[ch])
     p16 = np.nanpercentile(ratio[:, 1], 16, 0)
     p84 = np.nanpercentile(ratio[:, 1], 84, 0)
-    ax.fill_between(r[sl], 1.0 + p16[sl], 1.0 + p84[sl], color="tab:purple",
+    ax.fill_between(r[sl], 100.0 * p16[sl], 100.0 * p84[sl], color="tab:purple",
                     alpha=0.18, lw=0)
-    ax.axhline(1.0, color="k", lw=0.8, ls="--", alpha=0.6)
+    ax.axhline(10.0, color="k", lw=0.8, ls="--", alpha=0.6)
     ax.axvline(med_r200_mpc, color="0.4", lw=1.0, ls=":")
-    ax.text(med_r200_mpc * 1.1, 2.1, r"median $R_{200c}$", rotation=90,
+    ax.text(med_r200_mpc * 1.1, 130.0, r"median $R_{200c}$", rotation=90,
             fontsize=8, color="0.35", va="bottom")
     ax.set_yscale("log")
     ax.set_xlabel(r"$r$ [Mpc$/h$]")
-    ax.set_ylabel(r"$\Sigma^{50}/\Sigma^{6.25}$")
-    ax.set_title("Where the excess lives")
+    ax.set_ylabel(r"$\Sigma^{50}/\Sigma^{6.25} - 1$ [%]")
     ax.legend(fontsize=9, loc="upper left", framealpha=0.9)
     ax.grid(alpha=0.25, lw=0.5, which="both")
     ax.set_axisbelow(True)

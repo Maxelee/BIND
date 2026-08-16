@@ -19,7 +19,16 @@ sweep is unique to fm_thermo; §4.2.1 states the joint-attribution version. Gotc
 the record: fm_testsuite catalogs carry legacy 'radii' (kpc/h) which
 `paper_config.r200_pix_patch` ignores → the fm_two_head cache used analytic R200c
 apertures (≤1.7% radius difference; residuals unaffected; §4.4 wording adjusted).
-§4.5 calibration + §7.1 convergence re-runs on fm_two_head in progress on GPU.
+§4.5 calibration + §7.1 convergence closed on fm_two_head (user-submitted sbatch
+array, run_paper_gpu.sh): DM calibrated as generated (p=0.48), stars after debias
+(p=0.22; SB35 p=0.003 = the design systematic), gas ~1.7× under-dispersed;
+S(k) at production n=50 converged to <0.2% at k<20 with opposite-sign residual
+(new fig:ode_conv). Timing table (tab:timing) added from measured benchmarks
+(train 19 h on 8×H100; box baryonification 40 s on a 2/7-MIG A100 slice).
+Cube appendix reworked per author direction into a LOS-projection
+characterization (gas +12%, DM +6%, stars ~0% aperture excess; f_b +2.4%,
+f_star −5.2%; contamination radially in the outskirts). All referee-facing
+items now closed on the fm_two_head layout.
 
 ## 2026-08-14 — Referee response + full revision of the BIND methods paper
 

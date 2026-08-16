@@ -182,6 +182,18 @@ for col, (key, name) in enumerate(CHANNELS):
     lo = _lo_all
     hb = ax.hexbin(qt, qg, gridsize=34, cmap='Greens', mincnt=1,
                    extent=(lo, 1, lo, 1), linewidths=0.15)
+    # grey contours of the DMO identity baseline (q_DMO vs q_truth): on the
+    # 1:1 for DM (inherited), below it for gas (too elliptical), above it for
+    # stars (too round) — makes the 'structurally wrong baseline' visible.
+    H, xe, ye = np.histogram2d(qt, qd, bins=40, range=[[lo, 1], [lo, 1]])
+    Hs = H.T
+    order = np.sort(Hs.ravel())[::-1]
+    csum = np.cumsum(order) / order.sum()
+    levels = sorted({order[np.searchsorted(csum, f)] for f in (0.68, 0.95)})
+    if len(levels) >= 2:
+        xc, yc = 0.5 * (xe[:-1] + xe[1:]), 0.5 * (ye[:-1] + ye[1:])
+        ax.contour(xc, yc, Hs, levels=levels, colors='0.45',
+                   linewidths=1.1, linestyles='--', zorder=2)
     ax.plot([lo, 1], [lo, 1], color='k', ls='--', lw=1.1, zorder=3)
     ax.set_xlim(lo, 1); ax.set_ylim(lo, 1)
     ax.set_aspect('equal')
@@ -189,6 +201,11 @@ for col, (key, name) in enumerate(CHANNELS):
     ax.set_xlabel(r'$q_{\rm truth}$')
     if col == 0:
         ax.set_ylabel(r'$q_{\rm BIND}$')
+    if key == 'dm':
+        from matplotlib.lines import Line2D
+        ax.legend(handles=[Line2D([], [], color='0.45', ls='--', lw=1.1,
+                                  label=r'$q_{\rm DMO}$ vs $q_{\rm truth}$')],
+                  fontsize=9, loc='lower right', framealpha=0.9)
     txt = rf'$r = {r_gen:.2f}$'
     if key == 'dm':
         txt += '\n' + rf'$r_{{\rm DMO}} = {r_dmo:.2f}$'

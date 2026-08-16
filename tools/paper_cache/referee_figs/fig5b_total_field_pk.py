@@ -94,6 +94,8 @@ for col, (s, disp) in enumerate(SUITES):
 
     # row 1 — suppression S(k) = P/P_DMO
     a = ax[0, col]
+    for r_, colr in ((tr / dm, "0.25"), (bi / dm, "tab:orange"), (hr / dm, "tab:blue")):
+        a.fill_between(KB, q(r_, .16), q(r_, .84), color=colr, alpha=0.16, lw=0)
     a.plot(KB, med(tr / dm), "k", lw=1.6, label="Truth / DMO")
     a.plot(KB, med(bi / dm), color="tab:orange", lw=1.6, label="BIND / DMO")
     a.plot(KB, med(hr / dm), color="tab:blue", lw=1.4, label="Hydro-replaced / DMO")

@@ -4,6 +4,23 @@ Reverse-chronological log of notable sessions: what changed, why, and decisions
 worth remembering. Newest entries on top. Keep entries short — link commits and
 files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
+## 2026-08-16 — Paper model pivot: fm_two_head fiducial + cube appendix
+
+Author direction: main body on **fm_two_head** (z=0, n_steps=50 per its suite eval),
+§5.5 stays on fm_redshift as an explicitly separate redshift-conditioned variant,
+new Appendix D compares **fm_cube_two_head** (6.25 Mpc/h cube projections) on 8,273
+matched halos — cube costs ~2× the gas/stellar bias and 1.3–1.5× the scatter, and a
+LOS-dilution control (truth-aperture ratios 1.06/1.12/1.00) shows the full-depth
+advantage is the environmental conditioning, not diluted targets. Full fm_two_head
+paper cache built (`paper_cache/fm_two_head/`); all figures + numbers refit (8-agent
+fleet). Key science: the stellar sign flip reproduces on fm_two_head (+10.5/−9.0,
+7.1σ) and its p15 sweep is ALSO flat (ρ=−0.16, p=0.12) — the monotone single-parameter
+sweep is unique to fm_thermo; §4.2.1 states the joint-attribution version. Gotcha for
+the record: fm_testsuite catalogs carry legacy 'radii' (kpc/h) which
+`paper_config.r200_pix_patch` ignores → the fm_two_head cache used analytic R200c
+apertures (≤1.7% radius difference; residuals unaffected; §4.4 wording adjusted).
+§4.5 calibration + §7.1 convergence re-runs on fm_two_head in progress on GPU.
+
 ## 2026-08-14 — Referee response + full revision of the BIND methods paper
 
 Referee report received (17 points) and verified: **right on all 17** — recomputed

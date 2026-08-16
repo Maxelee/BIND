@@ -159,8 +159,15 @@ plt.close(fig)
 cv = suite == 'CV'
 CV_COLOR = SUITE_COLORS['CV']
 
-fig, axes = plt.subplots(2, 3, figsize=(12.6, 8.0),
+fig, axes = plt.subplots(2, 3, figsize=(12.6, 8.0), sharey='row',
                          gridspec_kw={'hspace': 0.28, 'wspace': 0.24})
+
+# common axis range for the top row so the shared y is meaningful
+_lo_all = 1.0
+for _key, _ in CHANNELS:
+    _qt = A[f'truth_{_key}_q'][cv]; _qg = A[f'gen_{_key}_q'][cv]
+    _lo_all = min(_lo_all, np.quantile(_qt, 0.002), np.quantile(_qg, 0.002))
+_lo_all = max(0.0, _lo_all - 0.03)
 
 perhalo_stats = {}
 for col, (key, name) in enumerate(CHANNELS):
@@ -172,8 +179,7 @@ for col, (key, name) in enumerate(CHANNELS):
 
     # ── top: 2D density ────────────────────────────────────────────────────
     ax = axes[0, col]
-    lo = min(np.quantile(qt, 0.002), np.quantile(qg, 0.002))
-    lo = max(0.0, lo - 0.03)
+    lo = _lo_all
     hb = ax.hexbin(qt, qg, gridsize=34, cmap='Greens', mincnt=1,
                    extent=(lo, 1, lo, 1), linewidths=0.15)
     ax.plot([lo, 1], [lo, 1], color='k', ls='--', lw=1.1, zorder=3)
@@ -183,12 +189,6 @@ for col, (key, name) in enumerate(CHANNELS):
     ax.set_xlabel(r'$q_{\rm truth}$')
     if col == 0:
         ax.set_ylabel(r'$q_{\rm BIND}$')
-    txt = rf'$r = {r_gen:.2f}$'
-    if key == 'dm':
-        txt += '\n' + rf'$r_{{\rm DMO}} = {r_dmo:.2f}$'
-    ax.text(0.04, 0.96, txt, transform=ax.transAxes, ha='left', va='top',
-            fontsize=11, bbox=dict(facecolor='white', alpha=0.8,
-                                   edgecolor='none', pad=2.5))
 
     # ── bottom: major-axis misalignment ────────────────────────────────────
     dphi = wrap_dphi(phi_of(f'gen_{key}')[cv] - phi_of(f'truth_{key}')[cv])
@@ -209,20 +209,13 @@ for col, (key, name) in enumerate(CHANNELS):
     ax.set_xlabel(r'$|\Delta\phi|$ [deg]')
     if col == 0:
         ax.set_ylabel(r'$p(|\Delta\phi|)$ [deg$^{-1}$]')
-    ax.text(0.96, 0.95,
-            rf'median $|\Delta\phi| = {med_dphi:.1f}^\circ$' + '\n'
-            + rf'$\langle\cos 2\Delta\phi\rangle = {mean_cos:.2f}$',
-            transform=ax.transAxes, ha='right', va='top', fontsize=10.5,
-            bbox=dict(facecolor='white', alpha=0.8, edgecolor='none', pad=2.5))
-    if col == 2:
-        ax.text(88, 1.0 / 90.0 * 1.25, 'random orientation',
-                ha='right', va='bottom', fontsize=9, color='0.35')
+    if col == 0:
+        ax.text(2, 1.0 / 90.0 * 1.25, 'random orientation',
+                ha='left', va='bottom', fontsize=9, color='0.35')
 
     perhalo_stats[key] = dict(r_gen=r_gen, r_dmo=r_dmo,
                               med_dphi=med_dphi, mean_cos=mean_cos)
 
-fig.suptitle(r'Per-halo shape fidelity — CV suite, $M_{200c}\geq 10^{13}\,'
-             r'M_\odot/h$', fontsize=13, y=0.98)
 save_fig(fig, 'fig_shape_perhalo')
 plt.close(fig)
 

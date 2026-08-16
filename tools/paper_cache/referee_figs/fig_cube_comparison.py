@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
-"""Projection-depth comparison appendix figure (fm_two_head vs fm_cube_two_head).
+"""Projection-depth characterization appendix (truth-vs-truth LOS contamination).
 
-Compares the fiducial full-depth model (fm_two_head: DMO patches projected over
-the full 50 Mpc/h line of sight + 3 large-scale context channels) against the
-cube variant (fm_cube_two_head: 6.25 Mpc/h halo-centered cube projections, no
-large-scale context, trained on CubeAstroDataset).  Each model is measured
-against ITS OWN truth: the cube model against 6.25 Mpc/h-deep truth projections
-(truth_halos_cube.npz), the full-depth model against 128x128 patches extracted
-from the 50 Mpc/h-deep full-box truth maps (full_maps.npz), following the
-compute_mass conventions in tools/paper_cache/build_metric.py.
+Characterizes how much foreground/background material the fiducial full-depth
+projection (50 Mpc/h line of sight, the fm_two_head training/eval convention)
+incorporates into halo-aperture quantities, measured against halo-local
+6.25 Mpc/h cube projections of the SAME halos as the reference.  The two
+evaluation trees (/mnt/home/mlee1/ceph/fm_testsuite{,_cube}) share the same
+FoF catalogs, so halos are matched one-to-one (asserted on mass + center) and
+both truths are cached per halo:
 
-Halo correspondence: the two evals share the same FoF catalogs, so halos are
-matched per sim by index and the match is asserted on (mass, center).  The
-Test (SB35) suites of the two evals sampled mostly different sims: only the
-intersection is used for the matched comparison (asserted per sim); an
-unmatched population cross-check over all Test sims of each eval is also
-computed and printed.
+  X       = M_truth_full / M_truth_cube - 1  within R200c   (LOS excess)
+  f-bias  = f^proj / f^cube - 1  for f_b, f_gas, f_star     (fraction bias)
+  Sigma ratio vs radius (32 linear annuli)                  (localization)
+
+The model-vs-model accuracy comparison (fm_two_head vs fm_cube_two_head) is
+retained as a printout only (`--model-table`) and feeds a single supporting
+sentence in the appendix.
 
 Outputs
 -------
-- cache:  <CACHE>/cube_comparison_table.pkl   per-halo integrated masses
+- cache:  <CACHE>/cube_comparison_table.pkl    per-halo aperture masses (both truths + both models)
           <CACHE>/cube_comparison_profiles.npz per-halo 32-bin radial profiles
 - figure: examples/paper_figures/fig_cube_comparison.{pdf,png}
           + a copy of the pdf into "BIND__methods_paper (1)/imgs/"
@@ -27,8 +27,10 @@ Outputs
 Run:
     source /mnt/home/mlee1/venvs/torch3/bin/activate
     python /mnt/home/mlee1/vdm_bind2/tools/paper_cache/referee_figs/fig_cube_comparison.py
-    # force recompute of the per-halo cache:
+    # force recompute of the per-halo cache (~4 min, CPU):
     python .../fig_cube_comparison.py --recompute
+    # also print the model-accuracy table + unmatched Test population check:
+    python .../fig_cube_comparison.py --model-table --popcheck
 """
 from __future__ import annotations
 
@@ -41,7 +43,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/tools/paper_cache")
-import paper_config as C  # geometry + suite styling (env defaults unused here)
+import paper_config as C  # geometry + styling helpers (env defaults unused here)
 
 import matplotlib
 
@@ -66,28 +68,35 @@ CACHE = Path("/mnt/home/mlee1/ceph/paper_cache/cube_comparison")
 FIG_DIR = Path("/mnt/home/mlee1/vdm_bind2/examples/paper_figures")
 IMGS_DIR = Path("/mnt/home/mlee1/vdm_bind2/BIND__methods_paper (1)/imgs")
 
-SUITES = C.SUITES                  # ("CV", "1P", "Test")
-SUITE_COLORS = C.SUITE_COLORS      # CV green, 1P blue, Test red
-SUITE_DISPLAY = C.SUITE_DISPLAY    # Test -> SB35
+SUITES = C.SUITES
+SUITE_DISPLAY = C.SUITE_DISPLAY
 CHANNELS = C.MASS_CHANNELS         # DM_hydro, Gas, Stars
 MODELS = ("full", "cube")
-MODEL_DISPLAY = {"full": "full depth (fiducial)", "cube": "cube (6.25 Mpc/h)"}
 
 PROF_NBINS = 32                    # bind.metrics.radial_profile(n_bins=32, logspace=False)
+
+# Mass bins for the LOS-excess trend (log10 M200c); catalogs are >= 1e13
+X_EDGES = np.array([13.0, 13.25, 13.5, 14.0, 15.0])
+X_CENTERS = 0.5 * (X_EDGES[:-1] + X_EDGES[1:])
+
+# Channel styling (suite colors are not used here: series are channels)
+CH_COLORS = {"DM_hydro": "0.15", "Gas": "tab:purple", "Stars": "tab:orange",
+             "Total": "0.55"}
+CH_DISP = {"DM_hydro": "DM", "Gas": "Gas", "Stars": "Stars", "Total": "Total"}
+FRAC_COLORS = {"f_b": "#00796b", "f_gas": "tab:purple", "f_star": "tab:orange"}
+FRAC_DISP = {"f_b": r"$f_{\rm b}$", "f_gas": r"$f_{\rm gas}$",
+             "f_star": r"$f_\star$"}
 
 
 # ── radial-profile machinery (exact vectorized bind.metrics.radial_profile) ─
 def _annulus_matrix(n_pix=C.PATCH_PIX, n_bins=PROF_NBINS):
-    """(M, counts, r_centers): M @ field.ravel() / counts == per-annulus mean,
-    identical to bind.metrics.radial_profile(field, n_bins, logspace=False)."""
     y, x = np.mgrid[:n_pix, :n_pix] - np.array([n_pix / 2, n_pix / 2])[:, None, None]
     r = np.hypot(x, y)
     bins = np.linspace(0, n_pix / 2, n_bins + 1)
     masks = np.stack([(r >= bins[i]) & (r < bins[i + 1]) for i in range(n_bins)])
     counts = masks.sum((1, 2)).astype(np.float64)
     M = masks.reshape(n_bins, -1).astype(np.float64)
-    r_centers = 0.5 * (bins[:-1] + bins[1:])
-    return M, counts, r_centers
+    return M, counts, 0.5 * (bins[:-1] + bins[1:])
 
 
 ANN_M, ANN_COUNTS, ANN_R_PIX = _annulus_matrix()
@@ -98,8 +107,7 @@ def profiles(patches):
     """(N, 3, 128, 128) -> (N, 3, PROF_NBINS) azimuthally averaged profiles."""
     n, nc = patches.shape[:2]
     flat = patches.reshape(n * nc, -1).astype(np.float64)
-    prof = (flat @ ANN_M.T) / ANN_COUNTS
-    return prof.reshape(n, nc, PROF_NBINS)
+    return ((flat @ ANN_M.T) / ANN_COUNTS).reshape(n, nc, PROF_NBINS)
 
 
 # ── discovery + matching ────────────────────────────────────────────────────
@@ -113,7 +121,6 @@ def _has_eval(md: Path, model: str, cube: bool) -> bool:
 
 
 def matched_sims(suite):
-    """Sim names present (catalog + generated + truth) in BOTH evals."""
     cube_sims = {p.name for p in (CUBE_ROOT / suite).iterdir()
                  if p.is_dir() and _has_eval(p / MASS_SUB, CUBE_MODEL, cube=True)}
     full_sims = {p.name for p in (FULL_ROOT / suite).iterdir()
@@ -122,10 +129,8 @@ def matched_sims(suite):
 
 
 def r200_pix(cat_c, cat_f, masses):
-    """R200c in patch pixels; prefer stored FoF radii, analytic fallback
-    (paper_config.r200_pix_patch convention; full-depth catalogs store `radii`
-    in kpc/h, cube catalogs `r200s` in Mpc/h; CV/sim_17 full lacks both)."""
-    r_mpc = None
+    """R200c in patch pixels; prefer stored FoF radii (cube `r200s` in Mpc/h,
+    full-depth `radii` in kpc/h), analytic fallback (CV/sim_17 full lacks both)."""
     if "r200s" in cat_c:
         r_mpc = np.asarray(cat_c["r200s"], np.float64)
         if "radii" in cat_f:
@@ -140,8 +145,6 @@ def r200_pix(cat_c, cat_f, masses):
 
 # ── per-sim measurement (compute_mass conventions from build_metric.py) ─────
 def measure(truth, gen, r_pix):
-    """Integrated masses within R200c (clipped >= 0, as compute_mass) and over
-    the full patch (unclipped), plus radial profiles.  truth/gen: (N,3,128,128)."""
     n = len(truth)
     t_full = truth.sum((2, 3)).astype(np.float64)
     g_full = gen.sum((2, 3)).astype(np.float64)
@@ -159,7 +162,6 @@ def measure(truth, gen, r_pix):
 def process_sim(suite, sim):
     md_c = CUBE_ROOT / suite / sim / MASS_SUB
     md_f = FULL_ROOT / suite / sim / MASS_SUB
-
     cat_c = np.load(md_c / "halo_catalog.npz")
     cat_f = np.load(md_f / "halo_catalog.npz")
     m_c = np.asarray(cat_c["masses"], np.float64)
@@ -167,19 +169,16 @@ def process_sim(suite, sim):
     n = len(m_c)
     if n == 0:
         return None
-    # per-halo correspondence: same FoF catalog, same order — assert it
     assert len(m_f) == n, f"{suite}/{sim}: halo count {len(m_f)} != {n}"
     assert np.allclose(m_c, m_f, rtol=1e-5), f"{suite}/{sim}: halo masses differ"
     assert np.allclose(cat_c["centers"], cat_f["centers"], atol=1e-3), \
         f"{suite}/{sim}: halo centers differ"
     r_pix = r200_pix(cat_c, cat_f, m_c)
 
-    # cube model vs cube truth (6.25 Mpc/h deep)
     truth_c = np.load(md_c / "truth_halos_cube.npz")["truth_halos"]
     gen_c = np.load(md_c / CUBE_MODEL / "generated_halos.npz")["generated"][:, :3]
     assert len(truth_c) == n and len(gen_c) == n
 
-    # full-depth model vs full-depth truth (50 Mpc/h deep)
     fmaps = np.load(md_f.parent / "full_maps.npz")
     centers_pix = C.centers_to_pixels(cat_f["centers"])
     truth_f = C.extract_truth_mass_patches({"truth_maps": fmaps["truth_maps"]}, centers_pix)
@@ -239,9 +238,136 @@ def build_cache():
     return df
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# Truth-vs-truth characterization
+# ════════════════════════════════════════════════════════════════════════════
+def _pstats(x):
+    """(median, p16, p84, n) over finite entries."""
+    x = x[np.isfinite(x)]
+    return np.median(x), np.percentile(x, 16), np.percentile(x, 84), len(x)
+
+
+def truth_aperture_masses(df):
+    """{(depth, ch): (N,) aperture mass} for depth in full/cube, ch incl. Total."""
+    T = {}
+    for m in MODELS:
+        for ch in CHANNELS:
+            T[(m, ch)] = df[f"{m}_truth_{ch}_rvir"].to_numpy(float)
+        T[(m, "Total")] = sum(T[(m, ch)] for ch in CHANNELS)
+    return T
+
+
+def los_excess(df):
+    """{ch: (N,) X = M_full/M_cube - 1 within R200c}."""
+    T = truth_aperture_masses(df)
+    X = {}
+    for ch in CHANNELS + ["Total"]:
+        with np.errstate(divide="ignore", invalid="ignore"):
+            X[ch] = T[("full", ch)] / T[("cube", ch)] - 1.0
+    return X
+
+
+def fraction_biases(df):
+    """{f: (N,) f^proj/f^cube - 1} for f_b, f_gas, f_star."""
+    T = truth_aperture_masses(df)
+    out = {}
+    for name, num in [("f_b", ("Gas", "Stars")), ("f_gas", ("Gas",)),
+                      ("f_star", ("Stars",))]:
+        with np.errstate(divide="ignore", invalid="ignore"):
+            f_full = sum(T[("full", c)] for c in num) / T[("full", "Total")]
+            f_cube = sum(T[("cube", c)] for c in num) / T[("cube", "Total")]
+            out[name] = f_full / f_cube - 1.0
+    return out
+
+
+def truth_profile_ratio(npz):
+    """(ratio (N,3,nb), ratio_total (N,nb)): Sigma_full/Sigma_cube - 1."""
+    tf = npz["full_t"].astype(np.float64)
+    tc = npz["cube_t"].astype(np.float64)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ratio = np.where(tc > 0, tf / tc - 1.0, np.nan)
+        ratio_tot = np.where(tc.sum(1) > 0, tf.sum(1) / tc.sum(1) - 1.0, np.nan)
+    return ratio, ratio_tot
+
+
+def print_characterization(df, npz):
+    logm = df["log_m200c"].to_numpy()
+    X = los_excess(df)
+    print(f"\nMatched halos: {len(df)}  per suite: "
+          + ", ".join(f"{SUITE_DISPLAY[s]}={np.sum(df['suite'] == s)}" for s in SUITES))
+
+    print("\n=== LOS excess X = M_truth^50/M_truth^6.25 - 1 within R200c (%) ===")
+    for ch in CHANNELS + ["Total"]:
+        med, p16, p84, n = _pstats(X[ch])
+        xf = X[ch][np.isfinite(X[ch])]
+        line = (f"{CH_DISP[ch]:6s} pooled {100*med:+6.1f} [{100*p16:+6.1f},{100*p84:+6.1f}]"
+                f"  X>0.5: {100*np.mean(xf > 0.5):.2f}%  X>1: {100*np.mean(xf > 1.0):.2f}%")
+        for s in SUITES:
+            m2, q1, q3, _ = _pstats(X[ch][(df["suite"] == s).to_numpy()])
+            line += f"  {SUITE_DISPLAY[s]} {100*m2:+.1f}"
+        print(line)
+    print("  by mass bin (median):")
+    for ch in CHANNELS + ["Total"]:
+        cells = []
+        for i in range(len(X_EDGES) - 1):
+            sel = (logm >= X_EDGES[i]) & (logm < X_EDGES[i + 1])
+            med, p16, p84, n = _pstats(X[ch][sel])
+            cells.append(f"[{X_EDGES[i]:.2f},{X_EDGES[i+1]:.2f}): {100*med:+5.1f} (n={n})")
+        print(f"    {CH_DISP[ch]:6s} " + " | ".join(cells))
+
+    print("\n=== Fraction biases f^proj/f^cube - 1 (%) ===")
+    F = fraction_biases(df)
+    for f in ("f_b", "f_gas", "f_star"):
+        med, p16, p84, n = _pstats(F[f])
+        cells = []
+        for i in range(len(X_EDGES) - 1):
+            sel = (logm >= X_EDGES[i]) & (logm < X_EDGES[i + 1])
+            m2, q1, q3, _ = _pstats(F[f][sel])
+            cells.append(f"{100*m2:+5.1f}")
+        print(f"{f:7s} pooled {100*med:+6.2f} [{100*p16:+6.2f},{100*p84:+6.2f}]"
+              f"   by mass: " + " | ".join(cells))
+
+    ratio, ratio_tot = truth_profile_ratio(npz)
+    r = npz["r_mpc"]
+    print("\n=== Radial localization: median Sigma_full/Sigma_cube - 1 (%) ===")
+    picks = [np.argmin(np.abs(r - x)) for x in (0.15, 0.25, 0.5, 1.0, 2.0, 3.0)]
+    for ci, ch in enumerate(CHANNELS):
+        med = np.nanmedian(ratio[:, ci], 0)
+        print(f"{CH_DISP[ch]:6s} " + "  ".join(f"r={r[j]:.2f}: {100*med[j]:+7.1f}" for j in picks))
+    med = np.nanmedian(ratio_tot, 0)
+    print("Total  " + "  ".join(f"r={r[j]:.2f}: {100*med[j]:+7.1f}" for j in picks))
+
+
+# ── model-accuracy printout (feeds one supporting sentence) ─────────────────
+def resid_stats(df, model, ch, suite=None, aperture="_rvir"):
+    sub = df if suite is None else df[df["suite"] == suite]
+    if ch == "Total":
+        t = sum(sub[f"{model}_truth_{c}{aperture}"] for c in CHANNELS).to_numpy()
+        g = sum(sub[f"{model}_gen_{c}{aperture}"] for c in CHANNELS).to_numpy()
+    else:
+        t = sub[f"{model}_truth_{ch}{aperture}"].to_numpy()
+        g = sub[f"{model}_gen_{ch}{aperture}"].to_numpy()
+    with np.errstate(divide="ignore", invalid="ignore"):
+        r = g / t - 1.0
+    r = r[np.isfinite(r)]
+    return np.median(r), np.percentile(r, 16), np.percentile(r, 84), len(r)
+
+
+def print_model_table(df):
+    print("\n=== model accuracy, each vs its own truth: median [16,84] % ===")
+    for ap, ap_name in [("_rvir", "r<=R200c"), ("", "full patch")]:
+        print(f"--- {ap_name}")
+        for ch in CHANNELS + ["Total"]:
+            for m in MODELS:
+                cells = []
+                for s in SUITES:
+                    med, p16, p84, _ = resid_stats(df, m, ch, s, ap)
+                    cells.append(f"{SUITE_DISPLAY[s]} {100*med:+6.1f} [{100*p16:+6.1f},{100*p84:+6.1f}]")
+                print(f"  {m:5s}{ch:9s} " + "  ".join(cells))
+
+
 def population_check_test():
-    """Unmatched Test-population medians (each eval over ALL its Test sims):
-    robustness check for the small matched-Test intersection."""
+    """Unmatched Test-population medians (each eval over ALL its Test sims)."""
     res = {m: {ch: [] for ch in CHANNELS} for m in MODELS}
     for m, root, model, cube in [("cube", CUBE_ROOT, CUBE_MODEL, True),
                                  ("full", FULL_ROOT, FULL_MODEL, False)]:
@@ -274,136 +400,88 @@ def population_check_test():
                     if t > 0:
                         res[m][ch].append(g / t - 1.0)
             cat.close()
-    print("\nUnmatched Test-population cross-check (R200c aperture, all sims of each eval):")
+    print("\nUnmatched Test-population check (R200c aperture, all sims of each eval):")
     for m in MODELS:
-        meds = "  ".join(f"{ch} {100 * np.median(res[m][ch]):+.1f}% (n={len(res[m][ch])})"
+        meds = "  ".join(f"{ch} {100*np.median(res[m][ch]):+.1f}% (n={len(res[m][ch])})"
                          for ch in CHANNELS)
         print(f"  {m:5s}: {meds}")
 
 
-# ── residual statistics ─────────────────────────────────────────────────────
-def resid_stats(df, model, ch, suite=None, aperture="_rvir"):
-    """(median, p16, p84, n) of per-halo gen/truth - 1."""
-    sub = df if suite is None else df[df["suite"] == suite]
-    if ch == "Total":
-        t = sum(sub[f"{model}_truth_{c}{aperture}"] for c in CHANNELS).to_numpy()
-        g = sum(sub[f"{model}_gen_{c}{aperture}"] for c in CHANNELS).to_numpy()
-    else:
-        t = sub[f"{model}_truth_{ch}{aperture}"].to_numpy()
-        g = sub[f"{model}_gen_{ch}{aperture}"].to_numpy()
-    with np.errstate(divide="ignore", invalid="ignore"):
-        r = g / t - 1.0
-    r = r[np.isfinite(r)]
-    return np.median(r), np.percentile(r, 16), np.percentile(r, 84), len(r)
-
-
-def print_table(df):
-    print(f"\nMatched halos: {len(df)}  per suite: "
-          + ", ".join(f"{SUITE_DISPLAY[s]}={np.sum(df['suite'] == s)}" for s in SUITES))
-    for ap, ap_name in [("_rvir", "r<=R200c"), ("", "full patch")]:
-        print(f"\n=== {ap_name} — median [16,84] of gen/truth - 1 (%) ===")
-        hdr = f"{'channel':9s} " + "".join(f"{SUITE_DISPLAY[s]:^32s}" for s in SUITES)
-        print(f"{'':6s}{hdr}")
-        for ch in CHANNELS + ["Total"]:
-            for m in MODELS:
-                cells = []
-                for s in SUITES:
-                    med, p16, p84, _ = resid_stats(df, m, ch, s, ap)
-                    cells.append(f"{100 * med:+6.1f} [{100 * p16:+6.1f},{100 * p84:+6.1f}]")
-                print(f"{m:6s}{ch:9s} " + " ".join(f"{c:^32s}" for c in cells))
-
-
-def profile_summary(npz):
-    """Median profile residual (g-t)/t per suite x channel x model, plus the
-    radius range where the median |residual| < 10% (printed for the text)."""
-    suite_arr = npz["suite"]
-    out = {}
-    for m in MODELS:
-        t, g = npz[f"{m}_t"].astype(np.float64), npz[f"{m}_g"].astype(np.float64)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            r = np.where(t > 0, g / t - 1.0, np.nan)
-        for s in SUITES:
-            sel = suite_arr == s
-            out[(m, s)] = (np.nanmedian(r[sel], 0),
-                           np.nanpercentile(r[sel], 16, 0),
-                           np.nanpercentile(r[sel], 84, 0))
-        out[(m, "all")] = (np.nanmedian(r, 0),
-                          np.nanpercentile(r, 16, 0),
-                          np.nanpercentile(r, 84, 0))
-    return out
-
-
-# ── figure ──────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════════
+# Figure: 3 panels — X vs logM; fraction biases vs logM; radial localization
+# ════════════════════════════════════════════════════════════════════════════
 def make_figure(df, npz):
-    prof = profile_summary(npz)
-    ch_disp = {"DM_hydro": "DM", "Gas": "Gas", "Stars": "Stars", "Total": "Total"}
-    groups = CHANNELS + ["Total"]
-
-    fig, axes = plt.subplots(1, 2, figsize=(11.2, 4.2))
-
-    # ── left: R200c-aperture median residuals, per component x suite x model ─
-    ax = axes[0]
-    n_s = len(SUITES)
-    width = 0.34                       # half-offset between the two models
-    for gi, ch in enumerate(groups):
-        for si, s in enumerate(SUITES):
-            x0 = gi * (n_s + 1) + si
-            for m, dx, filled in [("full", -width / 2, True), ("cube", width / 2, False)]:
-                med, p16, p84, _ = resid_stats(df, m, ch, s, "_rvir")
-                kw = dict(color=SUITE_COLORS[s], zorder=5)
-                ax.errorbar(x0 + dx, med, yerr=[[med - p16], [p84 - med]],
-                            fmt="o" if filled else "s",
-                            mfc=SUITE_COLORS[s] if filled else "white",
-                            mec=SUITE_COLORS[s], ms=6.5, mew=1.4,
-                            ecolor=SUITE_COLORS[s], elinewidth=1.4, capsize=2.5,
-                            alpha=1.0 if filled else 0.9, **{k: v for k, v in kw.items() if k != "color"})
-    ax.axhline(0, color="k", lw=0.8, ls="--", alpha=0.6)
-    centers = [gi * (n_s + 1) + (n_s - 1) / 2 for gi in range(len(groups))]
-    for gi in range(len(groups) - 1):
-        ax.axvline(gi * (n_s + 1) + n_s, color="0.85", lw=0.8, zorder=0)
-    ax.set_xticks(centers)
-    ax.set_xticklabels([ch_disp[ch] for ch in groups])
-    ax.set_ylabel(r"$M_{\rm gen}/M_{\rm truth} - 1$")
-    ax.set_title(r"Integrated mass, $r \leq R_{200c}$")
-    ax.grid(axis="y", alpha=0.25, lw=0.5)
-    ax.set_axisbelow(True)
-
-    # ── right: median radial-profile residual, per channel x model (all suites)
-    # Stars omitted: stellar maps are sparse, so outer-annulus medians are
-    # noise-dominated (quoted in the text for the core only).
-    ax = axes[1]
-    prof_channels = ["DM_hydro", "Gas"]
-    ch_colors = {"DM_hydro": "0.15", "Gas": "tab:purple"}
+    logm = df["log_m200c"].to_numpy()
+    X = los_excess(df)
+    F = fraction_biases(df)
+    ratio, _ = truth_profile_ratio(npz)
     r = npz["r_mpc"]
-    for ch in prof_channels:
-        ch_i = CHANNELS.index(ch)
-        for m, ls, lw in [("full", "-", 2.0), ("cube", "--", 2.0)]:
-            med = prof[(m, "all")][0][ch_i]
-            ax.plot(r, 100 * med, ls=ls, lw=lw, color=ch_colors[ch],
-                    label=ch_disp[ch] if m == "full" else None)
+    med_r200_mpc = float(np.median(df["r200_pix"])) * C.MPC_PER_PIX_PATCH
+
+    fig, axes = plt.subplots(1, 3, figsize=(13.2, 3.9))
+
+    def binned(ax, series, colors, disp, offsets):
+        for k, (key, y) in enumerate(series.items()):
+            meds, lo, hi = [], [], []
+            for i in range(len(X_EDGES) - 1):
+                sel = (logm >= X_EDGES[i]) & (logm < X_EDGES[i + 1])
+                m2, q1, q3, _ = _pstats(y[sel])
+                meds.append(100 * m2), lo.append(100 * (m2 - q1)), hi.append(100 * (q3 - m2))
+            xx = X_CENTERS + offsets[k]
+            ax.errorbar(xx, meds, yerr=[lo, hi],
+                        fmt="D--" if key == "Total" else "o-",
+                        ms=4.5 if key == "Total" else 5.5, lw=1.6,
+                        capsize=2.5, elinewidth=1.2, color=colors[key],
+                        label=disp[key])
+
+    # (a) LOS excess vs halo mass
+    ax = axes[0]
+    offs = np.linspace(-0.036, 0.036, 4)
+    binned(ax, {ch: X[ch] for ch in ["DM_hydro", "Gas", "Stars", "Total"]},
+           CH_COLORS, CH_DISP, offs)
     ax.axhline(0, color="k", lw=0.8, ls="--", alpha=0.6)
-    ax.set_xlabel(r"$r$ [Mpc$/h$]")
-    ax.set_ylabel(r"median $\rho_{\rm gen}/\rho_{\rm truth} - 1$ [%]")
-    ax.set_title("Radial-profile residual (all suites)")
+    ax.set_xlabel(r"$\log_{10} M_{200c}\ [M_\odot/h]$")
+    ax.set_ylabel(r"$M^{50}/M^{6.25} - 1$ within $R_{200c}$ [%]")
+    ax.set_title("Line-of-sight excess")
+    ax.legend(fontsize=9, loc="upper right", framealpha=0.9)
     ax.grid(alpha=0.25, lw=0.5)
     ax.set_axisbelow(True)
 
-    # legends
-    from matplotlib.lines import Line2D
-    suite_handles = [Line2D([], [], marker="o", ls="", color=SUITE_COLORS[s],
-                            label=SUITE_DISPLAY[s]) for s in SUITES]
-    model_handles = [
-        Line2D([], [], marker="o", ls="", mfc="k", mec="k", label="full depth"),
-        Line2D([], [], marker="s", ls="", mfc="white", mec="k", label="cube"),
-    ]
-    axes[0].legend(handles=suite_handles + model_handles, ncol=2, fontsize=9,
-                   loc="lower left", framealpha=0.9)
-    model_handles2 = [Line2D([], [], ls="-", color="k", label="full depth"),
-                      Line2D([], [], ls="--", color="k", label="cube")]
-    ch_handles = [Line2D([], [], ls="-", color=ch_colors[ch], label=ch_disp[ch])
-                  for ch in prof_channels]
-    axes[1].legend(handles=ch_handles + model_handles2, ncol=2, fontsize=9,
-                   loc="upper right", framealpha=0.9)
+    # (b) fraction biases vs halo mass
+    ax = axes[1]
+    offs = np.linspace(-0.03, 0.03, 3)
+    binned(ax, F, FRAC_COLORS, FRAC_DISP, offs)
+    ax.axhline(0, color="k", lw=0.8, ls="--", alpha=0.6)
+    ax.set_xlabel(r"$\log_{10} M_{200c}\ [M_\odot/h]$")
+    ax.set_ylabel(r"$f^{\,\rm proj}/f^{\,\rm halo} - 1$ [%]")
+    ax.set_title("Projected-fraction bias")
+    ax.legend(fontsize=9, loc="upper right", framealpha=0.9)
+    ax.grid(alpha=0.25, lw=0.5)
+    ax.set_axisbelow(True)
+
+    # (c) radial localization (skip innermost annulus: sub-pixel registration)
+    ax = axes[2]
+    sl = slice(1, None)
+    for ci, ch in enumerate(CHANNELS):
+        med = np.nanmedian(ratio[:, ci], 0)
+        lw, alpha = (1.4, 0.85) if ch == "Stars" else (2.0, 1.0)
+        ax.plot(r[sl], 1.0 + med[sl], "-", lw=lw, alpha=alpha,
+                color=CH_COLORS[ch], label=CH_DISP[ch])
+    p16 = np.nanpercentile(ratio[:, 1], 16, 0)
+    p84 = np.nanpercentile(ratio[:, 1], 84, 0)
+    ax.fill_between(r[sl], 1.0 + p16[sl], 1.0 + p84[sl], color="tab:purple",
+                    alpha=0.18, lw=0)
+    ax.axhline(1.0, color="k", lw=0.8, ls="--", alpha=0.6)
+    ax.axvline(med_r200_mpc, color="0.4", lw=1.0, ls=":")
+    ax.text(med_r200_mpc * 1.1, 2.1, r"median $R_{200c}$", rotation=90,
+            fontsize=8, color="0.35", va="bottom")
+    ax.set_yscale("log")
+    ax.set_xlabel(r"$r$ [Mpc$/h$]")
+    ax.set_ylabel(r"$\Sigma^{50}/\Sigma^{6.25}$")
+    ax.set_title("Where the excess lives")
+    ax.legend(fontsize=9, loc="upper left", framealpha=0.9)
+    ax.grid(alpha=0.25, lw=0.5, which="both")
+    ax.set_axisbelow(True)
 
     plt.tight_layout()
     for ext in ("pdf", "png"):
@@ -419,7 +497,10 @@ def make_figure(df, npz):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--recompute", action="store_true")
-    ap.add_argument("--no-popcheck", action="store_true")
+    ap.add_argument("--model-table", action="store_true",
+                    help="also print the model-accuracy comparison")
+    ap.add_argument("--popcheck", action="store_true",
+                    help="also print the unmatched Test population check")
     ap.add_argument("--no-fig", action="store_true")
     args = ap.parse_args()
 
@@ -431,20 +512,10 @@ def main():
         print(f"loaded cache ({len(df)} halos) from {CACHE}")
     npz = np.load(CACHE / "cube_comparison_profiles.npz")
 
-    print_table(df)
-
-    # print profile summary numbers for the appendix text
-    prof = profile_summary(npz)
-    r = npz["r_mpc"]
-    print("\nProfile median residual (all suites), selected radii:")
-    for ch_i, ch in enumerate(CHANNELS):
-        for m in MODELS:
-            med = prof[(m, "all")][0][ch_i]
-            picks = [np.argmin(np.abs(r - x)) for x in (0.2, 0.5, 1.0, 2.0, 3.0)]
-            cells = "  ".join(f"r={r[j]:.2f}: {100 * med[j]:+.1f}%" for j in picks)
-            print(f"  {m:5s} {ch:9s} {cells}")
-
-    if not args.no_popcheck:
+    print_characterization(df, npz)
+    if args.model_table:
+        print_model_table(df)
+    if args.popcheck:
         population_check_test()
     if not args.no_fig:
         make_figure(df, npz)

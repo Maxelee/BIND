@@ -189,6 +189,12 @@ for col, (key, name) in enumerate(CHANNELS):
     ax.set_xlabel(r'$q_{\rm truth}$')
     if col == 0:
         ax.set_ylabel(r'$q_{\rm BIND}$')
+    txt = rf'$r = {r_gen:.2f}$'
+    if key == 'dm':
+        txt += '\n' + rf'$r_{{\rm DMO}} = {r_dmo:.2f}$'
+    ax.text(0.04, 0.96, txt, transform=ax.transAxes, ha='left', va='top',
+            fontsize=11, bbox=dict(facecolor='white', alpha=0.8,
+                                   edgecolor='none', pad=2.5))
 
     # ── bottom: major-axis misalignment ────────────────────────────────────
     dphi = wrap_dphi(phi_of(f'gen_{key}')[cv] - phi_of(f'truth_{key}')[cv])
@@ -210,8 +216,8 @@ for col, (key, name) in enumerate(CHANNELS):
     if col == 0:
         ax.set_ylabel(r'$p(|\Delta\phi|)$ [deg$^{-1}$]')
     if col == 0:
-        ax.text(2, 1.0 / 90.0 * 1.25, 'random orientation',
-                ha='left', va='bottom', fontsize=9, color='0.35')
+        ax.text(88, 1.0 / 90.0 * 1.25, 'random orientation',
+                ha='right', va='bottom', fontsize=9, color='0.35')
 
     perhalo_stats[key] = dict(r_gen=r_gen, r_dmo=r_dmo,
                               med_dphi=med_dphi, mean_cos=mean_cos)

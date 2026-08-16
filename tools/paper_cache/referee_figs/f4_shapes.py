@@ -201,15 +201,22 @@ for col, (key, name) in enumerate(CHANNELS):
     abs_dphi_deg = np.degrees(np.abs(dphi))
     med_dphi = np.median(abs_dphi_deg)
     mean_cos = np.mean(np.cos(2 * dphi))
+    dphi_dmo = wrap_dphi(phi_of('dmo')[cv] - phi_of(f'truth_{key}')[cv])
+    abs_dmo_deg = np.degrees(np.abs(dphi_dmo))
+    med_dmo = np.median(abs_dmo_deg)
 
     ax = axes[1, col]
     dbins = np.linspace(0, 90, 31)
     ax.hist(abs_dphi_deg, bins=dbins, density=True, histtype='stepfilled',
             alpha=0.40, color=CV_COLOR)
     ax.hist(abs_dphi_deg, bins=dbins, density=True, histtype='step',
-            lw=2.0, color=CV_COLOR)
+            lw=2.0, color=CV_COLOR, label=r'BIND vs truth')
+    ax.hist(abs_dmo_deg, bins=dbins, density=True, histtype='step',
+            lw=1.6, ls='--', color='0.45', label=r'DMO vs truth')
     ax.axhline(1.0 / 90.0, color='0.35', ls='--', lw=1.4)
     ax.axvline(med_dphi, color=CV_COLOR, ls=':', lw=1.5)
+    if col == 0:
+        ax.legend(fontsize=9, loc='center right', framealpha=0.9)
     ax.set_xlim(0, 90)
     ax.set_xticks([0, 15, 30, 45, 60, 75, 90])
     ax.set_xlabel(r'$|\Delta\phi|$ [deg]')
@@ -219,8 +226,8 @@ for col, (key, name) in enumerate(CHANNELS):
         ax.text(88, 1.0 / 90.0 * 1.25, 'random orientation',
                 ha='right', va='bottom', fontsize=9, color='0.35')
 
-    perhalo_stats[key] = dict(r_gen=r_gen, r_dmo=r_dmo,
-                              med_dphi=med_dphi, mean_cos=mean_cos)
+    perhalo_stats[key] = dict(r_gen=r_gen, r_dmo=r_dmo, med_dphi=med_dphi,
+                              mean_cos=mean_cos, med_dphi_dmo=med_dmo)
 
 save_fig(fig, 'fig_shape_perhalo')
 plt.close(fig)

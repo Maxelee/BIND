@@ -100,7 +100,7 @@ for col, (s, disp) in enumerate(SUITES):
     a.plot(KB, med(bi / dm), color="tab:orange", lw=1.6, label="BIND / DMO")
     a.plot(KB, med(hr / dm), color="tab:blue", lw=1.4, label="Hydro-replaced / DMO")
     a.axhline(1, color="gray", lw=0.6, ls="--")
-    a.set_title(f"{disp}  ($n={d['n']}$)")
+    a.set_title(disp)
     a.set_ylim(0.62, 1.10)
     if col == 0:
         a.set_ylabel(r"$S(k)=P(k)/P_{\rm DMO}(k)$")

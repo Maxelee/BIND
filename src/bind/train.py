@@ -144,7 +144,8 @@ class AstroDataModule(L.LightningDataModule):
     def __init__(self, data_root, norm_stats_path=None, batch_size=64,
                  num_workers=8, n_stats_samples=10000, stars_two_head=False,
                  param_indices=None, no_large_scale=False, predict_thermo=False,
-                 condition_redshift=False, condition_observables=False, mask_observables=False):
+                 condition_redshift=False, condition_observables=False, mask_observables=False,
+                 exclude_snaps=()):
         super().__init__()
         self.data_root = data_root
         self.norm_stats_path = norm_stats_path
@@ -158,6 +159,9 @@ class AstroDataModule(L.LightningDataModule):
         self.condition_redshift = condition_redshift
         self.condition_observables = condition_observables
         self.mask_observables = mask_observables
+        # Leave-one-redshift-out: whole snapshots held out of BOTH splits, so
+        # neither training nor checkpoint selection ever sees the held-out z.
+        self.exclude_snaps = tuple(exclude_snaps or ())
 
     def setup(self, stage=None):
         if self.no_large_scale:
@@ -167,9 +171,11 @@ class AstroDataModule(L.LightningDataModule):
             # The multi-redshift dataset nests sim_i/snap_j/...; enumerate it
             # recursively. The flat single-redshift dataset uses its cache file.
             train_files = load_file_list(self.data_root, 'train',
-                                         recursive=self.condition_redshift)
+                                         recursive=self.condition_redshift,
+                                         exclude_snaps=self.exclude_snaps)
             test_files = load_file_list(self.data_root, 'test',
-                                        recursive=self.condition_redshift)
+                                        recursive=self.condition_redshift,
+                                        exclude_snaps=self.exclude_snaps)
 
         # Compute or load normalization stats
         stats_path = Path(self.norm_stats_path or
@@ -295,6 +301,15 @@ def main():
                              '(train/sim_i/snap_j/...). Expects a per-sample redshift in '
                              'each .npz. Requires the large-scale data path and '
                              '--interpolant fm.')
+    parser.add_argument('--exclude_snaps', type=int, nargs='*', default=[],
+                        metavar='SNAP',
+                        help='Hold whole snapshots out of BOTH the train and '
+                             'validation splits, e.g. --exclude_snaps 60. Used for '
+                             'the leave-one-redshift-out test: the excluded '
+                             "snapshot's held-out patches then measure whether the "
+                             'model interpolates in a=1/(1+z) rather than memorizing '
+                             'the discrete training snapshots. Filtering the val '
+                             'split too keeps checkpoint selection clean.')
     parser.add_argument('--mask_observables', action='store_true',
                         help='Train with random observable input-dropout (requires '
                              '--condition_observables): the conditioning vector becomes '
@@ -378,6 +393,7 @@ def main():
         condition_redshift=args.condition_redshift,
         condition_observables=args.condition_observables,
         mask_observables=args.mask_observables,
+        exclude_snaps=args.exclude_snaps,
     )
 
     # Compute/load norm stats up-front so we can derive star_zero_norm before

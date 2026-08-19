@@ -466,7 +466,30 @@ def compute_norm_stats(file_list, n_samples=5000, seed=42, stars_two_head=False,
     )
 
 
-def load_file_list(data_root, split='train', recursive=False):
+def _drop_snapshots(files, exclude_snaps, split):
+    """Remove every path whose ``snap_<NNN>/`` level is in ``exclude_snaps``.
+
+    Used for the leave-one-redshift-out experiment: holding a whole snapshot out
+    of training (and of validation, so checkpoint selection never sees it) turns
+    the retained snapshots into an interpolation test at the excluded redshift.
+    """
+    if not exclude_snaps:
+        return files
+    drop = {int(s) for s in exclude_snaps}
+    kept = []
+    for p in files:
+        m = re.search(r'snap_?(\d+)', p)
+        if m is None or int(m.group(1)) not in drop:
+            kept.append(p)
+    if not kept:
+        raise ValueError(f'excluding snapshots {sorted(drop)} removed every '
+                         f'file from the {split} split')
+    print(f'[load_file_list:{split}] excluded snapshots {sorted(drop)}: '
+          f'{len(files)} → {len(kept)} files')
+    return kept
+
+
+def load_file_list(data_root, split='train', recursive=False, exclude_snaps=()):
     """Load training file paths.
 
     Flat (single-redshift) layout reads the precomputed
@@ -474,6 +497,10 @@ def load_file_list(data_root, split='train', recursive=False):
     ``snap_<NNN>/`` level (``train/sim_i/snap_j/sim_i_halo_k_rot_0.npz``); pass
     ``recursive=True`` to enumerate it with a recursive scan, cached in
     ``file_list_cache_multiz.txt`` (rglob is expensive on ceph).
+
+    ``exclude_snaps`` drops whole snapshots from the returned list. The filter is
+    applied *after* the cache is read or written, so a leave-one-out run never
+    writes a truncated cache that would silently poison later full-data runs.
     """
     split_dir = Path(data_root) / split
     if recursive:
@@ -482,17 +509,18 @@ def load_file_list(data_root, split='train', recursive=False):
             with open(cache) as f:
                 files = [line.strip() for line in f if line.strip()]
             if files:
-                return files
+                return _drop_snapshots(files, exclude_snaps, split)
         files = sorted(str(p) for p in split_dir.rglob('*.npz'))
         if not files:
             raise FileNotFoundError(f'No .npz files found under {split_dir}')
         with open(cache, 'w') as f:
             f.write('\n'.join(files) + '\n')
         print(f'[load_file_list:{split}] cached {len(files)} paths → {cache}')
-        return files
+        return _drop_snapshots(files, exclude_snaps, split)
     cache = split_dir / 'file_list_cache_no_lowmass.txt'
     with open(cache) as f:
-        return [line.strip() for line in f if line.strip()]
+        files = [line.strip() for line in f if line.strip()]
+    return _drop_snapshots(files, exclude_snaps, split)
 
 
 class AstroDataset(Dataset):

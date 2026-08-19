@@ -17,10 +17,9 @@ formats:
 
 python:
   install:
+    # Docs deps only. The package is deliberately NOT pip-installed here: it is
+    # imported from ../src via the sys.path entry in conf.py, with torch,
+    # lightning and Pylians replaced by autodoc_mock_imports. Installing it
+    # would drag in Pylians, which needs compilation and fails on RTD.
+    # This must stay consistent with the CONTRACT comment in docs/conf.py.
     - requirements: docs/requirements.txt
-    # Install the package itself so autodoc can import bind.* — but skip the
-    # heavy ML dependencies (torch, lightning, pylians) on RTD; use the
-    # autodoc_mock_imports list in conf.py instead.
-    - method: pip
-      path: .
-      extra_requirements: []

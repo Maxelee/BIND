@@ -63,11 +63,17 @@ N_PARAMS = 35
 
 # ── Channels (generated_halos.npz `generated` is (N, 7, 128, 128)) ──────────
 MASS_CHANNELS = ["DM_hydro", "Gas", "Stars"]         # generated ch 0,1,2
+# NB: these are the paper-cache COLUMN NAMES, not bind.data.THERMO_KEYS
+# (= compton_y, temperature, entropy, pressure). They are baked into every
+# cached mass/thermo table already written under $PAPER_CACHE_DIR, so renaming
+# them would orphan those caches -- the short forms are kept deliberately.
+# "P_e" is a legacy misnomer: the channel is the TOTAL thermal pressure
+# (gamma-1) rho u in Pa, not the electron pressure. See docs/thermo.md.
 THERMO_CHANNELS = ["compton_y", "T", "entropy", "P_e"]  # generated ch 3,4,5,6
 N_MASS_CH = len(MASS_CHANNELS)
 N_THERMO_CH = len(THERMO_CHANNELS)
 CH_DISPLAY = {"DM_hydro": "DM (hydro)", "Gas": "Gas", "Stars": "Stars"}
-THERMO_DISPLAY = {"compton_y": r"$y$", "T": r"$T$", "entropy": r"$K$", "P_e": r"$P_e$"}
+THERMO_DISPLAY = {"compton_y": r"$y$", "T": r"$T$", "entropy": r"$K$", "P_e": r"$P$"}
 # Stars need a density floor before shape/lit-pixel weighting.
 STAR_THRESH = 1e-3
 

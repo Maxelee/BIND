@@ -132,3 +132,6 @@ BIND__methods_paper*/
 # (src/bind/assets/CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt is the one the
 # code actually loads; the root copy was byte-identical dead weight).
 /CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt
+
+# Internal agent-instruction / talk-prep notes, not release material
+presentation_agents.md

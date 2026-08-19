@@ -532,6 +532,7 @@ def generate_halo_patches(
     param_indices: np.ndarray | None = None,
     no_large_scale: bool = False,
     cond_vectors: np.ndarray | None = None,
+    scale_factor: float | None = None,
 ) -> np.ndarray:
     """Run model inference on all halo cutouts and denormalize to physical space.
 
@@ -585,8 +586,14 @@ def generate_halo_patches(
                 if use_amp and device.type == "cuda"
                 else nullcontext()
             )
+            sf_kw = {}
+            if scale_factor is not None:
+                sf_kw["scale_factor"] = torch.full(
+                    (cond_t.shape[0],), float(scale_factor),
+                    dtype=torch.float32, device=device,
+                )
             with amp_ctx:
-                gen = fm.sample(cond_t, ls_t, params_t, n_steps=n_steps)
+                gen = fm.sample(cond_t, ls_t, params_t, n_steps=n_steps, **sf_kw)
 
             gen_np = gen.float().cpu().numpy().astype(np.float32)
             outputs.append(_denormalize_to_physical(gen_np, norm_stats))

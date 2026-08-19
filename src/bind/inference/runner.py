@@ -9,7 +9,8 @@ from dataclasses import asdict
 import numpy as np
 import torch
 
-from bind.data import NormStats, N_THERMO, THERMO_KEYS
+from bind.data import (NormStats, N_THERMO, THERMO_KEYS, SNAPSHOT_REDSHIFTS,
+                       z_to_a)
 from bind.train import FlowMatchingLit
 
 from .artifacts import (
@@ -90,7 +91,7 @@ def load_model_bundle(run_cfg: RunConfig) -> tuple:
     """Load norm stats and model checkpoint once for all simulations.
 
     Returns ``(norm_stats, fm, device, param_indices, no_large_scale,
-    predict_thermo, condition_observables)``.
+    predict_thermo, condition_observables, condition_redshift)``.
     """
     device = _resolve_device(run_cfg.device)
     norm_stats = NormStats.load(run_cfg.run_dir / "norm_stats.npz")
@@ -132,8 +133,12 @@ def load_model_bundle(run_cfg: RunConfig) -> tuple:
     # carries the obs_* stats); the conditioning vector is then per-halo
     # observables rather than the per-sim params.
     condition_observables = bool(getattr(norm_stats, "condition_observables", False))
+    # Redshift conditioning lives on the model hparams (norm_stats is shared
+    # across all redshifts). Without this the suite path would silently generate
+    # at a=1 for every snapshot -- see generate_halo_patches(scale_factor=).
+    condition_redshift = bool(getattr(model.hparams, "condition_redshift", False))
     return (norm_stats, model.fm, device, param_indices, no_large_scale,
-            predict_thermo, condition_observables)
+            predict_thermo, condition_observables, condition_redshift)
 
 
 def _prepare_data(
@@ -265,6 +270,7 @@ def run_single_simulation(
     no_large_scale: bool = False,
     predict_thermo: bool = False,
     condition_observables: bool = False,
+    condition_redshift: bool = False,
 ) -> dict:
     """Run one simulation through prepare/generate/paste stages."""
     prepared, paths = _prepare_data(spec, run_cfg, load_truth=load_truth,
@@ -286,6 +292,21 @@ def run_single_simulation(
         "truth_total_mass": float(truth_maps.sum()) if truth_maps is not None else None,
         "run_config": asdict(run_cfg),
     }
+
+    # The conditioning epoch is the snapshot being evaluated. Resolving it here
+    # (rather than defaulting to a=1 inside the UNet) is what makes a z>0 suite
+    # eval measure model error instead of a redshift mismatch.
+    scale_factor = None
+    if condition_redshift:
+        if spec.snapshot not in SNAPSHOT_REDSHIFTS:
+            raise ValueError(
+                f"{spec.sim_label}: snapshot {spec.snapshot} has no known redshift; "
+                f"add it to bind.data.SNAPSHOT_REDSHIFTS before evaluating a "
+                f"redshift-conditioned model there"
+            )
+        scale_factor = float(z_to_a(SNAPSHOT_REDSHIFTS[spec.snapshot]))
+        summary["scale_factor"] = scale_factor
+        summary["redshift"] = float(SNAPSHOT_REDSHIFTS[spec.snapshot])
 
     if run_cfg.prep_only:
         save_summary_json(paths.summary_json, summary)
@@ -328,6 +349,7 @@ def run_single_simulation(
             param_indices=param_indices,
             no_large_scale=no_large_scale,
             cond_vectors=cond_vectors,
+            scale_factor=scale_factor,
         )
         save_generated_halos(paths.generated_halos_npz, generated_halos)
 
@@ -449,9 +471,11 @@ def run_suite(
     no_large_scale = False
     predict_thermo = False
     condition_observables = False
+    condition_redshift = False
     if not run_cfg.prep_only:
         (norm_stats, fm, device, param_indices, no_large_scale,
-         predict_thermo, condition_observables) = load_model_bundle(run_cfg)
+         predict_thermo, condition_observables,
+         condition_redshift) = load_model_bundle(run_cfg)
 
     for spec in specs:
         try:
@@ -459,7 +483,8 @@ def run_suite(
                                             param_indices=param_indices,
                                             no_large_scale=no_large_scale,
                                             predict_thermo=predict_thermo,
-                                            condition_observables=condition_observables)
+                                            condition_observables=condition_observables,
+                                            condition_redshift=condition_redshift)
             results.append(summary)
             print(
                 f"[{spec.sim_label}] halos={summary['n_halos']} "

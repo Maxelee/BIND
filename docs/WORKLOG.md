@@ -4,6 +4,49 @@ Reverse-chronological log of notable sessions: what changed, why, and decisions
 worth remembering. Newest entries on top. Keep entries short — link commits and
 files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
+## 2026-08-19 — docs/ audited against the code for v0.2.0
+
+Every page in `docs/` re-verified line by line against `src/` and rewritten where
+it was wrong. Fixed defects, each confirmed at the source:
+
+- **Compositing defaults were inverted.** `cli.md` / `baryonify.md` / `method.md`
+  documented `r200_factor = 0.0` (square taper) as the default; the code has been
+  `4.0` + `paste_mode="shared"` everywhere (`paint.py:566-567`, `schemas.py:50-55`,
+  all four CLIs), and `paste_mode` was documented nowhere. All three pages now
+  carry a defaults table and the reason each is standard.
+- **`bind-slim-checkpoint` does not swap raw→EMA** (`tools/slim_checkpoint.py`
+  only filters top-level keys). `cli.md` said it did; `training.md` claimed the
+  release ships EMA weights. The released `fm_two_head/last.ckpt` is epoch 80,
+  370 UNet tensors, 248,860,548 params, **no** `ema_state_dict`.
+- **205 Mpc/h worked example was arithmetically wrong.** `paint()` *rounds*:
+  `npix = round(205/0.048828125) = 4198`, `n_slabs = round(4.1) = 4` — not
+  "5 slabs of 4096". `baryonify.md` now shows the derivation.
+- **Stars gate is HARD** (`pipeline.py:515`, `occ_raw > 0.5`), not a sigmoid;
+  **lr is 1e-4** (`run_train.sh:98`, `train.py:336`); **halo cut is 1e13**
+  (`process_simulations2_cpu.py:389`), not 1e12.5; large-scale scales are
+  2/4/8× (12.5/25/50 Mpc/h), not 4/8/16×; UNet is ~249 M params, not ~56 M.
+- **`thermo.md`**: `pressure` is *total* thermal pressure in **Pa**, not `P_e` in
+  keV cm⁻³ (`add_gas_thermo_maps.py:411`); channel indices restated as
+  0–3 within `thermo_patches` / 3–6 in the physical array.
+- **`baryonify.md` npz key table** rewritten from `paint.py`'s save path
+  (`alpha`, `patch_scales`, `scale_global`, `coverage_pct`, `halo_r200`,
+  `generated_patches`, `provenance`, …; `halo_centers` is Mpc/h, not pixels).
+- **Orphan pages**: `wl_emulator`, `observables`, `circular_aperture` were
+  unreachable; toctree fixed and `plans/` excluded.
+- **`conf.py`**: no longer imports the package (version parsed from
+  `src/bind/__init__.py`), mock list extended to cover every module-scope
+  third-party import under `src/bind/`.
+
+New pages: `docs/reproducing_the_paper.md` (figure → script → cached artifact →
+model/n_steps/r200_factor/paste_mode, plus the honest provenance note that the
+archived `fm_two_head` suite eval records **no** `paste_mode` in any of its 268
+`summary.json` files, i.e. legacy `average`, so today's defaults will not
+bit-reproduce it; the §5.5 `fm_redshift_suite` records `n_steps=20`,
+`r200_factor=4.0`, `paste_mode="shared"` in all 1469) and `docs/redshift.md`
+(user-facing `--condition_redshift` / `scale_factor`, the $a=1/(1+z)$
+convention, unvalidated $z>0$ thermo physics, and the $z=0$-only
+`m200c_to_r200c`). `sphinx -b html docs` builds with zero warnings.
+
 ## 2026-08-17 — talk_figs/: conference-talk asset scripts (presentation_agents.md paper-1 tasks)
 
 New `talk_figs/` (untracked tooling; all image outputs gitignored) for the BIND

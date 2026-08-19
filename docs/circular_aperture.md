@@ -37,8 +37,9 @@ it isolates the aperture/paste from the emulator.
 - Trade-off: circular runs +7–11% at `k` 10–40 vs square's +2–7% — all still inside
   the ±20% band. Tune `r200_factor` (3 → 3.5 → 4) to trade intermediate vs small scales.
 
-Reproduce: `experiments/composite_study/exp4_cv_suppression.py` (see that folder's
-`FINDINGS.md` for the full study, including the scale_global and taper analyses).
+Reproduce: `tools/paper_cache/build_pk_fixed.py`, which rebuilds the shared-paste
+composite and its P(k) for a suite. (The original exploration lived in an
+`experiments/` scratch tree that is not tracked in this repository.)
 
 ## Caveats / notes
 

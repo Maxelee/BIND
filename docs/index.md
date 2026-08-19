@@ -6,15 +6,16 @@
 :align: center
 ```
 
-**B**aryons **I**nduced via **N**eural **D**iffusion is a flow-matching
+**B**aryonic **IN**painting with **D**eep learning is a flow-matching
 emulator that takes a dark-matter-only (DMO) snapshot, plus a 35-dim
 cosmology-and-astrophysics parameter vector, and returns the corresponding
 hydro fields `[DM_hydro, Gas, Stars]` as projected mass maps.
 
-It is *fast* (one forward pass per ~50 Mpc/h slab), *probabilistic* (samples
-from the posterior over hydro fields given DMO + parameters), and *scalable*
-(applies tile-by-tile to boxes much larger than the 50 Mpc/h training box —
-e.g. a 205 Mpc/h N-body simulation is just ~5 z-slabs × 64 tiles per slab).
+It is *fast* (a few tens of network evaluations per halo, batched on a GPU),
+*probabilistic* (samples from the posterior over hydro fields given DMO +
+parameters), and *scalable* (works halo-by-halo on boxes much larger than the
+50 Mpc/h training box — a 205 Mpc/h N-body box is projected into 4 z-slabs of
+$4198^2$ pixels and painted halo by halo; see {doc}`baryonify`).
 
 ```{image} _static/flow_matching_sampling.gif
 :alt: Flow-matching sampling
@@ -72,6 +73,14 @@ Conditional optimal-transport flow matching, two-head Stars, multi-slab
 compositing, and mass conservation.
 :::
 
+:::{grid-item-card} 📄  Reproducing the paper
+:link: reproducing_the_paper
+:link-type: doc
+
+Which script and which cached artifact produces each methods-paper figure — and
+what will not bit-reproduce.
+:::
+
 :::{grid-item-card} 📚  API reference
 :link: api
 :link-type: doc
@@ -112,8 +121,23 @@ method
 data_generation
 training
 thermo
+redshift
+circular_aperture
 api
 cli
+```
+
+```{toctree}
+:hidden:
+:caption: Extensions
+observables
+wl_emulator
+```
+
+```{toctree}
+:hidden:
+:caption: The methods paper
+reproducing_the_paper
 ```
 
 ```{toctree}

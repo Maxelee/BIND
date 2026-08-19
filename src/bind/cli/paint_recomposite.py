@@ -36,12 +36,24 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--no_patch_mass_match", action="store_true")
     p.add_argument("--taper_frac", type=float, default=0.15)
     p.add_argument("--r200_factor", type=float, default=4.0,
-                   help="Circular paste radius as a multiple of R200c. The default 4.0 is the\n                        standard; 0 selects the legacy square taper, which loses high-k\n                        power wherever apertures overlap (see docs/circular_aperture.md).")
+                   help="Circular paste radius as a multiple of R200c. The default 4.0 "
+                        "is the standard; 0 selects the legacy square taper, which loses "
+                        "high-k power wherever apertures overlap "
+                        "(see docs/circular_aperture.md).")
     p.add_argument("--paste_mode", choices=["shared", "average"], default="shared",
-                   help="Overlap handling. 'shared' (the standard) makes overlapping halos\n                        agree on one realization of the shared region; 'average' is the legacy\n                        independent-patch blend, measured at -10.6%% total-matter P(k) at\n                        k=40-70. Requires --r200_factor > 0.")
+                   help="Overlap handling. 'shared' (the standard) makes overlapping "
+                        "halos agree on one realization of the shared region; 'average' "
+                        "is the legacy independent-patch blend, measured at -10.6%% "
+                        "total-matter P(k) at k=40-70. Requires --r200_factor > 0.")
     p.add_argument("--no_save_patches", action="store_true",
                    help="Don't carry generated patches into the new output "
                         "(makes it non-re-compositable)")
+    p.add_argument("--seed", type=int, default=None,
+                   help="Seed of the generation being re-composited, recorded in the new "
+                        "output's provenance. Re-compositing itself draws no noise, so this "
+                        "does not change the result; it is only needed when the source "
+                        "patches predate provenance stamping (otherwise the source run's "
+                        "seed is inherited automatically).")
     return p.parse_args()
 
 
@@ -56,6 +68,7 @@ def main() -> None:
         r200_factor=args.r200_factor,
         paste_mode=args.paste_mode,
         save_per_halo_patches=not args.no_save_patches,
+        seed=args.seed,
     )
 
     print("=" * 80)

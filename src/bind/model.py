@@ -320,7 +320,8 @@ class StochasticInterpolant:
 
         return per_pixel.mean()
 
-    def sample(self, condition, large_scale=None, params=None, n_steps=50, cfg_scale=1.0, grad=False):
+    def sample(self, condition, large_scale=None, params=None, n_steps=50, cfg_scale=1.0,
+               grad=False, generator=None):
         """Generate samples via Euler ODE integration starting from DMO.
 
         Args:
@@ -330,6 +331,9 @@ class StochasticInterpolant:
             n_steps: number of Euler steps
             cfg_scale: classifier-free guidance scale (1.0 = no guidance)
             grad: if True, enable gradients so d(output)/d(params) can be computed
+            generator: accepted for signature parity with FlowMatching.sample and
+                ignored — this sampler starts from the DMO field and draws no
+                noise, so it is already deterministic given its inputs.
         Returns:
             (B, 3, H, W) generated fields
         """
@@ -437,7 +441,7 @@ class FlowMatching:
         return per_pixel.mean()
 
     def sample(self, condition, large_scale=None, params=None, n_steps=50,
-               cfg_scale=1.0, grad=False, scale_factor=None):
+               cfg_scale=1.0, grad=False, scale_factor=None, generator=None):
         """Generate samples via Euler ODE integration.
 
         Args:
@@ -450,6 +454,11 @@ class FlowMatching:
             scale_factor: (B,) scale factor a=1/(1+z) for redshift-conditioned
                 models; None for the z=0 / non-redshift model. Redshift is held
                 fixed under classifier-free guidance (it is not the guided var).
+            generator: optional ``torch.Generator`` (on the *same device* as
+                ``condition``) used to draw the initial noise, making the sample
+                reproducible.  ``None`` (the default) draws from the global RNG
+                exactly as before — the unseeded path is bit-for-bit unchanged,
+                since the ``torch.randn`` call is then literally the same call.
         Returns:
             (B, self.out_channels, H, W) generated fields
         """
@@ -459,8 +468,14 @@ class FlowMatching:
 
         ctx = torch.enable_grad() if grad else torch.no_grad()
         with ctx:
+            # The shape/device are spelled out here exactly as they always were
+            # (randn_like is used in loss(), not here). With generator=None this
+            # is byte-for-byte the historical call, so an unseeded run is
+            # unchanged from v0.1.0.
+            noise_kw = {} if generator is None else {"generator": generator}
             x = torch.randn(B, self.out_channels,
-                            condition.shape[2], condition.shape[3], device=device)
+                            condition.shape[2], condition.shape[3], device=device,
+                            **noise_kw)
             dt = 1.0 / n_steps
 
             for i in range(n_steps):
@@ -541,11 +556,13 @@ class VariationalDiffusion:
         return ((eps_pred - noise) ** 2).mean()
 
     def sample(self, condition, large_scale=None, params=None, n_steps=50,
-               cfg_scale=1.0, grad=False):
+               cfg_scale=1.0, grad=False, generator=None):
         """Generate samples via deterministic DDIM (t=1 noise -> t=0 data).
 
         Same signature as FlowMatching.sample so the inference pipeline is
-        unchanged. Returns (B, out_channels, H, W).
+        unchanged. ``generator`` (optional, same device as ``condition``) seeds
+        the initial noise; ``None`` keeps the historical global-RNG draw.
+        Returns (B, out_channels, H, W).
         """
         self.model.eval()
         B = condition.shape[0]
@@ -553,8 +570,10 @@ class VariationalDiffusion:
 
         ctx = torch.enable_grad() if grad else torch.no_grad()
         with ctx:
+            noise_kw = {} if generator is None else {"generator": generator}
             x = torch.randn(B, self.out_channels,
-                            condition.shape[2], condition.shape[3], device=device)
+                            condition.shape[2], condition.shape[3], device=device,
+                            **noise_kw)
             ts = torch.linspace(1.0, 0.0, n_steps + 1, device=device)
 
             for i in range(n_steps):

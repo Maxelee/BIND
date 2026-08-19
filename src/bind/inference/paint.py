@@ -49,10 +49,13 @@ from tqdm import tqdm
 from bind.data import N_THERMO, THERMO_KEYS, NormStats
 
 from . import io_gadget
+from .artifacts import PROVENANCE_KEY, build_provenance, provenance_array, to_jsonable
 from .pipeline import (
     _denormalize_to_physical,
     build_bind_composite,
+    derive_seed,
     extract_multiscale,
+    make_generator,
     normalize_cutout,
     pixelize_z_projection,
 )
@@ -241,6 +244,8 @@ class Model:
         no_large_scale: bool,
         device: torch.device,
         condition_redshift: bool = False,
+        checkpoint_path: Path | str | None = None,
+        norm_stats_path: Path | str | None = None,
     ):
         self.fm = fm
         self.norm_stats = norm_stats
@@ -248,6 +253,10 @@ class Model:
         self.no_large_scale = bool(no_large_scale)
         self.condition_redshift = bool(condition_redshift)
         self.device = device
+        # Kept for provenance stamping: which files this model was loaded from.
+        # None when the caller supplied an in-memory fm/norm_stats pair.
+        self.checkpoint_path = checkpoint_path
+        self.norm_stats_path = norm_stats_path
         cosmo_idx = [0, 1, 7, 8]
         self.param_indices: np.ndarray | None = (
             np.array([i for i in range(35) if i not in cosmo_idx])
@@ -273,7 +282,8 @@ class Model:
         condition_redshift = bool(getattr(lit.hparams, "condition_redshift", False))
         ns = NormStats.load(str(norm_stats))
         return cls(lit.fm, ns, n_params=n_params, no_large_scale=no_large_scale,
-                   device=dev, condition_redshift=condition_redshift)
+                   device=dev, condition_redshift=condition_redshift,
+                   checkpoint_path=checkpoint, norm_stats_path=norm_stats)
 
     @classmethod
     def from_local(
@@ -292,6 +302,23 @@ class Model:
     def predict_thermo(self) -> bool:
         """True when this model emits the 4 gas-thermo channels."""
         return bool(getattr(self.norm_stats, "predict_thermo", False))
+
+    def provenance(self, **extra) -> dict:
+        """Provenance block identifying this model (version, weights + sha256).
+
+        The sha256s are computed lazily and cached per file, so calling this once
+        per slab costs one hash of the checkpoint for the whole process.
+        """
+        return build_provenance(
+            checkpoint_path=self.checkpoint_path,
+            norm_stats_path=self.norm_stats_path,
+            model=repr(self),
+            n_params=self.n_params,
+            no_large_scale=self.no_large_scale,
+            predict_thermo=self.predict_thermo,
+            condition_redshift=self.condition_redshift,
+            **extra,
+        )
 
     # ---- inference -----------------------------------------------------
     def __repr__(self) -> str:
@@ -334,6 +361,7 @@ class Model:
         progress: bool = True,
         redshift: float | None = None,
         scale_factor: float | None = None,
+        seed: int | None = None,
     ) -> np.ndarray:
         """Run the flow-matching sampler on per-halo cutouts.
 
@@ -348,6 +376,12 @@ class Model:
             35-dim cosmology + astrophysics vector.
         n_steps, batch_size, use_amp, progress
             Sampling controls.
+        seed
+            Optional seed for the sampler's initial noise.  ``None`` (default)
+            draws from the global RNG exactly as before — unseeded output is
+            bit-identical to previous releases.  With a seed, a *local*
+            generator is used (the global RNG is never touched), and the result
+            is reproducible for the same cutout order and ``batch_size``.
 
         Returns
         -------
@@ -362,6 +396,8 @@ class Model:
             return np.zeros((0, n_out, PATCH_PIX, PATCH_PIX), dtype=np.float32)
 
         outputs: list[np.ndarray] = []
+        generator = make_generator(seed, self.device)
+        gen_kw = {} if generator is None else {"generator": generator}
         rng = range(0, len(cutouts), batch_size)
         if progress:
             rng = tqdm(rng, desc="Generating hydro")
@@ -392,7 +428,8 @@ class Model:
             # conditioned FlowMatching). VDM/plain samplers don't take the kwarg.
             _sf_kw = {"scale_factor": sf_t} if sf_t is not None else {}
             with ctx:
-                gen = self.fm.sample(cond_t, ls_t, par_t, n_steps=n_steps, **_sf_kw)
+                gen = self.fm.sample(cond_t, ls_t, par_t, n_steps=n_steps,
+                                     **_sf_kw, **gen_kw)
             outputs.append(_denormalize_to_physical(
                 gen.float().cpu().numpy().astype(np.float32), self.norm_stats
             ))
@@ -532,6 +569,7 @@ def paint(
     progress: bool = True,
     redshift: float | None = None,
     scale_factor: float | None = None,
+    seed: int | None = None,
 ) -> PaintResult:
     """Generate baryonified hydro maps from a DMO simulation + halo catalog.
 
@@ -561,6 +599,13 @@ def paint(
         factor ``a=1/(1+z)`` to generate at (pass only one). Ignored by a model
         trained without redshift conditioning; a redshift model with neither
         defaults to z=0.
+    seed
+        Optional master seed making the run reproducible. Each z-slab draws from
+        its own sub-seed derived from this one, so slabs never replay the same
+        noise. ``None`` (the default) is the historical unseeded behaviour: the
+        sampler draws from the global RNG and every run differs. The seed used
+        is recorded in the provenance block of ``summary.json`` and of every
+        output ``.npz`` (with ``batch_size``, which the noise stream depends on).
     """
     params = _validate_params(params)
     _warn_off_native(pixel_size, slab_depth)
@@ -579,6 +624,26 @@ def paint(
     npix = _round_npix(sim.box_size, pixel_size)
     n_slabs = _round_n_slabs(sim.box_size, slab_depth)
 
+    provenance = model.provenance(
+        n_steps=n_steps,
+        r200_factor=r200_factor,
+        paste_mode=paste_mode,
+        seed=seed,
+        batch_size=batch_size,
+        taper_frac=taper_frac,
+        patch_mass_match=patch_mass_match,
+        use_amp=use_amp,
+        pixel_size=pixel_size,
+        slab_depth=slab_depth,
+        patch_pix=patch_pix,
+        npix=npix,
+        n_slabs=n_slabs,
+        box_size=sim.box_size,
+        redshift=redshift,
+        scale_factor=scale_factor,
+        entry_point="bind.paint",
+    )
+
     print(f"[paint] box={sim.box_size:.2f} Mpc/h, npix={npix}, n_slabs={n_slabs}")
     print(f"[paint] {sim.n_halos} halos, {sim.n_particles} particles")
     print(f"[paint] projecting DMO into {n_slabs} z-slab(s)...")
@@ -594,7 +659,8 @@ def paint(
         slab_map = dmo_slabs[si]
         in_slab = np.where(halo_slab_idx == si)[0]
         if len(in_slab) == 0:
-            slab_path = _save_empty_slab(output_dir, si, n_slabs, sim.box_size, slab_map)
+            slab_path = _save_empty_slab(output_dir, si, n_slabs, sim.box_size, slab_map,
+                                         provenance=provenance)
             composite_paths.append(slab_path)
             per_slab.append({"slab_idx": si, "n_halos": 0})
             continue
@@ -613,6 +679,7 @@ def paint(
             cutouts, params,
             n_steps=n_steps, batch_size=batch_size, use_amp=use_amp,
             progress=progress, redshift=redshift, scale_factor=scale_factor,
+            seed=derive_seed(seed, f"slab{si}"),
         )
 
         # 4. Composite.  build_bind_composite expects per-halo dicts and works
@@ -646,6 +713,9 @@ def paint(
             halo_centers=halo_xy.astype(np.float32),
             halo_masses=halo_m.astype(np.float32),
             halo_r200=halo_r.astype(np.float32),
+        )
+        save_kwargs[PROVENANCE_KEY] = provenance_array(
+            {**provenance, "slab_idx": si, "slab_seed": derive_seed(seed, f"slab{si}")}
         )
         if save_per_halo_patches:
             save_kwargs["generated_patches"] = gen[:, :3]
@@ -683,6 +753,8 @@ def paint(
         "paste_mode": paste_mode,
         "predict_thermo": model.predict_thermo,
         "thermo_keys": list(THERMO_KEYS) if model.predict_thermo else [],
+        "seed": seed,
+        "provenance": to_jsonable(provenance),
         "per_slab": per_slab,
     }, indent=2))
 
@@ -700,11 +772,15 @@ def paint(
     )
 
 
-def _save_empty_slab(output_dir, si, n_slabs, box_size, slab_map):
+def _save_empty_slab(output_dir, si, n_slabs, box_size, slab_map, provenance=None):
     composite = np.stack([slab_map, np.zeros_like(slab_map), np.zeros_like(slab_map)])
     p = output_dir / f"composite_slab{si:02d}.npz"
+    kw = {}
+    prov = provenance_array(provenance)
+    if prov is not None:
+        kw[PROVENANCE_KEY] = prov
     np.savez_compressed(
         p, dmo=slab_map, composite=composite, n_halos=0,
-        slab_idx=si, n_slabs=n_slabs, box_size=box_size,
+        slab_idx=si, n_slabs=n_slabs, box_size=box_size, **kw,
     )
     return p

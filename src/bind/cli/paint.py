@@ -98,6 +98,11 @@ def parse_args() -> argparse.Namespace:
                         "independent generations); 'average' = legacy blending.")
     p.add_argument("--no_save_patches", action="store_true",
                    help="Skip saving per-halo generated patches in the output npz")
+    p.add_argument("--seed", type=int, default=None,
+                   help="Seed for the sampler's initial noise, making the run "
+                        "reproducible; it is recorded in the provenance block of "
+                        "summary.json and of every output .npz. Omit for the historical "
+                        "behaviour: unseeded, a different realization every run.")
 
     return p.parse_args()
 
@@ -143,6 +148,7 @@ def main() -> None:
         save_per_halo_patches=not args.no_save_patches,
         redshift=args.redshift,
         scale_factor=args.scale_factor,
+        seed=args.seed,
     )
 
     print("=" * 80)

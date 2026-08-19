@@ -13,6 +13,7 @@ from bind.data import N_THERMO, SNAPSHOT_REDSHIFTS, THERMO_KEYS, NormStats, z_to
 from bind.train import FlowMatchingLit
 
 from .artifacts import (
+    build_provenance,
     ensure_dirs,
     load_composite,
     load_full_maps,
@@ -21,6 +22,7 @@ from .artifacts import (
     load_halo_cutouts,
     load_truth_halos_cube,
     load_truth_thermo_patches,
+    read_provenance,
     resolve_artifact_paths,
     save_composite,
     save_full_maps,
@@ -36,6 +38,7 @@ from .pipeline import (
     build_observable_vectors,
     compute_per_halo_mass_error,
     compute_truth_thermo_patches,
+    derive_seed,
     extract_halo_cutouts,
     extract_halo_cutouts_cube_from_3d,
     extract_truth_cutouts_cube_from_3d,
@@ -59,6 +62,41 @@ def _resolve_device(device_name: str) -> torch.device:
     if device_name == "cuda" and not torch.cuda.is_available():
         return torch.device("cpu")
     return torch.device(device_name)
+
+
+def _run_provenance(
+    spec: SimulationSpec, run_cfg: RunConfig, seed: int | None, prep_only: bool = False
+) -> dict:
+    """Provenance block for one simulation of a suite run.
+
+    Records the resolved settings this run used — not the CLI defaults — so a
+    cached output directory can always be traced back to what produced it.  The
+    checkpoint/norm_stats sha256s are computed once per process (cached in
+    :func:`bind.inference.artifacts.file_sha256`), not once per simulation.
+    """
+    correction = run_cfg.channel_correction
+    return build_provenance(
+        # prep_only never loads the model, so there is no checkpoint to attest to.
+        checkpoint_path=None if prep_only else run_cfg.checkpoint_path,
+        norm_stats_path=None if prep_only else run_cfg.run_dir / "norm_stats.npz",
+        n_steps=None if prep_only else run_cfg.n_steps,
+        r200_factor=run_cfg.r200_factor,
+        paste_mode=run_cfg.paste_mode,
+        seed=seed,
+        seed_base=run_cfg.seed,
+        batch_size=None if prep_only else run_cfg.batch_size,
+        patch_mass_match=run_cfg.patch_mass_match,
+        taper_frac=run_cfg.taper_frac,
+        use_amp=run_cfg.use_amp,
+        device=run_cfg.device,
+        model_name=run_cfg.model_name,
+        suite=spec.suite,
+        sim_id=spec.sim_id,
+        snapshot=spec.snapshot,
+        halo_mass_min=spec.halo_mass_min,
+        channel_correction=None if correction is None else np.asarray(correction).tolist(),
+        prep_only=prep_only,
+    )
 
 
 def _thermo_patch_metrics(gen_thermo: np.ndarray, truth_thermo: np.ndarray) -> dict:
@@ -309,13 +347,29 @@ def run_single_simulation(
         summary["redshift"] = float(SNAPSHOT_REDSHIFTS[spec.snapshot])
 
     if run_cfg.prep_only:
+        summary["provenance"] = _run_provenance(spec, run_cfg, seed=None, prep_only=True)
         save_summary_json(paths.summary_json, summary)
         return summary
 
     assert norm_stats is not None and fm is not None and device is not None
 
+    # One sub-seed per simulation, derived from the run seed and the sim label,
+    # so different sims do not replay the same noise and a single sim can be
+    # regenerated on its own and come out identical.  None => unseeded (historic).
+    sim_seed = derive_seed(run_cfg.seed, f"{spec.sim_label}_snap{spec.snapshot}")
+    provenance = _run_provenance(spec, run_cfg, seed=sim_seed)
+
     if paths.generated_halos_npz.exists() and not (run_cfg.regenerate or run_cfg.regenerate_all):
         generated_halos = load_generated_halos(paths.generated_halos_npz)
+        # The patches came from an earlier run: this process's sampler settings
+        # never touched them, so report the cached run's instead (null when the
+        # cache predates provenance stamping — itself the useful signal).
+        cached = read_provenance(paths.generated_halos_npz)
+        provenance["generated_from_cache"] = True
+        for key in ("n_steps", "seed", "seed_base", "batch_size",
+                    "checkpoint_path", "checkpoint_sha256",
+                    "norm_stats_path", "norm_stats_sha256"):
+            provenance[key] = cached.get(key) if cached else None
     else:
         # Observable-conditioned models take a per-halo conditioning vector
         # measured from the truth maps (validation-by-reconstruction), rather
@@ -350,11 +404,19 @@ def run_single_simulation(
             no_large_scale=no_large_scale,
             cond_vectors=cond_vectors,
             scale_factor=scale_factor,
+            seed=sim_seed,
         )
-        save_generated_halos(paths.generated_halos_npz, generated_halos)
+        provenance["generated_from_cache"] = False
+        save_generated_halos(paths.generated_halos_npz, generated_halos, provenance)
 
     if paths.composite_npz.exists() and not (run_cfg.repaste or run_cfg.regenerate or run_cfg.regenerate_all):
         composite_loaded = load_composite(paths.composite_npz)
+        # Likewise for the paste: these compositing settings are the cached
+        # run's, not this one's.
+        cached = composite_loaded.get("provenance")
+        provenance["composited_from_cache"] = True
+        for key in ("r200_factor", "paste_mode", "taper_frac", "patch_mass_match"):
+            provenance[key] = cached.get(key) if cached else None
         bind_composite = composite_loaded["composite"]
         rel_err = composite_loaded["mass_rel_err"]
         if rel_err.size > 0:
@@ -395,7 +457,8 @@ def run_single_simulation(
             npix=spec.npix,
             patch_pix=spec.patch_pix,
         )
-        save_composite(paths.composite_npz, composite_bundle, mass_stats)
+        provenance["composited_from_cache"] = False
+        save_composite(paths.composite_npz, composite_bundle, mass_stats, provenance)
 
         summary.update(
             {
@@ -410,6 +473,7 @@ def run_single_simulation(
 
     _maybe_attach_thermo_metrics(summary, prepared, generated_halos, predict_thermo)
 
+    summary["provenance"] = provenance
     save_summary_json(paths.summary_json, summary)
     return summary
 

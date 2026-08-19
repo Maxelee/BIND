@@ -44,6 +44,14 @@ from tqdm import tqdm
 from bind.data import N_THERMO, THERMO_KEYS
 
 from . import io_gadget
+from .artifacts import (
+    PROVENANCE_KEY,
+    bind_version,
+    build_provenance,
+    provenance_array,
+    read_provenance,
+    to_jsonable,
+)
 from .paint import (
     NATIVE_PIXEL_SIZE_MPCH,
     NATIVE_SLAB_DEPTH_MPCH,
@@ -58,7 +66,7 @@ from .paint import (
     _validate_params,
     extract_halo_cutouts,
 )
-from .pipeline import build_bind_composite
+from .pipeline import build_bind_composite, derive_seed
 
 MANIFEST_NAME = "stage1_manifest.json"
 
@@ -243,6 +251,7 @@ def project_and_extract(
         print(f"[stage1] slab {si}: {n} halos -> {slab_path.name}")
 
     manifest = {
+        "bind_version": bind_version(),
         "box_size": box_size,
         "npix": npix,
         "n_slabs": n_slabs,
@@ -283,6 +292,7 @@ def _save_composite_slab(
     generated_patches: np.ndarray | None = None,
     thermo_patches: np.ndarray | None = None,
     condition_sums: np.ndarray | None = None,
+    provenance: dict | None = None,
 ) -> Path:
     """Write one ``composite_slab{NN}.npz`` (shared by generate + recomposite).
 
@@ -313,6 +323,9 @@ def _save_composite_slab(
         kw["thermo_patches"] = thermo_patches
     if condition_sums is not None:
         kw["condition_sums"] = np.asarray(condition_sums, np.float32)
+    prov = provenance_array(provenance)
+    if prov is not None:
+        kw[PROVENANCE_KEY] = prov
     np.savez_compressed(slab_path, **kw)
     return slab_path
 
@@ -332,12 +345,19 @@ def generate_from_stage1(
     paste_mode: str = "shared",
     save_per_halo_patches: bool = True,
     progress: bool = True,
+    seed: int | None = None,
 ) -> PaintResult:
     """Stage 2: run the sampler on stage-1 cutouts and composite per slab.
 
     Reads the ``stage1_manifest.json`` + ``stage1_slab{NN}.npz`` written by
     :func:`project_and_extract`, generates hydro patches on the GPU, and writes
     the same ``composite_slab{NN}.npz`` / ``summary.json`` as :func:`bind.paint`.
+
+    ``seed`` (optional) makes the sampling reproducible: each slab draws from its
+    own sub-seed derived from it, so no two slabs replay the same noise.  ``None``
+    keeps the historical unseeded behaviour (global RNG, different every run).
+    The resolved settings — including the seed and ``batch_size``, which the noise
+    stream depends on — are stamped into every output as ``provenance``.
     """
     stage1_dir = Path(stage1_dir)
     manifest = json.loads((stage1_dir / MANIFEST_NAME).read_text())
@@ -356,6 +376,23 @@ def generate_from_stage1(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    provenance = model.provenance(
+        n_steps=n_steps,
+        r200_factor=r200_factor,
+        paste_mode=paste_mode,
+        seed=seed,
+        batch_size=batch_size,
+        taper_frac=taper_frac,
+        patch_mass_match=patch_mass_match,
+        use_amp=use_amp,
+        npix=npix,
+        n_slabs=n_slabs,
+        box_size=box_size,
+        patch_pix=patch_pix,
+        stage1_dir=str(stage1_dir),
+        entry_point="bind-paint-generate",
+    )
+
     print(f"[stage2] {model!r}")
     print(f"[stage2] box={box_size:.3f} Mpc/h  npix={npix}  n_slabs={n_slabs}  "
           f"{manifest['n_halos']} halos")
@@ -369,7 +406,8 @@ def generate_from_stage1(
         n = int(d["n_halos"])
 
         if n == 0:
-            composite_paths.append(_save_empty_slab(output_dir, si, n_slabs, box_size, slab_map))
+            composite_paths.append(_save_empty_slab(output_dir, si, n_slabs, box_size, slab_map,
+                                                    provenance=provenance))
             per_slab.append({"slab_idx": si, "n_halos": 0})
             continue
 
@@ -382,10 +420,11 @@ def generate_from_stage1(
             {"condition": cond[i], "large_scale": large_scale[i]} for i in range(n)
         ]
 
+        slab_seed = derive_seed(seed, f"slab{si}")
         gen = model.generate(
             cutouts, params,
             n_steps=n_steps, batch_size=batch_size, use_amp=use_amp,
-            progress=progress,
+            progress=progress, seed=slab_seed,
         )
 
         halos_dicts = [
@@ -409,6 +448,7 @@ def generate_from_stage1(
             generated_patches=(gen[:, :3] if save_per_halo_patches else None),
             thermo_patches=(thermo if save_per_halo_patches else None),
             condition_sums=cond.sum(axis=(1, 2)),
+            provenance={**provenance, "slab_idx": si, "slab_seed": slab_seed},
         )
 
         composite_paths.append(slab_path)
@@ -437,6 +477,8 @@ def generate_from_stage1(
         "predict_thermo": model.predict_thermo,
         "thermo_keys": list(THERMO_KEYS) if model.predict_thermo else [],
         "stage1_dir": str(stage1_dir),
+        "seed": seed,
+        "provenance": to_jsonable(provenance),
         "per_slab": per_slab,
     }, indent=2))
 
@@ -528,6 +570,7 @@ def recomposite_from_saved(
     paste_mode: str = "shared",
     save_per_halo_patches: bool = True,
     progress: bool = True,
+    seed: int | None = None,
 ) -> PaintResult:
     """Re-composite ALL slabs from saved patches with new settings (no GPU).
 
@@ -536,6 +579,12 @@ def recomposite_from_saved(
     ``output_dir`` (use a *different* directory so the originals are preserved).
     The generated (and thermo) patches are carried through unchanged, so the new
     output is itself re-compositable.
+
+    Re-compositing is deterministic — it draws no noise — so ``seed`` changes
+    nothing about the result; it only lets a caller record the seed of the
+    generation being re-composited when the source predates provenance stamping.
+    The source run's own provenance (checkpoint identity, n_steps, its seed) is
+    inherited from the generated npz and carried into the new outputs.
     """
     stage1_dir = Path(stage1_dir)
     generated_dir = Path(generated_dir)
@@ -550,6 +599,37 @@ def recomposite_from_saved(
         params = np.load(stage1_dir / man.get("params_file", "params.npy"))
     params = _validate_params(params)
 
+    # Inherit the generation's identity from the first stamped source slab: the
+    # patches were sampled there, so its checkpoint sha / n_steps / seed are the
+    # honest record — re-hashing a path that may no longer hold that file is not.
+    source_prov: dict | None = None
+    for si in range(n_slabs):
+        gp = generated_dir / f"composite_slab{si:02d}.npz"
+        if gp.exists():
+            source_prov = read_provenance(gp)
+            if source_prov is not None:
+                break
+    src = source_prov or {}
+    provenance = build_provenance(
+        n_steps=src.get("n_steps"),
+        r200_factor=r200_factor,
+        paste_mode=paste_mode,
+        seed=seed if seed is not None else src.get("seed"),
+        taper_frac=taper_frac,
+        patch_mass_match=patch_mass_match,
+        npix=npix,
+        n_slabs=n_slabs,
+        box_size=box_size,
+        stage1_dir=str(stage1_dir),
+        recomposited_from=str(generated_dir),
+        entry_point="bind-paint-recomposite",
+        source_provenance=source_prov,
+    )
+    for key in ("bind_version", "checkpoint_path", "checkpoint_sha256",
+                "norm_stats_path", "norm_stats_sha256", "batch_size", "model"):
+        if key in src:
+            provenance[f"source_{key}"] = src[key]
+
     print(f"[recomposite] {generated_dir} -> {output_dir}  "
           f"(taper_frac={taper_frac}, r200_factor={r200_factor}, "
           f"paste_mode={paste_mode}, patch_mass_match={patch_mass_match})")
@@ -561,7 +641,8 @@ def recomposite_from_saved(
         gp = generated_dir / f"composite_slab{si:02d}.npz"
         s = np.load(s1)
         if int(s["n_halos"]) == 0:
-            composite_paths.append(_save_empty_slab(output_dir, si, n_slabs, box_size, s["dmo"]))
+            composite_paths.append(_save_empty_slab(output_dir, si, n_slabs, box_size, s["dmo"],
+                                                    provenance=provenance))
             per_slab.append({"slab_idx": si, "n_halos": 0})
             continue
         if not gp.exists():
@@ -582,6 +663,7 @@ def recomposite_from_saved(
             thermo_patches=(g["thermo_patches"]
                             if (save_per_halo_patches and "thermo_patches" in g.files) else None),
             condition_sums=s["condition"].sum(axis=(1, 2)),
+            provenance={**provenance, "slab_idx": si},
         )
         composite_paths.append(slab_path)
         per_slab.append({
@@ -607,6 +689,8 @@ def recomposite_from_saved(
         "taper_frac": taper_frac,
         "r200_factor": r200_factor,
         "paste_mode": paste_mode,
+        "seed": provenance["seed"],
+        "provenance": to_jsonable(provenance),
         "per_slab": per_slab,
     }, indent=2))
 

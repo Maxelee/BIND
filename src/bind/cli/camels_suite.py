@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from bind.inference.artifacts import to_jsonable
+from bind.inference.artifacts import build_provenance, to_jsonable
 from bind.inference.config import build_suite_specs, parse_sim_ids
 from bind.inference.runner import run_suite
 from bind.inference.schemas import RunConfig
@@ -81,6 +81,18 @@ def parse_args() -> argparse.Namespace:
             "overlapping halos share one realization before the weighted-average blend "
             "(avoids the high-k P(k) loss from averaging independent generations); "
             "'average' = legacy independent-patch blending."
+        ),
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help=(
+            "Seed for the sampler's initial noise, making the run reproducible; it is "
+            "recorded in the provenance block of every summary.json and output .npz. "
+            "Omit for the historical behaviour: unseeded, a different realization every "
+            "run. Each simulation draws from its own sub-seed derived from this one, so "
+            "sims never share a noise stream and one sim can be regenerated alone."
         ),
     )
     parser.add_argument("--skip_truth", action="store_true", help="Skip hydro truth map projection")
@@ -183,6 +195,7 @@ def main() -> None:
         regenerate_all=args.regenerate_all,
         repaste=args.repaste,
         channel_correction=correction,
+        seed=args.seed,
     )
 
     print("=" * 80)
@@ -201,6 +214,7 @@ def main() -> None:
     print(f"Regenerate all: {run_cfg.regenerate_all}")
     print(f"Repaste: {run_cfg.repaste}")
     print(f"Paste mode: {run_cfg.paste_mode}")
+    print(f"Seed: {run_cfg.seed if run_cfg.seed is not None else 'none (unseeded)'}")
     if run_cfg.channel_correction is not None:
         print(f"Channel correction (truth/gen): {run_cfg.channel_correction.tolist()}")
     if args.suite in {"sb35", "all"}:
@@ -220,6 +234,26 @@ def main() -> None:
         "n_simulations_requested": len(specs),
         "n_simulations_completed": len(summaries),
         "prep_only": args.prep_only,
+        # Run-level provenance; each simulation additionally carries its own
+        # block (with its derived seed) under summaries[i]["provenance"].
+        "provenance": build_provenance(
+            checkpoint_path=None if args.prep_only else run_cfg.checkpoint_path,
+            norm_stats_path=None if args.prep_only else run_cfg.run_dir / "norm_stats.npz",
+            n_steps=None if args.prep_only else run_cfg.n_steps,
+            r200_factor=run_cfg.r200_factor,
+            paste_mode=run_cfg.paste_mode,
+            seed=run_cfg.seed,
+            batch_size=None if args.prep_only else run_cfg.batch_size,
+            taper_frac=run_cfg.taper_frac,
+            patch_mass_match=run_cfg.patch_mass_match,
+            use_amp=run_cfg.use_amp,
+            device=run_cfg.device,
+            model_name=run_cfg.model_name,
+            suite=args.suite,
+            snapshot=args.snapshot,
+            halo_mass_min=args.halo_mass_min,
+            entry_point="bind-camels-suite",
+        ),
         "simulations": summaries,
     }
 

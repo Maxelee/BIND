@@ -52,3 +52,9 @@ class RunConfig:
     # weighted-average blend (avoids the high-k P(k) loss from averaging
     # independent generations); 'average' = legacy independent-patch blending.
     paste_mode: str = "shared"
+    # Optional master seed for the sampler noise.  None (default) = unseeded,
+    # i.e. the historical behaviour: every run draws different noise.  When set,
+    # each simulation gets its own sub-seed derived from this one plus its label
+    # (bind.inference.pipeline.derive_seed), so sims do not share a noise stream
+    # and a rerun of one sim reproduces its own patches.
+    seed: int | None = None

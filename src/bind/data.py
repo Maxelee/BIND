@@ -231,8 +231,11 @@ class NormStats:
     (occupancy + conditional density) when ``stars_two_head=True``. In that
     mode the AstroDataset emits a 4-channel target [DM_hydro, Gas,
     occupancy_norm, density_norm] and the model has out_ch=4.
-    Inference (test_suite/pipeline.py) recombines them via a soft multiplier
-    before writing the standard 3-channel artifact to disk.
+    Inference (:func:`bind.inference.pipeline._denormalize_to_physical`)
+    recombines them via a **hard 0.5 occupancy gate** times the conditional
+    density before writing the standard 3-channel artifact to disk. (An earlier
+    soft multiplier inflated occupancy by ~55 percentage points; see that
+    function's comment.)
 
     When ``predict_thermo=True`` the dataset additionally appends N_THERMO gas
     thermo channels (THERMO_KEYS order) after the mass target, each normalized

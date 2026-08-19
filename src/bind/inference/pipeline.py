@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import glob
+import hashlib
 from contextlib import nullcontext
 from pathlib import Path
 
@@ -290,7 +291,9 @@ def extract_halo_cutouts_cube_from_3d(
     return cutouts
 
 
-def load_halo_catalog(spec: SimulationSpec) -> tuple[list[dict], np.ndarray, np.ndarray]:
+def load_halo_catalog(
+    spec: SimulationSpec,
+) -> tuple[list[dict], np.ndarray, np.ndarray, np.ndarray]:
     """Load FoF group catalog, apply halo mass cut, and build halo list.
 
     Uses Group_M_Crit200 (M200c) for the mass cut and stored masses,
@@ -528,6 +531,44 @@ def _denormalize_to_physical(
     return np.concatenate([mass, thermo], axis=1)
 
 
+# ---------------------------------------------------------------------------
+# Reproducibility helpers
+# ---------------------------------------------------------------------------
+# BIND is generative: every run draws fresh noise, so an unseeded run cannot be
+# reproduced.  Seeding is opt-in and strictly local — `make_generator` returns a
+# private torch.Generator and nothing here ever calls torch.manual_seed(), so
+# (a) an unseeded run is bit-for-bit identical to the historical behaviour and
+# (b) a seeded run does not perturb any other RNG consumer in the process.
+
+
+def derive_seed(seed: int | None, key: str | int) -> int | None:
+    """Derive a stable sub-seed from a run seed and a key (sim label, slab index).
+
+    Sub-runs must not share one noise stream, or the very same realization would
+    be drawn for every simulation / slab.  The derivation is SHA-256 over
+    ``f"{seed}:{key}"`` truncated to 63 bits, so it is stable across processes,
+    machines and Python versions (unlike the salted builtin ``hash()``).
+    Returns ``None`` when ``seed`` is ``None`` (i.e. stays unseeded).
+    """
+    if seed is None:
+        return None
+    digest = hashlib.sha256(f"{int(seed)}:{key}".encode()).digest()
+    return int.from_bytes(digest[:8], "big") & ((1 << 63) - 1)
+
+
+def make_generator(seed: int | None, device: torch.device) -> torch.Generator | None:
+    """Return a local ``torch.Generator`` on ``device`` seeded with ``seed``.
+
+    ``None`` in, ``None`` out — callers then omit the ``generator`` kwarg
+    entirely and the sampler draws from the global RNG exactly as before.
+    """
+    if seed is None:
+        return None
+    generator = torch.Generator(device=device)
+    generator.manual_seed(int(seed) & ((1 << 63) - 1))
+    return generator
+
+
 def generate_halo_patches(
     halo_cutouts: list[dict],
     norm_stats: NormStats,
@@ -541,6 +582,7 @@ def generate_halo_patches(
     no_large_scale: bool = False,
     cond_vectors: np.ndarray | None = None,
     scale_factor: float | None = None,
+    seed: int | None = None,
 ) -> np.ndarray:
     """Run model inference on all halo cutouts and denormalize to physical space.
 
@@ -560,8 +602,17 @@ def generate_halo_patches(
         for observable-conditioned models (n_cond = N_OBS), where the vector is
         per-halo rather than per-sim — see :func:`build_observable_vectors`.
         ``param_indices`` is ignored when this is given.
+    seed: optional integer seed for the sampler's initial noise.  ``None`` (the
+        default) leaves the draw on the global RNG, i.e. bit-identical to the
+        historical behaviour.  With a seed, one local generator is created for
+        this call and consumed batch by batch, so a rerun reproduces the output
+        only when ``halo_cutouts`` order and ``batch_size`` also match (both are
+        recorded in the run provenance).  On GPU, bitwise reproducibility further
+        assumes the same device and deterministic conv kernels.
     """
     outputs: list[np.ndarray] = []
+    generator = make_generator(seed, device)
+    gen_kw = {} if generator is None else {"generator": generator}
     if cond_vectors is not None and len(cond_vectors) != len(halo_cutouts):
         raise ValueError(
             f"cond_vectors has {len(cond_vectors)} rows but there are "
@@ -601,7 +652,8 @@ def generate_halo_patches(
                     dtype=torch.float32, device=device,
                 )
             with amp_ctx:
-                gen = fm.sample(cond_t, ls_t, params_t, n_steps=n_steps, **sf_kw)
+                gen = fm.sample(cond_t, ls_t, params_t, n_steps=n_steps,
+                                **sf_kw, **gen_kw)
 
             gen_np = gen.float().cpu().numpy().astype(np.float32)
             outputs.append(_denormalize_to_physical(gen_np, norm_stats))

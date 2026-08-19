@@ -1,14 +1,141 @@
-"""Artifact path management and cache I/O for test-suite runs."""
+"""Artifact path management, provenance stamping, and cache I/O for runs."""
 
 from __future__ import annotations
 
+import hashlib
 import json
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
 from .schemas import SimulationSpec
+
+# ---------------------------------------------------------------------------
+# Provenance
+# ---------------------------------------------------------------------------
+# Generated maps are worthless as evidence unless the reader can tell what made
+# them.  Every run stamps a provenance block into its summary.json and into each
+# output .npz: the bind version, the checkpoint + norm_stats identities (path and
+# sha256), and the *resolved* sampling/compositing settings actually used
+# (n_steps, r200_factor, paste_mode, seed, ...) — resolved, because defaults have
+# changed over the project's life and a cached directory that mixes n_steps and
+# r200_factor values with no stamp cannot be untangled after the fact.
+
+PROVENANCE_KEY = "provenance"
+
+# (resolved path, size, mtime_ns) -> hex digest or None.  Keyed on the file's
+# identity so a multi-GB checkpoint is read once per process, not once per
+# simulation, but a file that changes on disk is re-hashed.
+_SHA256_CACHE: dict[tuple[str, int, int], str | None] = {}
+
+
+def file_sha256(path: Path | str | None) -> str | None:
+    """SHA-256 hex digest of a file, cached per (path, size, mtime).
+
+    Returns ``None`` — never raises — when the path is missing, unreadable, or
+    not given.  A long suite run must not die because a checkpoint sat on a
+    filesystem that hiccuped while being hashed; an unknown digest is recorded
+    as null and the run continues.
+    """
+    if path is None:
+        return None
+    try:
+        p = Path(path)
+        st = p.stat()
+        key = (str(p.resolve()), st.st_size, st.st_mtime_ns)
+    except OSError:
+        return None
+    if key in _SHA256_CACHE:
+        return _SHA256_CACHE[key]
+    digest: str | None
+    try:
+        h = hashlib.sha256()
+        with open(p, "rb") as fh:
+            for block in iter(lambda: fh.read(16 * 1024 * 1024), b""):
+                h.update(block)
+        digest = h.hexdigest()
+    except Exception:  # unreadable/vanished mid-hash — degrade, don't crash
+        digest = None
+    _SHA256_CACHE[key] = digest
+    return digest
+
+
+def bind_version() -> str | None:
+    """``bind.__version__``, or None if it cannot be determined."""
+    try:
+        from bind import __version__  # local import: bind imports this module
+        return str(__version__)
+    except Exception:
+        return None
+
+
+def build_provenance(
+    *,
+    checkpoint_path: Path | str | None = None,
+    norm_stats_path: Path | str | None = None,
+    n_steps: int | None = None,
+    r200_factor: float | None = None,
+    paste_mode: str | None = None,
+    seed: int | None = None,
+    **extra,
+) -> dict:
+    """Build the provenance block stamped into summaries and output arrays.
+
+    All of ``n_steps`` / ``r200_factor`` / ``paste_mode`` / ``seed`` must be the
+    *resolved* values the run actually used, not the caller's defaults.  Extra
+    keyword arguments (``batch_size``, ``taper_frac``, ``model``, ...) are merged
+    in as-is, so each entry point can record what else matters to it.
+    """
+    prov = {
+        "bind_version": bind_version(),
+        "checkpoint_path": str(checkpoint_path) if checkpoint_path is not None else None,
+        "checkpoint_sha256": file_sha256(checkpoint_path),
+        "norm_stats_path": str(norm_stats_path) if norm_stats_path is not None else None,
+        "norm_stats_sha256": file_sha256(norm_stats_path),
+        "n_steps": n_steps,
+        "r200_factor": r200_factor,
+        "paste_mode": paste_mode,
+        "seed": seed,
+        "created": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+    }
+    prov.update(extra)
+    return prov
+
+
+def provenance_array(provenance: dict | None) -> np.ndarray | None:
+    """Pack a provenance dict as a 0-d numpy string array for ``np.savez``.
+
+    npz files hold arrays only, so the block travels as one JSON string under the
+    ``provenance`` key; read it back with :func:`read_provenance`.
+    """
+    if provenance is None:
+        return None
+    return np.asarray(json.dumps(to_jsonable(provenance), sort_keys=True))
+
+
+def read_provenance(source) -> dict | None:
+    """Read the provenance block from an npz path or a loaded ``NpzFile``.
+
+    Returns ``None`` for artifacts written before stamping existed (which is
+    itself the useful signal: an unstamped file predates this release).
+    """
+    if hasattr(source, "files"):
+        return _extract_provenance(source)
+    # Close the NpzFile explicitly: runner.py reads artifacts from a thread pool,
+    # where relying on refcount timing to release the file handle is fragile.
+    with np.load(source, allow_pickle=False) as loaded:
+        return _extract_provenance(loaded)
+
+
+def _extract_provenance(loaded) -> dict | None:
+    if PROVENANCE_KEY not in loaded.files:
+        return None
+    try:
+        return json.loads(str(loaded[PROVENANCE_KEY]))
+    except (ValueError, TypeError):
+        return None
 
 
 @dataclass(frozen=True)
@@ -173,9 +300,15 @@ def load_halo_cutouts(path: Path) -> list[dict]:
     return [{"condition": cond[i], "large_scale": ls[i]} for i in range(cond.shape[0])]
 
 
-def save_generated_halos(path: Path, generated_halos: np.ndarray) -> None:
-    """Save generated halo patches."""
-    np.savez(path, generated=generated_halos.astype(np.float32))
+def save_generated_halos(
+    path: Path, generated_halos: np.ndarray, provenance: dict | None = None
+) -> None:
+    """Save generated halo patches, stamped with the run provenance."""
+    kw = {"generated": generated_halos.astype(np.float32)}
+    prov = provenance_array(provenance)
+    if prov is not None:
+        kw[PROVENANCE_KEY] = prov
+    np.savez(path, **kw)
 
 
 def load_generated_halos(path: Path) -> np.ndarray:
@@ -184,10 +317,14 @@ def load_generated_halos(path: Path) -> np.ndarray:
     return loaded["generated"]
 
 
-def save_composite(path: Path, composite_bundle: dict, mass_stats: dict) -> None:
-    """Save composite map products and summary diagnostics."""
+def save_composite(
+    path: Path, composite_bundle: dict, mass_stats: dict, provenance: dict | None = None
+) -> None:
+    """Save composite map products and summary diagnostics, stamped with provenance."""
+    prov = provenance_array(provenance)
     np.savez(
         path,
+        **({PROVENANCE_KEY: prov} if prov is not None else {}),
         composite=composite_bundle["composite"].astype(np.float32),
         alpha=composite_bundle["alpha"].astype(np.float32),
         hydro_canvas=composite_bundle["hydro_canvas"].astype(np.float32),
@@ -202,9 +339,10 @@ def save_composite(path: Path, composite_bundle: dict, mass_stats: dict) -> None
 
 
 def load_composite(path: Path) -> dict:
-    """Load composite map products."""
+    """Load composite map products (plus the provenance block, if stamped)."""
     loaded = np.load(path)
     return {
+        "provenance": read_provenance(loaded),
         "composite": loaded["composite"],
         "alpha": loaded["alpha"],
         "hydro_canvas": loaded["hydro_canvas"],

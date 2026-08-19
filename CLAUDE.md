@@ -64,7 +64,7 @@ The trainable engine lives on `main`. Understanding it requires reading `src/bin
   - `config.py` builds per-suite `SimulationSpec`s; `schemas.py` defines `RunConfig`/`SimulationSpec`; `artifacts.py` handles save/load + JSON serialization (`to_jsonable`).
   - `bind.cli.camels_suite` (`bind-camels-suite`) is the CAMELS-suite CLI; `bind.cli.paint` (`bind-paint`) the single-snapshot CLI (both support `--help`; `camels_suite` supports `--n_chunks/--chunk_id` for SLURM arrays).
 - **`params.py`** — parameter helpers exported at top level: `bind.fiducial_params()`, `random_params()`, `vary_param()`/`vary_params()`, `param_dataframe()`, backed by the bundled SB35 metadata in `assets/`.
-- **`bind.wlemu/`** — the weak-lensing statistics emulator (community tool; `feature/wl-emu` branch until merged): 30 SB35 astro params + source z → all κ summary statistics (Cl/pdf/peak/min/V0-V2/scattering/moments, 383 dims) with GP σ + single-field covariance. Per-z PCA + exact ARD-Matérn-5/2 GPs; **inference is numpy-only** from the packaged artifact `assets/wlemu_gp.npz` (~3 MB); fitting/k-fold validation in `bind.wlemu.fit` needs gpytorch (`pip install bind[wlemu-fit]`; data: `ceph/wlemu_cache_1024/stats_cache.npz`). `bind.wlemu.stats` is the numpy-exact port of the training estimators for user maps. Tutorial `examples/wlemu_tutorial.ipynb` (built by `examples/_build_wlemu_tutorial.py`), docs `docs/wl_emulator.md`, CLI `bind-wlemu`.
+- **`bind.wlemu/`** — the weak-lensing statistics emulator (community tool; merged for v0.2.0): 30 SB35 astro params + source z → all κ summary statistics (Cl/pdf/peak/min/V0-V2/scattering/moments, 383 dims) with GP σ + single-field covariance. Per-z PCA + exact ARD-Matérn-5/2 GPs; **inference is numpy-only** from the packaged artifact `assets/wlemu_gp.npz` (~3 MB); fitting/k-fold validation in `bind.wlemu.fit` needs gpytorch (`pip install bind[wlemu-fit]`; data: `ceph/wlemu_cache_1024/stats_cache.npz`). `bind.wlemu.stats` is the numpy-exact port of the training estimators for user maps. Tutorial `examples/wlemu_tutorial.ipynb` (built by `examples/_build_wlemu_tutorial.py`), docs `docs/wl_emulator.md`, CLI `bind-wlemu`.
 
 ## Working conventions in this repo
 
@@ -77,10 +77,29 @@ The trainable engine lives on `main`. Understanding it requires reading `src/bin
   - `analysis/tsz-icm` — tSZ / ICM thermo science: Y–M mass bias, WL calibration, entropy/pressure, Sobol assembly (`scatter/assembly_*`, `*_sobol` notebooks). Notebooks/scripts still on flat (`from data`) imports — fix per-file before reuse.
   - `analysis/ksz_project` — kSZ science analyses (renamed from `ksz_project`).
   - `feature/thermo` — **archival**: original thermo dev history + `stale/` graveyard. Its engine support is on `main`, the model notebooks were promoted to `examples/`, and the science notebooks moved to `analysis/tsz-icm`. Kept for history; don't add new work here.
+  - `lightcone` — the **lightcone factory**: chains TNG300-Dark snapshots into BINDed κ and tSZ-y lightcones (`inference/{lensplane,lightcone_maps,lightcone_transforms,paint_stages,stats,science,design,lux_io}.py` + 10 CLIs + `run_lightcone_*.sh`). Basis of the forthcoming *BINDing the lightcone* paper, but **not sufficient for it**: that paper's analysis layer (τ/kSZ planes, wavelet scattering, the statistics emulator, the figure scripts) is uncommitted on Popeye — see `bind-paper3-plans/POPEYE_ASSETS.md`. Two known defects to fix before merging: its stage-1 `extract_halo_cutouts` never passes `mpc_per_pix` (so TNG300 conditioning used a 205 Mpc/h 4th channel instead of the trained 50), and it commits stale `build/lib/bind/**` artifacts. Targeted at v0.3.0, not v0.2.0.
+  - `analysis/paper3a-gas-calibration`, `analysis/paper3b-ejection-heating` — Paper-3 work; plans live in the **private** repo `Maxelee/bind-paper3-plans`, never in this public one.
+  - `paper/referee-revision` — the methods-paper referee revision; the basis of `release/v0.2.0`.
   - `wip` — scratch notebooks, parameter-injection experiments, planning notes.
   - `3D` — legacy, superseded by `feature/3d-cube`.
   The two thermo model notebooks live on `main` at `examples/{paper_figures_thermo,analysis_thermo}.ipynb` (imports already rewritten to `bind.*`). Training and eval each use a single unified SLURM script — `run_train.sh` (`THERMO=1` toggles `--predict_thermo`) and `run_test_suite.sh` (model selected by env overrides) — there are no longer separate `*_two_head`/`*_thermo`/`*_parallel` variants. `feature/thermo` was deleted; its `stale/` graveyard + a full-tree tarball are archived at `/mnt/ceph/users/mlee1/bind_archive/feature_thermo/`.
   When starting new analysis, put it on the appropriate topic branch (or a new one) rather than on `main`. The remote is **`origin` → https://github.com/Maxelee/BIND.git**; topic branches are pushed there too.
+### Release process (v0.2.0 onward)
+
+Releases are cut on a short-lived `release/vX.Y.Z` branch off the topic branch that carries the content,
+then fast-forwarded into `main` and tagged. Before tagging:
+
+1. `ruff check src` and `pytest` pass, and `bash -n run_*.sh` is clean (CI enforces all three).
+2. `bash tools/paper_cache/acceptance_gate.sh` passes — it regenerates the paper's Table 2 from the
+   committed `fm_two_head` cache and requires the committed `.tex` back **byte-identical**. This is the
+   guard against a lint fix or a refactor silently perturbing a published number; run it after ANY change
+   under `src/bind/`.
+3. `pyproject.toml` version == `bind.__version__` (CI checks this).
+4. `CHANGELOG.md` has an entry, and behavioural changes to defaults are called out explicitly.
+
+The manuscript source is **not** tracked in this repository (see `.gitignore`); the paper ships via arXiv
+and the repo carries the figure producers plus `docs/reproducing_the_paper.md` instead.
+
 - **`main` is both the trunk and the release.** It is the installable `bind` package (`src/bind/` layout) used for training (`bind.train`), evaluation (`bind.inference`), and the `bind.paint()` inference API — there is no separate flat "training" layout. Releases are cut as **git tags + GitHub Releases** (e.g. `v0.1.0`), not long-lived `release/*` branches, so the released package is always identical to validated `main`.
 - **Generated artifacts are not versioned.** `.gitignore` excludes caches, `outputs/`, figures (`*.pdf/*.png/*.gif`, `figures/`, `paper_figures/`), `*.npz`/`*.npy`, `*.log`, `weights/`, and `__pycache__`. The bundled demo input (`examples/data/dmo_sample.npz`) and packaged assets (`src/bind/assets/`) are explicit allow-list exceptions.
 

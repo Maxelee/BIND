@@ -17,7 +17,6 @@ Use :func:`param_dataframe` to inspect names/ranges interactively.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Sequence
 
 import numpy as np
 import pandas as pd

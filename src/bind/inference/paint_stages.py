@@ -45,6 +45,9 @@ from bind.data import N_THERMO, THERMO_KEYS
 
 from . import io_gadget
 from .paint import (
+    NATIVE_PIXEL_SIZE_MPCH,
+    NATIVE_SLAB_DEPTH_MPCH,
+    PATCH_PIX,
     Model,
     PaintResult,
     _assign_halos_to_slabs,
@@ -54,9 +57,6 @@ from .paint import (
     _save_empty_slab,
     _validate_params,
     extract_halo_cutouts,
-    NATIVE_PIXEL_SIZE_MPCH,
-    NATIVE_SLAB_DEPTH_MPCH,
-    PATCH_PIX,
 )
 from .pipeline import build_bind_composite
 

@@ -22,8 +22,6 @@ import argparse
 import os
 from pathlib import Path
 
-import numpy as np
-
 import bind
 from bind.cli.paint import _load_params
 from bind.inference.paint_stages import project_and_extract

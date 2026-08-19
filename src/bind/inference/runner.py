@@ -9,8 +9,7 @@ from dataclasses import asdict
 import numpy as np
 import torch
 
-from bind.data import (NormStats, N_THERMO, THERMO_KEYS, SNAPSHOT_REDSHIFTS,
-                       z_to_a)
+from bind.data import N_THERMO, SNAPSHOT_REDSHIFTS, THERMO_KEYS, NormStats, z_to_a
 from bind.train import FlowMatchingLit
 
 from .artifacts import (
@@ -38,16 +37,17 @@ from .pipeline import (
     compute_per_halo_mass_error,
     compute_truth_thermo_patches,
     extract_halo_cutouts,
-    extract_halo_cutouts_cube,
     extract_halo_cutouts_cube_from_3d,
     extract_truth_cutouts_cube_from_3d,
     extract_truth_mass_patches,
     generate_halo_patches,
     load_dmo_particles,
     load_dmo_projection,
-    load_halo_catalog as load_halo_catalog_raw,
     load_truth_maps,
     voxelize_dmo_3d,
+)
+from .pipeline import (
+    load_halo_catalog as load_halo_catalog_raw,
 )
 from .schemas import RunConfig, SimulationSpec
 

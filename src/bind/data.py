@@ -1,14 +1,14 @@
 """Dataset and normalization for cosmological baryonic field painting."""
 
 import os
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-import re
 import torch
-from torch.utils.data import Dataset, DataLoader
-from pathlib import Path
-from dataclasses import dataclass, field
-
+from torch.utils.data import DataLoader, Dataset
 
 _ASSETS_DIR = Path(__file__).parent / "assets"
 # Bundled SB35 metadata (param min/max + log flags) and the per-sim parameter
@@ -525,7 +525,7 @@ def load_file_list(data_root, split='train', recursive=False, exclude_snaps=()):
 
 class AstroDataset(Dataset):
     """Dataset for cosmological baryonic field painting.
-    
+
     Returns dict with keys: target (3,128,128), condition (1,128,128),
     large_scale (3,128,128), params (N,) — all normalized.
 
@@ -740,20 +740,21 @@ def compute_norm_stats_cube(file_list, n_samples=5000, seed=42,
     rng = np.random.RandomState(seed)
     indices = rng.choice(len(file_list), min(n_samples, len(file_list)), replace=False)
 
-    targets, conds, params_list = [], [], []
+    # Parameter bounds are NOT measured from the sample: they come from the SB35
+    # csv (PARAM_MIN_NORM/PARAM_MAX_NORM below) so normalization is well-defined
+    # for any simulation, not just the ones drawn here.
+    targets, conds = [], []
     raw_stars_chunks = []
     for idx in indices:
         d = np.load(file_list[idx])
         raw_target = np.stack([d['dm_hydro'], d['gas'], d['star']])  # (3,128,128)
         targets.append(log_transform(raw_target))
         conds.append(log_transform(d['dm']))
-        params_list.append(d['conditional_params'])
         if stars_two_head:
             raw_stars_chunks.append(d['star'])
 
     targets = np.stack(targets)        # (N,3,128,128)
     conds = np.stack(conds)            # (N,128,128)
-    params_arr = np.stack(params_list) # (N,35)
 
     target_mean = targets.mean(axis=(0, 2, 3)).astype(np.float32)
     target_std = targets.std(axis=(0, 2, 3)).astype(np.float32)

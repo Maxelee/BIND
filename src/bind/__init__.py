@@ -20,8 +20,8 @@ from bind.inference.paint_stages import (  # noqa: E402
     recomposite_slab,
 )
 from bind.params import (  # noqa: E402
-    PARAM_NAMES,
     N_PARAMS,
+    PARAM_NAMES,
     fiducial_params,
     param_dataframe,
     random_params,

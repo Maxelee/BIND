@@ -46,7 +46,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from bind.data import NormStats, N_THERMO, THERMO_KEYS
+from bind.data import N_THERMO, THERMO_KEYS, NormStats
 
 from . import io_gadget
 from .pipeline import (
@@ -56,7 +56,6 @@ from .pipeline import (
     normalize_cutout,
     pixelize_z_projection,
 )
-
 
 # ---------------------------------------------------------------------------
 # Constants

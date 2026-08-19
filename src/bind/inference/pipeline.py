@@ -12,10 +12,18 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from bind.data import (NormStats, N_THERMO, THERMO_KEYS, N_OBS, log_transform,
-                       thermo_inverse, thermo_forward, compute_observables)
-from .schemas import SimulationSpec
+from bind.data import (
+    N_OBS,
+    N_THERMO,
+    THERMO_KEYS,
+    NormStats,
+    compute_observables,
+    log_transform,
+    thermo_forward,
+    thermo_inverse,
+)
 
+from .schemas import SimulationSpec
 
 # ---------------------------------------------------------------------------
 # Gas thermodynamics — per-particle physics + projection, ported verbatim from

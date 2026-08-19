@@ -1,10 +1,10 @@
 """U-Net + Flow Matching for conditional baryonic field generation."""
 
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 
 # ---------- building blocks ----------
 

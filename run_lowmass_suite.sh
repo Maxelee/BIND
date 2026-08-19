@@ -43,9 +43,13 @@ MODEL_NAME=${MODEL_NAME:-fm_thermo_ema}
 CHECKPOINT_PATH=${CHECKPOINT_PATH:-$RUN_DIR/checkpoints/kept/keep_epoch064_ema.ckpt}
 OUTPUT_ROOT=${OUTPUT_ROOT:-/mnt/home/mlee1/ceph/fm_lowmass}
 MANIFEST_DIR="$OUTPUT_ROOT/manifests"
-TEST_MANIFEST="$MANIFEST_DIR/sb35_test_manifest.json"
 
 SNAPSHOT=${SNAPSHOT:-90}                    # 90 = z=0
+
+# Namespaced by snapshot: the manifest hardcodes snapdir_<SNAPSHOT> in every
+# entry, so a shared filename would let a multi-snapshot run pair one
+# snapshot's DMO field with another snapshot's hydro truth.
+TEST_MANIFEST="$MANIFEST_DIR/sb35_test_manifest_snap$(printf %03d "$SNAPSHOT").json"
 NPIX=${NPIX:-1024}
 PATCH_PIX=${PATCH_PIX:-128}
 HALO_MASS_MIN=${HALO_MASS_MIN:-1e12}        # the low-mass floor for this study
@@ -83,7 +87,7 @@ if [[ -n "$CHECKPOINT_PATH" && ! -f "$CHECKPOINT_PATH" ]]; then
 fi
 
 # ── Held-out SB35 "Test" manifest (only for SUITE=test) ───────────────────────
-MANIFEST_LOCK="$MANIFEST_DIR/.manifest.lock"
+MANIFEST_LOCK="$MANIFEST_DIR/.manifest_snap$(printf %03d "$SNAPSHOT").lock"
 if [[ "$SUITE" == "test" ]]; then
     if [[ "$CHUNK_ID" == "0" ]]; then
         echo "=== [chunk 0] Building SB35 held-out test manifest ==="

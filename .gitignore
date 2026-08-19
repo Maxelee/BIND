@@ -119,3 +119,11 @@ dist_ci/
 *.blg
 *.out
 *.synctex.gz
+
+# Manuscript source. The methods paper is distributed via arXiv and the journal,
+# not from this repository; the repo ships the code, the figure producers
+# (tools/paper_cache/) and docs/reproducing_the_paper.md instead. Keeping the
+# .tex, the referee correspondence and the AAS-supplied aastex class files out
+# of the release also avoids redistributing third-party LPPL material under the
+# repo's MIT licence.
+BIND__methods_paper*/

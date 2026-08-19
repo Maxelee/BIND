@@ -22,7 +22,7 @@ Outputs
 - cache:  <CACHE>/cube_comparison_table.pkl    per-halo aperture masses (both truths + both models)
           <CACHE>/cube_comparison_profiles.npz per-halo 32-bin radial profiles
 - figure: examples/paper_figures/fig_cube_comparison.{pdf,png}
-          + a copy of the pdf into "BIND__methods_paper (1)/imgs/"
+          + a copy of the pdf into $BIND_PAPER_IMGS, if that is set
 
 Run:
     source /mnt/home/mlee1/venvs/torch3/bin/activate
@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import os
 import sys
 from pathlib import Path
 
@@ -64,9 +65,15 @@ MASS_SUB = "snap_090/mass_threshold_1p000e13"
 CUBE_MODEL = "fm_cube_two_head"
 FULL_MODEL = "fm_two_head"
 
-CACHE = Path("/mnt/home/mlee1/ceph/paper_cache/cube_comparison")
-FIG_DIR = Path("/mnt/home/mlee1/vdm_bind2/examples/paper_figures")
-IMGS_DIR = Path("/mnt/home/mlee1/vdm_bind2/BIND__methods_paper (1)/imgs")
+_REPO = Path(__file__).resolve().parents[3]
+
+CACHE = Path(os.environ.get("PAPER_CUBE_CACHE",
+                            "/mnt/home/mlee1/ceph/paper_cache/cube_comparison"))
+FIG_DIR = Path(os.environ.get("PAPER_FIG_DIR", _REPO / "examples" / "paper_figures"))
+# The manuscript source is not part of this repository (it is distributed via
+# arXiv), so the extra copy of the pdf is written only when BIND_PAPER_IMGS
+# points at a local checkout of the paper's imgs/ directory.
+IMGS_DIR = Path(os.environ["BIND_PAPER_IMGS"]) if os.environ.get("BIND_PAPER_IMGS") else None
 
 SUITES = C.SUITES
 SUITE_DISPLAY = C.SUITE_DISPLAY
@@ -485,7 +492,7 @@ def make_figure(df, npz):
         out = FIG_DIR / f"fig_cube_comparison.{ext}"
         fig.savefig(out, dpi=300, bbox_inches="tight")
         print(f"wrote {out}")
-    if IMGS_DIR.exists():
+    if IMGS_DIR is not None and IMGS_DIR.exists():
         shutil.copy(FIG_DIR / "fig_cube_comparison.pdf", IMGS_DIR / "fig_cube_comparison.pdf")
         print(f"copied pdf -> {IMGS_DIR}")
     return fig

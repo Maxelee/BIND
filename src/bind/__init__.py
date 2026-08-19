@@ -1,6 +1,6 @@
 """BIND — flow-matching emulator that paints baryonic fields onto DMO maps."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from bind.data import N_THERMO, THERMO_KEYS  # noqa: E402
 from bind.inference.paint import (  # noqa: E402

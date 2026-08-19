@@ -101,3 +101,21 @@ plans/
 # ---------------------------------------------------------------------------
 .DS_Store
 docs/_build/
+
+# Build artifacts (build/lib/** was committed on the lightcone branch and went
+# stale against src/, shipping two copies of the paste configuration with
+# opposite defaults -- never track these).
+build/
+dist/
+*.egg-info/
+.eggs/
+.ruff_cache/
+.pytest_cache/
+dist_ci/
+
+# LaTeX intermediates
+*.aux
+*.bbl
+*.blg
+*.out
+*.synctex.gz

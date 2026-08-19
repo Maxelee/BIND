@@ -49,39 +49,41 @@ THERMO=${THERMO:-0}
 REDSHIFT=${REDSHIFT:-0}
 OBS=${OBS:-0}
 MASK=${MASK:-0}
-DATA_ROOT=${DATA_ROOT:-/mnt/home/mlee1/ceph/train_data_rotated2_128_cpu}
 OUTPUT_DIR=${OUTPUT_DIR:-/mnt/home/mlee1/ceph/fm_runs}
 MAX_EPOCHS=${MAX_EPOCHS:-200}
 
+# Mode selection. DATA_ROOT and RUN_NAME are resolved *after* this chain so that
+# an explicit DATA_ROOT=... in the environment still wins while each mode keeps
+# its own default. Defaulting DATA_ROOT before the chain (as this script used to)
+# made every per-mode default unreachable, so REDSHIFT=1 silently trained a
+# redshift-conditioned model on the single-redshift dataset.
+DEFAULT_DATA_ROOT=/mnt/home/mlee1/ceph/train_data_rotated2_128_cpu
 EXTRA_FLAGS=()
 if [[ "$REDSHIFT" == "1" ]]; then
     # Multi-redshift dataset always carries thermo channels -> predict both.
     EXTRA_FLAGS+=(--condition_redshift --predict_thermo)
-    DATA_ROOT=${DATA_ROOT:-/mnt/home/mlee1/ceph/train_data_multiz_128_cpu}
-    RUN_NAME=${RUN_NAME:-fm_redshift}
-elif [[ "$THERMO" == "1" ]]; then
-    EXTRA_FLAGS+=(--predict_thermo)
-    DATA_ROOT=${DATA_ROOT:-/mnt/home/mlee1/ceph/train_data_rotated2_128_cpu}
-if [[ "$OBS" == "1" ]]; then
+    DEFAULT_DATA_ROOT=/mnt/home/mlee1/ceph/train_data_multiz_128_cpu
+    DEFAULT_RUN_NAME=fm_redshift
+elif [[ "$OBS" == "1" ]]; then
     # Observable conditioning, with mass+thermo outputs.
     EXTRA_FLAGS+=(--condition_observables --predict_thermo)
     if [[ "$MASK" == "1" ]]; then
         # Input-dropout: tolerate a missing subset of observables at inference.
         EXTRA_FLAGS+=(--mask_observables)
-        RUN_NAME=${RUN_NAME:-fm_observables_masked}
+        DEFAULT_RUN_NAME=fm_observables_masked
     else
-        RUN_NAME=${RUN_NAME:-fm_observables}
+        DEFAULT_RUN_NAME=fm_observables
     fi
 elif [[ "$THERMO" == "1" ]]; then
     EXTRA_FLAGS+=(--predict_thermo)
-    RUN_NAME=${RUN_NAME:-fm_thermo}
+    DEFAULT_RUN_NAME=fm_thermo
 else
-    DATA_ROOT=${DATA_ROOT:-/mnt/home/mlee1/ceph/train_data_rotated2_128_cpu}
-    RUN_NAME=${RUN_NAME:-fm_two_head}
+    DEFAULT_RUN_NAME=fm_two_head
 fi
+DATA_ROOT=${DATA_ROOT:-$DEFAULT_DATA_ROOT}
+RUN_NAME=${RUN_NAME:-$DEFAULT_RUN_NAME}
 
-echo "=== training run_name=$RUN_NAME thermo=$THERMO redshift=$REDSHIFT data=$DATA_ROOT ==="
-echo "=== training run_name=$RUN_NAME thermo=$THERMO obs=$OBS data=$DATA_ROOT ==="
+echo "=== training run_name=$RUN_NAME thermo=$THERMO redshift=$REDSHIFT obs=$OBS mask=$MASK data=$DATA_ROOT ==="
 
 srun python -m bind.train \
     --data_root "$DATA_ROOT" \

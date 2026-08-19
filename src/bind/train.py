@@ -70,6 +70,10 @@ class FlowMatchingLit(L.LightningModule):
                 'predict_thermo=True is not implemented for the StochasticInterpolant '
                 'branch. Use --interpolant fm.'
             )
+            assert not condition_redshift, (
+                'condition_redshift=True is not wired into the StochasticInterpolant '
+                'branch (its loss takes no scale_factor). Use --interpolant fm.'
+            )
             self.fm = StochasticInterpolant(self.unet, sigma=sigma,
                                             cfg_dropout=cfg_dropout,
                                             star_occ_weight=star_occ_weight,
@@ -85,6 +89,10 @@ class FlowMatchingLit(L.LightningModule):
             assert not predict_thermo, (
                 'predict_thermo=True is not wired into the VDM branch.'
             )
+            assert not condition_redshift, (
+                'condition_redshift=True is not wired into the VDM branch (its loss '
+                'takes no scale_factor). Use --interpolant fm.'
+            )
             self.fm = VariationalDiffusion(self.unet, cfg_dropout=cfg_dropout,
                                            out_channels=out_ch)
         else:
@@ -93,13 +101,18 @@ class FlowMatchingLit(L.LightningModule):
                                    star_zero_norm=star_zero_norm,
                                    out_channels=out_ch,
                                    stars_two_head=stars_two_head)
+        # Only FlowMatching.loss accepts scale_factor; the SI and VDM losses do
+        # not, and passing it unconditionally made `--interpolant si` and
+        # `--interpolant vdm` die with a TypeError at training step 0.
+        self._loss_takes_scale_factor = interpolant not in ('si', 'vdm')
         self.ema = ExponentialMovingAverage(self.unet.parameters(), decay=ema_decay)
 
     def training_step(self, batch, batch_idx):
         loss = self.fm.loss(
             batch['target'], batch['condition'],
             batch.get('large_scale'), batch['params'],
-            scale_factor=batch.get('scale_factor'),
+            **({'scale_factor': batch.get('scale_factor')}
+               if self._loss_takes_scale_factor else {}),
         )
         self.log('train/loss', loss, prog_bar=True, sync_dist=True)
         return loss
@@ -108,7 +121,8 @@ class FlowMatchingLit(L.LightningModule):
         loss = self.fm.loss(
             batch['target'], batch['condition'],
             batch.get('large_scale'), batch['params'],
-            scale_factor=batch.get('scale_factor'),
+            **({'scale_factor': batch.get('scale_factor')}
+               if self._loss_takes_scale_factor else {}),
         )
         self.log('val/loss', loss, prog_bar=True, sync_dist=True)
 

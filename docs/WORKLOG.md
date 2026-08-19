@@ -4,6 +4,35 @@ Reverse-chronological log of notable sessions: what changed, why, and decisions
 worth remembering. Newest entries on top. Keep entries short — link commits and
 files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
+## 2026-08-17 — talk_figs/: conference-talk asset scripts (presentation_agents.md paper-1 tasks)
+
+New `talk_figs/` (untracked tooling; all image outputs gitignored) for the BIND
+talk deck: `make_fig5b_slide.py` (done, CPU) rebuilds the methods-paper S(k)
+suppression as a slide-sized CV-only panel from the **fm_two_head** pk cache
+(`ceph/paper_cache/fm_two_head/pk_fixed.npz`, `CV_fixed_{truth,dmo,ge13,hr_ge13}`),
+log-k rebinned with 16–84 sim bands on both panels → `talk_figs/figs/slides/
+fig5b_slide.png`. `task_a_fm_frames.py` + `task_b_param_sweep.py` (GPU, submit via
+`talk_figs/run_talk_figs.sh`) reuse `tools/paper_cache/make_flow_matching_fig.py`
+machinery (same CV/sim_0 halo 2, logM=14.06, seed 0, fm_redshift@z=0 — thermo
+channels needed for the Compton-y sweep, so NOT fm_two_head): 61-frame noise→halo
+trajectory + cover stills, and 21-step `VariableWindVelFactor`/`IMFslope` prior
+sweeps (gas/y/star, fixed noise) with JSON sidecars.
+
+## 2026-08-17 — fig:flow_matching gains a smoothed-residual column (advisor request)
+
+`tools/paper_cache/make_flow_matching_fig.py`: new 6th column — the residual at
+the scale of a σ=1 px Gaussian kernel (`--smooth_sigma`), computed as the ratio
+of the *smoothed fields* (G⊗BIND / G⊗Truth − 1), since smoothing the raw
+fractional residual is dominated by near-empty-truth pixels (literal mode kept
+under `--smooth_mode resid`). For the sparse Stars row the denominator is
+floored at the 5th pct of positive truth pixels (~one star particle) so
+tail-over-tail ratios don't saturate in kernel-footprint blobs; dense rows use
+the exact ratio. Residual color scale unified to ±1 across all rows
+(`RESID_VMAX`). Result: DM smooths to Δ≈0 (noise-like), Gas keeps coherent
+feedback-scale structure, Stars break into saturated ±1 islands (object-level
+stochastic clump placement — confirmed at σ=2, `flow_matching_diagram_sig2`).
+Caption + §5 qualitative text updated in `main_restructured.tex`; compiles.
+
 ## 2026-08-16 — Paper model pivot: fm_two_head fiducial + cube appendix
 
 Author direction: main body on **fm_two_head** (z=0, n_steps=50 per its suite eval),

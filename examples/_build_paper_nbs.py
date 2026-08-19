@@ -101,13 +101,40 @@ def main_notebook():
         code(SETUP),
 
         md("## §1 · Full-box showcase (Fig 1)\n\nDMO → BIND2 mass fields vs hydro truth "
-           "for one CV box. The BIND row shows the taper-free pasted patches (`hydro_canvas`)."),
+           "for one CV box, **trained regime only** ($M_{200c}\\ge 10^{13}$). Two variants: "
+           "`fig1_showcase` (BIND row = taper-free pasted patches, `hydro_canvas`) and "
+           "`fig1_showcase_composite` (same, with Gas/Stars from the blended `composite`; the DM "
+           "panel stays unblended so it is not swamped by the (1-alpha)*DMO background fill)."),
         code(r'''
 rec = C.discover_sims(('CV',))[0]
-fm = C.load_full_maps(rec); comp = C.load_composite(rec)
+fm = C.load_full_maps(rec)
 dmo, truth = fm['dmo_fullbox'], fm['truth_maps']
-canvas = comp['hydro_canvas']     # patches-on-black; drives the clean residual
-composite = comp['composite']     # blended full-box map
+
+# Trained regime only: the BIND rows use halos with M200c >= 1e13 (MIN_LOG_M200).
+# Suites evaluated at a lower mass threshold get their composite rebuilt from the
+# >=1e13 subset with the standard shared-content paste (same recipe as
+# tools/paper_cache/build_pk_fixed.py); a suite already cut at 1e13 loads its cache.
+from bind.inference.artifacts import load_halo_catalog, load_halo_cutouts
+from bind.inference.pipeline import build_bind_composite
+
+halos, _, _, _ = load_halo_catalog(rec['catalog'])
+masses = np.array([h['halo_mass'] for h in halos])
+keep = masses >= 10 ** MIN_LOG_M200
+print(f'{rec["key"]}: {keep.sum()}/{len(halos)} halos with log10 M200c >= {MIN_LOG_M200}')
+if keep.all():
+    comp = C.load_composite(rec)
+    canvas, composite = comp['hydro_canvas'], comp['composite']
+else:
+    idx = np.where(keep)[0]
+    gen = C.load_generated(rec)[:, :C.N_MASS_CH]
+    cutouts = load_halo_cutouts(rec['cutouts'])
+    b = build_bind_composite(dmo, [halos[i] for i in idx], gen[idx], [cutouts[i] for i in idx],
+                             box_size=C.BOX_SIZE, npix=C.N_PIX_FULL, patch_pix=C.PATCH_PIX,
+                             patch_mass_match=True, taper_frac=0.15, r200_factor=4.0,
+                             paste_mode='shared')
+    canvas, composite = b['hydro_canvas'], b['composite']
+# canvas    = patches-on-black (taper-free)
+# composite = blended full-box map
 
 def showcase(bind_field, tag):
     fig, axs = plt.subplots(ncols=4, nrows=2, figsize=(16, 8), sharex=True, sharey=True, gridspec_kw={'wspace': 0.005, 'hspace': 0.05})
@@ -137,7 +164,15 @@ def showcase(bind_field, tag):
     plt.tight_layout()
     save_fig(fig, tag); plt.show()
 
-showcase(canvas, 'fig1_showcase')                # v1: BIND row = pasted patches (matches original)
+showcase(canvas, 'fig1_showcase')                   # BIND row = pasted patches on black
+
+# Composite variant, DM shown *unblended*: the DM panel is the raw pasted patches
+# (`canvas`), not composite[0] = (1-alpha)*DMO + alpha*canvas[0], so it shows what the
+# model generated instead of the DMO field it is pasted into (the DMO fill is what made
+# the panel look identical to column 1). Gas/Stars are unaffected by that fill -- their
+# composite is alpha*canvas with a zero background.
+composite_dm_raw = np.stack([canvas[0], composite[1], composite[2]])
+showcase(composite_dm_raw, 'fig1_showcase_composite')
 '''),
 
         md("## §2 · Integrated mass + parameter response\n\n"

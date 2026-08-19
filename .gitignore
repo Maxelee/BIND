@@ -127,3 +127,8 @@ dist_ci/
 # of the release also avoids redistributing third-party LPPL material under the
 # repo's MIT licence.
 BIND__methods_paper*/
+
+# Root-level duplicate of the packaged asset
+# (src/bind/assets/CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt is the one the
+# code actually loads; the root copy was byte-identical dead weight).
+/CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt

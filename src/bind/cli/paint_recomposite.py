@@ -3,7 +3,7 @@
 The flow-matching sampler (stage 2) is the expensive part and its per-halo output
 is already saved in each ``composite_slab{NN}.npz`` (``generated_patches``). This
 re-runs only the compositing step with new blend settings — ``--taper_frac``,
-``--r200_factor`` (circular R200 aperture), ``--no_patch_mass_match`` — reusing
+``--r200_factor`` (circular R200 aperture), ``--paste_mode``, ``--no_patch_mass_match`` — reusing
 those patches plus the stage-1 cutouts. No model, no GPU.
 
 Example (square-taper originals -> circular R200 paste)::
@@ -12,7 +12,7 @@ Example (square-taper originals -> circular R200 paste)::
         --stage1_dir   /…/snap_099/stage1 \\
         --generated_dir /…/snap_099 \\
         --output_dir    /…/snap_099_r200paste \\
-        --r200_factor 2.0
+        --r200_factor 4.0
 """
 
 from __future__ import annotations
@@ -35,8 +35,10 @@ def parse_args() -> argparse.Namespace:
 
     p.add_argument("--no_patch_mass_match", action="store_true")
     p.add_argument("--taper_frac", type=float, default=0.15)
-    p.add_argument("--r200_factor", type=float, default=0.0,
-                   help="Circular paste radius as multiple of R200c (0 = square taper)")
+    p.add_argument("--r200_factor", type=float, default=4.0,
+                   help="Circular paste radius as a multiple of R200c. The default 4.0 is the\n                        standard; 0 selects the legacy square taper, which loses high-k\n                        power wherever apertures overlap (see docs/circular_aperture.md).")
+    p.add_argument("--paste_mode", choices=["shared", "average"], default="shared",
+                   help="Overlap handling. 'shared' (the standard) makes overlapping halos\n                        agree on one realization of the shared region; 'average' is the legacy\n                        independent-patch blend, measured at -10.6%% total-matter P(k) at\n                        k=40-70. Requires --r200_factor > 0.")
     p.add_argument("--no_save_patches", action="store_true",
                    help="Don't carry generated patches into the new output "
                         "(makes it non-re-compositable)")
@@ -52,6 +54,7 @@ def main() -> None:
         patch_mass_match=not args.no_patch_mass_match,
         taper_frac=args.taper_frac,
         r200_factor=args.r200_factor,
+        paste_mode=args.paste_mode,
         save_per_halo_patches=not args.no_save_patches,
     )
 

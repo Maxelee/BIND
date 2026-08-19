@@ -33,7 +33,7 @@ import numpy as np
 mpl.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/tools/paper_cache")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "paper_cache"))
 import paper_config as C  # noqa: E402
 
 FIG_DIR = Path("/mnt/home/mlee1/vdm_bind2/examples/paper_figures")

@@ -27,7 +27,7 @@ Model selection is entirely via the paper_config env vars, e.g.:
     python f4_shapes.py
 """
 import sys
-sys.path.insert(0, '/mnt/home/mlee1/vdm_bind2/tools/paper_cache')
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "paper_cache"))
 import pickle
 from pathlib import Path
 

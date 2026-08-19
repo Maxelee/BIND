@@ -22,7 +22,7 @@ os.environ.setdefault("PAPER_MODEL_SUBDIR", "fm_two_head")
 os.environ.setdefault("PAPER_MASS_DIR", "mass_threshold_1p000e13")
 os.environ.setdefault("PAPER_MODEL_TAG", "fm_two_head")
 
-sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/tools/paper_cache")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "paper_cache"))
 
 from pathlib import Path
 

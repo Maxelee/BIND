@@ -36,8 +36,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/tools/paper_cache")
-sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/src")
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools" / "paper_cache"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 import paper_config as C
 from bind.inference.artifacts import load_halo_catalog, load_halo_cutouts
 from bind.inference.paint import Model

@@ -26,7 +26,7 @@ _missing = [k for k in _REQUIRED_ENV if not os.environ.get(k)]
 if _missing:
     sys.exit(f"set env vars before running: {' '.join(_missing)}")
 
-sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/tools/paper_cache")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "paper_cache"))
 
 import numpy as np
 import matplotlib

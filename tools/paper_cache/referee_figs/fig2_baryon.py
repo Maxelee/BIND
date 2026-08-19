@@ -31,7 +31,7 @@ _missing = [v for v in _REQUIRED_ENV if not os.environ.get(v)]
 if _missing:
     sys.exit(f"fig2_baryon: missing required env vars: {', '.join(_missing)}")
 
-sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/tools/paper_cache")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "paper_cache"))
 
 import numpy as np
 import pandas as pd

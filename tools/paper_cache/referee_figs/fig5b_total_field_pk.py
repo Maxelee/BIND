@@ -30,7 +30,7 @@ _missing = [v for v in _REQUIRED_ENV if not os.environ.get(v)]
 if _missing:
     sys.exit(f"fig5b_total_field_pk: export {', '.join(_missing)} before running")
 
-sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/tools/paper_cache")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "paper_cache"))
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt

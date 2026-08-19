@@ -12,8 +12,8 @@ Measures, on cached CV/sim_0 artifacts (no particle I/O):
 Run:  source ~/venvs/torch3/bin/activate && python timing_benchmark.py
 """
 import json, os, sys, time
-sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/tools/paper_cache")
-sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/src")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "paper_cache"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 os.environ.setdefault("PAPER_SUITE_ROOT", "/mnt/home/mlee1/ceph/fm_testsuite")
 os.environ.setdefault("PAPER_MODEL_SUBDIR", "fm_two_head")
 os.environ.setdefault("PAPER_MASS_DIR", "mass_threshold_1p000e13")

@@ -49,7 +49,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from scipy.stats import rankdata, spearmanr
 
-sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/tools/paper_cache")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "paper_cache"))
 import paper_config as C  # noqa: E402
 
 # ── style: identical to examples/_build_paper_nbs.py SETUP ──────────────────

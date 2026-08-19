@@ -273,7 +273,7 @@ def build_vdm(n_groups=48):
 # ════════════════════════════════════════════════════════════════════════════
 def build_obs(n_halos=32):
     import torch
-    sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/examples")
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "examples"))
     import fb_predict as fbp
     from bind.inference.paint import Model
     from bind.inference.pipeline import build_observable_vectors, extract_periodic_cutout

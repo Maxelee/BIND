@@ -31,7 +31,7 @@ _missing = [k for k in _REQUIRED_ENV if not os.environ.get(k)]
 if _missing:
     sys.exit(f"set env vars before running: {' '.join(_missing)}")
 
-sys.path.insert(0, "/mnt/home/mlee1/vdm_bind2/tools/paper_cache")
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "paper_cache"))
 
 import numpy as np
 
@@ -90,31 +90,42 @@ def row_stats(r, sims):
 
 
 def parse_prior(path):
-    """Prior tex data rows -> dict keyed by (aperture_idx, comp, suite)."""
+    """Prior tex data rows -> dict keyed by (aperture_idx, comp, suite).
+
+    Parses exactly the layout this script writes below, i.e. seven columns:
+
+        aperture & component & suite & N (N_sim) & $med\\pm err$ & $[p16,p84]$ & f50
+
+    The parser used to expect an older eight-column layout that carried an f20
+    column and put N last. Every row of the current table failed its cell-count
+    check, so `prior table rows parsed: 0` and the advertised "fails loudly if
+    the numbers disagree" guard silently never fired. If you change the writer,
+    change this too -- the two formats must stay in lockstep.
+    """
     rows, ap_i, comp = {}, -1, None
     pat = re.compile(
-        r"\$([+-][\d.]+)\\pm([\d.]+)\$ & \$\[([+-]?[\d.]+),([+-]?[\d.]+)\]\$"
-        r" & ([\d.]+) & ([\d.]+) & (\d+)"
+        r"\$([+-][\d.]+)\\pm([\d.]+)\$\s*&\s*\$\[([+-]?[\d.]+),\s*([+-]?[\d.]+)\]\$"
+        r"\s*&\s*([\d.]+)"
     )
     for line in path.read_text().splitlines():
         if "&" not in line or "colhead" in line:
             continue
-        cells = [c.strip() for c in line.rstrip("\\").split("&")]
-        if len(cells) < 9:
+        cells = [c.strip() for c in line.rstrip().rstrip("\\").split("&")]
+        if len(cells) < 7:
+            continue
+        m = pat.search(line)
+        if m is None:
             continue
         if cells[0]:  # new aperture block
             ap_i += 1
         if cells[1]:
             comp = cells[1]
         suite = cells[2]
-        m = pat.search(line)
-        if m is None:
-            continue
         n_halo = int(cells[3].split()[0])
         rows[(ap_i, comp, suite)] = dict(
             med=float(m.group(1)), err=float(m.group(2)),
             p16=float(m.group(3)), p84=float(m.group(4)),
-            f20=float(m.group(5)), f50=float(m.group(6)), n=n_halo,
+            f50=float(m.group(5)), n=n_halo,
         )
     return rows
 
@@ -144,7 +155,7 @@ def main():
                     ok = (
                         abs(p["med"] - med) < 0.015
                         and abs(p["p16"] - p16) < 0.06 and abs(p["p84"] - p84) < 0.06
-                        and abs(p["f50"] - f50) < 0.06 and abs(p["f20"] - f20) < 0.06
+                        and abs(p["f50"] - f50) < 0.06
                         and abs(p["err"] - err) < max(0.05, 0.15 * p["err"])
                         and p["n"] == len(r)
                     )

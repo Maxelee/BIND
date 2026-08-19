@@ -41,7 +41,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff==0.15.*", "pytest"]
+dev = ["ruff==0.15.*", "pytest", "build", "tomli; python_version < '3.11'"]
 # fitting the WL statistics emulator (bind.wlemu.fit); prediction is numpy-only
 wlemu-fit = ["gpytorch", "scikit-learn"]
 # distributed projection of large boxes (bind-paint-project --mpi, paint_stages)

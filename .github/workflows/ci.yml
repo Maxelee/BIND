@@ -36,7 +36,11 @@ jobs:
       - name: Version consistency
         run: |
           python - <<'PY'
-          import tomllib, pathlib, bind
+          import pathlib, sys, bind
+          try:
+              import tomllib
+          except ModuleNotFoundError:  # Python < 3.11
+              import tomli as tomllib
           pyproject = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
           declared = pyproject["project"]["version"]
           assert declared == bind.__version__, (
@@ -64,7 +68,11 @@ jobs:
       - name: Console scripts resolve
         run: |
           python - <<'PY'
-          import tomllib, pathlib, importlib
+          import pathlib, importlib
+          try:
+              import tomllib
+          except ModuleNotFoundError:  # Python < 3.11
+              import tomli as tomllib
           scripts = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["scripts"]
           for name, target in sorted(scripts.items()):
               mod, _, func = target.partition(":")

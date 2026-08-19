@@ -1,3 +1,48 @@
+## 2026-08-19 — v0.2.0 release preparation (`release/v0.2.0`)
+
+Cut `release/v0.2.0` from `paper/referee-revision`. **Scope: methods paper only.**
+The `lightcone` branch is deliberately NOT in this tag — `lightcone:inference/stats.py`
+has no τ/kSZ, no wavelet scattering and no emulator, and `bind-paper3-plans/POPEYE_ASSETS.md`
+records ~150 uncommitted files on Popeye, so tagging it would advertise reproducibility the
+release cannot deliver. It merges to `main` unreleased next; v0.3.0 once that code is in git.
+
+Audited by two multi-agent passes (8 investigators + synthesis + adversarial critic, then
+4 builders + 2 verifiers). Fixes that mattered:
+
+- **`run_train.sh` had two bugs.** It was committed as invalid bash (`bash -n` exit 2 at line
+  103) while three doc pages told users to `sbatch` it; and `DATA_ROOT` was defaulted *before*
+  the mode chain, making every per-mode default unreachable — `REDSHIFT=1` silently trained on
+  the single-redshift dataset unless `DATA_ROOT` was exported by hand.
+- **`bind-paint-generate` / `-recomposite` defaulted to the legacy paste** (`--r200_factor 0.0`,
+  no `--paste_mode`) while every other entry point used 4.0/`shared`. Same repo, two entry
+  points, two different scientific answers, no warning.
+- **The suite-eval `scale_factor` fix was uncommitted** — without it a redshift-conditioned
+  model generated z=0 baryons at every snapshot (stars −39.6% vs −8.5% at z=1.05).
+- CI had never passed: it imported `PaintConfig`, which exists on no branch, and ruff failed 16.
+- `tqdm` was module-scope on the `import bind` path but declared nowhere — a fresh
+  `pip install` produced an unimportable package.
+- `--interpolant si|vdm` died with a `TypeError` at step 0 (`training_step` passed
+  `scale_factor=` to losses that do not accept it).
+
+**Acceptance gate.** `tools/paper_cache/acceptance_gate.sh` regenerates the paper's Table 2 from
+the committed `fm_two_head` cache and requires the `.tex` back byte-identical. Run it after ANY
+`src/bind/` change. Note the guard inside `mass_error_table.py` was previously **inert** —
+`parse_prior` expected an older 8-column layout, so `len(cells) < 9` rejected every row and it
+reported "prior table rows parsed: 0" while asserting nothing. Repaired; now 24/24 rows agree,
+and it still passed after the seed/provenance work, which is the evidence that the unseeded
+sampler path is unchanged.
+
+Added: first test suite (54 tests, CPU-only), `--seed` + provenance stamping across the paint
+API, `docs/redshift.md`, `docs/reproducing_the_paper.md`, CITATION.cff/CHANGELOG/NOTICE/MANIFEST.
+Manuscript source untracked (arXiv instead). Docs had the compositing defaults **inverted**
+everywhere and `conf.py` shipped the wrong author name.
+
+**Open for the author:** the paper asserts EMA-at-inference in three places (lines 399, 501,
+1249) but `weights/fm_two_head/last.ckpt` has no `ema_state_dict` and `runner.py` deliberately
+skips EMA; whether to squash-merge so the manuscript never enters public history; the Zenodo DOI
+(several files carry marked `TBD`); and ~55 producer scripts under `ceph/paper_cache/referee_response/`
+still have no tracked counterpart.
+
 # Work log
 
 Reverse-chronological log of notable sessions: what changed, why, and decisions

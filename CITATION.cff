@@ -43,8 +43,7 @@ authors:
     given-names: "Greg L."
     orcid: "https://orcid.org/0000-0003-2630-9228"
     affiliation: "Department of Astronomy, Columbia University, New York, NY, USA"
-# NOTE: `date-released` is intentionally omitted -- the v0.2.0 release date is
-# set by the orchestrator when the tag is cut. Do not guess it.
+date-released: 2026-08-21
 preferred-citation:
   type: article
   title: >-

@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] — unreleased (release date TBD)
+## [0.2.0] — 2026-08-21
 
 The release that accompanies the BIND methods paper. It adds the weak-lensing
 statistics emulator, the staged large-box painting path, redshift and observable
@@ -206,5 +206,5 @@ the flow-matching UNet, the CAMELS training/evaluation pipeline
 the `--predict_thermo` gas-thermodynamic channels, and the `fm_two_head` /
 `fm_thermo` checkpoints on Hugging Face.
 
-[0.2.0]: https://github.com/Maxelee/BIND/compare/v0.1.0...HEAD
+[0.2.0]: https://github.com/Maxelee/BIND/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Maxelee/BIND/releases/tag/v0.1.0

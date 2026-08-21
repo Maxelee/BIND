@@ -1,4 +1,4 @@
-## 2026-08-19 — v0.2.0 release preparation (`release/v0.2.0`)
+## 2026-08-19 – 08-21 — v0.2.0 release preparation and tag
 
 Cut `release/v0.2.0` from `paper/referee-revision`. **Scope: methods paper only.**
 The `lightcone` branch is deliberately NOT in this tag — `lightcone:inference/stats.py`

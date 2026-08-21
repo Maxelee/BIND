@@ -22,7 +22,7 @@ VENV=${VENV:-/mnt/home/mlee1/venvs/torch3}
 # shellcheck disable=SC1091
 source "$VENV/bin/activate"
 
-TABLE="$REPO/tools/paper_cache/referee_figs/mass_error_table.tex"
+TABLE="$REPO/tools/paper_cache/figures/mass_error_table.tex"
 
 export PAPER_SUITE_ROOT=${PAPER_SUITE_ROOT:-/mnt/home/mlee1/ceph/fm_testsuite}
 export PAPER_MODEL_SUBDIR=${PAPER_MODEL_SUBDIR:-fm_two_head}
@@ -31,7 +31,7 @@ export PAPER_MODEL_TAG=${PAPER_MODEL_TAG:-fm_two_head}
 export PAPER_PRIOR_TEX="$TABLE"
 
 echo "=== regenerating Table 2 from $PAPER_MODEL_TAG and diffing vs committed ==="
-python tools/paper_cache/referee_figs/mass_error_table.py
+python tools/paper_cache/figures/mass_error_table.py
 
 if git diff --quiet -- "$TABLE"; then
     echo

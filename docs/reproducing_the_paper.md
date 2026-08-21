@@ -9,7 +9,7 @@ The workflow is deliberately split in two:
    `mass_table.pkl`, `profiles_r200.pkl`, `shapes.pkl`, `pk_fixed.npz`,
    `zcache.npz`, …
 2. **Figure scripts** (fast, CPU, load-only) read those artifacts and plot.
-   `tools/paper_cache/referee_figs/*.py` are one-file-per-figure; a few figures
+   `tools/paper_cache/figures/*.py` are one-file-per-figure; a few figures
    still live in the load-only notebooks under `examples/`.
 
 Almost all of the cost is in step 1. The compact artifacts from step 1 are what
@@ -81,7 +81,7 @@ export PAPER_MODEL_SUBDIR=fm_two_head
 export PAPER_MASS_DIR=mass_threshold_1p000e13
 export PAPER_SUITE_ROOT=/unused/for/load-only/figures   # see caveat below
 
-python tools/paper_cache/referee_figs/fig_mass_error.py
+python tools/paper_cache/figures/fig_mass_error.py
 ```
 
 Figures are written to `examples/paper_figures/` as `{pdf,png}` at 300 dpi.
@@ -120,27 +120,27 @@ full-box map; per-halo and per-patch figures are marked `n/a`.
 | figure (label) | producing script | cached artifact | model / run | n_steps | r200_factor | paste_mode |
 |---|---|---|---|---|---|---|
 | `fig:flow_matching` (`flow_matching_diagram`) | `make_flow_matching_fig.py` | CV/sim_0 `halo_cutouts.npz`, `halo_catalog.npz`, `full_maps.npz` + live sampler | **`fm_redshift` @ a=1** (see note) | 20 | n/a | n/a |
-| `fig:showcase` (`fig1_showcase_composite`) | `referee_figs/f8_field1p_showcase.py` | CV/sim_0 `generated_halos.npz`, `full_maps.npz`, `halo_catalog.npz`, `halo_cutouts.npz` | `fm_two_head` | 50 | 4.0 | `shared` (rebuilt at plot time) |
-| `fig:each_halo_mass_comp` (`fig2_mass_comparison`) | `referee_figs/fig2_baryon.py` | `mass_table.pkl`, `mass_param.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:baryon_fraction` (`obs_baryon_fraction`) | `referee_figs/fig2_baryon.py` | `mass_table.pkl`, `mass_param.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:mass_comp` (`fig_mass_error`) | `referee_figs/fig_mass_error.py` | `mass_table.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `tab:mass_residuals` (`mass_error_table.tex`) | `referee_figs/mass_error_table.py` | `mass_table.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:p15_sweep` | `referee_figs/fig_p15_sweep.py` | `mass_table.pkl`, `mass_param.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:total_density` (`fig_radial_pct_diff`) | `referee_figs/fig_radial_pct_diff.py` | `partials/profiles/*.npz` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:axes_ratios` (`shape_1_axisratio`) | `referee_figs/f4_shapes.py` | `shapes.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:shape_perhalo` | `referee_figs/f4_shapes.py` | `shapes.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:pit_perhalo` | `referee_figs/f9_pit_calibration.py` | `posterior_calibration/ensemble_200x100.npz` | `fm_two_head` `last.ckpt` | 50 | n/a | n/a |
-| `fig:mass_corr` (`fig3_spearman_param_mass`) | `referee_figs/spearman_sb35.py` | `mass_table.pkl`, `mass_param.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:mass_corr_pooled` | `referee_figs/spearman_sb35.py` | `mass_table.pkl`, `mass_param.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:dens_corr` (`fig3_spearman_profile`) | `referee_figs/spearman_sb35.py` | `profiles_r200.pkl`, `mass_param.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:butterfly` (`fig7_1p_field_response`) | `referee_figs/f8_field1p_showcase.py` | `field1p.npz` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:ode_conv` (`fig_ode_convergence`) | `referee_figs/fig_ode_convergence.py` | `ode_conv_cv.npz`, `ode_conv_sb35.npz` | **not recorded** (see note) | 20/50/100/200/400 vs ref 400 | 4.0 | `shared` |
-| `fig:suppression` (`fig5b_total_field_pk`) | `referee_figs/fig5b_total_field_pk.py` | `pk_fixed.npz` | `fm_two_head` | 50 | 4.0 | `shared` (repasted by `build_pk_fixed.py`) |
-| `tab:timing` | `referee_figs/timing_benchmark.py` | `timing_benchmark.json` (+ live GPU) | `fm_two_head` `last.ckpt` | 50 | 4.0 | `shared` |
-| `fig:relations` (`scaling_fits`) | `referee_figs/f3_scaling_corner_matched.py` | `mass_table.pkl`, `mass_param.pkl`, `dmo_sums.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:matched_residuals` (`fig_matched_residuals`) | `referee_figs/f3_scaling_corner_matched.py` | `mass_table.pkl`, `mass_param.pkl`, `dmo_sums.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:corner` (`residual_corner_plot`) | `referee_figs/f3_scaling_corner_matched.py` | `mass_table.pkl`, `mass_param.pkl`, `dmo_sums.pkl` | `fm_two_head` | 50 | n/a | n/a |
-| `fig:cube_comp` | `referee_figs/fig_cube_comparison.py` | `cube_comparison_table.pkl`, `cube_comparison_profiles.npz` | `fm_two_head` vs `fm_cube_two_head` | 50 | n/a | n/a |
+| `fig:showcase` (`fig1_showcase_composite`) | `figures/f8_field1p_showcase.py` | CV/sim_0 `generated_halos.npz`, `full_maps.npz`, `halo_catalog.npz`, `halo_cutouts.npz` | `fm_two_head` | 50 | 4.0 | `shared` (rebuilt at plot time) |
+| `fig:each_halo_mass_comp` (`fig2_mass_comparison`) | `figures/fig2_baryon.py` | `mass_table.pkl`, `mass_param.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:baryon_fraction` (`obs_baryon_fraction`) | `figures/fig2_baryon.py` | `mass_table.pkl`, `mass_param.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:mass_comp` (`fig_mass_error`) | `figures/fig_mass_error.py` | `mass_table.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `tab:mass_residuals` (`mass_error_table.tex`) | `figures/mass_error_table.py` | `mass_table.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:p15_sweep` | `figures/fig_p15_sweep.py` | `mass_table.pkl`, `mass_param.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:total_density` (`fig_radial_pct_diff`) | `figures/fig_radial_pct_diff.py` | `partials/profiles/*.npz` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:axes_ratios` (`shape_1_axisratio`) | `figures/f4_shapes.py` | `shapes.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:shape_perhalo` | `figures/f4_shapes.py` | `shapes.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:pit_perhalo` | `figures/f9_pit_calibration.py` | `posterior_calibration/ensemble_200x100.npz` | `fm_two_head` `last.ckpt` | 50 | n/a | n/a |
+| `fig:mass_corr` (`fig3_spearman_param_mass`) | `figures/spearman_sb35.py` | `mass_table.pkl`, `mass_param.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:mass_corr_pooled` | `figures/spearman_sb35.py` | `mass_table.pkl`, `mass_param.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:dens_corr` (`fig3_spearman_profile`) | `figures/spearman_sb35.py` | `profiles_r200.pkl`, `mass_param.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:butterfly` (`fig7_1p_field_response`) | `figures/f8_field1p_showcase.py` | `field1p.npz` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:ode_conv` (`fig_ode_convergence`) | `figures/fig_ode_convergence.py` | `ode_conv_cv.npz`, `ode_conv_sb35.npz` | **not recorded** (see note) | 20/50/100/200/400 vs ref 400 | 4.0 | `shared` |
+| `fig:suppression` (`fig5b_total_field_pk`) | `figures/fig5b_total_field_pk.py` | `pk_fixed.npz` | `fm_two_head` | 50 | 4.0 | `shared` (repasted by `build_pk_fixed.py`) |
+| `tab:timing` | `figures/timing_benchmark.py` | `timing_benchmark.json` (+ live GPU) | `fm_two_head` `last.ckpt` | 50 | 4.0 | `shared` |
+| `fig:relations` (`scaling_fits`) | `figures/f3_scaling_corner_matched.py` | `mass_table.pkl`, `mass_param.pkl`, `dmo_sums.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:matched_residuals` (`fig_matched_residuals`) | `figures/f3_scaling_corner_matched.py` | `mass_table.pkl`, `mass_param.pkl`, `dmo_sums.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:corner` (`residual_corner_plot`) | `figures/f3_scaling_corner_matched.py` | `mass_table.pkl`, `mass_param.pkl`, `dmo_sums.pkl` | `fm_two_head` | 50 | n/a | n/a |
+| `fig:cube_comp` | `figures/fig_cube_comparison.py` | `cube_comparison_table.pkl`, `cube_comparison_profiles.npz` | `fm_two_head` vs `fm_cube_two_head` | 50 | n/a | n/a |
 
 ### §5.5 Redshift dependence — model `fm_redshift`
 

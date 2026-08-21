@@ -72,7 +72,8 @@ default compositing behaviour of the painting API**, see the breaking notes belo
   `docs/data_generation.md`.
 - **`tools/paper_cache/`** — the cache builders and figure producers behind the
   methods-paper figures (metrics, P(k), redshift cache, posterior ensembles, ODE
-  convergence, timing benchmark, and the per-figure referee builders).
+  convergence, timing benchmark, and the per-figure builders under
+  `tools/paper_cache/figures/`).
 - **`docs/circular_aperture.md`** — the measured justification for the circular
   paste aperture, with the k-band table that motivates the new defaults.
 - Low-mass extrapolation and multi-halo "covering" paint studies

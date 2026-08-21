@@ -28,7 +28,7 @@
 #       --npz /mnt/home/mlee1/ceph/paper_cache/fm_two_head/posterior_calibration/ensemble_200x100.npz \
 #       --fig /mnt/home/mlee1/ceph/paper_cache/fm_two_head/posterior_calibration/pit_calibration_perhalo.png
 #   PIT_NPZ=/mnt/home/mlee1/ceph/paper_cache/fm_two_head/posterior_calibration/ensemble_200x100.npz \
-#       python referee_figs/f9_pit_calibration.py     # regenerates fig_pit_perhalo for the paper
+#       python figures/f9_pit_calibration.py     # regenerates fig_pit_perhalo for the paper
 
 set -e
 source /mnt/home/mlee1/venvs/torch3/bin/activate

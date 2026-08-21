@@ -37,11 +37,15 @@ API, `docs/redshift.md`, `docs/reproducing_the_paper.md`, CITATION.cff/CHANGELOG
 Manuscript source untracked (arXiv instead). Docs had the compositing defaults **inverted**
 everywhere and `conf.py` shipped the wrong author name.
 
-**Open for the author:** the paper asserts EMA-at-inference in three places (lines 399, 501,
-1249) but `weights/fm_two_head/last.ckpt` has no `ema_state_dict` and `runner.py` deliberately
-skips EMA; whether to squash-merge so the manuscript never enters public history; the Zenodo DOI
-(several files carry marked `TBD`); and ~55 producer scripts under `ceph/paper_cache/referee_response/`
-still have no tracked counterpart.
+**Decisions taken.** The manuscript source was purged from this branch's history with
+`git filter-branch` (it had never been pushed, so nothing public changed); it lives on Overleaf and
+ships via arXiv. The `ceph/paper_cache/referee_response/` tree is deliberately **not** associated
+with this repository: its ~55 scripts are not ported, and the one hard dependency on it
+(`f3_scaling_corner_matched.py`'s `dmo_sums.pkl`) is now a required `PAPER_DMO_SUMS` env var that
+fails loudly instead of defaulting into one machine's scratch directory. The paper's EMA wording is
+handled in the author's own copy, not here.
+
+**Open:** the Zenodo DOI (several files carry a marked `TBD`).
 
 # Work log
 

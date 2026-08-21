@@ -9,7 +9,7 @@ Three columns (CV, SB35, 1P) x three rows:
                                "saturates the pasting ceiling" claim needs)
 
 Statistic: per-sim ratio of log-rebinned spectra, median/quantiles over sims
-(as in referee_response/pk_agent/make_fig5_replacement.py). Data: the model
+Data: the model
 cache pk_fixed.npz keys {suite}_fixed_{truth,dmo,ge13,hr_ge13} (built by
 tools/paper_cache/build_pk_fixed.py; hr_ge13 = truth patches of the SAME >=1e13
 halos, same shared paste). Truncated at the 1024-pixel Nyquist k = 64.3 h/Mpc.

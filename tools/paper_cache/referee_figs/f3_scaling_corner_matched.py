@@ -7,8 +7,14 @@ cache (env-selected via PAPER_MODEL_TAG etc.), CV suite, M200c >= 1e13.
   3. fig_matched_residuals   2x3 per-halo Delta_true vs Delta_BIND (aperture-clean)
 
 Plotting style + the aperture-contamination recipe are copied from
-examples/_build_paper_nbs.py (figT6 cells); the matched-residual panel layout
-follows the referee prototype referee_response/matched/mkfig.py.
+examples/_build_paper_nbs.py (figT6 cells).
+
+Requires PAPER_DMO_SUMS: a pickle of DMO(<R200c) aperture sums, i.e. the DMO
+full-box patch summed inside each halo's catalog R200c aperture, keyed so it
+joins onto the current suite's halo catalogs (the join below asserts that
+consistency). It is model-independent, so it is computed once and reused. This
+input is not produced by anything in this repository and is not part of the
+released artifact set; supply your own or request it from the authors.
 
 CPU-only; reads only cached pickles + halo catalogs (no model, no GPU).
 """
@@ -46,14 +52,19 @@ try:
 except Exception:
     pass
 
-FIG_DIR = Path("/mnt/home/mlee1/vdm_bind2/examples/paper_figures")
+FIG_DIR = Path(os.environ.get(
+    "PAPER_FIG_DIR",
+    Path(__file__).resolve().parents[3] / "examples" / "paper_figures"))
 FIG_DIR.mkdir(exist_ok=True)
-# DMO(<R200c) aperture sums (model-independent; recipe: referee_response/matched/
-# p3_dmo.py — sum the DMO fullbox patch inside the catalog R200c aperture).
-# The join below asserts consistency with the current suite's catalogs.
-DMO_SUMS = os.environ.get(
-    "PAPER_DMO_SUMS",
-    "/mnt/home/mlee1/ceph/paper_cache/referee_response/matched/dmo_sums.pkl")
+# DMO(<R200c) aperture sums; see the module docstring. No default: this input
+# lives outside the repository, so fail loudly rather than silently pointing at
+# one machine's scratch directory.
+DMO_SUMS = os.environ.get("PAPER_DMO_SUMS")
+if not DMO_SUMS:
+    sys.exit(
+        "set PAPER_DMO_SUMS to a pickle of DMO(<R200c) aperture sums "
+        "(see this file's docstring); it is not part of the released artifacts"
+    )
 rng = np.random.default_rng(11)
 
 

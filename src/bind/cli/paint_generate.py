@@ -55,8 +55,20 @@ def parse_args() -> argparse.Namespace:
 
     p.add_argument("--no_patch_mass_match", action="store_true")
     p.add_argument("--taper_frac", type=float, default=0.15)
-    p.add_argument("--r200_factor", type=float, default=0.0,
-                   help="Circular paste radius as multiple of R200c (0 = square taper)")
+    p.add_argument("--r200_factor", type=float, default=4.0,
+                   help="Circular paste radius as a multiple of R200c. The default 4.0 "
+                        "is the standard; 0 selects the legacy square taper, which loses "
+                        "high-k power wherever apertures overlap "
+                        "(see docs/circular_aperture.md).")
+    p.add_argument("--paste_mode", choices=["shared", "average"], default="shared",
+                   help="Overlap handling. 'shared' (the standard) makes overlapping "
+                        "halos agree on one realization of the shared region; 'average' "
+                        "is the legacy independent-patch blend, measured at -10.6%% "
+                        "total-matter P(k) at k=40-70. Requires --r200_factor > 0.")
+    p.add_argument("--seed", type=int, default=None,
+                   help="Seed for the sampler's initial noise, making the run "
+                        "reproducible; omit for the historical behaviour: unseeded, "
+                        "a different realization every run.")
     p.add_argument("--no_save_patches", action="store_true",
                    help="Skip saving per-halo generated patches in the output npz")
     return p.parse_args()
@@ -90,6 +102,8 @@ def main() -> None:
         patch_mass_match=not args.no_patch_mass_match,
         taper_frac=args.taper_frac,
         r200_factor=args.r200_factor,
+        paste_mode=args.paste_mode,
+        seed=args.seed,
         save_per_halo_patches=not args.no_save_patches,
     )
 

@@ -1,7 +1,8 @@
 # API reference
 
 The whole user-facing surface is three classes plus one function, all
-exported at the top level of `bind`.
+exported at the top level of `bind`. The staged variants of `paint()` and the
+parameter helpers are exported alongside them.
 
 ## Top-level
 
@@ -14,6 +15,10 @@ exported at the top level of `bind`.
    bind.paint
    bind.PaintResult
    bind.extract_halo_cutouts
+   bind.project_and_extract
+   bind.generate_from_stage1
+   bind.recomposite_slab
+   bind.recomposite_from_saved
    bind.fiducial_params
    bind.random_params
    bind.vary_param
@@ -57,6 +62,18 @@ exported at the top level of `bind`.
 .. autofunction:: bind.extract_halo_cutouts
 ```
 
+### Staged painting
+
+The three-stage split behind `bind-paint-project` / `bind-paint-generate` /
+`bind-paint-recomposite` (see {doc}`cli`).
+
+```{eval-rst}
+.. autofunction:: bind.project_and_extract
+.. autofunction:: bind.generate_from_stage1
+.. autofunction:: bind.recomposite_slab
+.. autofunction:: bind.recomposite_from_saved
+```
+
 ## Parameter helpers
 
 ```{eval-rst}
@@ -87,6 +104,28 @@ Helpers powering the optional `fm_thermo` checkpoint. See
 ```{eval-rst}
 .. autofunction:: bind.data.thermo_forward
 .. autofunction:: bind.data.thermo_inverse
+```
+
+## Redshift conditioning
+
+See {doc}`redshift`.
+
+```{eval-rst}
+.. autofunction:: bind.data.z_to_a
+.. autofunction:: bind.data.a_to_z
+```
+
+`bind.data.SNAPSHOT_REDSHIFTS` maps CAMELS IllustrisTNG L50n512 snapshot
+numbers to redshifts; the table is reproduced in {doc}`redshift`.
+
+## Provenance
+
+Every `paint()` output carries a provenance block; see {doc}`baryonify`.
+
+```{eval-rst}
+.. autofunction:: bind.inference.artifacts.build_provenance
+.. autofunction:: bind.inference.artifacts.read_provenance
+.. autofunction:: bind.inference.artifacts.file_sha256
 ```
 
 ## Lower-level primitives

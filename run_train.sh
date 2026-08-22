@@ -15,6 +15,7 @@
 # One script, three modes selected by env toggles:
 #
 #   Mass only (DM_hydro, Gas, Stars), z=0 10-rotation data:
+#   Mass only (DM_hydro, Gas, Stars), 35-param conditioning:
 #     sbatch run_train.sh
 #   + 4 gas-thermo fields (compton_y, temperature, entropy, pressure), z=0 data:
 #     THERMO=1 sbatch run_train.sh
@@ -25,6 +26,15 @@
 # 4 + 4 = 8). --condition_redshift adds scale-factor a=1/(1+z) conditioning.
 # REDSHIFT=1 implies thermo (the multi-z dataset always carries thermo channels)
 # and points at the multi-z data path. A fresh norm_stats.npz is computed per run.
+#   Observable conditioning (mass + thermo output, but conditioned on the
+#   aperture-integrated R200 observables instead of the 35 params):
+#     OBS=1 sbatch run_train.sh
+#
+# --predict_thermo appends 4 output channels (with --stars_two_head: out_ch =
+# 4 + 4 = 8) and computes a fresh thermo-aware norm_stats.npz on first launch.
+# --condition_observables swaps the 35 params for N_OBS observables (and implies
+# thermo here, since the outputs should include the thermo fields). Both require
+# --interpolant fm and the large-scale (rotated2_128) data path.
 #
 # Env overrides: RUN_NAME, DATA_ROOT, OUTPUT_DIR, MAX_EPOCHS. Any extra args are
 # passed through to bind.train (e.g. `sbatch run_train.sh --exclude_cosmo_params`).
@@ -37,25 +47,43 @@ mkdir -p /mnt/home/mlee1/ceph/logs
 
 THERMO=${THERMO:-0}
 REDSHIFT=${REDSHIFT:-0}
+OBS=${OBS:-0}
+MASK=${MASK:-0}
 OUTPUT_DIR=${OUTPUT_DIR:-/mnt/home/mlee1/ceph/fm_runs}
 MAX_EPOCHS=${MAX_EPOCHS:-200}
 
+# Mode selection. DATA_ROOT and RUN_NAME are resolved *after* this chain so that
+# an explicit DATA_ROOT=... in the environment still wins while each mode keeps
+# its own default. Defaulting DATA_ROOT before the chain (as this script used to)
+# made every per-mode default unreachable, so REDSHIFT=1 silently trained a
+# redshift-conditioned model on the single-redshift dataset.
+DEFAULT_DATA_ROOT=/mnt/home/mlee1/ceph/train_data_rotated2_128_cpu
 EXTRA_FLAGS=()
 if [[ "$REDSHIFT" == "1" ]]; then
     # Multi-redshift dataset always carries thermo channels -> predict both.
     EXTRA_FLAGS+=(--condition_redshift --predict_thermo)
-    DATA_ROOT=${DATA_ROOT:-/mnt/home/mlee1/ceph/train_data_multiz_128_cpu}
-    RUN_NAME=${RUN_NAME:-fm_redshift}
+    DEFAULT_DATA_ROOT=/mnt/home/mlee1/ceph/train_data_multiz_128_cpu
+    DEFAULT_RUN_NAME=fm_redshift
+elif [[ "$OBS" == "1" ]]; then
+    # Observable conditioning, with mass+thermo outputs.
+    EXTRA_FLAGS+=(--condition_observables --predict_thermo)
+    if [[ "$MASK" == "1" ]]; then
+        # Input-dropout: tolerate a missing subset of observables at inference.
+        EXTRA_FLAGS+=(--mask_observables)
+        DEFAULT_RUN_NAME=fm_observables_masked
+    else
+        DEFAULT_RUN_NAME=fm_observables
+    fi
 elif [[ "$THERMO" == "1" ]]; then
     EXTRA_FLAGS+=(--predict_thermo)
-    DATA_ROOT=${DATA_ROOT:-/mnt/home/mlee1/ceph/train_data_rotated2_128_cpu}
-    RUN_NAME=${RUN_NAME:-fm_thermo}
+    DEFAULT_RUN_NAME=fm_thermo
 else
-    DATA_ROOT=${DATA_ROOT:-/mnt/home/mlee1/ceph/train_data_rotated2_128_cpu}
-    RUN_NAME=${RUN_NAME:-fm_two_head}
+    DEFAULT_RUN_NAME=fm_two_head
 fi
+DATA_ROOT=${DATA_ROOT:-$DEFAULT_DATA_ROOT}
+RUN_NAME=${RUN_NAME:-$DEFAULT_RUN_NAME}
 
-echo "=== training run_name=$RUN_NAME thermo=$THERMO redshift=$REDSHIFT data=$DATA_ROOT ==="
+echo "=== training run_name=$RUN_NAME thermo=$THERMO redshift=$REDSHIFT obs=$OBS mask=$MASK data=$DATA_ROOT ==="
 
 srun python -m bind.train \
     --data_root "$DATA_ROOT" \

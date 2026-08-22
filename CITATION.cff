@@ -1,0 +1,78 @@
+cff-version: 1.2.0
+message: >-
+  If you use BIND in published work, please cite the methods paper
+  (see preferred-citation below) as well as the CAMELS and IllustrisTNG
+  simulation papers listed in README.md.
+title: "BIND: Baryonic INpainting with Deep learning"
+abstract: >-
+  BIND is a conditional flow-matching emulator that paints baryonic fields
+  (dark matter, gas, stars, and optionally four gas-thermodynamic fields)
+  onto dark-matter-only halo patches, conditioned on the 35-dimensional
+  cosmological and IllustrisTNG galaxy-formation parameter space of the
+  CAMELS SB35 suite and, for redshift-conditioned checkpoints, on the
+  scale factor. It provides a deployable painting API for arbitrary
+  Gadget/Arepo N-body snapshots.
+type: software
+version: 0.3.0
+license: MIT
+repository-code: "https://github.com/Maxelee/BIND"
+url: "https://github.com/Maxelee/BIND"
+keywords:
+  - cosmology
+  - baryonic feedback
+  - flow matching
+  - generative models
+  - emulator
+  - weak lensing
+  - CAMELS
+  - IllustrisTNG
+authors:
+  - family-names: Lee
+    given-names: "Max E."
+    orcid: "https://orcid.org/0000-0002-2318-3087"
+    affiliation: "Department of Astronomy, Columbia University, New York, NY, USA"
+  - family-names: Genel
+    given-names: Shy
+    orcid: "https://orcid.org/0000-0002-3185-1540"
+    affiliation: "Center for Computational Astrophysics, Flatiron Institute, New York, NY, USA"
+  - family-names: Haiman
+    given-names: "Zoltán"
+    orcid: "https://orcid.org/0000-0003-3633-5403"
+    affiliation: "Department of Astronomy, Columbia University, New York, NY, USA"
+  - family-names: Bryan
+    given-names: "Greg L."
+    orcid: "https://orcid.org/0000-0003-2630-9228"
+    affiliation: "Department of Astronomy, Columbia University, New York, NY, USA"
+date-released: 2026-08-21
+preferred-citation:
+  type: article
+  title: >-
+    BIND (Baryonic INpainting with Deep learning): A Field-level Emulator
+    for Galaxy Groups and Clusters
+  authors:
+    - family-names: Lee
+      given-names: "Max E."
+      orcid: "https://orcid.org/0000-0002-2318-3087"
+      affiliation: "Department of Astronomy, Columbia University, New York, NY, USA"
+    - family-names: Genel
+      given-names: Shy
+      orcid: "https://orcid.org/0000-0002-3185-1540"
+      affiliation: "Center for Computational Astrophysics, Flatiron Institute, New York, NY, USA"
+    - family-names: Haiman
+      given-names: "Zoltán"
+      orcid: "https://orcid.org/0000-0003-3633-5403"
+      affiliation: "Department of Astronomy, Columbia University, New York, NY, USA"
+    - family-names: Bryan
+      given-names: "Greg L."
+      orcid: "https://orcid.org/0000-0003-2630-9228"
+      affiliation: "Department of Astronomy, Columbia University, New York, NY, USA"
+  # PLACEHOLDER: the preprint is not yet posted. When it is, replace this
+  # `notes` block with the real `journal`/`year`/`volume`/`doi` and add
+  #   identifiers:
+  #     - type: other
+  #       value: "arXiv:XXXX.XXXXX"
+  # Do not fill in a guessed identifier, year or DOI.
+  notes: >-
+    TBD: arXiv identifier, year, journal reference and DOI are not yet
+    assigned and are deliberately left unset. See README.md for the
+    current citation guidance.

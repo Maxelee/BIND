@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [main, "release/**"]
+    branches: [main, "release/**", "paper/**"]
+    tags: ["v*"]
   pull_request:
 
 jobs:
@@ -16,6 +17,13 @@ jobs:
           python-version: "3.10"
           cache: pip
 
+      - name: Shell script syntax
+        run: |
+          for f in run_*.sh; do
+            echo "bash -n $f"
+            bash -n "$f"
+          done
+
       - name: Install package (CPU torch)
         run: |
           python -m pip install --upgrade pip
@@ -23,15 +31,74 @@ jobs:
           pip install -e .[dev]
 
       - name: Ruff lint
-        run: ruff check src
+        run: ruff check src tests
 
-      - name: Import smoke test
+      - name: Version consistency
         run: |
-          python -c "
-          import bind
-          from bind import data, model, train, metrics, paint
-          from bind.inference import runner, pipeline, config, schemas, artifacts, io_gadget
-          from bind.inference.paint import PaintConfig, PaintResult
-          from bind.tools import slim_checkpoint, download_weights
-          print('bind', bind.__version__, 'imports OK')
-          "
+          python - <<'PY'
+          import pathlib, sys, bind
+          try:
+              import tomllib
+          except ModuleNotFoundError:  # Python < 3.11
+              import tomli as tomllib
+          pyproject = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          declared = pyproject["project"]["version"]
+          assert declared == bind.__version__, (
+              f"pyproject version {declared} != bind.__version__ {bind.__version__}"
+          )
+          print("version", declared, "consistent")
+          PY
+
+      - name: Import smoke test (every shipped module)
+        run: |
+          python - <<'PY'
+          import importlib, pkgutil, bind
+          failed = []
+          mods = sorted(m.name for m in pkgutil.walk_packages(bind.__path__, "bind."))
+          for m in mods:
+              try:
+                  importlib.import_module(m)
+              except Exception as e:
+                  failed.append(f"{m}: {type(e).__name__}: {e}")
+          print(f"bind {bind.__version__}: walked {len(mods)} modules")
+          if failed:
+              raise SystemExit("import failures:\n  " + "\n  ".join(failed))
+          PY
+
+      - name: Console scripts resolve
+        run: |
+          python - <<'PY'
+          import pathlib, importlib
+          try:
+              import tomllib
+          except ModuleNotFoundError:  # Python < 3.11
+              import tomli as tomllib
+          scripts = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["scripts"]
+          for name, target in sorted(scripts.items()):
+              mod, _, func = target.partition(":")
+              assert hasattr(importlib.import_module(mod), func), f"{name} -> {target} missing"
+              print(f"  {name} -> {target}")
+          print(f"{len(scripts)} console scripts resolve")
+          PY
+
+      - name: Packaged assets present in the wheel
+        run: |
+          pip install build
+          python -m build --wheel --outdir dist_ci
+          python - <<'PY'
+          import zipfile, glob
+          required = {
+              "bind/assets/SB35_param_minmax.csv",
+              "bind/assets/CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt",
+              "bind/assets/wlemu_gp.npz",
+          }
+          wheel = glob.glob("dist_ci/*.whl")[0]
+          names = set(zipfile.ZipFile(wheel).namelist())
+          missing = required - names
+          if missing:
+              raise SystemExit(f"assets missing from {wheel}: {sorted(missing)}")
+          print(f"{wheel}: all {len(required)} required assets present")
+          PY
+
+      - name: Tests
+        run: pytest -q

@@ -37,6 +37,14 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--taper_frac", type=float, default=0.15)
     p.add_argument("--r200_factor", type=float, default=4.0,
                    help="Circular paste radius as multiple of R200c (default 4.0, standard; 0 = legacy square taper)")
+    p.add_argument("--paste_mode", choices=["shared", "average"], default="shared",
+                   help="Overlap handling. 'shared' (the standard) makes overlapping "
+                        "halos agree on one realization of the shared region; 'average' "
+                        "is the legacy independent-patch blend, measured at -10.6%% "
+                        "total-matter P(k) at k=40-70. Requires --r200_factor > 0.")
+    p.add_argument("--seed", type=int, default=None,
+                   help="Seed override for provenance stamping of the recomposite "
+                        "(the generation seed is inherited automatically).")
     p.add_argument("--no_save_patches", action="store_true",
                    help="Don't carry generated patches into the new output "
                         "(makes it non-re-compositable)")
@@ -52,6 +60,8 @@ def main() -> None:
         patch_mass_match=not args.no_patch_mass_match,
         taper_frac=args.taper_frac,
         r200_factor=args.r200_factor,
+        paste_mode=args.paste_mode,
+        seed=args.seed,
         save_per_halo_patches=not args.no_save_patches,
     )
 

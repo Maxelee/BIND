@@ -18,7 +18,6 @@ from pathlib import Path
 
 import torch
 
-
 _KEEP_KEYS = (
     "epoch",
     "global_step",

@@ -12,6 +12,9 @@ __pycache__/
 analysis_physics_cache/
 analysis_physics_cache
 *_cache/
+# tools/paper_cache/ is the paper-figure cache *builder* (source code), not a data
+# cache — keep it tracked despite the *_cache/ rule above.
+!tools/paper_cache/
 outputs/
 docs/_build/
 examples/bind_output/
@@ -24,6 +27,13 @@ examples/bind_output/
 # Allow the bundled demo input + bundled package assets.
 !examples/data/dmo_sample.npz
 !src/bind/assets/*
+# WL-emulator bundled data: held-out validation predictions + sample kappa maps
+# used by examples/wlemu_tutorial.ipynb (see docs/wl_emulator.md).
+!examples/data/wlemu_validation.npz
+!examples/data/kappa_sample.npz
+# WL-emulator reduced-feedback-space direction vectors (g_fgas etc.), used by
+# examples/wlemu_tutorial.ipynb section 7 (see docs/wl_emulator.md).
+!examples/data/wlemu_phys_dirs.npz
 
 # ---------------------------------------------------------------------------
 # Run logs
@@ -45,6 +55,11 @@ paper_figures_thermo/
 paper_figures_thermo
 *_figs/
 *_figs
+# ...but the paper-figure *builder scripts* are source, not artifacts:
+!tools/paper_cache/referee_figs/
+tools/paper_cache/referee_figs/*
+!tools/paper_cache/referee_figs/*.py
+!tools/paper_cache/referee_figs/*.tex
 imgs
 # Allow figures/gifs that live under the documentation static directory.
 !docs/_static/**
@@ -76,6 +91,12 @@ stale/
 weights/
 
 # ---------------------------------------------------------------------------
+# Unpublished research planning (private — this repo is PUBLIC; plans sync
+# between systems via a private channel, never through origin)
+# ---------------------------------------------------------------------------
+plans/
+
+# ---------------------------------------------------------------------------
 # OS / editor
 # ---------------------------------------------------------------------------
 .DS_Store
@@ -96,6 +117,18 @@ papers/*.zip
 # ---------------------------------------------------------------------------
 # LaTeX build artifacts (papers compile in place; only sources are versioned)
 # ---------------------------------------------------------------------------
+# Build artifacts (build/lib/** was committed on the lightcone branch and went
+# stale against src/, shipping two copies of the paste configuration with
+# opposite defaults -- never track these).
+build/
+dist/
+*.egg-info/
+.eggs/
+.ruff_cache/
+.pytest_cache/
+dist_ci/
+
+# LaTeX intermediates
 *.aux
 *.bbl
 *.blg
@@ -115,3 +148,20 @@ _subset_run.ipynb
 BINDing_the_lightcone/*
 !BINDing_the_lightcone/analysis/
 !BINDing_the_lightcone/imgs_1000/
+*.synctex.gz
+
+# Manuscript source. The methods paper is distributed via arXiv and the journal,
+# not from this repository; the repo ships the code, the figure producers
+# (tools/paper_cache/) and docs/reproducing_the_paper.md instead. Keeping the
+# .tex, the referee correspondence and the AAS-supplied aastex class files out
+# of the release also avoids redistributing third-party LPPL material under the
+# repo's MIT licence.
+BIND__methods_paper*/
+
+# Root-level duplicate of the packaged asset
+# (src/bind/assets/CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt is the one the
+# code actually loads; the root copy was byte-identical dead weight).
+/CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt
+
+# Internal agent-instruction / talk-prep notes, not release material
+presentation_agents.md

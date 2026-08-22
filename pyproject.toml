@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bind"
-version = "0.1.0"
+version = "0.3.0"
 description = "BIND2: conditional flow-matching emulator that paints baryonic fields onto dark-matter-only maps (CAMELS IllustrisTNG)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -12,7 +12,7 @@ license = { file = "LICENSE" }
 authors = [{ name = "Max E. Lee" }]
 keywords = ["cosmology", "flow-matching", "diffusion", "CAMELS", "IllustrisTNG", "emulator"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -28,17 +28,29 @@ dependencies = [
     "pandas",
     "h5py",
     "huggingface_hub",
-    # Pylians3 provides the MAS_library module used for CIC particle-to-grid
-    # projection. It is the canonical pixelizer for BIND inputs.
+    # Progress bars; imported at module scope on the `import bind` path
+    # (inference/{pipeline,paint,paint_stages}.py), so this is a hard dependency.
+    "tqdm",
+    # ks_2samp in bind.metrics and the wlemu sensitivity analysis. Imported
+    # lazily inside functions, so its absence degrades rather than breaks.
+    "scipy",
+    # Pylians3 provides the MAS_library (CIC particle-to-grid projection) and
+    # Pk_library modules. Both are imported at module scope on the `import bind`
+    # path. It is the canonical pixelizer for BIND inputs.
     "Pylians",
 ]
 
 [project.optional-dependencies]
-dev = ["ruff"]
+dev = ["ruff==0.15.*", "pytest", "build", "tomli; python_version < '3.11'"]
 # The lightcone-statistics emulator (bind.emulator).  Heavy / optional extras kept
 # out of the core install: GP + MLP backends (scikit-learn), the wavelet scattering
 # transform (kymatio), and the conditional normalizing-flow backend (zuko).
 emulator = ["scikit-learn", "scipy", "kymatio", "zuko", "gpytorch", "pyarrow", "matplotlib"]
+# fitting the WL statistics emulator (bind.wlemu_stats.fit); prediction is numpy-only
+wlemu-stats-fit = ["gpytorch", "scikit-learn"]
+# distributed projection of large boxes (bind-paint-project --mpi, paint_stages,
+# bind.cli.lightcone_stats_mpi)
+mpi = ["mpi4py"]
 
 [project.urls]
 Repository = "https://github.com/Maxelee/BIND"
@@ -68,6 +80,10 @@ bind-emulator-stats = "bind.cli.emulator_stats:main"
 bind-emulator-assemble = "bind.cli.emulator_assemble:main"
 bind-emulate = "bind.cli.emulate:main"
 bind-wlemu-train = "bind.wlemu.train:main"
+bind-wlemu-stats = "bind.cli.wlemu_stats:main"
+bind-nu-sigma0 = "bind.cli.nu_sigma0:main"
+bind-paint-project-hydro = "bind.cli.paint_project_hydro:main"
+bind-paint-diffuse-composite = "bind.cli.paint_diffuse_composite:main"
 bind-download-weights = "bind.tools.download_weights:main"
 bind-slim-checkpoint = "bind.tools.slim_checkpoint:main"
 
@@ -75,7 +91,7 @@ bind-slim-checkpoint = "bind.tools.slim_checkpoint:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-bind = ["assets/*.csv", "assets/*.txt"]
+bind = ["assets/*.csv", "assets/*.txt", "assets/*.npz"]
 
 [tool.ruff]
 line-length = 110

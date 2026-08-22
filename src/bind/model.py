@@ -1,10 +1,10 @@
 """U-Net + Flow Matching for conditional baryonic field generation."""
 
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 
 # ---------- building blocks ----------
 
@@ -22,7 +22,13 @@ class SinusoidalEmbedding(nn.Module):
 
 
 class ParamEncoder(nn.Module):
-    """Encode 35-dim cosmological parameters into embedding space."""
+    """Encode the conditioning vector into embedding space.
+
+    Normally the 35-dim cosmology+astrophysics parameter vector, but the same
+    encoder is reused for the alternative observable conditioning, where the
+    vector is the N_OBS aperture-integrated observables (set n_params=N_OBS).
+    The encoder is agnostic to which one it sees.
+    """
     def __init__(self, n_params=35, emb_dim=256):
         super().__init__()
         self.net = nn.Sequential(
@@ -200,6 +206,8 @@ class UNet(nn.Module):
         params: (B, 35) — normalized cosmological parameters
         scale_factor: (B,) — scale factor a = 1/(1+z); used iff the model was
             built with condition_redshift=True. Ignored otherwise.
+        params: (B, n_params) — normalized conditioning vector (35 cosmological
+            parameters, or N_OBS observables in observable-conditioning mode)
         """
         emb = self.time_emb(t) + self.param_emb(params)
         if self.redshift_emb is not None:
@@ -312,7 +320,8 @@ class StochasticInterpolant:
 
         return per_pixel.mean()
 
-    def sample(self, condition, large_scale=None, params=None, n_steps=50, cfg_scale=1.0, grad=False):
+    def sample(self, condition, large_scale=None, params=None, n_steps=50, cfg_scale=1.0,
+               grad=False, generator=None):
         """Generate samples via Euler ODE integration starting from DMO.
 
         Args:
@@ -322,6 +331,9 @@ class StochasticInterpolant:
             n_steps: number of Euler steps
             cfg_scale: classifier-free guidance scale (1.0 = no guidance)
             grad: if True, enable gradients so d(output)/d(params) can be computed
+            generator: accepted for signature parity with FlowMatching.sample and
+                ignored — this sampler starts from the DMO field and draws no
+                noise, so it is already deterministic given its inputs.
         Returns:
             (B, 3, H, W) generated fields
         """
@@ -429,7 +441,7 @@ class FlowMatching:
         return per_pixel.mean()
 
     def sample(self, condition, large_scale=None, params=None, n_steps=50,
-               cfg_scale=1.0, grad=False, scale_factor=None):
+               cfg_scale=1.0, grad=False, scale_factor=None, generator=None):
         """Generate samples via Euler ODE integration.
 
         Args:
@@ -442,6 +454,11 @@ class FlowMatching:
             scale_factor: (B,) scale factor a=1/(1+z) for redshift-conditioned
                 models; None for the z=0 / non-redshift model. Redshift is held
                 fixed under classifier-free guidance (it is not the guided var).
+            generator: optional ``torch.Generator`` (on the *same device* as
+                ``condition``) used to draw the initial noise, making the sample
+                reproducible.  ``None`` (the default) draws from the global RNG
+                exactly as before — the unseeded path is bit-for-bit unchanged,
+                since the ``torch.randn`` call is then literally the same call.
         Returns:
             (B, self.out_channels, H, W) generated fields
         """
@@ -451,8 +468,14 @@ class FlowMatching:
 
         ctx = torch.enable_grad() if grad else torch.no_grad()
         with ctx:
+            # The shape/device are spelled out here exactly as they always were
+            # (randn_like is used in loss(), not here). With generator=None this
+            # is byte-for-byte the historical call, so an unseeded run is
+            # unchanged from v0.1.0.
+            noise_kw = {} if generator is None else {"generator": generator}
             x = torch.randn(B, self.out_channels,
-                            condition.shape[2], condition.shape[3], device=device)
+                            condition.shape[2], condition.shape[3], device=device,
+                            **noise_kw)
             dt = 1.0 / n_steps
 
             for i in range(n_steps):
@@ -470,5 +493,113 @@ class FlowMatching:
                     v = self.model(inp, t, params, scale_factor)
 
                 x = x + v * dt
+
+        return x
+
+
+class VariationalDiffusion:
+    """Variational diffusion / score matching on the *same* UNet as FlowMatching.
+
+    The only difference from FlowMatching is the objective: this learns the score
+    (via epsilon-prediction / denoising score matching) instead of the OT flow
+    velocity. Everything else — UNet, conditioning (concat [x_t, condition,
+    large_scale]; params+time -> AdaGroupNorm), data — is identical, so a VDM run
+    is an apples-to-apples comparison against fm_*.
+
+    Forward (variance-preserving, cosine schedule):
+        x_t = alpha_t * x1 + sigma_t * eps,  alpha_t = cos(t*pi/2), sigma_t = sin(t*pi/2),
+        t in [0, 1]  with t=0 = clean data, t=1 = pure noise   (alpha^2 + sigma^2 = 1).
+    Target: eps (score = -eps / sigma_t). Loss: unweighted MSE on eps (the simple
+        DDPM/VDM objective; matches FlowMatching's unweighted velocity MSE for fairness).
+    Sampling: deterministic DDIM from t=1 -> t=0.
+
+    NOTE: no two-head / thermo support — the stellar two-head split (occupancy x
+    density) breaks the Gaussian diffusion assumption; VDM uses plain 3-channel
+    (single-head) stars density.
+    """
+
+    def __init__(self, model, cfg_dropout=0.0, out_channels=3):
+        self.model = model
+        self.cfg_dropout = cfg_dropout
+        self.out_channels = out_channels
+
+    @staticmethod
+    def _alpha_sigma(t):
+        """VP cosine schedule; t broadcastable. Returns (alpha, sigma)."""
+        ang = t * (math.pi / 2)
+        return torch.cos(ang), torch.sin(ang)
+
+    def loss(self, x1, condition, large_scale, params):
+        """Denoising score-matching loss (epsilon-prediction).
+
+        Args mirror FlowMatching.loss: x1 (B,C,H,W) normalized target, condition
+        (B,1,H,W), large_scale (B,3,H,W) or None, params (B,n_params).
+        """
+        B = x1.shape[0]
+        t = torch.rand(B, device=x1.device)
+        t4 = t[:, None, None, None]
+        alpha, sigma = self._alpha_sigma(t4)
+        noise = torch.randn_like(x1)
+        x_t = alpha * x1 + sigma * noise
+
+        if self.cfg_dropout > 0 and self.model.training:
+            mask = torch.rand(B, device=x1.device) < self.cfg_dropout
+            params = params.clone()
+            params[mask] = 0.0
+
+        if large_scale is not None:
+            model_input = torch.cat([x_t, condition, large_scale], dim=1)
+        else:
+            model_input = torch.cat([x_t, condition], dim=1)
+        eps_pred = self.model(model_input, t, params)
+
+        return ((eps_pred - noise) ** 2).mean()
+
+    def sample(self, condition, large_scale=None, params=None, n_steps=50,
+               cfg_scale=1.0, grad=False, generator=None):
+        """Generate samples via deterministic DDIM (t=1 noise -> t=0 data).
+
+        Same signature as FlowMatching.sample so the inference pipeline is
+        unchanged. ``generator`` (optional, same device as ``condition``) seeds
+        the initial noise; ``None`` keeps the historical global-RNG draw.
+        Returns (B, out_channels, H, W).
+        """
+        self.model.eval()
+        B = condition.shape[0]
+        device = condition.device
+
+        ctx = torch.enable_grad() if grad else torch.no_grad()
+        with ctx:
+            noise_kw = {} if generator is None else {"generator": generator}
+            x = torch.randn(B, self.out_channels,
+                            condition.shape[2], condition.shape[3], device=device,
+                            **noise_kw)
+            ts = torch.linspace(1.0, 0.0, n_steps + 1, device=device)
+
+            for i in range(n_steps):
+                t, t_next = ts[i], ts[i + 1]
+                alpha, sigma = self._alpha_sigma(t)
+                alpha_n, sigma_n = self._alpha_sigma(t_next)
+                tb = torch.full((B,), float(t), device=device)
+                if large_scale is not None:
+                    inp = torch.cat([x, condition, large_scale], dim=1)
+                else:
+                    inp = torch.cat([x, condition], dim=1)
+
+                if cfg_scale != 1.0:
+                    e_c = self.model(inp, tb, params)
+                    e_u = self.model(inp, tb, torch.zeros_like(params))
+                    eps = e_u + cfg_scale * (e_c - e_u)
+                else:
+                    eps = self.model(inp, tb, params)
+
+                # predicted clean field. At t->1, alpha->0 so the division explodes
+                # error (huge with an under-trained model -> inf after denorm); clamp
+                # alpha and static-clip x1_hat to the normalized data range (standard
+                # "static thresholding"). Normalized log10(1+x) targets sit well within
+                # +/-15, so this never bites a trained model but keeps sampling finite.
+                x1_hat = (x - sigma * eps) / alpha.clamp(min=1e-2)
+                x1_hat = x1_hat.clamp(-10.0, 10.0)  # +/-10 keeps denorm finite (stars std~3 -> 10^~31)
+                x = alpha_n * x1_hat + sigma_n * eps
 
         return x

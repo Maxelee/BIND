@@ -27,20 +27,22 @@ CAMELS SB35 (DMO + hydro snapshots + FOF catalogs)
         │  [1] run_mpi_cpu.sh → process_simulations2_cpu.py
         │      project + rotate → condition, target, large_scale, params
         ▼
-train_data_rotated2_128_cpu/{train,test}/  sim_<id>/halo_<h>_rot_<r>.npz
+train_data_rotated2_128_cpu/{train,test}/  sim_<id>/sim_<id>_halo_<h>_rot_<r>.npz
         │
         │  [2] run_thermo_maps.sh → add_gas_thermo_maps.py
         │      append compton_y, temperature, entropy, pressure (in place)
         ▼
    (same files, now with thermo channels)   → used as <DATA_ROOT> for training
 
-[3] run_mpi_cpu_lowmass.sh (optional): 1e12–1e13 M⊙ halos, same output layout.
+[3] run_mpi_cpu_lowmass.sh (optional): 1e12-1e13 Msun/h halos, same output layout.
+[4] run_mpi_multiz.sh -> process_simulations_multiz.py (optional): the 8-snapshot
+    multi-redshift dataset, mass + thermo in one pass (see docs/redshift.md).
 ```
 
 ### Step 1 — mass maps (`run_mpi_cpu.sh`)
 
 Drives `process_simulations2_cpu.py` (128 MPI ranks over 8 nodes). For every
-halo with $M_{200c} > 10^{13}\,M_\odot$ it:
+halo with $M_{200c} > 10^{13}\,M_\odot/h$ it (`load_halos(..., mass_threshold=1e13)`):
 
 - loads the DMO and hydro particle snapshots and the FOF catalog,
 - applies a random 3-D rotation (10 per halo, for augmentation), observer along
@@ -51,7 +53,8 @@ halo with $M_{200c} > 10^{13}\,M_\odot$ it:
 
 Defaults: `--resolution 128 --total_sims 1024 --test_frac 0.1 --seed 1993
 --num_rotations 10`. Output goes to `train_data_rotated2_128_cpu/{train,test}/`,
-one `.npz` per halo per rotation: `sim_<id>/halo_<h>_rot_<r>.npz`.
+one `.npz` per halo per rotation:
+`sim_<id>/sim_<id>_halo_<h>_rot_<r>.npz`.
 
 ### Step 2 — gas-thermo maps (`run_thermo_maps.sh`)
 
@@ -63,17 +66,29 @@ thermodynamic channels to the step-1 `.npz` files (in place):
 | `compton_y` | Compton-$y$ | dimensionless |
 | `temperature` | gas temperature | K |
 | `entropy` | gas entropy $k_BT/n_e^{2/3}$ | keV cm² |
-| `pressure` | thermal pressure | Pa |
+| `pressure` | total thermal pressure $(\gamma-1)\rho u$ | Pa (SI, **not** keV cm⁻³) |
 
-Only needed for the `fm_thermo` model (`--predict_thermo`). It re-uses
+All four are mass-weighted line-of-sight quantities except `compton_y`, which
+is a line-of-sight *integral*; star-forming gas (`StarFormationRate > 0`) is
+excluded before projection. Only needed for the `fm_thermo` model
+(`--predict_thermo`). It re-uses
 `--total_sims 1024 --test_frac 0.1 --seed 1993` so the train/test split matches
 step 1. Smoke-test a couple of sims with `--only_sims 0,1`.
 
 ### Step 3 — low-mass halos (`run_mpi_cpu_lowmass.sh`, optional)
 
-Drives `process_simulations2_cpu_lowmass.py` for $10^{12} < M \le 10^{13}\,M_\odot$
-halos as a SLURM array (10 sims/task). **No released model trains on these yet**
-— it's kept for a future low-mass extension.
+Drives `process_simulations2_cpu_lowmass.py` for
+$10^{12} < M_{200c} \le 10^{13}\,M_\odot/h$ halos as a SLURM array (10
+sims/task). **No released model trains on these yet** — it's kept for a future
+low-mass extension. Below $10^{13}\,M_\odot/h$ the released checkpoints are
+extrapolating.
+
+### Step 4 — multi-redshift data (`run_mpi_multiz.sh`, optional)
+
+Drives `process_simulations_multiz.py`, which produces the 8-snapshot dataset
+used by `--condition_redshift`: mass maps and gas-thermo maps in a single pass,
+**one** rotation per halo, and an extra `snap_<NNN>/` directory level. See
+{doc}`redshift`.
 
 ## Output `.npz` format
 
@@ -85,9 +100,10 @@ Each file is one (halo, rotation) sample:
 | `target` | (3, 128, 128) | hydro maps: `[DM_hydro, Gas, Stars]` (the prediction targets) |
 | `large_scale` | (3, 128, 128) | wider DM context at 12.5 / 25 / 50 Mpc/h, same center/rotation |
 | `params` | (35,) | CAMELS cosmology + astrophysics vector for the sim |
-| `halo_mass` | scalar | $M_{200c}$ [$M_\odot$] |
+| `halo_mass` | scalar | $M_{200c}$ [$M_\odot/h$] |
 | `halo_center` | (3,) | halo position in the box [Mpc/h] |
 | `compton_y`, `temperature`, `entropy`, `pressure` | (128, 128) each | gas-thermo channels (present only after step 2) |
+| `redshift`, `scale_factor` | scalar each | multi-redshift dataset only (step 4); $a = 1/(1+z)$ |
 
 ```{admonition} large_scale vs condition
 :class: tip

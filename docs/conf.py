@@ -1,7 +1,7 @@
 """Sphinx configuration for BIND."""
 from __future__ import annotations
 
-import os
+import re
 import sys
 from pathlib import Path
 
@@ -10,13 +10,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 # -- Project ----------------------------------------------------------------
 project = "BIND"
-author = "Matthew Ho Lee"
-copyright = "2024–2026, Matthew Ho Lee"
+author = "Max E. Lee"
+copyright = "2024–2026, Max E. Lee"
 
-try:
-    from bind import __version__ as release  # type: ignore
-except Exception:  # pragma: no cover - fallback if heavy deps not installed
-    release = "0.1.0"
+# The docs build deliberately does NOT import the package: `import bind` pulls in
+# torch / lightning / Pylians, which we do not install here (see
+# `autodoc_mock_imports` below).  Read the version straight out of the source
+# instead, so this file has no runtime dependency on the package at all.
+_INIT = Path(__file__).resolve().parents[1] / "src" / "bind" / "__init__.py"
+_m = re.search(r'^__version__\s*=\s*["\']([^"\']+)["\']', _INIT.read_text(), re.M)
+if _m is None:  # pragma: no cover - only if src/bind/__init__.py is restructured
+    raise RuntimeError(f"could not parse __version__ from {_INIT}")
+release = _m.group(1)
 version = ".".join(release.split(".")[:2])
 
 # -- General ----------------------------------------------------------------
@@ -34,14 +39,28 @@ extensions = [
 ]
 
 # Heavy runtime deps that must not be required at docs-build time.
+#
+# CONTRACT: the docs build installs `docs/requirements.txt` only — Sphinx, the
+# theme, and the two lightweight libraries that BIND's *documented* modules use
+# at import time (numpy, pandas).  The package itself is NOT pip-installed; it is
+# imported from ../src via the sys.path entry above, with everything below
+# replaced by autodoc mocks.  Keep this list in sync with the third-party
+# module-scope imports under src/bind/ (`grep -rn '^import\|^from' src/bind`), or
+# autodoc will fail with an ImportError on a real dependency.
 autodoc_mock_imports = [
     "torch",
     "lightning",
     "pytorch_lightning",
     "torch_ema",
-    "MAS_library",
+    "MAS_library",   # Pylians
+    "Pk_library",    # Pylians
     "h5py",
     "huggingface_hub",
+    "tqdm",
+    "scipy",
+    "mpi4py",
+    "gpytorch",
+    "sklearn",
 ]
 
 myst_enable_extensions = [
@@ -62,7 +81,9 @@ source_suffix = {
 }
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "WORKLOG.md"]
+# WORKLOG.md is the in-repo session log and plans/ holds internal working notes;
+# neither is user documentation, and both would otherwise warn as orphan pages.
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "WORKLOG.md", "plans"]
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
@@ -94,5 +115,5 @@ html_theme_options = {
     "logo": {"text": "BIND"},
 }
 
-ogp_site_url = "https://bind.readthedocs.io"
+ogp_site_url = "https://github.com/Maxelee/BIND"
 ogp_image = "_static/fig1_showcase.png"

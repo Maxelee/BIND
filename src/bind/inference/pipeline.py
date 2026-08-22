@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import glob
+import hashlib
 from contextlib import nullcontext
 from pathlib import Path
 
@@ -12,9 +13,18 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from bind.data import NormStats, N_THERMO, THERMO_KEYS, log_transform, thermo_inverse
-from .schemas import SimulationSpec
+from bind.data import (
+    N_OBS,
+    N_THERMO,
+    THERMO_KEYS,
+    NormStats,
+    compute_observables,
+    log_transform,
+    thermo_forward,
+    thermo_inverse,
+)
 
+from .schemas import SimulationSpec
 
 # ---------------------------------------------------------------------------
 # Gas thermodynamics — per-particle physics + projection, ported verbatim from
@@ -350,7 +360,9 @@ def extract_halo_cutouts_cube_from_3d(
     return cutouts
 
 
-def load_halo_catalog(spec: SimulationSpec) -> tuple[list[dict], np.ndarray, np.ndarray]:
+def load_halo_catalog(
+    spec: SimulationSpec,
+) -> tuple[list[dict], np.ndarray, np.ndarray, np.ndarray]:
     """Load FoF group catalog, apply halo mass cut, and build halo list.
 
     Uses Group_M_Crit200 (M200c) for the mass cut and stored masses,
@@ -434,6 +446,8 @@ def _downsample_square(cutout: np.ndarray, target_res: int) -> np.ndarray:
         factor = spx // target_res
         return (cutout.reshape(target_res, factor, target_res, factor)
                 .mean(axis=(1, 3)).astype(np.float32))
+    # Non-divisible size: area-average to downsample, bilinear to upsample
+    # (matches the training generator's scipy-zoom order=1 upsample branch).
     t = torch.from_numpy(np.ascontiguousarray(cutout, dtype=np.float32))[None, None]
     if spx > target_res:
         out = torch.nn.functional.interpolate(t, size=(target_res, target_res), mode="area")
@@ -586,6 +600,44 @@ def _denormalize_to_physical(
     return np.concatenate([mass, thermo], axis=1)
 
 
+# ---------------------------------------------------------------------------
+# Reproducibility helpers
+# ---------------------------------------------------------------------------
+# BIND is generative: every run draws fresh noise, so an unseeded run cannot be
+# reproduced.  Seeding is opt-in and strictly local — `make_generator` returns a
+# private torch.Generator and nothing here ever calls torch.manual_seed(), so
+# (a) an unseeded run is bit-for-bit identical to the historical behaviour and
+# (b) a seeded run does not perturb any other RNG consumer in the process.
+
+
+def derive_seed(seed: int | None, key: str | int) -> int | None:
+    """Derive a stable sub-seed from a run seed and a key (sim label, slab index).
+
+    Sub-runs must not share one noise stream, or the very same realization would
+    be drawn for every simulation / slab.  The derivation is SHA-256 over
+    ``f"{seed}:{key}"`` truncated to 63 bits, so it is stable across processes,
+    machines and Python versions (unlike the salted builtin ``hash()``).
+    Returns ``None`` when ``seed`` is ``None`` (i.e. stays unseeded).
+    """
+    if seed is None:
+        return None
+    digest = hashlib.sha256(f"{int(seed)}:{key}".encode()).digest()
+    return int.from_bytes(digest[:8], "big") & ((1 << 63) - 1)
+
+
+def make_generator(seed: int | None, device: torch.device) -> torch.Generator | None:
+    """Return a local ``torch.Generator`` on ``device`` seeded with ``seed``.
+
+    ``None`` in, ``None`` out — callers then omit the ``generator`` kwarg
+    entirely and the sampler draws from the global RNG exactly as before.
+    """
+    if seed is None:
+        return None
+    generator = torch.Generator(device=device)
+    generator.manual_seed(int(seed) & ((1 << 63) - 1))
+    return generator
+
+
 def generate_halo_patches(
     halo_cutouts: list[dict],
     norm_stats: NormStats,
@@ -597,6 +649,9 @@ def generate_halo_patches(
     use_amp: bool,
     param_indices: np.ndarray | None = None,
     no_large_scale: bool = False,
+    cond_vectors: np.ndarray | None = None,
+    scale_factor: float | None = None,
+    seed: int | None = None,
 ) -> np.ndarray:
     """Run model inference on all halo cutouts and denormalize to physical space.
 
@@ -611,8 +666,27 @@ def generate_halo_patches(
     no_large_scale: when True (cube model), large-scale context is not fed to
         the model (large_scale=None).  The cutout dict may still contain a
         'large_scale' key; it is simply ignored.
+    cond_vectors: optional (N, n_cond) array of *already-normalized* per-halo
+        conditioning vectors that replace the per-sim ``sim_params`` path. Used
+        for observable-conditioned models (n_cond = N_OBS), where the vector is
+        per-halo rather than per-sim — see :func:`build_observable_vectors`.
+        ``param_indices`` is ignored when this is given.
+    seed: optional integer seed for the sampler's initial noise.  ``None`` (the
+        default) leaves the draw on the global RNG, i.e. bit-identical to the
+        historical behaviour.  With a seed, one local generator is created for
+        this call and consumed batch by batch, so a rerun reproduces the output
+        only when ``halo_cutouts`` order and ``batch_size`` also match (both are
+        recorded in the run provenance).  On GPU, bitwise reproducibility further
+        assumes the same device and deterministic conv kernels.
     """
     outputs: list[np.ndarray] = []
+    generator = make_generator(seed, device)
+    gen_kw = {} if generator is None else {"generator": generator}
+    if cond_vectors is not None and len(cond_vectors) != len(halo_cutouts):
+        raise ValueError(
+            f"cond_vectors has {len(cond_vectors)} rows but there are "
+            f"{len(halo_cutouts)} halo cutouts"
+        )
 
     with torch.no_grad():
         for start in tqdm(range(0, len(halo_cutouts), batch_size), desc="Generating hydro"):
@@ -624,9 +698,15 @@ def generate_halo_patches(
                 None if no_large_scale
                 else torch.from_numpy(np.stack(lss).astype(np.float32)).to(device)
             )
-            params_np = np.stack(params).astype(np.float32)
-            if param_indices is not None:
-                params_np = params_np[:, param_indices]
+            if cond_vectors is not None:
+                # Per-halo observable conditioning (already normalized).
+                params_np = np.asarray(
+                    cond_vectors[start : start + batch_size], dtype=np.float32
+                )
+            else:
+                params_np = np.stack(params).astype(np.float32)
+                if param_indices is not None:
+                    params_np = params_np[:, param_indices]
             params_t = torch.from_numpy(params_np).to(device)
 
             amp_ctx = (
@@ -634,8 +714,15 @@ def generate_halo_patches(
                 if use_amp and device.type == "cuda"
                 else nullcontext()
             )
+            sf_kw = {}
+            if scale_factor is not None:
+                sf_kw["scale_factor"] = torch.full(
+                    (cond_t.shape[0],), float(scale_factor),
+                    dtype=torch.float32, device=device,
+                )
             with amp_ctx:
-                gen = fm.sample(cond_t, ls_t, params_t, n_steps=n_steps)
+                gen = fm.sample(cond_t, ls_t, params_t, n_steps=n_steps,
+                                **sf_kw, **gen_kw)
 
             gen_np = gen.float().cpu().numpy().astype(np.float32)
             outputs.append(_denormalize_to_physical(gen_np, norm_stats))
@@ -644,6 +731,72 @@ def generate_halo_patches(
         n_out = 3 + (N_THERMO if norm_stats.predict_thermo else 0)
         return np.zeros((0, n_out, 0, 0), dtype=np.float32)
     return np.concatenate(outputs, axis=0)
+
+
+def extract_truth_mass_patches(
+    truth_maps: np.ndarray,
+    halos: list[dict],
+    box_size: float,
+    npix: int,
+    patch_pix: int,
+) -> np.ndarray:
+    """Per-halo [DM_hydro, Gas, Stars] 6.25 Mpc/h truth patches from the full-box
+    truth maps, registered to the same halo-center convention as the DMO cutouts
+    and truth thermo patches. Returns (N_halos, 3, patch_pix, patch_pix)."""
+    pixels_per_mpc = npix / box_size
+    out = np.zeros((len(halos), 3, patch_pix, patch_pix), dtype=np.float32)
+    for i, halo in enumerate(halos):
+        cx = int(halo["halo_center"][0] * pixels_per_mpc) % npix
+        cy = int(halo["halo_center"][1] * pixels_per_mpc) % npix
+        for ch in range(3):
+            out[i, ch] = extract_periodic_cutout(truth_maps[ch], cx, cy, patch_pix)
+    return out
+
+
+def build_observable_vectors(
+    truth_mass_patches: np.ndarray,    # (N, 3, H, W)  [DM, Gas, Stars]
+    truth_thermo_patches: np.ndarray,  # (N, N_THERMO, H, W)  THERMO_KEYS order
+    halos: list[dict],
+    norm_stats: NormStats,
+) -> np.ndarray:
+    """Normalized per-halo observable conditioning matrix (N, N_OBS).
+
+    Recomputes the OBSERVABLE_KEYS aperture-integrated observables within R200
+    from per-halo truth mass + thermo patches (reusing
+    :func:`bind.data.compute_observables`, so the definition matches training
+    exactly), then log/standardizes them with the run's obs_* stats. R200 is
+    taken from each halo's catalog ``r200`` when > 0, else derived from M200c.
+
+    NOTE: suite truth patches are axis-aligned (z-projection) whereas the
+    training observables were measured on randomly-rotated cutouts; the
+    aperture-integrated R200 quantities are fairly rotation-robust, but small
+    differences are expected.
+    """
+    n = len(halos)
+    if not (len(truth_mass_patches) == len(truth_thermo_patches) == n):
+        raise ValueError("mass patches, thermo patches and halos must align in length")
+    obs = np.zeros((n, N_OBS), dtype=np.float64)
+    for i, halo in enumerate(halos):
+        sample = {
+            "target": truth_mass_patches[i],
+            "halo_mass": float(halo["halo_mass"]),
+        }
+        for j, key in enumerate(THERMO_KEYS):
+            sample[key] = truth_thermo_patches[i, j]
+        r200 = float(halo.get("r200", 0.0) or 0.0)
+        if r200 > 0:
+            sample["r200"] = r200      # else compute_observables derives from M200c
+        obs[i] = compute_observables(sample)
+    obs_norm = thermo_forward(
+        obs, norm_stats.obs_mean[None, :], norm_stats.obs_std[None, :],
+        norm_stats.obs_floor[None, :],
+    ).astype(np.float32)
+    if norm_stats.mask_observables:
+        # Masked model expects 2*N_OBS [obs*mask, mask]; full-obs eval = all-ones
+        # mask. Pass a partial mask here to condition on a subset instead.
+        mask = np.ones((n, N_OBS), dtype=np.float32)
+        obs_norm = np.concatenate([obs_norm * mask, mask], axis=1)
+    return obs_norm
 
 
 def square_taper_weight(patch_size: int, taper_frac: float = 0.15) -> np.ndarray:
@@ -719,6 +872,75 @@ def paste_halos_2d(
     return canvas, w_accum
 
 
+def share_overlap_content(
+    halos: list[dict],
+    patches: np.ndarray,
+    box_size: float,
+    npix: int,
+    patch_pix: int,
+    r200_factor: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Greedy set-cover content sharing ('adoption') for overlapping pastes.
+
+    Patches blended by weighted averaging must contain the *same* realization
+    wherever they overlap: averaging N independent generative samples of the
+    same region keeps their conditional mean but divides their stochastic
+    small-scale variance by ~N, which suppresses the composite's high-k power
+    wherever paste apertures overlap (a hydro-replaced control cannot detect
+    this — overlapping truth patches are identical pixels, so the average is a
+    no-op for truth content but lossy for generated content).
+
+    Walking halos in descending mass, each not-yet-covered halo keeps its own
+    patch and becomes a host; every other not-yet-covered halo whose paste
+    aperture (``r200_factor * R200c`` pixels) fits inside the host's patch
+    footprint adopts the host's realization, rolled to its own frame. The fit
+    criterion guarantees an adopted halo's tapered paste disk never reads the
+    rolled patch's wrapped edges. Halos without a positive R200c keep their own
+    patch (their square-taper paste spans the full footprint).
+
+    Returns ``(contents, host)``: per-halo content ``(N, C, patch_pix,
+    patch_pix)`` float32 and the index of the halo whose realization each halo
+    carries (``host[i] == i`` for hosts / non-adopted halos).
+    """
+    n = len(halos)
+    pixels_per_mpc = npix / box_size
+    half = patch_pix // 2
+    masses = np.asarray([h["halo_mass"] for h in halos], dtype=np.float64)
+    ap_pix = np.asarray(
+        [min(h.get("r200", 0.0) * pixels_per_mpc * r200_factor, half - 2.0) for h in halos]
+    )
+    px = np.asarray([int(h["halo_center"][0] * pixels_per_mpc) % npix for h in halos])
+    py = np.asarray([int(h["halo_center"][1] * pixels_per_mpc) % npix for h in halos])
+
+    host = np.arange(n)
+    covered = np.zeros(n, dtype=bool)
+    for oi in np.argsort(-masses):
+        if covered[oi]:
+            continue
+        covered[oi] = True
+        dx = (px - px[oi] + npix // 2) % npix - npix // 2
+        dy = (py - py[oi] + npix // 2) % npix - npix // 2
+        fits = (
+            (~covered)
+            & (ap_pix > 0)
+            & (np.abs(dx) + ap_pix < half - 1)
+            & (np.abs(dy) + ap_pix < half - 1)
+        )
+        host[fits] = oi
+        covered[fits] = True
+
+    contents = np.empty_like(np.asarray(patches, dtype=np.float32))
+    for j in range(n):
+        h = int(host[j])
+        if h == j:
+            contents[j] = patches[j]
+        else:
+            dx = (px[j] - px[h] + npix // 2) % npix - npix // 2
+            dy = (py[j] - py[h] + npix // 2) % npix - npix // 2
+            contents[j] = np.roll(patches[h], shift=(-dx, -dy), axis=(1, 2))
+    return contents, host
+
+
 def build_bind_composite(
     dmo_fullbox: np.ndarray,
     halos: list[dict],
@@ -731,6 +953,7 @@ def build_bind_composite(
     taper_frac: float,
     r200_factor: float = 4.0,
     thermo_patches: np.ndarray | None = None,
+    paste_mode: str = "shared",
 ) -> dict:
     """Construct BIND composite map using notebook-consistent blending logic.
 
@@ -746,22 +969,34 @@ def build_bind_composite(
     returned as ``composite_thermo`` ``(N_THERMO, npix, npix)``.  They are blended
     like the gas channel (``alpha * canvas``) — no DMO background (DMO has no gas)
     and no ``scale_global`` mass-conservation rescaling (thermo is not mass).
+
+    ``paste_mode`` controls how overlapping apertures are populated:
+
+    - ``"shared"`` (default, standard): overlapping halos share one realization
+      via :func:`share_overlap_content` before the weighted-average blend, and
+      ``patch_mass_match`` rescales each paste *aperture-locally* (its weighted
+      content mass matched to the weighted DMO mass in its footprint). Without
+      sharing, averaging independent generative realizations in overlaps
+      destroys their stochastic small-scale power (≈−10% total-matter P(k) at
+      k≈40–70 h/Mpc for a ≥1e12 Msun/h halo population).
+    - ``"average"`` (legacy): every halo pastes its own realization and
+      ``patch_mass_match`` rescales whole patches against their DMO condition
+      cutout. Kept for reproducing pre-fix composites.
+
+    ``r200_factor <= 0`` (legacy square taper) always uses the legacy path.
+
+    NB ``paste_mode="shared"`` content-sharing applies to the MASS channels;
+    ``thermo_patches`` composite with the same per-halo weights and alpha but
+    are not content-shared across overlapping apertures (overlap thermo is the
+    weighted average of independent draws, as in the legacy path).
     """
-    patches = []
-    patch_scales = []
+    if paste_mode not in ("shared", "average"):
+        raise ValueError(f"Unknown paste_mode {paste_mode!r} (use 'shared' or 'average')")
+    shared = paste_mode == "shared" and r200_factor > 0
 
-    for patch, hc in zip(generated_patches, halo_cutouts):
-        p = patch.copy()
-        if patch_mass_match:
-            m_pred = float(p.sum())
-            m_dmo = float(hc["condition"].sum())
-            s = m_dmo / (m_pred + 1e-30)
-            p *= s
-            patch_scales.append(s)
-        patches.append(p)
-
-    patches_np = np.asarray(patches, dtype=np.float32)
     square_taper = square_taper_weight(patch_pix, taper_frac=taper_frac)
+    patch_scales: list[float] = []
+    host_idx = None
 
     if r200_factor > 0:
         pixels_per_mpc = npix / box_size
@@ -773,11 +1008,47 @@ def build_bind_composite(
             )
             for halo in halos
         ]
+
+    if shared:
+        patches_np, host_idx = share_overlap_content(
+            halos, generated_patches, box_size, npix, patch_pix, r200_factor
+        )
+        if patch_mass_match:
+            # Aperture-local match: adopted content is rolled, so whole-patch
+            # totals no longer correspond to the halo's own condition cutout.
+            half = patch_pix // 2
+            ar = np.arange(patch_pix)
+            for i, (halo, w) in enumerate(zip(halos, weights_list)):
+                cx = int(halo["halo_center"][0] * pixels_per_mpc) % npix
+                cy = int(halo["halo_center"][1] * pixels_per_mpc) % npix
+                footprint = np.ix_((cx - half + ar) % npix, (cy - half + ar) % npix)
+                m_dmo = float((dmo_fullbox[footprint] * w).sum())
+                m_patch = float((patches_np[i].sum(0) * w).sum())
+                s = m_dmo / (m_patch + 1e-30)
+                patches_np[i] *= s
+                patch_scales.append(s)
         hydro_canvas, hydro_weights = paste_halos_2d(
             npix, box_size, halos, patches_np, square_taper, weights_list=weights_list
         )
     else:
-        hydro_canvas, hydro_weights = paste_halos_2d(npix, box_size, halos, patches_np, square_taper)
+        patches = []
+        for patch, hc in zip(generated_patches, halo_cutouts):
+            p = patch.copy()
+            if patch_mass_match:
+                m_pred = float(p.sum())
+                m_dmo = float(hc["condition"].sum())
+                s = m_dmo / (m_pred + 1e-30)
+                p *= s
+                patch_scales.append(s)
+            patches.append(p)
+        patches_np = np.asarray(patches, dtype=np.float32)
+
+        if r200_factor > 0:
+            hydro_canvas, hydro_weights = paste_halos_2d(
+                npix, box_size, halos, patches_np, square_taper, weights_list=weights_list
+            )
+        else:
+            hydro_canvas, hydro_weights = paste_halos_2d(npix, box_size, halos, patches_np, square_taper)
 
     alpha = np.clip(hydro_weights, 0.0, 1.0)
     bind_composite = np.zeros((3, npix, npix), dtype=np.float32)
@@ -810,6 +1081,8 @@ def build_bind_composite(
         "patch_scales": np.asarray(patch_scales, dtype=np.float64),
         "scale_global": scale_global,
         "coverage_pct": coverage,
+        "paste_mode": paste_mode,
+        "host_idx": host_idx,
     }
     if composite_thermo is not None:
         bundle["composite_thermo"] = composite_thermo
@@ -874,6 +1147,23 @@ def _project_species(pos_list: list[np.ndarray], mass_list: list[np.ndarray], bo
     return pixelize_z_projection(pos, mass.astype(np.float32), box_size, npix)
 
 
+def _resolve_hydro_snap_files(spec: SimulationSpec) -> list[str]:
+    """Resolve the hydro snapshot chunk(s) in ``spec.hydro_snapdir``.
+
+    Accepts both the CAMELS ``snap_NNN`` and the IllustrisTNG/Arepo
+    ``snapshot_NNN`` file-name conventions (multi-chunk ``*.N.hdf5`` first,
+    then a single ``.hdf5``), so the same loader works across data layouts.
+    """
+    for prefix in ("snap", "snapshot"):
+        files = sorted(glob.glob(str(spec.hydro_snapdir / f"{prefix}_{spec.snapshot:03d}.*.hdf5")))
+        if files:
+            return files
+        single = spec.hydro_snapdir / f"{prefix}_{spec.snapshot:03d}.hdf5"
+        if single.exists():
+            return [str(single)]
+    return []
+
+
 def load_hydro_particles(
     spec: SimulationSpec,
 ) -> tuple[
@@ -888,12 +1178,7 @@ def load_hydro_particles(
     Positions are in kpc/h; masses are in units of 1e10 Msun/h — caller
     is responsible for applying the 1/1000 and ×1e10 conversions.
     """
-    pattern = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.*.hdf5"
-    snap_files = sorted(glob.glob(str(pattern)))
-    if not snap_files:
-        single = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.hdf5"
-        if single.exists():
-            snap_files = [str(single)]
+    snap_files = _resolve_hydro_snap_files(spec)
     if not snap_files:
         raise FileNotFoundError(f"No hydro snapshots found for {spec.hydro_snapdir}")
 
@@ -991,15 +1276,11 @@ def extract_truth_cutouts_cube_from_3d(
 
 def load_truth_maps(spec: SimulationSpec) -> np.ndarray:
     """Load hydro species from snapshot chunks and project to 2D maps."""
-    pattern = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.*.hdf5"
-    snap_files = sorted(glob.glob(str(pattern)))
+    snap_files = _resolve_hydro_snap_files(spec)
     if not snap_files:
-        single = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.hdf5"
-        if single.exists():
-            snap_files = [str(single)]
-
-    if not snap_files:
-        raise FileNotFoundError(f"No hydro snapshots found with pattern {pattern}")
+        raise FileNotFoundError(
+            f"No hydro snapshots (snap_/snapshot_{spec.snapshot:03d}) in {spec.hydro_snapdir}"
+        )
 
     hydro_dm_pos: list[np.ndarray] = []
     hydro_dm_mass: list[np.ndarray] = []
@@ -1044,12 +1325,7 @@ def load_gas_thermo_particles(spec: SimulationSpec) -> tuple[float, dict]:
     [(km/s)^2], xe (N,) ElectronAbundance, sfr (N,) StarFormationRate.
     Star-forming gas is kept here; the caller applies the SFR>0 cut.
     """
-    pattern = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.*.hdf5"
-    snap_files = sorted(glob.glob(str(pattern)))
-    if not snap_files:
-        single = spec.hydro_snapdir / f"snap_{spec.snapshot:03d}.hdf5"
-        if single.exists():
-            snap_files = [str(single)]
+    snap_files = _resolve_hydro_snap_files(spec)
     if not snap_files:
         raise FileNotFoundError(f"No hydro snapshots found for {spec.hydro_snapdir}")
 

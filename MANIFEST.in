@@ -1,0 +1,59 @@
+# Source-distribution contents.
+#
+# Order matters: setuptools applies these lines top to bottom, so the asset
+# re-include at the bottom must stay last -- the global-exclude rules above it
+# would otherwise strip the packaged .npz artifact out of the sdist.
+
+# --- release metadata -------------------------------------------------------
+include LICENSE
+include NOTICE.md
+include CHANGELOG.md
+include CITATION.cff
+include README.md
+include requirements.txt
+include pyproject.toml
+exclude CLAUDE.md
+
+# --- tests (so an unpacked sdist is testable) -------------------------------
+include pytest.ini
+recursive-include tests *.py
+
+# --- documentation sources (Markdown only; no build output, no figures) -----
+include docs/*.md
+include docs/conf.py
+include docs/requirements.txt
+exclude docs/WORKLOG.md
+
+# --- never ship: large data, generated output, notebooks, scratch ----------
+prune examples
+prune weights
+prune docs/_build
+prune docs/_static
+prune docs/figures
+prune docs/plans
+prune build
+prune dist
+prune tools
+prune data_generation
+prune experiments
+prune analysis
+prune scatter
+prune report
+prune ia_shapes
+prune .github
+
+global-exclude *.ipynb
+global-exclude *.py[cod]
+global-exclude *.so
+global-exclude *.npy
+global-exclude *.npz
+global-exclude *.png *.jpg *.jpeg *.gif *.pdf
+global-exclude *.ckpt *.pt *.pth *.hdf5 *.h5
+global-exclude *.log *.aux *.bbl *.blg *.out
+global-exclude .DS_Store .gitignore .gitattributes
+global-exclude __pycache__/*
+
+# --- packaged assets: MUST come after the global-excludes above -------------
+# CAMELS-derived parameter tables + the fitted weak-lensing GP artifact.
+# See NOTICE.md for provenance and attribution.
+recursive-include src/bind/assets *.csv *.txt *.npz

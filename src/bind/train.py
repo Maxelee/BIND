@@ -2,17 +2,26 @@
 
 import argparse
 import os
-import torch
-import lightning as L
-from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
-from torch_ema import ExponentialMovingAverage
-from torch.utils.data import DataLoader
 from pathlib import Path
 
-from bind.data import (load_file_list, compute_norm_stats, AstroDataset, NormStats,
-                  load_file_list_cube, compute_norm_stats_cube, CubeAstroDataset,
-                  N_THERMO)
-from bind.model import UNet, FlowMatching, StochasticInterpolant
+import lightning as L
+import torch
+from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
+from torch.utils.data import DataLoader
+from torch_ema import ExponentialMovingAverage
+
+from bind.data import (
+    N_OBS,
+    N_THERMO,
+    AstroDataset,
+    CubeAstroDataset,
+    NormStats,
+    compute_norm_stats,
+    compute_norm_stats_cube,
+    load_file_list,
+    load_file_list_cube,
+)
+from bind.model import FlowMatching, StochasticInterpolant, UNet, VariationalDiffusion
 
 
 class FlowMatchingLit(L.LightningModule):
@@ -25,8 +34,10 @@ class FlowMatchingLit(L.LightningModule):
                  star_occ_weight=1.0, star_zero_norm=None,
                  interpolant='fm', sigma=0.5, stars_two_head=False,
                  no_large_scale=False, predict_thermo=False,
-                 condition_redshift=False):
+                 condition_redshift=False, condition_observables=False):
         super().__init__()
+        # condition_observables is recorded for provenance/inference (it drives
+        # n_params = N_OBS upstream); the encoder/architecture are unchanged.
         self.save_hyperparameters()
 
         # Stars two-head mode: target gets a 4-channel layout
@@ -59,23 +70,49 @@ class FlowMatchingLit(L.LightningModule):
                 'predict_thermo=True is not implemented for the StochasticInterpolant '
                 'branch. Use --interpolant fm.'
             )
+            assert not condition_redshift, (
+                'condition_redshift=True is not wired into the StochasticInterpolant '
+                'branch (its loss takes no scale_factor). Use --interpolant fm.'
+            )
             self.fm = StochasticInterpolant(self.unet, sigma=sigma,
                                             cfg_dropout=cfg_dropout,
                                             star_occ_weight=star_occ_weight,
                                             star_zero_norm=star_zero_norm)
+        elif interpolant == 'vdm':
+            # Variational diffusion / score matching on the SAME UNet — the only
+            # difference vs fm is eps-prediction instead of the flow velocity.
+            # Two-head stars breaks the Gaussian diffusion assumption -> single-head 3ch.
+            assert not stars_two_head, (
+                'stars_two_head=True breaks the VDM Gaussian forward process; use '
+                'single-head (--interpolant vdm without --stars_two_head).'
+            )
+            assert not predict_thermo, (
+                'predict_thermo=True is not wired into the VDM branch.'
+            )
+            assert not condition_redshift, (
+                'condition_redshift=True is not wired into the VDM branch (its loss '
+                'takes no scale_factor). Use --interpolant fm.'
+            )
+            self.fm = VariationalDiffusion(self.unet, cfg_dropout=cfg_dropout,
+                                           out_channels=out_ch)
         else:
             self.fm = FlowMatching(self.unet, cfg_dropout=cfg_dropout,
                                    star_occ_weight=star_occ_weight,
                                    star_zero_norm=star_zero_norm,
                                    out_channels=out_ch,
                                    stars_two_head=stars_two_head)
+        # Only FlowMatching.loss accepts scale_factor; the SI and VDM losses do
+        # not, and passing it unconditionally made `--interpolant si` and
+        # `--interpolant vdm` die with a TypeError at training step 0.
+        self._loss_takes_scale_factor = interpolant not in ('si', 'vdm')
         self.ema = ExponentialMovingAverage(self.unet.parameters(), decay=ema_decay)
 
     def training_step(self, batch, batch_idx):
         loss = self.fm.loss(
             batch['target'], batch['condition'],
             batch.get('large_scale'), batch['params'],
-            scale_factor=batch.get('scale_factor'),
+            **({'scale_factor': batch.get('scale_factor')}
+               if self._loss_takes_scale_factor else {}),
         )
         self.log('train/loss', loss, prog_bar=True, sync_dist=True)
         return loss
@@ -84,7 +121,8 @@ class FlowMatchingLit(L.LightningModule):
         loss = self.fm.loss(
             batch['target'], batch['condition'],
             batch.get('large_scale'), batch['params'],
-            scale_factor=batch.get('scale_factor'),
+            **({'scale_factor': batch.get('scale_factor')}
+               if self._loss_takes_scale_factor else {}),
         )
         self.log('val/loss', loss, prog_bar=True, sync_dist=True)
 
@@ -129,7 +167,8 @@ class AstroDataModule(L.LightningDataModule):
     def __init__(self, data_root, norm_stats_path=None, batch_size=64,
                  num_workers=8, n_stats_samples=10000, stars_two_head=False,
                  param_indices=None, no_large_scale=False, predict_thermo=False,
-                 condition_redshift=False):
+                 condition_redshift=False, condition_observables=False, mask_observables=False,
+                 exclude_snaps=()):
         super().__init__()
         self.data_root = data_root
         self.norm_stats_path = norm_stats_path
@@ -141,6 +180,11 @@ class AstroDataModule(L.LightningDataModule):
         self.no_large_scale = no_large_scale
         self.predict_thermo = predict_thermo
         self.condition_redshift = condition_redshift
+        self.condition_observables = condition_observables
+        self.mask_observables = mask_observables
+        # Leave-one-redshift-out: whole snapshots held out of BOTH splits, so
+        # neither training nor checkpoint selection ever sees the held-out z.
+        self.exclude_snaps = tuple(exclude_snaps or ())
 
     def setup(self, stage=None):
         if self.no_large_scale:
@@ -150,9 +194,11 @@ class AstroDataModule(L.LightningDataModule):
             # The multi-redshift dataset nests sim_i/snap_j/...; enumerate it
             # recursively. The flat single-redshift dataset uses its cache file.
             train_files = load_file_list(self.data_root, 'train',
-                                         recursive=self.condition_redshift)
+                                         recursive=self.condition_redshift,
+                                         exclude_snaps=self.exclude_snaps)
             test_files = load_file_list(self.data_root, 'test',
-                                        recursive=self.condition_redshift)
+                                        recursive=self.condition_redshift,
+                                        exclude_snaps=self.exclude_snaps)
 
         # Compute or load normalization stats
         stats_path = Path(self.norm_stats_path or
@@ -173,14 +219,21 @@ class AstroDataModule(L.LightningDataModule):
                     f'thermo stats. Delete the file and re-run to recompute, or '
                     f'pass a different norm_stats_path.'
                 )
+            if self.condition_observables and not self.norm_stats.condition_observables:
+                raise RuntimeError(
+                    f'condition_observables=True but {stats_path} was computed '
+                    f'without observable stats. Delete the file and re-run to '
+                    f'recompute, or pass a different norm_stats_path.'
+                )
         else:
             print(f'Computing norm stats from {self.n_stats_samples} samples '
                   f'(stars_two_head={self.stars_two_head}, '
                   f'no_large_scale={self.no_large_scale}, '
-                  f'predict_thermo={self.predict_thermo})...')
+                  f'predict_thermo={self.predict_thermo}, '
+                  f'condition_observables={self.condition_observables})...')
             if self.no_large_scale:
-                # Cube dataset has no thermo fields; predict_thermo is rejected
-                # in main() before reaching here.
+                # Cube dataset has no thermo fields; predict_thermo /
+                # condition_observables are rejected in main() before here.
                 self.norm_stats = compute_norm_stats_cube(
                     train_files, self.n_stats_samples,
                     stars_two_head=self.stars_two_head,
@@ -190,11 +243,17 @@ class AstroDataModule(L.LightningDataModule):
                     train_files, self.n_stats_samples,
                     stars_two_head=self.stars_two_head,
                     predict_thermo=self.predict_thermo,
+                    condition_observables=self.condition_observables,
                 )
             stats_path.parent.mkdir(parents=True, exist_ok=True)
             self.norm_stats.save(stats_path)
             print(f'Saved norm stats to {stats_path}')
 
+        if self.condition_observables and \
+                self.norm_stats.mask_observables != self.mask_observables:
+            self.norm_stats.mask_observables = self.mask_observables
+            self.norm_stats.save(stats_path)
+            print(f'Set mask_observables={self.mask_observables} in {stats_path}')
         if self.no_large_scale:
             self.train_ds = CubeAstroDataset(train_files, self.norm_stats,
                                              param_indices=self.param_indices)
@@ -242,8 +301,10 @@ def main():
                              'and have the model predict both. Out_ch becomes 4. At '
                              'inference the two channels are recombined via a soft '
                              'multiplier before writing the standard 3-channel artifact.')
-    parser.add_argument('--interpolant', type=str, default='fm', choices=['si', 'fm'],
-                        help='si=stochastic interpolant (DMO→hydro), fm=original flow matching (noise→hydro)')
+    parser.add_argument('--interpolant', type=str, default='fm', choices=['si', 'fm', 'vdm'],
+                        help='si=stochastic interpolant (DMO→hydro), fm=flow matching (noise→hydro), '
+                             'vdm=variational diffusion / score matching (noise→hydro, eps-prediction, '
+                             'same UNet as fm; single-head only)')
     parser.add_argument('--sigma', type=float, default=0.5,
                         help='Stochastic interpolant noise amplitude (0=deterministic bridge)')
     parser.add_argument('--exclude_cosmo_params', action='store_true',
@@ -263,6 +324,28 @@ def main():
                              '(train/sim_i/snap_j/...). Expects a per-sample redshift in '
                              'each .npz. Requires the large-scale data path and '
                              '--interpolant fm.')
+    parser.add_argument('--exclude_snaps', type=int, nargs='*', default=[],
+                        metavar='SNAP',
+                        help='Hold whole snapshots out of BOTH the train and '
+                             'validation splits, e.g. --exclude_snaps 60. Used for '
+                             'the leave-one-redshift-out test: the excluded '
+                             "snapshot's held-out patches then measure whether the "
+                             'model interpolates in a=1/(1+z) rather than memorizing '
+                             'the discrete training snapshots. Filtering the val '
+                             'split too keeps checkpoint selection clean.')
+    parser.add_argument('--mask_observables', action='store_true',
+                        help='Train with random observable input-dropout (requires '
+                             '--condition_observables): the conditioning vector becomes '
+                             '2*N_OBS [obs*mask, mask] and the model learns to tolerate '
+                             'a missing subset, so it can be driven by whatever a survey '
+                             '(or another sim suite) actually measures.')
+    parser.add_argument('--condition_observables', action='store_true',
+                        help='Condition on aperture-integrated OBSERVABLES within '
+                             'R200 (Y_200, M_gas, M_star, T_X, K, P, M_200) measured '
+                             'from each halo\'s own maps, INSTEAD of the 35 params. '
+                             'Outputs are unchanged (pair with --predict_thermo for '
+                             'mass+thermo). Needs the thermo (rotated2_128) data path '
+                             'and --interpolant fm.')
     # Training
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
@@ -289,11 +372,29 @@ def main():
                      'data path; it is incompatible with --no_large_scale.')
     if args.condition_redshift and args.interpolant != 'fm':
         parser.error('--condition_redshift is only implemented for --interpolant fm.')
+    if args.condition_observables and args.no_large_scale:
+        parser.error('--condition_observables needs the thermo maps from the '
+                     'large-scale (rotated2_128) data path; cube (--no_large_scale) '
+                     'files have neither thermo maps nor halo_mass.')
+    if args.condition_observables and args.interpolant != 'fm':
+        parser.error('--condition_observables is only implemented for --interpolant fm.')
+    if args.condition_observables and args.exclude_cosmo_params:
+        parser.error('--condition_observables replaces the 35-param conditioning '
+                     'with observables, so --exclude_cosmo_params does not apply.')
+    if args.mask_observables and not args.condition_observables:
+        parser.error('--mask_observables only applies to observable conditioning; '
+                     'pass it together with --condition_observables.')
 
-    # Cosmological parameter indices to exclude when --exclude_cosmo_params is set.
+    # Conditioning vector dimensionality. Three mutually-exclusive modes:
+    #   observables  -> N_OBS aperture-integrated observables (no params)
+    #   exclude_cosmo -> 31 params (drop cosmo indices 0,1,7,8)
+    #   default      -> all 35 params
     COSMO_INDICES = [0, 1, 7, 8]
-    if args.exclude_cosmo_params:
-        import numpy as _np
+    if args.condition_observables:
+        param_indices = None
+        # Input-dropout packs the vector to [obs*mask, mask] -> 2*N_OBS.
+        n_params = 2 * N_OBS if args.mask_observables else N_OBS
+    elif args.exclude_cosmo_params:
         param_indices = [i for i in range(35) if i not in COSMO_INDICES]
         n_params = len(param_indices)          # 31
     else:
@@ -313,6 +414,9 @@ def main():
         no_large_scale=args.no_large_scale,
         predict_thermo=args.predict_thermo,
         condition_redshift=args.condition_redshift,
+        condition_observables=args.condition_observables,
+        mask_observables=args.mask_observables,
+        exclude_snaps=args.exclude_snaps,
     )
 
     # Compute/load norm stats up-front so we can derive star_zero_norm before
@@ -339,6 +443,7 @@ def main():
         no_large_scale=args.no_large_scale,
         predict_thermo=args.predict_thermo,
         condition_redshift=args.condition_redshift,
+        condition_observables=args.condition_observables,
         n_params=n_params,
     )
 

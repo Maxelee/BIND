@@ -16,7 +16,7 @@ CIC projector) — pulled in as a hard dependency.
 ## Fetch pretrained weights
 
 ```{code-block} bash
-bind-download-weights fm_two_head      # ~950 MB into weights/fm_two_head/
+bind-download-weights fm_two_head      # ~1.0 GB into weights/fm_two_head/
 ```
 
 This populates `weights/fm_two_head/{last.ckpt, norm_stats.npz}`.
@@ -42,15 +42,21 @@ print(result)
 ```
 
 `result.composite_paths` is a list of `.npz` files — one per z-slab — each
-containing the DMO input, the BIND composite `[DM_hydro, Gas, Stars]`, the
-per-halo cutouts, and bookkeeping. A `summary.json` records the geometry and
-the parameter vector used.
+containing the DMO input (`dmo`), the BIND composite
+`[DM_hydro, Gas, Stars]` (`composite`), the per-halo generated patches
+(`generated_patches`), the halo catalog for that slab, and compositing
+bookkeeping. A `summary.json` records the geometry and every sampling and
+compositing setting used. Full key table in {doc}`baryonify`.
+
+Pass `seed=...` to `bind.paint` (or `--seed` to `bind-paint`) if you need the
+run to be reproducible — by default each call draws a fresh realization.
 
 ```{tip}
 **Choosing a checkpoint.** `fm_two_head` paints mass only. Swap it for
 `bind.Model.from_local("weights/fm_thermo")` to additionally paint
 `compton_y`, `temperature`, `entropy`, and `pressure` per halo. See
-[Gas thermodynamics](thermo.md).
+[Gas thermodynamics](thermo.md). For a model that also conditions on redshift,
+see {doc}`redshift`.
 ```
 
 ## Same thing from the shell
@@ -78,5 +84,6 @@ See [Parameters](parameters.md) for the full list of names and ranges.
 ## Next steps
 
 - {doc}`baryonify` — full recipe for a 205 Mpc/h N-body box.
-- [`examples/paint_walkthrough.ipynb`](https://github.com/Maxelee/BIND/blob/release/v0.1/examples/paint_walkthrough.ipynb) — end-to-end notebook.
+- [`examples/paint_walkthrough.ipynb`](https://github.com/Maxelee/BIND/blob/main/examples/paint_walkthrough.ipynb) — end-to-end notebook.
 - {doc}`api` — the public API reference.
+- {doc}`cli` — all eight console scripts, and the compositing defaults.

@@ -19,6 +19,7 @@ import argparse
 from pathlib import Path
 
 import bind
+from bind.cli.paint import _load_params
 from bind.inference.paint_stages import generate_from_stage1
 
 
@@ -26,6 +27,11 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--stage1_dir", type=Path, required=True,
                    help="Stage-1 intermediate directory (holds stage1_manifest.json)")
+    p.add_argument("--params", type=Path, default=None,
+                   help="Override the 35-dim parameter vector (.npy/.npz/.txt). "
+                        "Lets one shared stage-1 dir feed many parameter runs "
+                        "(the science orchestration path); defaults to the "
+                        "stage-1 params.npy when omitted.")
     p.add_argument("--output_dir", type=Path, default=Path("bind_output"))
 
     grp = p.add_mutually_exclusive_group()
@@ -41,6 +47,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--device", type=str, default="auto")
     p.add_argument("--no_amp", action="store_true")
 
+    rzgrp = p.add_mutually_exclusive_group()
+    rzgrp.add_argument("--redshift", type=float, default=None,
+                       help="Redshift to condition on (overrides manifest; for redshift-conditioned models)")
+    rzgrp.add_argument("--scale_factor", type=float, default=None,
+                       help="Scale factor a=1/(1+z) to condition on (overrides manifest)")
+
     p.add_argument("--no_patch_mass_match", action="store_true")
     p.add_argument("--taper_frac", type=float, default=0.15)
     p.add_argument("--r200_factor", type=float, default=4.0,
@@ -53,13 +65,12 @@ def parse_args() -> argparse.Namespace:
                         "halos agree on one realization of the shared region; 'average' "
                         "is the legacy independent-patch blend, measured at -10.6%% "
                         "total-matter P(k) at k=40-70. Requires --r200_factor > 0.")
-    p.add_argument("--no_save_patches", action="store_true",
-                   help="Skip saving per-halo generated patches in the output npz")
     p.add_argument("--seed", type=int, default=None,
                    help="Seed for the sampler's initial noise, making the run "
-                        "reproducible; it is recorded in the provenance block of "
-                        "summary.json and of every output .npz. Omit for the historical "
-                        "behaviour: unseeded, a different realization every run.")
+                        "reproducible; omit for the historical behaviour: unseeded, "
+                        "a different realization every run.")
+    p.add_argument("--no_save_patches", action="store_true",
+                   help="Skip saving per-halo generated patches in the output npz")
     return p.parse_args()
 
 
@@ -77,9 +88,14 @@ def main() -> None:
     else:
         model = bind.Model.from_files(args.checkpoint, args.norm_stats, device=args.device)
 
+    params = _load_params(args.params) if args.params is not None else None
+
     result = generate_from_stage1(
         args.stage1_dir, model,
         output_dir=args.output_dir,
+        params=params,
+        redshift=args.redshift,
+        scale_factor=args.scale_factor,
         n_steps=args.n_steps,
         batch_size=args.batch_size,
         use_amp=not args.no_amp,
@@ -87,8 +103,8 @@ def main() -> None:
         taper_frac=args.taper_frac,
         r200_factor=args.r200_factor,
         paste_mode=args.paste_mode,
-        save_per_halo_patches=not args.no_save_patches,
         seed=args.seed,
+        save_per_halo_patches=not args.no_save_patches,
     )
 
     print("=" * 80)

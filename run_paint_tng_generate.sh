@@ -32,12 +32,12 @@ set -euo pipefail
 # BIND_env's torch is a CUDA 12.5 build (bundles its own runtime), so no `cuda`
 # module is needed.  No MPI here — generation is single-process on one GPU.
 source /mnt/home/mlee1/venvs/BIND_env/bin/activate
-cd /mnt/home/mlee1/vdm_bind2
+cd /mnt/home/mlee1/BIND
 mkdir -p /mnt/home/mlee1/ceph/logs
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 SNAPSHOT=${SNAPSHOT:-99}
-RUN_DIR=${RUN_DIR:-weights/fm_two_head}
+RUN_DIR=${RUN_DIR:-weights/fm_redshift_thermo}
 N_STEPS=${N_STEPS:-50}
 BATCH_SIZE=${BATCH_SIZE:-16}
 

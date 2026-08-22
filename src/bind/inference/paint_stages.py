@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import json
 import time
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +53,7 @@ from .artifacts import (
     read_provenance,
     to_jsonable,
 )
+from .lightcone_transforms import LightconeTransforms
 from .paint import (
     NATIVE_PIXEL_SIZE_MPCH,
     NATIVE_SLAB_DEPTH_MPCH,
@@ -66,9 +68,83 @@ from .paint import (
     _validate_params,
     extract_halo_cutouts,
 )
-from .pipeline import build_bind_composite, derive_seed
+from .pipeline import build_bind_composite, derive_seed, interlace_combine_2d
 
 MANIFEST_NAME = "stage1_manifest.json"
+
+
+#: Relative tolerance for "the conditioning cosmology matches the substrate".
+COSMOLOGY_RTOL = 1e-3
+
+
+#: Parameter index -> snapshot-header attribute, for every cosmology entry the
+#: header can actually adjudicate.  sigma8 (idx 1) and n_s (idx 8) are properties
+#: of the initial conditions and are NOT in the snapshot header, so they cannot be
+#: checked here.
+_HEADER_COSMO = ((0, "Omega0"), (6, "OmegaBaryon"), (7, "HubbleParam"))
+
+
+def _check_cosmology(params: np.ndarray, header: dict | float, *, strict: bool,
+                     where: str) -> None:
+    """Guard: the conditioned cosmology must match the snapshot's own.
+
+    Painting a box with a parameter vector whose cosmology block belongs to a
+    *different* simulation suite silently mis-conditions the generative model —
+    e.g. conditioning a TNG300 substrate on the CAMELS fiducial makes
+    Omega_b/Omega_m 3.8% too high and inflates the painted gas/tau power by
+    ~7.7%.  The header values come from the snapshot HDF5, so they are ground
+    truth for the substrate; ``params`` is what the model will see.
+
+    **All three checkable entries are compared, not just Omega_m.**  The damage in
+    the released lightcone was driven by Omega_b/Omega_m, not by Omega_m: a vector
+    carrying the right Omega_m=0.3089 with CAMELS' Omega_b=0.049 reproduces the
+    exact same +7.7% bug, and an Omega_m-only guard would wave it through.  The
+    error message therefore reports Omega_b/Omega_m explicitly.
+
+    ``header`` is a mapping of header attributes (missing or non-positive entries
+    are skipped); a bare float is accepted as ``{"Omega0": value}`` for backwards
+    compatibility.
+
+    Stage 1 raises (the substrate's cosmology is a fact).  Painting from an
+    existing stage 1 only warns, since parameter sweeps legitimately paint
+    off-substrate cosmologies.
+    """
+    if not isinstance(header, dict):
+        header = {"Omega0": float(header)}
+
+    bad: list[str] = []
+    for idx, key in _HEADER_COSMO:
+        ref = header.get(key, float("nan"))
+        try:
+            ref = float(ref)
+        except (TypeError, ValueError):
+            continue
+        if not np.isfinite(ref) or ref <= 0:
+            continue          # header did not carry it — nothing to check against
+        got = float(params[idx])
+        if abs(got - ref) / ref >= COSMOLOGY_RTOL:
+            bad.append(f"{key}: params[{idx}]={got:.5f} vs header {ref:.5f}")
+    if not bad:
+        return
+
+    om_p, ob_p = float(params[0]), float(params[6])
+    fb_p = ob_p / om_p if om_p else float("nan")
+    om_h = float(header.get("Omega0", float("nan")))
+    ob_h = float(header.get("OmegaBaryon", float("nan")))
+    fb_h = ob_h / om_h if om_h else float("nan")
+    msg = (f"[{where}] COSMOLOGY MISMATCH ({len(bad)} entr"
+           f"{'y' if len(bad) == 1 else 'ies'}): " + "; ".join(bad)
+           + f". Omega_b/Omega_m would be {fb_p:.6f} against the substrate's "
+             f"{fb_h:.6f} (ratio {fb_p / fb_h:.6f} — the painted gas/tau amplitude "
+             f"tracks this ~linearly and the plane power as its square). "
+             f"The model would be conditioned on a cosmology the substrate does not "
+             f"have (see bind.tng300_params for IllustrisTNG substrates; "
+             f"bind.fiducial_params is the CAMELS one).")
+    if strict:
+        raise ValueError(
+            msg + " Pass allow_cosmology_mismatch=True "
+                  "(--allow_cosmology_mismatch) if this is deliberate.")
+    warnings.warn(msg, stacklevel=2)
 
 
 def _stage1_slab_path(stage1_dir: Path, si: int) -> Path:
@@ -116,6 +192,10 @@ def project_and_extract(
     pixel_size: float = NATIVE_PIXEL_SIZE_MPCH,
     slab_depth: float = NATIVE_SLAB_DEPTH_MPCH,
     patch_pix: int = PATCH_PIX,
+    transforms: LightconeTransforms | None = None,
+    transforms_snap_idx: int | None = None,
+    mas_correct: bool = False,
+    allow_cosmology_mismatch: bool = False,
     comm: Any | None = None,
     progress: bool = True,
 ) -> Path | None:
@@ -130,6 +210,31 @@ def project_and_extract(
     output_dir
         Intermediate directory.  Rank 0 writes ``stage1_slab{NN}.npz`` per slab,
         ``params.npy``, and ``stage1_manifest.json``.
+    transforms : LightconeTransforms, optional
+        Lightcone geometric transforms (rotation/translation/flip).  When provided,
+        each chunk's particle positions are transformed with
+        ``transforms.apply(pos, transforms_snap_idx, box_size)`` **before**
+        projection.  The transform parameters are stored in the manifest so the
+        lensplane step can reproduce the geometry.
+    transforms_snap_idx : int, optional
+        Index into *transforms* for this snapshot (0 = lowest-z snapshot).
+        Required when *transforms* is provided.
+    mas_correct : bool
+        If True, additionally accumulate a half-cell-shifted CIC deposit and
+        store an **anti-aliased** DMO map (``dmo_aa``, interlaced + CIC-window
+        deconvolved) alongside the raw ``dmo`` in each slab npz.  The raw ``dmo``
+        is left untouched and remains the source for the model condition cutouts
+        (the generative model was trained on raw-CIC inputs); ``dmo_aa`` is for
+        the absolute lensing comparison against an anti-aliased reference
+        (e.g. kappaTNG).  Default False (no behaviour change).
+    allow_cosmology_mismatch : bool
+        By default stage 1 REFUSES to write a params vector whose ``Omega0``,
+        ``OmegaBaryon`` or ``HubbleParam`` disagrees with the snapshot header by
+        more than :data:`COSMOLOGY_RTOL` (the check that would have caught the
+        CAMELS-cosmology-on-TNG300 bug on 20/20 snapshots — note it was
+        ``OmegaBaryon``/``Omega0``, not ``Omega0`` alone, that did the damage).
+        ``sigma8`` and ``n_s`` are not in the snapshot header and cannot be
+        checked.  Set True to paint a deliberately off-substrate cosmology.
     comm
         An ``mpi4py`` communicator, or ``None`` for a single-process run.  Each
         rank reads ``files[rank::size]``; partial slab maps are reduced to rank 0.
@@ -146,44 +251,101 @@ def project_and_extract(
     if snapshot_index is None:
         snapshot_index = io_gadget._infer_snapshot_index(snap_files)
 
-    # Box size + uniform DM particle mass from the first chunk header (cheap).
+    if transforms is not None and transforms_snap_idx is None:
+        raise ValueError("transforms_snap_idx is required when transforms is provided")
+
+    # Box size, cosmology, scale factor, and DM particle mass from the first chunk header.
     with h5py.File(snap_files[0], "r") as h:
         box_size = float(h["Header"].attrs["BoxSize"]) / 1000.0
         particle_mass = float(h["Header"].attrs["MassTable"][1]) * 1e10
+        scale_factor = float(h["Header"].attrs.get("Time", 1.0))
+        Omega_m = float(h["Header"].attrs.get("Omega0", float("nan")))
+        # Every cosmology entry the header can adjudicate.  TNG300-Dark carries
+        # all three (verified on snapdir_096: Omega0=0.3089, OmegaBaryon=0.0486,
+        # HubbleParam=0.6774); absent/non-positive entries are simply skipped.
+        header_cosmo = {k: float(h["Header"].attrs.get(k, float("nan")))
+                        for _, k in _HEADER_COSMO}
+
+    # Refuse to project (and, later, to hand stage 2) a vector whose cosmology is
+    # not the substrate's.  Checked here, on every rank, BEFORE the hours-long
+    # projection — not after it.
+    _check_cosmology(params, header_cosmo, strict=not allow_cosmology_mismatch,
+                     where="stage1")
 
     npix = _round_npix(box_size, pixel_size)
     n_slabs = _round_n_slabs(box_size, slab_depth)
 
+    redshift = 1.0 / scale_factor - 1.0
+
     if rank == 0:
         print(f"[stage1] box={box_size:.3f} Mpc/h  npix={npix}  n_slabs={n_slabs}")
+        print(f"[stage1] scale_factor={scale_factor:.4f}  z={redshift:.4f}  Omega_m={Omega_m:.4f}")
         print(f"[stage1] {len(snap_files)} snapshot chunk(s) across {size} rank(s)")
         print(f"[stage1] particle_mass={particle_mass:.3e} Msun/h")
+        if transforms is not None:
+            pd = int(transforms.proj_dirs[transforms_snap_idx])
+            print(f"[stage1] lightcone transform: snap_idx={transforms_snap_idx}  "
+                  f"proj_dir={pd}  disp={transforms.disp[transforms_snap_idx].tolist()}")
 
     # --- project this rank's chunks into local slab maps -------------------
     local_slabs = np.zeros((n_slabs, npix, npix), dtype=np.float32)
+    # Interlacing: a second deposit shifted by half a transverse pixel.  The
+    # LOS (z) slab assignment is unchanged; only x,y are shifted before deposit.
+    local_slabs_s = np.zeros((n_slabs, npix, npix), dtype=np.float32) if mas_correct else None
+    half_pix = 0.5 * box_size / npix
     my_files = snap_files[rank::size]
     iterator = tqdm(my_files, desc=f"[rank {rank}] projecting") if (progress and my_files) else my_files
     t0 = time.time()
     for fname in iterator:
         with h5py.File(fname, "r") as h:
             pos = h["PartType1/Coordinates"][:].astype(np.float32) / 1000.0
+        if transforms is not None:
+            pos = transforms.apply(pos, transforms_snap_idx, box_size)
         _accumulate_chunk_into_slabs(local_slabs, pos, particle_mass, box_size, n_slabs)
+        if mas_correct:
+            pos_s = pos.copy()
+            pos_s[:, 0] = (pos_s[:, 0] + half_pix) % box_size
+            pos_s[:, 1] = (pos_s[:, 1] + half_pix) % box_size
+            _accumulate_chunk_into_slabs(local_slabs_s, pos_s, particle_mass, box_size, n_slabs)
+            del pos_s
         del pos
 
     # --- reduce partial maps onto rank 0 (slab-by-slab to cap message size) -
     if comm is not None and size > 1:
         from mpi4py import MPI
 
+        if not my_files:
+            # Ranks with no chunks never wrote their calloc'd buffers; UCX CMA
+            # (process_vm_readv) aborts on such unfaulted pages during Reduce.
+            local_slabs.fill(0.0)
+            if local_slabs_s is not None:
+                local_slabs_s.fill(0.0)
+
         global_slabs = np.zeros_like(local_slabs) if rank == 0 else None
+        global_slabs_s = (np.zeros_like(local_slabs_s)
+                          if (mas_correct and rank == 0) else None)
         for si in range(n_slabs):
             recv = global_slabs[si] if rank == 0 else None
             comm.Reduce(local_slabs[si], recv, op=MPI.SUM, root=0)
+            if mas_correct:
+                recv_s = global_slabs_s[si] if rank == 0 else None
+                comm.Reduce(local_slabs_s[si], recv_s, op=MPI.SUM, root=0)
         comm.Barrier()
     else:
         global_slabs = local_slabs
+        global_slabs_s = local_slabs_s
 
     if rank != 0:
         return None
+
+    # Anti-aliased DMO maps (interlace + deconvolve); raw `global_slabs` is kept
+    # intact as the model-condition source.
+    aa_slabs = None
+    if mas_correct:
+        aa_slabs = np.stack([
+            interlace_combine_2d(global_slabs[si], global_slabs_s[si], deconvolve=True)
+            for si in range(n_slabs)
+        ]).astype(np.float32)
 
     print(f"[stage1] projection done in {time.time() - t0:.1f}s; reading halos...")
 
@@ -192,9 +354,14 @@ def project_and_extract(
         group_catalog, snapshot=snapshot_index,
         halo_mass_min=halo_mass_min, mass_field=halo_mass_field,
     )
-    halo_pos = cat["positions"]
+    halo_pos = cat["positions"]        # (M, 3) in original frame [Mpc/h]
     halo_mass = cat["mass"]
     halo_r200 = cat["r200"]
+
+    # Apply the same transform to halo centres so they align with the projected slabs.
+    if transforms is not None:
+        halo_pos = transforms.apply(halo_pos, transforms_snap_idx, box_size)
+
     halo_slab_idx = _assign_halos_to_slabs(halo_pos[:, 2], box_size, n_slabs)
 
     output_dir = Path(output_dir)
@@ -207,6 +374,7 @@ def project_and_extract(
     per_slab_meta = []
     for si in range(n_slabs):
         slab_map = global_slabs[si]
+        aa_kw = {"dmo_aa": aa_slabs[si]} if aa_slabs is not None else {}
         in_slab = np.where(halo_slab_idx == si)[0]
         n = int(len(in_slab))
         slab_path = _stage1_slab_path(output_dir, si)
@@ -214,7 +382,7 @@ def project_and_extract(
         if n == 0:
             np.savez(
                 slab_path, dmo=slab_map, n_halos=0, slab_idx=si,
-                n_slabs=n_slabs, box_size=box_size, npix=npix,
+                n_slabs=n_slabs, box_size=box_size, npix=npix, **aa_kw,
             )
             per_slab_meta.append({"slab_idx": si, "n_halos": 0})
             print(f"[stage1] slab {si}: 0 halos")
@@ -246,6 +414,7 @@ def project_and_extract(
             n_slabs=n_slabs,
             box_size=box_size,
             npix=npix,
+            **aa_kw,
         )
         per_slab_meta.append({"slab_idx": si, "n_halos": n})
         print(f"[stage1] slab {si}: {n} halos -> {slab_path.name}")
@@ -255,6 +424,7 @@ def project_and_extract(
         "box_size": box_size,
         "npix": npix,
         "n_slabs": n_slabs,
+        "mas_correct": bool(mas_correct),
         "pixel_size": pixel_size,
         "slab_depth": slab_depth,
         "patch_pix": patch_pix,
@@ -265,10 +435,18 @@ def project_and_extract(
         "group_catalog": str(group_catalog),
         "snapshot_index": snapshot_index,
         "particle_mass": particle_mass,
+        "scale_factor": scale_factor,
+        "redshift": redshift,
+        "Omega_m": Omega_m,
         "params_file": "params.npy",
         "per_slab": per_slab_meta,
         "created": time.strftime("%Y-%m-%dT%H:%M:%S"),
     }
+    if transforms is not None:
+        manifest["transforms_snap_idx"] = transforms_snap_idx
+        manifest["proj_dir"] = int(transforms.proj_dirs[transforms_snap_idx])
+        manifest["disp"] = transforms.disp[transforms_snap_idx].tolist()
+        manifest["flip"] = transforms.flip[transforms_snap_idx].tolist()
     (output_dir / MANIFEST_NAME).write_text(json.dumps(manifest, indent=2))
     print(f"[stage1] wrote manifest -> {output_dir / MANIFEST_NAME}")
     return output_dir
@@ -317,6 +495,8 @@ def _save_composite_slab(
         halo_masses=np.asarray(halo_masses, np.float32),
         halo_r200=np.asarray(halo_r200, np.float32),
     )
+    if "composite_thermo" in bundle:
+        kw["composite_thermo"] = bundle["composite_thermo"]
     if generated_patches is not None:
         kw["generated_patches"] = generated_patches
     if thermo_patches is not None:
@@ -336,6 +516,8 @@ def generate_from_stage1(
     *,
     output_dir: Path | str,
     params: np.ndarray | None = None,
+    redshift: float | None = None,
+    scale_factor: float | None = None,
     n_steps: int = 50,
     batch_size: int = 16,
     use_amp: bool = True,
@@ -353,12 +535,20 @@ def generate_from_stage1(
     :func:`project_and_extract`, generates hydro patches on the GPU, and writes
     the same ``composite_slab{NN}.npz`` / ``summary.json`` as :func:`bind.paint`.
 
+    For a redshift-conditioned model (``fm_redshift_thermo``), the scale factor
+    ``a=1/(1+z)`` is read from the manifest (written by stage 1 from the snapshot
+    Header/Time attribute) and forwarded to ``model.generate``.  Pass ``redshift``
+    or ``scale_factor`` to override the manifest value.
+
     ``seed`` (optional) makes the sampling reproducible: each slab draws from its
     own sub-seed derived from it, so no two slabs replay the same noise.  ``None``
     keeps the historical unseeded behaviour (global RNG, different every run).
     The resolved settings — including the seed and ``batch_size``, which the noise
     stream depends on — are stamped into every output as ``provenance``.
     """
+    if redshift is not None and scale_factor is not None:
+        raise ValueError("pass only one of redshift= / scale_factor=")
+
     stage1_dir = Path(stage1_dir)
     manifest = json.loads((stage1_dir / MANIFEST_NAME).read_text())
 
@@ -369,9 +559,29 @@ def generate_from_stage1(
     pixel_size = float(manifest["pixel_size"])
     slab_depth = float(manifest["slab_depth"])
 
+    # Resolve redshift: explicit override > manifest > default z=0
+    if scale_factor is not None:
+        _redshift = 1.0 / scale_factor - 1.0
+        _scale_factor = float(scale_factor)
+    elif redshift is not None:
+        _redshift = float(redshift)
+        _scale_factor = 1.0 / (1.0 + _redshift)
+    elif "scale_factor" in manifest:
+        _scale_factor = float(manifest["scale_factor"])
+        _redshift = float(manifest.get("redshift", 1.0 / _scale_factor - 1.0))
+    else:
+        _scale_factor = None
+        _redshift = None
+
     if params is None:
         params = np.load(stage1_dir / manifest.get("params_file", "params.npy"))
     params = _validate_params(params)
+    # The stage-1 manifest carries only Omega_m; OmegaBaryon/HubbleParam are
+    # skipped automatically when absent, so this stays a one-entry check here and
+    # the full three-entry check lives where the header is actually readable
+    # (project_and_extract).
+    _check_cosmology(params, {"Omega0": float(manifest.get("Omega_m", float("nan")))},
+                     strict=False, where="stage2")
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -394,6 +604,8 @@ def generate_from_stage1(
     )
 
     print(f"[stage2] {model!r}")
+    if _scale_factor is not None:
+        print(f"[stage2] scale_factor={_scale_factor:.4f}  z={_redshift:.4f}")
     print(f"[stage2] box={box_size:.3f} Mpc/h  npix={npix}  n_slabs={n_slabs}  "
           f"{manifest['n_halos']} halos")
 
@@ -402,11 +614,15 @@ def generate_from_stage1(
 
     for si in range(n_slabs):
         d = np.load(_stage1_slab_path(stage1_dir, si))
-        slab_map = d["dmo"]
+        # Composite background: prefer the anti-aliased DMO map when stage 1
+        # produced one (mas_correct), so the composite -> lensplane path matches
+        # an anti-aliased reference.  Model conditions still come from the raw
+        # `condition` cutouts below, so generative fidelity is unaffected.
+        bg_map = d["dmo_aa"] if "dmo_aa" in d.files else d["dmo"]
         n = int(d["n_halos"])
 
         if n == 0:
-            composite_paths.append(_save_empty_slab(output_dir, si, n_slabs, box_size, slab_map,
+            composite_paths.append(_save_empty_slab(output_dir, si, n_slabs, box_size, bg_map,
                                                     provenance=provenance))
             per_slab.append({"slab_idx": si, "n_halos": 0})
             continue
@@ -424,7 +640,7 @@ def generate_from_stage1(
         gen = model.generate(
             cutouts, params,
             n_steps=n_steps, batch_size=batch_size, use_amp=use_amp,
-            progress=progress, seed=slab_seed,
+            progress=progress, scale_factor=_scale_factor, seed=slab_seed,
         )
 
         halos_dicts = [
@@ -432,18 +648,17 @@ def generate_from_stage1(
              "r200": float(halo_r[i]), "params": params.astype(np.float32)}
             for i in range(n)
         ]
-        bundle = build_bind_composite(
-            slab_map, halos_dicts, gen[:, :3], cutouts,
-            box_size=box_size, npix=npix, patch_pix=patch_pix,
-            patch_mass_match=patch_mass_match, taper_frac=taper_frac,
-            r200_factor=r200_factor, paste_mode=paste_mode,
-        )
-
         thermo = (gen[:, 3:3 + N_THERMO]
                   if (model.predict_thermo and gen.shape[1] >= 3 + N_THERMO) else None)
+        bundle = build_bind_composite(
+            bg_map, halos_dicts, gen[:, :3], cutouts,
+            box_size=box_size, npix=npix, patch_pix=patch_pix,
+            patch_mass_match=patch_mass_match, taper_frac=taper_frac,
+            r200_factor=r200_factor, paste_mode=paste_mode, thermo_patches=thermo,
+        )
         slab_path = _save_composite_slab(
             output_dir, si, n_slabs=n_slabs, box_size=box_size,
-            dmo=slab_map, bundle=bundle,
+            dmo=bg_map, bundle=bundle,
             halo_centers=halo_xy, halo_masses=halo_m, halo_r200=halo_r,
             generated_patches=(gen[:, :3] if save_per_halo_patches else None),
             thermo_patches=(thermo if save_per_halo_patches else None),
@@ -468,6 +683,8 @@ def generate_from_stage1(
         "npix": npix,
         "n_slabs": n_slabs,
         "n_halos": int(manifest["n_halos"]),
+        "scale_factor": _scale_factor,
+        "redshift": _redshift,
         "model": repr(model),
         "n_steps": n_steps,
         "patch_mass_match": patch_mass_match,
@@ -494,6 +711,75 @@ def generate_from_stage1(
         predict_thermo=model.predict_thermo,
         thermo_keys=THERMO_KEYS if model.predict_thermo else (),
     )
+
+
+def generate_halos(
+    stage1_dir: Path | str,
+    model: Model,
+    *,
+    output_dir: Path | str,
+    params: np.ndarray | None = None,
+    redshift: float | None = None,
+    scale_factor: float | None = None,
+    n_steps: int = 50,
+    batch_size: int = 16,
+    use_amp: bool = True,
+    progress: bool = True,
+) -> Path:
+    """GPU generation **only** (no compositing) — the portable, GPU-heavy half.
+
+    Runs the flow-matching sampler on the stage-1 cutouts and saves just the
+    per-halo patches as ``composite_slab{NN}.npz`` (``generated_patches`` +
+    ``thermo_patches`` + halo metadata, **no full-box maps and no DMO**).  This
+    needs only the cutouts (``condition`` / ``large_scale``), so a stripped
+    stage-1 (cutouts + params) can be shipped to a GPU-rich machine, generated
+    there, and the halos shipped back; compositing (which needs the DMO
+    background) then runs on the CPU side via :func:`recomposite_from_saved`.
+    """
+    stage1_dir = Path(stage1_dir)
+    manifest = json.loads((stage1_dir / MANIFEST_NAME).read_text())
+    n_slabs = int(manifest["n_slabs"])
+    box_size = float(manifest["box_size"])
+    if scale_factor is not None:
+        _sf = float(scale_factor)
+    elif redshift is not None:
+        _sf = 1.0 / (1.0 + float(redshift))
+    else:
+        _sf = float(manifest.get("scale_factor")) if "scale_factor" in manifest else None
+    if params is None:
+        params = np.load(stage1_dir / manifest.get("params_file", "params.npy"))
+    params = _validate_params(params)
+    # The stage-1 manifest carries only Omega_m; OmegaBaryon/HubbleParam are
+    # skipped automatically when absent, so this stays a one-entry check here and
+    # the full three-entry check lives where the header is actually readable
+    # (project_and_extract).
+    _check_cosmology(params, {"Omega0": float(manifest.get("Omega_m", float("nan")))},
+                     strict=False, where="generate_halos")
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for si in range(n_slabs):
+        d = np.load(_stage1_slab_path(stage1_dir, si))
+        n = int(d["n_halos"])
+        slab_path = Path(output_dir) / f"composite_slab{si:02d}.npz"
+        if n == 0:
+            np.savez(slab_path, n_halos=0, slab_idx=si, n_slabs=n_slabs, box_size=box_size)
+            continue
+        cutouts = [{"condition": d["condition"][i], "large_scale": d["large_scale"][i]}
+                   for i in range(n)]
+        gen = model.generate(cutouts, params, n_steps=n_steps, batch_size=batch_size,
+                             use_amp=use_amp, progress=progress, scale_factor=_sf)
+        thermo = (gen[:, 3:3 + N_THERMO]
+                  if (model.predict_thermo and gen.shape[1] >= 3 + N_THERMO) else None)
+        kw = dict(generated_patches=gen[:, :3].astype(np.float32),
+                  halo_centers=d["halo_centers"], halo_masses=d["halo_masses"],
+                  halo_r200=d["halo_r200"], condition_sums=d["condition"].sum(axis=(1, 2)),
+                  n_halos=n, slab_idx=si, n_slabs=n_slabs, box_size=box_size)
+        if thermo is not None:
+            kw["thermo_patches"] = thermo.astype(np.float32)
+        np.savez_compressed(slab_path, **kw)
+        print(f"[generate-halos] slab {si}: {n} halos -> {slab_path.name}")
+    return output_dir
 
 
 # ---------------------------------------------------------------------------
@@ -533,7 +819,7 @@ def recomposite_slab(
             "--no_save_patches, so there is nothing to re-composite."
         )
 
-    dmo = s["dmo"]
+    dmo = s["dmo_aa"] if "dmo_aa" in s.files else s["dmo"]
     box_size = float(s["box_size"])
     npix = int(s["npix"])
     gen = g["generated_patches"]                  # (N, 3, patch, patch)
@@ -544,6 +830,7 @@ def recomposite_slab(
     p = (np.zeros(35, np.float32) if params is None
          else np.asarray(params, np.float32).reshape(-1))
 
+    thermo = g["thermo_patches"] if "thermo_patches" in g.files else None
     cutouts = [{"condition": cond[i]} for i in range(n)]
     halos = [
         {"halo_center": centers[i], "halo_mass": float(mass[i]),
@@ -554,7 +841,7 @@ def recomposite_slab(
         dmo, halos, gen, cutouts,
         box_size=box_size, npix=npix, patch_pix=patch_pix,
         patch_mass_match=patch_mass_match, taper_frac=taper_frac,
-        r200_factor=r200_factor, paste_mode=paste_mode,
+        r200_factor=r200_factor, paste_mode=paste_mode, thermo_patches=thermo,
     )
 
 

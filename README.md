@@ -83,7 +83,7 @@ Optional extras (`pip install -e ".[extra]"` from a clone):
 
 | extra | pulls in | needed for |
 |---|---|---|
-| `wlemu-fit` | gpytorch, scikit-learn | *fitting* the weak-lensing emulator; prediction is numpy-only |
+| `wlemu-stats-fit` | gpytorch, scikit-learn | *fitting* the weak-lensing statistics emulator; prediction is numpy-only |
 | `mpi` | mpi4py | the distributed projection stage for very large boxes |
 | `dev` | ruff, pytest | linting and tests |
 
@@ -315,7 +315,10 @@ Parameter helpers, also at the top level:
 | `bind.PARAM_NAMES`, `bind.N_PARAMS`    | the 35 parameter names and their count |
 | `bind.THERMO_KEYS`, `bind.N_THERMO`    | `("compton_y", "temperature", "entropy", "pressure")` and its length |
 
-### Weak-lensing statistics emulator (`bind.wlemu`)
+### Weak-lensing statistics emulator (`bind.wlemu_stats`)
+
+> Renamed from `bind.wlemu` in v0.3.0 — that name now belongs to the
+> field-level flow-matching kappa-map generator (`bind-wlemu-train`).
 
 Instant, self-consistent WL convergence summary statistics (power spectrum,
 PDF, peaks, minima, Minkowski functionals, scattering coefficients, moments)
@@ -325,7 +328,7 @@ IllustrisTNG-DMO lightcones. Inference is numpy-only; the ~3 MB fitted artifact
 (`src/bind/assets/wlemu_gp.npz`) ships inside the wheel.
 
 ```python
-from bind.wlemu import WLEmulator
+from bind.wlemu_stats import WLEmulator
 emu = WLEmulator.load()
 pred = emu.predict({"WindEnergyIn1e51erg": 7.2}, z_source=1.0)   # all statistics + GP sigma
 cov = emu.covariance(z_source=1.0, blocks=("Cl", "peak"))        # single-field covariance
@@ -333,7 +336,7 @@ cov = emu.covariance(z_source=1.0, blocks=("Cl", "peak"))        # single-field 
 
 Tutorial + held-out validation:
 [`examples/wlemu_tutorial.ipynb`](examples/wlemu_tutorial.ipynb); design notes:
-[`docs/wl_emulator.md`](docs/wl_emulator.md); CLI: `bind-wlemu`.
+[`docs/wl_emulator_stats.md`](docs/wl_emulator_stats.md); CLI: `bind-wlemu-stats`.
 
 ---
 

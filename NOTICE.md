@@ -15,7 +15,7 @@ These files live in `src/bind/assets/` and are installed with the package.
 |---|---|---|
 | `CosmoAstroSeed_IllustrisTNG_L50n512_SB35.txt` | the CAMELS SB35 parameter and seed table for the 1024 IllustrisTNG L50n512 simulations | redistributed from the CAMELS public data release |
 | `SB35_param_minmax.csv` | per-parameter min/max bounds and log flags derived from the table above | derived from CAMELS SB35 |
-| `wlemu_gp.npz` | fitted Gaussian-process artifact for `bind.wlemu` | fitted to statistics of convergence maps raytraced through BIND-baryonified IllustrisTNG-DMO lightcones; downstream of CAMELS |
+| `wlemu_gp.npz` | fitted Gaussian-process artifact for `bind.wlemu_stats` | fitted to statistics of convergence maps raytraced through BIND-baryonified IllustrisTNG-DMO lightcones; downstream of CAMELS |
 
 The pretrained checkpoints published at
 <https://huggingface.co/mel2260/BIND> are **not** in this repository, but they
@@ -62,8 +62,8 @@ statement. See the "Data & attribution" section of [README.md](README.md).
 
 | component | licence | extra | project |
 |---|---|---|---|
-| GPyTorch | MIT | `wlemu-fit` | <https://github.com/cornellius-gp/gpytorch> |
-| scikit-learn | BSD-3-Clause | `wlemu-fit` | <https://github.com/scikit-learn/scikit-learn> |
+| GPyTorch | MIT | `wlemu-stats-fit` | <https://github.com/cornellius-gp/gpytorch> |
+| scikit-learn | BSD-3-Clause | `wlemu-stats-fit` | <https://github.com/scikit-learn/scikit-learn> |
 | mpi4py | BSD-3-Clause | `mpi` | <https://github.com/mpi4py/mpi4py> |
 | Ruff | MIT | `dev` | <https://github.com/astral-sh/ruff> |
 | pytest | MIT | `dev` | <https://github.com/pytest-dev/pytest> |

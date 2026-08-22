@@ -72,18 +72,87 @@ def _safe_divide(numerator, denominator):
                      where=denominator > thresh)
 
 
+def cic_window_2d(npix: int) -> np.ndarray:
+    """2D CIC sampling window ``W(k)`` for deconvolution.
+
+    Dividing a CIC-deposited field's FFT by this array removes the CIC
+    smoothing.  ``W(k) = prod_i sinc(pi k_i / 2 k_Ny)^2``; with ``np.sinc``
+    (which already includes the ``pi``) and ``f = k/2k_Ny`` in cycles/pixel
+    from :func:`numpy.fft.fftfreq`, this is ``(sinc(f_x) sinc(f_y))^2``.
+    """
+    f = np.fft.fftfreq(npix)            # cycles/pixel in [-0.5, 0.5)
+    w1 = np.sinc(f)                     # np.sinc(x) = sin(pi x)/(pi x)
+    return (np.outer(w1, w1)) ** 2     # (npix, npix), CIC = sinc^2 per axis
+
+
+def interlace_combine_2d(
+    grid0: np.ndarray,
+    grid1: np.ndarray,
+    *,
+    deconvolve: bool = True,
+) -> np.ndarray:
+    """Combine two half-cell-offset CIC deposits into an anti-aliased field.
+
+    Interlacing (Sefusatti et al. 2016) cancels the leading aliasing image that
+    raw CIC assignment folds back below the Nyquist frequency — the dominant
+    cause of the spurious high-k excess seen in the BIND lightcone projections.
+
+    Parameters
+    ----------
+    grid0 : (N, N) array
+        CIC deposit at the particle transverse positions ``x``.
+    grid1 : (N, N) array
+        CIC deposit at ``x + H/2`` (shifted by half a pixel in *both*
+        transverse axes, periodic-wrapped).
+    deconvolve : bool
+        Also divide out the CIC window (:func:`cic_window_2d`) so the returned
+        field is unbiased up to the Nyquist frequency.
+
+    Returns
+    -------
+    (N, N) float64 array — corrected real-space field (same units/total as the
+    inputs; the DC mode is preserved exactly).
+    """
+    if grid0.shape != grid1.shape or grid0.shape[0] != grid0.shape[1]:
+        raise ValueError("grid0 and grid1 must be the same square shape")
+    npix = grid0.shape[0]
+    f = np.fft.fftfreq(npix)
+    # Half-cell shift d = H/2 ⇒ phase k·d = pi*(f_x+f_y) to realign grid1 onto grid0.
+    phase = np.exp(1j * np.pi * (f[:, None] + f[None, :]))
+    F = 0.5 * (np.fft.fft2(grid0) + phase * np.fft.fft2(grid1))
+    if deconvolve:
+        F /= cic_window_2d(npix)
+    return np.fft.ifft2(F).real
+
+
 def pixelize_z_projection(
     positions: np.ndarray,
     masses: np.ndarray,
     box_size: float,
     npix: int,
+    *,
+    mas_correct: bool = False,
 ) -> np.ndarray:
-    """Project particle masses onto a 2D grid with CIC assignment via Pylians."""
+    """Project particle masses onto a 2D grid with CIC assignment via Pylians.
+
+    With ``mas_correct=True`` the projection is anti-aliased via interlacing
+    (a second half-cell-shifted deposit) and the CIC window is deconvolved — use
+    this when matching an external, anti-aliased reference (e.g. kappaTNG).  The
+    default (``False``) is plain CIC, identical to the legacy behaviour; BIND/DMO
+    *ratios* computed from the same pipeline are unaffected by the choice because
+    the aliasing is common-mode and cancels.
+    """
     pos_ = np.ascontiguousarray(positions.astype(np.float32))[:, [0, 1]]
     mass_ = np.ascontiguousarray(masses.astype(np.float32))
     field = np.zeros((npix, npix), dtype=np.float32)
     MASL.MA(pos_, field, box_size, MAS="CIC", W=mass_, verbose=False)
-    return field
+    if not mas_correct:
+        return field
+    half = 0.5 * box_size / npix
+    pos_s = (pos_ + half) % box_size
+    field_s = np.zeros((npix, npix), dtype=np.float32)
+    MASL.MA(pos_s, field_s, box_size, MAS="CIC", W=mass_, verbose=False)
+    return interlace_combine_2d(field, field_s, deconvolve=True).astype(np.float32)
 
 
 def _dmo_snapshot_files(nbody_path: Path, snapshot: int) -> list[str]:
@@ -777,8 +846,11 @@ def paste_halos_2d(
 
     If ``weights_list`` is provided each halo uses its own (patch_pix, patch_pix)
     weight (e.g. a per-halo circular mask); otherwise all halos share ``weight``.
+    The channel count is inferred from ``patches`` (3 for mass, ``N_THERMO`` for
+    the gas-thermo maps), so the same blending is shared by both.
     """
-    canvas = np.zeros((3, canvas_res, canvas_res), dtype=np.float32)
+    n_ch = patches.shape[1]
+    canvas = np.zeros((n_ch, canvas_res, canvas_res), dtype=np.float32)
     w_accum = np.zeros((canvas_res, canvas_res), dtype=np.float32)
 
     pixels_per_mpc = canvas_res / box_size
@@ -791,7 +863,7 @@ def paste_halos_2d(
         ix = (cx - w_half + np.arange(w.shape[0])) % canvas_res
         iy = (cy - w_half + np.arange(w.shape[0])) % canvas_res
 
-        for ch in range(3):
+        for ch in range(n_ch):
             canvas[ch][np.ix_(ix, iy)] += patch[ch] * w
         w_accum[np.ix_(ix, iy)] += w
 
@@ -880,6 +952,7 @@ def build_bind_composite(
     patch_mass_match: bool,
     taper_frac: float,
     r200_factor: float = 4.0,
+    thermo_patches: np.ndarray | None = None,
     paste_mode: str = "shared",
 ) -> dict:
     """Construct BIND composite map using notebook-consistent blending logic.
@@ -890,6 +963,12 @@ def build_bind_composite(
     aperture.  This recovers the small-scale total-matter power that the legacy
     square taper (``r200_factor == 0``) smears away — see docs/circular_aperture.md.
     The square taper is also used as a per-halo fallback when R200c is unavailable.
+
+    If ``thermo_patches`` (``(N_halos, N_THERMO, patch, patch)``) is given, the
+    gas-thermo channels are composited with the **same** per-halo weights and
+    returned as ``composite_thermo`` ``(N_THERMO, npix, npix)``.  They are blended
+    like the gas channel (``alpha * canvas``) — no DMO background (DMO has no gas)
+    and no ``scale_global`` mass-conservation rescaling (thermo is not mass).
 
     ``paste_mode`` controls how overlapping apertures are populated:
 
@@ -905,6 +984,11 @@ def build_bind_composite(
       cutout. Kept for reproducing pre-fix composites.
 
     ``r200_factor <= 0`` (legacy square taper) always uses the legacy path.
+
+    NB ``paste_mode="shared"`` content-sharing applies to the MASS channels;
+    ``thermo_patches`` composite with the same per-halo weights and alpha but
+    are not content-shared across overlapping apertures (overlap thermo is the
+    weighted average of independent draws, as in the legacy path).
     """
     if paste_mode not in ("shared", "average"):
         raise ValueError(f"Unknown paste_mode {paste_mode!r} (use 'shared' or 'average')")
@@ -976,7 +1060,20 @@ def build_bind_composite(
     bind_composite *= scale_global
     coverage = float((alpha > 0.01).mean() * 100.0)
 
-    return {
+    # Gas-thermo channels: composite with the same weights, blend like gas
+    # (alpha * canvas; no DMO background, no scale_global).
+    composite_thermo = None
+    if thermo_patches is not None:
+        thermo_np = np.asarray(thermo_patches, dtype=np.float32)
+        if r200_factor > 0:
+            thermo_canvas, _ = paste_halos_2d(
+                npix, box_size, halos, thermo_np, square_taper, weights_list=weights_list
+            )
+        else:
+            thermo_canvas, _ = paste_halos_2d(npix, box_size, halos, thermo_np, square_taper)
+        composite_thermo = (alpha[None] * thermo_canvas).astype(np.float32)
+
+    bundle = {
         "composite": bind_composite,
         "alpha": alpha,
         "hydro_canvas": hydro_canvas,
@@ -987,6 +1084,9 @@ def build_bind_composite(
         "paste_mode": paste_mode,
         "host_idx": host_idx,
     }
+    if composite_thermo is not None:
+        bundle["composite_thermo"] = composite_thermo
+    return bundle
 
 
 def compute_per_halo_mass_error(

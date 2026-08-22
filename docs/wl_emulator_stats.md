@@ -1,13 +1,13 @@
-# The BIND weak-lensing statistics emulator (`bind.wlemu`)
+# The BIND weak-lensing statistics emulator (`bind.wlemu_stats`)
 
 Instant, self-consistent weak-lensing convergence summary statistics as a
 function of baryonic-feedback physics. Given the 30 CAMELS SB35 astrophysical
-parameters and a source redshift, `bind.wlemu.WLEmulator` returns the full set
+parameters and a source redshift, `bind.wlemu_stats.WLEmulator` returns the full set
 of κ summary statistics with calibrated uncertainties in a few milliseconds —
 the community-facing product of the BIND weak-lensing pipeline.
 
 ```python
-from bind.wlemu import WLEmulator
+from bind.wlemu_stats import WLEmulator
 
 emu = WLEmulator.load()                                   # packaged artifact
 pred = emu.predict({"WindEnergyIn1e51erg": 7.2}, z_source=1.0)
@@ -21,7 +21,7 @@ pred["grids"]                                             # {"Cl": my_ell, "pdf"
 cov = emu.covariance(z_source=1.0, blocks=("Cl",), ell=my_ell)  # exact A @ C @ A.T
 ```
 
-CLI: `bind-wlemu --z 1.0 --set WindEnergyIn1e51erg=7.2 --out pred.npz`
+CLI: `bind-wlemu-stats --z 1.0 --set WindEnergyIn1e51erg=7.2 --out pred.npz`
 (`--list-params` prints the parameter table). Tutorial + validation:
 `examples/wlemu_tutorial.ipynb`.
 
@@ -44,9 +44,9 @@ approximation); `covariance`'s regrid is exact (`A @ C @ A.T`).
 | Fixed | cosmology at the IllustrisTNG fiducial (Ωm=0.3089, σ8=0.8159, Ωb=0.0486, h=0.6774, ns=0.9667) |
 | Field | convergence κ of a 5×5 deg flat-sky patch at 1024², raytraced to z≈2.5 |
 | Outputs | `Cl` (18 ℓ-bins), `pdf` (60), `peak` (40), `min` (40), `V0/V1/V2` Minkowski (36 each), `scat` scattering coefficients (113), `moments` (4) — 383 numbers per (θ, z_s), each with a GP σ |
-| Extras | single-field statistic covariance per z_s (from 50 map realizations), parameter metadata, exact statistic estimators (`bind.wlemu.stats`) to apply to your own maps |
+| Extras | single-field statistic covariance per z_s (from 50 map realizations), parameter metadata, exact statistic estimators (`bind.wlemu_stats.stats`) to apply to your own maps |
 
-Statistic conventions (fixed by the training pipeline; `bind.wlemu.stats`
+Statistic conventions (fixed by the training pipeline; `bind.wlemu_stats.stats`
 reproduces them bit-faithfully in numpy): power spectrum on the raw map;
 PDF/peaks/minima/Minkowski on the map smoothed with a periodic Fourier
 Gaussian of σ = 2 arcmin and standardized per map to S/N units; scattering
@@ -84,8 +84,8 @@ is the response of the underlying κ maps, not of independently fitted curves.
 **Inference is numpy-only.** The artifact (`src/bind/assets/wlemu_gp.npz`,
 ~4 MB) stores GP hyperparameters, training inputs, PCA bases, normalizations,
 covariances, and parameter metadata; `WLEmulator` rebuilds the exact posterior
-from them (verified against gpytorch to <1e-6). Fitting (`bind.wlemu.fit`,
-`pip install bind[wlemu-fit]`) needs gpytorch + scikit-learn and ~15 s per
+from them (verified against gpytorch to <1e-6). Fitting (`bind.wlemu_stats.fit`,
+`pip install bind[wlemu-stats-fit]`) needs gpytorch + scikit-learn and ~15 s per
 source redshift on one GPU.
 
 ## Validation (see the tutorial for figures)
@@ -121,7 +121,7 @@ returned std at a non-plane `z_source` is inflated by a per-block empirical
 term, added in quadrature: `sqrt(sd**2 + (epsilon_b * w(z) * |mean|)**2)`,
 where `epsilon_b` is a fixed per-block fractional error from leave-one-plane-
 out (LOO) validation at the 3 interior planes (hardcoded as
-`bind.wlemu.emulator._LOO_FRAC_ERR`) and `w(z)` is the normalized distance to
+`bind.wlemu_stats.emulator._LOO_FRAC_ERR`) and `w(z)` is the normalized distance to
 the nearest plane (0 at a plane, 1 at the midpoint between two planes) — so
 the inflation vanishes at the planes themselves and peaks at the midpoints.
 
@@ -262,7 +262,7 @@ hand-picked `a1`/`a2` still work and the tutorial keeps both cells):
 |---|---|
 | `src/bind/wlemu/emulator.py` | numpy-only `WLEmulator` (predict, covariance, param conversion) |
 | `src/bind/wlemu/stats.py` | the exact statistic estimators (numpy, for your own maps) |
-| `src/bind/wlemu/fit.py` | fit/refit + k-fold validation (gpytorch; `python -m bind.wlemu.fit`) |
+| `src/bind/wlemu/fit.py` | fit/refit + k-fold validation (gpytorch; `python -m bind.wlemu_stats.fit`) |
 | `src/bind/assets/wlemu_gp.npz` | the shipped emulator artifact |
 | `examples/data/wlemu_validation.npz` | k-fold held-out predictions (the proof) |
 | `examples/data/kappa_sample.npz` | 3 sample raytraced κ maps for the stats demo |

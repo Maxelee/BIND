@@ -68,9 +68,9 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from bind.wlemu import WLEmulator, measure_stats
-from bind.wlemu.analysis import sensitivity
-from bind.wlemu.fit import frac_err_by_block, sigma_err_by_block
+from bind.wlemu_stats import WLEmulator, measure_stats
+from bind.wlemu_stats.analysis import sensitivity
+from bind.wlemu_stats.fit import frac_err_by_block, sigma_err_by_block
 
 # -- consistent, colorblind-safe style (Okabe-Ito) --------------------------
 C_TRUTH, C_EMU, C_ALT, C_GREEN, C_GRAY = "#111111", "#D55E00", "#0072B2", "#009E73", "#9A9A9A"
@@ -236,7 +236,7 @@ interpolation uncertainty, amplified by the `max` over the sweep, gives every
 parameter — including physically null ones — a nonzero score, so weak/null
 params could out-rank genuinely responsive ones.
 
-The fix (`bind.wlemu.analysis.sensitivity`): whiten each block by its own
+The fix (`bind.wlemu_stats.analysis.sensitivity`): whiten each block by its own
 single-field covariance, keeping only the top $K=\min(30, 40)$ eigenmodes
 (the 40 cap is the noise-paired-realization effective-dof guard — the
 `n_real=50` map realizations give an effective dof of order 49, not
@@ -543,7 +543,7 @@ md(r"""
 ### Reduced feedback space: physical axes + a fiducial posterior
 
 The 30 astro parameters are highly redundant as far as the *joint* WL
-statistics are concerned. `bind.wlemu.analysis.active_subspace` finds the
+statistics are concerned. `bind.wlemu_stats.analysis.active_subspace` finds the
 directions in parameter space the full 383-dim statistics vector actually
 responds to (a global, whitened Jacobian Gram matrix, same recipe as
 `sensitivity`'s per-block whitener); its eigenvalue spectrum answers "how
@@ -551,7 +551,7 @@ many directions does the WL feedback response really have?".
 """)
 
 code(r"""
-from bind.wlemu.analysis import (active_subspace, rotate_to_physical_axes,
+from bind.wlemu_stats.analysis import (active_subspace, rotate_to_physical_axes,
                                   reduced_grid_theta, gaussian_chi2)
 
 zi = 1
@@ -719,7 +719,7 @@ md(r"""
 The gas-fraction axis above was *hand-picked*: `a1` comes from projecting one
 chosen direction (`g_fgas`) onto the top eigenvectors, and only `a2` gets a
 post-hoc similarity check against the other three candidates.
-`bind.wlemu.analysis.identify_axes` replaces this with a full, symmetric
+`bind.wlemu_stats.analysis.identify_axes` replaces this with a full, symmetric
 match: the top-`K` eigenvectors against **all four** candidate directions
 (`g_fgas, g_mstar, g_Y, g_T`) at once, so an eigenvector can end up with no
 good physical label (flagged `weak`), and a candidate is free to load onto
@@ -733,7 +733,7 @@ and settles onto a `~0.85-0.95` plateau (a flat noise floor) from mode 8 on
 """)
 
 code(r"""
-from bind.wlemu.analysis import identify_axes
+from bind.wlemu_stats.analysis import identify_axes
 
 K = 8
 ratios = evals[1:16] / evals[:15]
@@ -799,7 +799,7 @@ K=20 modes.
 """)
 
 code(r"""
-from bind.wlemu.analysis import alpha_jacobian, laplace_alpha_covariance, confidence_ellipse
+from bind.wlemu_stats.analysis import alpha_jacobian, laplace_alpha_covariance, confidence_ellipse
 
 C_eff = cov1[np.ix_(mask1, mask1)]
 J_alpha = alpha_jacobian(emu, zi, u_fid, evecs, mask1, K, h=0.02)
@@ -922,7 +922,7 @@ data," not as a literal small-volume 8D confidence region.
 md(r"""
 ## 8. Using it against your own maps
 
-`bind.wlemu.stats.measure_stats` is the *exact* estimator set the emulator was
+`bind.wlemu_stats.stats.measure_stats` is the *exact* estimator set the emulator was
 trained on (numpy port of the training pipeline, verified to float32 precision) —
 measure your own κ maps with it and the numbers are directly comparable to
 emulator predictions. Three raytraced sample maps ship with the repo.
@@ -964,7 +964,7 @@ md(r"""
 - **CLI**: `bind-wlemu --z 1.0 --set WindEnergyIn1e51erg=7.2 --out pred.npz`
   (and `bind-wlemu --list-params`).
 - **Refitting** (e.g. on your own statistics cache):
-  `python -m bind.wlemu.fit --stats stats_cache.npz --artifact-out my_emu.npz
+  `python -m bind.wlemu_stats.fit --stats stats_cache.npz --artifact-out my_emu.npz
   --kfold 13 --validation-out val.npz` (needs `pip install bind[wlemu-fit]`),
   then `WLEmulator.load("my_emu.npz")`.
 """)
@@ -976,7 +976,7 @@ t0 = time.time(); emu.predict_vector(th, z_idx=1, return_std=False)
 dt = time.time() - t0
 print(f"{len(th)} predictions in {dt:.2f} s -> {1e3 * dt / len(th):.2f} ms/point "
       f"({len(th) / dt:,.0f} points/s)")
-from bind.wlemu.emulator import DEFAULT_ARTIFACT
+from bind.wlemu_stats.emulator import DEFAULT_ARTIFACT
 print(f"artifact: {DEFAULT_ARTIFACT.stat().st_size / 1e6:.1f} MB, numpy-only inference")
 """)
 
@@ -990,7 +990,7 @@ md(r"""
   between them (yet).
 - **Field geometry**: 5×5 deg flat-sky periodic patch at 1024²; statistics
   conventions as in §2 (2-arcmin Gaussian smoothing, per-map S/N units). Use
-  `bind.wlemu.stats` to match them exactly.
+  `bind.wlemu_stats.stats` to match them exactly.
 - **Covariance**: estimated from 50 noise-paired realizations of one field —
   keep data vectors well below 50 dims before inverting and apply a
   Hartlap-style correction; it is averaged over parameter points (parameter

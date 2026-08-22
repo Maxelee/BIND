@@ -69,7 +69,7 @@ def test_sb35_param_table_resolves_and_matches_the_csv_ordering():
 
 
 def test_wlemu_loads_its_packaged_artifact_and_predicts():
-    from bind.wlemu import BLOCKS, WLEmulator
+    from bind.wlemu_stats import BLOCKS, WLEmulator
 
     artifact = (ASSETS_DIR / "wlemu_gp.npz")
     assert artifact.exists()
@@ -91,7 +91,7 @@ def test_wlemu_loads_its_packaged_artifact_and_predicts():
 
 
 def test_wlemu_rejects_an_out_of_range_source_redshift():
-    from bind.wlemu import WLEmulator
+    from bind.wlemu_stats import WLEmulator
 
     emu = WLEmulator.load()
     with pytest.raises(ValueError):

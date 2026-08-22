@@ -24,6 +24,7 @@ from pathlib import Path
 
 import bind
 from bind.cli.paint import _load_params
+from bind.inference.lightcone_transforms import LightconeTransforms
 from bind.inference.paint_stages import project_and_extract
 
 
@@ -46,7 +47,28 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--pixel_size", type=float, default=bind.NATIVE_PIXEL_SIZE_MPCH)
     p.add_argument("--slab_depth", type=float, default=bind.NATIVE_SLAB_DEPTH_MPCH)
     p.add_argument("--patch_pix", type=int, default=bind.PATCH_PIX)
+    p.add_argument("--mas_correct", action="store_true",
+                   help="Also store an anti-aliased (interlaced + CIC-deconvolved) "
+                        "DMO map 'dmo_aa' per slab, used as the composite/lensplane "
+                        "background. Model condition cutouts stay raw-CIC. Use when "
+                        "matching an anti-aliased reference (e.g. kappaTNG); doubles "
+                        "stage-1 projection cost.")
     p.add_argument("--no_progress", action="store_true")
+    p.add_argument("--allow_cosmology_mismatch", action="store_true",
+                   help="Permit a params vector whose Omega_m disagrees with the "
+                        "snapshot header's Omega0.  By default stage 1 refuses: "
+                        "conditioning a substrate on another suite's cosmology "
+                        "silently mis-paints the baryons (use bind.tng300_params() "
+                        "for IllustrisTNG, bind.fiducial_params() for CAMELS).")
+
+    # Lightcone transform support
+    p.add_argument("--transforms", type=Path, default=None,
+                   help="Path to lightcone_transforms.json written by "
+                        "bind-lightcone-transforms.  When provided, particles "
+                        "are rotated/translated before projection.")
+    p.add_argument("--transforms_snap_idx", type=int, default=None,
+                   help="Index into the transforms file for this snapshot "
+                        "(0 = lowest-z snapshot).  Required with --transforms.")
     return p.parse_args()
 
 
@@ -78,6 +100,12 @@ def main() -> None:
 
     params = _load_params(args.params)
 
+    transforms = None
+    if args.transforms is not None:
+        if args.transforms_snap_idx is None:
+            raise SystemExit("--transforms_snap_idx is required with --transforms")
+        transforms = LightconeTransforms.load(args.transforms)
+
     if rank == 0:
         size = comm.size if comm is not None else 1
         print(f"[bind-paint-project] {size} rank(s); output -> {args.output_dir}")
@@ -93,6 +121,10 @@ def main() -> None:
         pixel_size=args.pixel_size,
         slab_depth=args.slab_depth,
         patch_pix=args.patch_pix,
+        transforms=transforms,
+        transforms_snap_idx=args.transforms_snap_idx,
+        mas_correct=args.mas_correct,
+        allow_cosmology_mismatch=args.allow_cosmology_mismatch,
         comm=comm,
         progress=not args.no_progress,
     )

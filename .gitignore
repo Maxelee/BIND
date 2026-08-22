@@ -102,6 +102,21 @@ plans/
 .DS_Store
 docs/_build/
 
+# SBI TensorBoard logs + generated DMO accretion-history catalog
+sbi-logs/
+tng300_dm_mass_history.hdf5
+
+# Paper drafts: keep figures + compiled PDFs versioned
+!papers/**/figs/*.png
+!papers/**/figs/*.pdf
+!papers/*/main.pdf
+
+# Overleaf export bundles (regenerable via zip)
+papers/*.zip
+
+# ---------------------------------------------------------------------------
+# LaTeX build artifacts (papers compile in place; only sources are versioned)
+# ---------------------------------------------------------------------------
 # Build artifacts (build/lib/** was committed on the lightcone branch and went
 # stale against src/, shipping two copies of the paste configuration with
 # opposite defaults -- never track these).
@@ -118,6 +133,21 @@ dist_ci/
 *.bbl
 *.blg
 *.out
+*.toc
+*.synctex.gz
+
+# disBatch job debris + transient subset-run notebook
+*_disBatch_*
+_subset_run.ipynb
+
+# ---------------------------------------------------------------------------
+# Paper II manuscript stays OUT of git (author-owned tex/bib/class/referee
+# docs live on disk only); the versioned parts are the figure-generation
+# chain (analysis/) and the imgs_1000 provenance record.
+# ---------------------------------------------------------------------------
+BINDing_the_lightcone/*
+!BINDing_the_lightcone/analysis/
+!BINDing_the_lightcone/imgs_1000/
 *.synctex.gz
 
 # Manuscript source. The methods paper is distributed via arXiv and the journal,

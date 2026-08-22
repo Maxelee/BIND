@@ -5,6 +5,56 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-08-22
+
+The lightcone release: everything the methods release (v0.2.0) had, plus the
+full lightcone pipeline — ray-traced kappa/y/tau map statistics, the
+statistics emulator, thermo-plane painting, and the N=1000-realization
+campaign machinery.
+
+### ⚠️ Breaking
+
+- **`bind.wlemu` is renamed to `bind.wlemu_stats`.** The `bind.wlemu` name now
+  belongs to the field-level conditional-flow-matching kappa-map *generator*
+  (`bind-wlemu-train`; `WLEmulator.load(ckpt).generate(params, z_s, n)`).
+  The v0.2.0 GP summary-statistics emulator is unchanged apart from the import
+  path: `from bind.wlemu_stats import WLEmulator`; its CLI is now
+  `bind-wlemu-stats` and its fitting extra `wlemu-stats-fit`.
+
+### Added
+
+- **`bind.emulator`** — the lightcone statistics emulator: 30 astro params
+  (+ source redshift) → Cl/peaks/minima/MFs/PDF/DM stats/Y–M scalings and the
+  kappa-y/kappa-tau/yy/tau-tau/y-tau cross-spectra; dataset assembly keyed by
+  run_id with per-statistic validity masks (`bind-emulator-stats`,
+  `bind-emulator-assemble`, `bind-emulate`).
+- **Lightcone statistics CLIs** — `bind-lightcone-stats` (+ MPI twin) with the
+  canonical nu grid and fixed-sigma normalization (`--nu_grid canon`,
+  `--nu_norm fixed`, `--nu_sigma0_from`; table built by `bind-nu-sigma0`),
+  pooled-axis `dm_stats`, `bind-paired-stats`, `bind-lightcone-maps`,
+  `bind-spherical-slabs`, `bind-lux-collect`.
+- **Lightcone painting path** — lens/y/tau plane CLIs
+  (`bind-paint-lensplane`/`-yplane`/`-tauplane`), lightcone geometric
+  transforms in stage 1 (`transforms=`), anti-aliased DMO maps
+  (`mas_correct`, interlaced + CIC-deconvolved), `generate_halos()` (GPU-only
+  half for ship-to-GPU workflows), diffuse-gas and full-hydro projection
+  paths (`bind-paint-diffuse-composite`, `bind-paint-project-hydro`).
+- **Cosmology guard** — stage 1 refuses (stage 2 warns) when the conditioning
+  vector's Omega0/OmegaBaryon/HubbleParam disagree with the snapshot header
+  (`_check_cosmology`; the check that would have caught the
+  CAMELS-cosmology-on-TNG300 mis-conditioning). `bind.tng300_params()` /
+  `bind.TNG300_COSMOLOGY` provide the correct TNG substrate vector.
+- **`bind.wlemu`** (new meaning) — field-level flow-matching kappa-map
+  generator trained on the SB35 Sobol lightcone suite.
+
+### Merged / kept from both lines
+
+- v0.2.0's provenance stamping (checkpoint sha256, seed, paste_mode,
+  entry point) and `paste_mode="shared"` overlap handling now thread through
+  the lightcone-extended `paint_stages`/`pipeline` as well; `thermo_patches`
+  composite with the same per-halo weights (content-sharing applies to the
+  mass channels; see `build_bind_composite`).
+
 ## [0.2.0] — 2026-08-21
 
 The release that accompanies the BIND methods paper. It adds the weak-lensing

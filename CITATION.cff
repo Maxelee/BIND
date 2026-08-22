@@ -13,7 +13,7 @@ abstract: >-
   scale factor. It provides a deployable painting API for arbitrary
   Gadget/Arepo N-body snapshots.
 type: software
-version: 0.2.0
+version: 0.3.0
 license: MIT
 repository-code: "https://github.com/Maxelee/BIND"
 url: "https://github.com/Maxelee/BIND"

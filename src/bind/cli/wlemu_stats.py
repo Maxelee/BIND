@@ -1,16 +1,16 @@
-"""``bind-wlemu``: predict WL convergence summary statistics from the CLI.
+"""``bind-wlemu-stats``: predict WL convergence summary statistics from the CLI.
 
 Examples::
 
     # fiducial parameters, z_s = 1.0, print the power spectrum
-    bind-wlemu --z 1.0
+    bind-wlemu-stats --z 1.0
 
     # override named physical parameters, save everything to an npz
-    bind-wlemu --z 1.0 --set WindEnergyIn1e51erg=7.2 --set RadioFeedbackFactor=2.0 \
+    bind-wlemu-stats --z 1.0 --set WindEnergyIn1e51erg=7.2 --set RadioFeedbackFactor=2.0 \
         --out pred.npz
 
     # batch: unit-cube parameter matrix from an .npy file (N, 30)
-    bind-wlemu --z 0.5 --params-file theta.npy --out pred.npz
+    bind-wlemu-stats --z 0.5 --params-file theta.npy --out pred.npz
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ def main(argv=None):
                     help="print the parameter table and exit")
     args = ap.parse_args(argv)
 
-    from bind.wlemu import WLEmulator
+    from bind.wlemu_stats import WLEmulator
     emu = WLEmulator.load(args.artifact)
 
     if args.list_params:

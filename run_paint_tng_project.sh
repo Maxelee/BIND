@@ -60,17 +60,46 @@ if [[ ! -d "$GROUPDIR" ]]; then
     exit 1
 fi
 
+# ── NO-OVERWRITE GUARD (added 2026-08-13, same shape as run_lightcone_project.sh) ─
+# STAGE1_DIR is an env override here, so an operator can point it anywhere.  Stage 1
+# writes stage1_slab*.npz / stage1_manifest.json / params.npy in place; the fiducial
+# repaint symlinks exactly such files out of the released tree.  Refuse a released
+# destination outright, and refuse to clobber an existing stage 1 without FORCE=1.
+RELEASED_TREES=(
+    /mnt/home/mlee1/ceph/bind_lightcone_tng
+    /mnt/home/mlee1/ceph/bind_science
+    /mnt/home/mlee1/ceph/bind_sb35
+    /mnt/home/mlee1/ceph/bind_n1000
+    /mnt/home/mlee1/ceph/tng_full_validation
+)
+_RP=$(realpath -m "$STAGE1_DIR")
+for _t in "${RELEASED_TREES[@]}"; do
+    _RT=$(realpath -m "$_t")
+    if [[ "$_RP" == "$_RT" || "$_RP" == "$_RT"/* ]]; then
+        echo "REFUSING TO RUN: STAGE1_DIR='$STAGE1_DIR' resolves inside the released tree '$_t'." >&2
+        exit 1
+    fi
+done
+if [[ -f "$STAGE1_DIR/stage1_manifest.json" && "${FORCE:-0}" != "1" ]]; then
+    echo "REFUSING TO RUN: $STAGE1_DIR/stage1_manifest.json already exists (FORCE=1 to override)." >&2
+    exit 1
+fi
+
 mkdir -p "$STAGE1_DIR"
 
-# ── 35-dim fiducial IllustrisTNG parameter vector ─────────────────────────────
-PARAMS_FILE="$STAGE1_DIR/fiducial_params.npy"
+# ── 35-dim conditioning vector: fiducial astrophysics + TNG300 COSMOLOGY ──────
+# Same bugfix as run_lightcone_project.sh (2026-08-13): bind.fiducial_params()
+# carries the CAMELS SB35 cosmology and must NOT be used for a TNG substrate.
+# This script's output tree was never produced, so the fix here is purely
+# preventive.
+PARAMS_FILE="$STAGE1_DIR/tng300_params.npy"
 python - "$PARAMS_FILE" <<'PY'
 import sys
 import numpy as np
 import bind
 
-np.save(sys.argv[1], bind.fiducial_params().astype(np.float64))
-print(f"[params] wrote fiducial 35-dim vector -> {sys.argv[1]}")
+np.save(sys.argv[1], bind.tng300_params().astype(np.float64))
+print(f"[params] wrote TNG300 35-dim vector -> {sys.argv[1]}")
 PY
 
 # ── Stage 1: MPI projection + cutouts ─────────────────────────────────────────

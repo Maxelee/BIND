@@ -56,6 +56,44 @@ if [[ ! -d "$GROUPDIR" ]]; then
     exit 1
 fi
 
+# ── NO-OVERWRITE GUARD (added 2026-08-13 with the cosmology bugfix) ───────────
+# This script's OUTPUT_ROOT still DEFAULTS to the released lightcone, and stage 1
+# writes stage1_slab*.npz / stage1_manifest.json / params.npy in place.  Because
+# the runbook tells the reader that the cosmology fix lives in THIS script, "let
+# me just regenerate stage 1 correctly" is the single most likely operator error
+# in the repaint campaign — and it would corrupt two trees at once, since
+# repaint/run_repaint_stage1_link.sh SYMLINKS these exact slab files into the new
+# tree (the repaint's DMO conditioning would change underneath it).  So:
+#   * refuse outright when OUTPUT_ROOT resolves inside a released/campaign tree;
+#   * refuse when this snapshot's stage 1 already exists, unless FORCE=1.
+# There is nothing to regenerate: stage 1 is cosmology-INDEPENDENT (the params
+# vector is only np.save()d and named in the manifest), so the released slabs are
+# byte-for-byte what a corrected re-run would produce.
+RELEASED_TREES=(
+    /mnt/home/mlee1/ceph/bind_lightcone_tng
+    /mnt/home/mlee1/ceph/bind_science
+    /mnt/home/mlee1/ceph/bind_sb35
+    /mnt/home/mlee1/ceph/bind_n1000
+    /mnt/home/mlee1/ceph/tng_full_validation
+)
+_RP=$(realpath -m "$OUTPUT_ROOT")
+for _t in "${RELEASED_TREES[@]}"; do
+    _RT=$(realpath -m "$_t")
+    if [[ "$_RP" == "$_RT" || "$_RP" == "$_RT"/* ]]; then
+        echo "REFUSING TO RUN: OUTPUT_ROOT='$OUTPUT_ROOT' resolves inside the released tree '$_t'." >&2
+        echo "  Stage 1 writes stage1_slab*.npz IN PLACE and the fiducial repaint symlinks" >&2
+        echo "  those exact files (repaint/run_repaint_stage1_link.sh).  Stage 1 is" >&2
+        echo "  cosmology-independent, so there is nothing to regenerate: the released" >&2
+        echo "  slabs are already correct.  Set OUTPUT_ROOT to a fresh tree." >&2
+        exit 1
+    fi
+done
+if [[ -f "$STAGE1_DIR/stage1_manifest.json" && "${FORCE:-0}" != "1" ]]; then
+    echo "REFUSING TO RUN: $STAGE1_DIR/stage1_manifest.json already exists." >&2
+    echo "  Re-running would overwrite an existing stage 1 in place.  FORCE=1 to override." >&2
+    exit 1
+fi
+
 mkdir -p "$STAGE1_DIR"
 
 # ── Lightcone transforms (rotation/translation/flip per snapshot) ──────────────
@@ -89,15 +127,23 @@ else
     fi
 fi
 
-# ── 35-dim fiducial IllustrisTNG parameter vector ─────────────────────────────
-PARAMS_FILE="$STAGE1_DIR/fiducial_params.npy"
+# ── 35-dim conditioning vector: fiducial astrophysics + TNG300 COSMOLOGY ──────
+# BUGFIX (2026-08-13): this used to write bind.fiducial_params(), whose cosmology
+# block is the CAMELS SB35 one (Om 0.3, s8 0.8, Ob 0.049, h 0.6711, ns 0.9624) —
+# WRONG for a TNG300 substrate.  Every released bind_lightcone_tng snapshot was
+# painted with Omega_b/Omega_m 1.038141x too high, inflating the gas/tau plane
+# power by ~7.7%.  bind.tng300_params() is the same astrophysics on TNG300's
+# cosmology; bind.fiducial_params() remains correct for CAMELS L50 substrates.
+# Stage 1 now also refuses to write a vector whose Omega_m disagrees with the
+# snapshot header (--allow_cosmology_mismatch overrides).
+PARAMS_FILE="$STAGE1_DIR/tng300_params.npy"
 python - "$PARAMS_FILE" <<'PY'
 import sys
 import numpy as np
 import bind
 
-np.save(sys.argv[1], bind.fiducial_params().astype(np.float64))
-print(f"[params] wrote fiducial 35-dim vector -> {sys.argv[1]}")
+np.save(sys.argv[1], bind.tng300_params().astype(np.float64))
+print(f"[params] wrote TNG300 35-dim vector -> {sys.argv[1]}")
 PY
 
 # ── Stage 1: MPI projection + cutouts ─────────────────────────────────────────

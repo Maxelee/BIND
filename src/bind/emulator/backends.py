@@ -102,7 +102,7 @@ class MLPEnsemble:
                 opt.zero_grad()
                 loss = ((net(xb) - zb) ** 2).mean()
                 loss.backward()
-            opt.step()
+                opt.step()
             net.eval()
             self.models.append(net)
             if self.verbose:

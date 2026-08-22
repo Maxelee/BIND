@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import json
 import time
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,9 @@ from bind.data import N_THERMO, THERMO_KEYS
 from . import io_gadget
 from .lightcone_transforms import LightconeTransforms
 from .paint import (
+    NATIVE_PIXEL_SIZE_MPCH,
+    NATIVE_SLAB_DEPTH_MPCH,
+    PATCH_PIX,
     Model,
     PaintResult,
     _assign_halos_to_slabs,
@@ -55,13 +59,84 @@ from .paint import (
     _save_empty_slab,
     _validate_params,
     extract_halo_cutouts,
-    NATIVE_PIXEL_SIZE_MPCH,
-    NATIVE_SLAB_DEPTH_MPCH,
-    PATCH_PIX,
 )
 from .pipeline import build_bind_composite, interlace_combine_2d
 
 MANIFEST_NAME = "stage1_manifest.json"
+
+
+#: Relative tolerance for "the conditioning cosmology matches the substrate".
+COSMOLOGY_RTOL = 1e-3
+
+
+#: Parameter index -> snapshot-header attribute, for every cosmology entry the
+#: header can actually adjudicate.  sigma8 (idx 1) and n_s (idx 8) are properties
+#: of the initial conditions and are NOT in the snapshot header, so they cannot be
+#: checked here.
+_HEADER_COSMO = ((0, "Omega0"), (6, "OmegaBaryon"), (7, "HubbleParam"))
+
+
+def _check_cosmology(params: np.ndarray, header: dict | float, *, strict: bool,
+                     where: str) -> None:
+    """Guard: the conditioned cosmology must match the snapshot's own.
+
+    Painting a box with a parameter vector whose cosmology block belongs to a
+    *different* simulation suite silently mis-conditions the generative model —
+    e.g. conditioning a TNG300 substrate on the CAMELS fiducial makes
+    Omega_b/Omega_m 3.8% too high and inflates the painted gas/tau power by
+    ~7.7%.  The header values come from the snapshot HDF5, so they are ground
+    truth for the substrate; ``params`` is what the model will see.
+
+    **All three checkable entries are compared, not just Omega_m.**  The damage in
+    the released lightcone was driven by Omega_b/Omega_m, not by Omega_m: a vector
+    carrying the right Omega_m=0.3089 with CAMELS' Omega_b=0.049 reproduces the
+    exact same +7.7% bug, and an Omega_m-only guard would wave it through.  The
+    error message therefore reports Omega_b/Omega_m explicitly.
+
+    ``header`` is a mapping of header attributes (missing or non-positive entries
+    are skipped); a bare float is accepted as ``{"Omega0": value}`` for backwards
+    compatibility.
+
+    Stage 1 raises (the substrate's cosmology is a fact).  Painting from an
+    existing stage 1 only warns, since parameter sweeps legitimately paint
+    off-substrate cosmologies.
+    """
+    if not isinstance(header, dict):
+        header = {"Omega0": float(header)}
+
+    bad: list[str] = []
+    for idx, key in _HEADER_COSMO:
+        ref = header.get(key, float("nan"))
+        try:
+            ref = float(ref)
+        except (TypeError, ValueError):
+            continue
+        if not np.isfinite(ref) or ref <= 0:
+            continue          # header did not carry it — nothing to check against
+        got = float(params[idx])
+        if abs(got - ref) / ref >= COSMOLOGY_RTOL:
+            bad.append(f"{key}: params[{idx}]={got:.5f} vs header {ref:.5f}")
+    if not bad:
+        return
+
+    om_p, ob_p = float(params[0]), float(params[6])
+    fb_p = ob_p / om_p if om_p else float("nan")
+    om_h = float(header.get("Omega0", float("nan")))
+    ob_h = float(header.get("OmegaBaryon", float("nan")))
+    fb_h = ob_h / om_h if om_h else float("nan")
+    msg = (f"[{where}] COSMOLOGY MISMATCH ({len(bad)} entr"
+           f"{'y' if len(bad) == 1 else 'ies'}): " + "; ".join(bad)
+           + f". Omega_b/Omega_m would be {fb_p:.6f} against the substrate's "
+             f"{fb_h:.6f} (ratio {fb_p / fb_h:.6f} — the painted gas/tau amplitude "
+             f"tracks this ~linearly and the plane power as its square). "
+             f"The model would be conditioned on a cosmology the substrate does not "
+             f"have (see bind.tng300_params for IllustrisTNG substrates; "
+             f"bind.fiducial_params is the CAMELS one).")
+    if strict:
+        raise ValueError(
+            msg + " Pass allow_cosmology_mismatch=True "
+                  "(--allow_cosmology_mismatch) if this is deliberate.")
+    warnings.warn(msg, stacklevel=2)
 
 
 def _stage1_slab_path(stage1_dir: Path, si: int) -> Path:
@@ -112,6 +187,7 @@ def project_and_extract(
     transforms: LightconeTransforms | None = None,
     transforms_snap_idx: int | None = None,
     mas_correct: bool = False,
+    allow_cosmology_mismatch: bool = False,
     comm: Any | None = None,
     progress: bool = True,
 ) -> Path | None:
@@ -143,6 +219,14 @@ def project_and_extract(
         (the generative model was trained on raw-CIC inputs); ``dmo_aa`` is for
         the absolute lensing comparison against an anti-aliased reference
         (e.g. kappaTNG).  Default False (no behaviour change).
+    allow_cosmology_mismatch : bool
+        By default stage 1 REFUSES to write a params vector whose ``Omega0``,
+        ``OmegaBaryon`` or ``HubbleParam`` disagrees with the snapshot header by
+        more than :data:`COSMOLOGY_RTOL` (the check that would have caught the
+        CAMELS-cosmology-on-TNG300 bug on 20/20 snapshots — note it was
+        ``OmegaBaryon``/``Omega0``, not ``Omega0`` alone, that did the damage).
+        ``sigma8`` and ``n_s`` are not in the snapshot header and cannot be
+        checked.  Set True to paint a deliberately off-substrate cosmology.
     comm
         An ``mpi4py`` communicator, or ``None`` for a single-process run.  Each
         rank reads ``files[rank::size]``; partial slab maps are reduced to rank 0.
@@ -168,6 +252,17 @@ def project_and_extract(
         particle_mass = float(h["Header"].attrs["MassTable"][1]) * 1e10
         scale_factor = float(h["Header"].attrs.get("Time", 1.0))
         Omega_m = float(h["Header"].attrs.get("Omega0", float("nan")))
+        # Every cosmology entry the header can adjudicate.  TNG300-Dark carries
+        # all three (verified on snapdir_096: Omega0=0.3089, OmegaBaryon=0.0486,
+        # HubbleParam=0.6774); absent/non-positive entries are simply skipped.
+        header_cosmo = {k: float(h["Header"].attrs.get(k, float("nan")))
+                        for _, k in _HEADER_COSMO}
+
+    # Refuse to project (and, later, to hand stage 2) a vector whose cosmology is
+    # not the substrate's.  Checked here, on every rank, BEFORE the hours-long
+    # projection — not after it.
+    _check_cosmology(params, header_cosmo, strict=not allow_cosmology_mismatch,
+                     where="stage1")
 
     npix = _round_npix(box_size, pixel_size)
     n_slabs = _round_n_slabs(box_size, slab_depth)
@@ -460,6 +555,12 @@ def generate_from_stage1(
     if params is None:
         params = np.load(stage1_dir / manifest.get("params_file", "params.npy"))
     params = _validate_params(params)
+    # The stage-1 manifest carries only Omega_m; OmegaBaryon/HubbleParam are
+    # skipped automatically when absent, so this stays a one-entry check here and
+    # the full three-entry check lives where the header is actually readable
+    # (project_and_extract).
+    _check_cosmology(params, {"Omega0": float(manifest.get("Omega_m", float("nan")))},
+                     strict=False, where="stage2")
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -604,6 +705,12 @@ def generate_halos(
     if params is None:
         params = np.load(stage1_dir / manifest.get("params_file", "params.npy"))
     params = _validate_params(params)
+    # The stage-1 manifest carries only Omega_m; OmegaBaryon/HubbleParam are
+    # skipped automatically when absent, so this stays a one-entry check here and
+    # the full three-entry check lives where the header is actually readable
+    # (project_and_extract).
+    _check_cosmology(params, {"Omega0": float(manifest.get("Omega_m", float("nan")))},
+                     strict=False, where="generate_halos")
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

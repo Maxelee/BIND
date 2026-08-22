@@ -9,6 +9,7 @@ run uses ``output_planes = 26, 45, 59, 70, 78`` chi-matched to source redshifts
 
 from __future__ import annotations
 
+import re
 import struct
 from pathlib import Path
 
@@ -16,6 +17,21 @@ import numpy as np
 
 # lux output_planes -> nominal source redshift (lux_bind.ini)
 PLANE_TO_ZS: dict[int, float] = {26: 0.5, 45: 1.0, 59: 1.5, 70: 2.0, 78: 2.44}
+
+
+def _sorted_run_dirs(rt_root: Path, run_glob: str) -> list[Path]:
+    """``run<NNN>`` dirs sorted by realization *number*, not lexically.
+
+    Plain ``sorted()`` breaks past 999: lux's ``run%03d`` naming yields
+    ``run1000``, which sorts between ``run100`` and ``run101`` and silently
+    misorders the realization axis (destroying seed-index pairing across
+    paired traces).  Digit-suffixed dirs sort numerically; anything else
+    keeps lexical order after them.
+    """
+    def key(d: Path):
+        m = re.fullmatch(r"run0*(\d+)", d.name)
+        return (0, int(m.group(1)), d.name) if m else (1, 0, d.name)
+    return sorted((d for d in rt_root.glob(run_glob) if d.is_dir()), key=key)
 
 
 def read_lux_map(path: str | Path, n_fields: int = 1) -> np.ndarray:
@@ -41,7 +57,7 @@ def load_kappa_realizations(
     subdirs of ``rt_root`` (sorted), truncated to ``n_real`` if given.
     """
     rt_root = Path(rt_root)
-    runs = sorted(d for d in rt_root.glob(run_glob) if d.is_dir())
+    runs = _sorted_run_dirs(rt_root, run_glob)
     if n_real is not None:
         runs = runs[:n_real]
     if not runs:
@@ -68,7 +84,7 @@ def load_y_realizations(
     in flight.  Returns ``(y, source_redshifts)``.
     """
     rt_root = Path(rt_root)
-    runs = sorted(d for d in rt_root.glob(run_glob) if d.is_dir())
+    runs = _sorted_run_dirs(rt_root, run_glob)
     runs = [rd for rd in runs if all((rd / f"y{p}.dat").exists() for p in planes)]
     if n_real is not None:
         runs = runs[:n_real]
@@ -96,7 +112,7 @@ def load_tau_realizations(
     *all* requested ``tau`` planes are included.  Returns ``(tau, source_redshifts)``.
     """
     rt_root = Path(rt_root)
-    runs = sorted(d for d in rt_root.glob(run_glob) if d.is_dir())
+    runs = _sorted_run_dirs(rt_root, run_glob)
     runs = [rd for rd in runs if all((rd / f"tau{p}.dat").exists() for p in planes)]
     if n_real is not None:
         runs = runs[:n_real]

@@ -72,18 +72,48 @@ class StatSpec:
     src_axis: int | None = None
     err_key: str | None = None
     axes: tuple[str, ...] = ()          # bin-axis keys in the same npz
+    # ell-domain heads: bins above this threshold are excluded from the fit
+    # pipeline entirely (train-mean + inflated err at predict time -- see
+    # bind.emulator.transforms.StatCompressor / emulator.core.Emulator).  Set
+    # on the six ell-domain heads with CIC/pixelization-contaminated
+    # ell > 3.0e4 tails (2026-08-04: moved from 1.5e4 to the MEASURED
+    # contamination onset, in lockstep with `emulator.core.ELL_MASK_ABOVE` --
+    # see that module's comment for the measurement provenance;
+    # papers/01_pipeline/audits/spectrum_head_experiment.md for the original
+    # masking rationale); `suppression` (below, built dynamically, not from
+    # this registry) is deliberately NOT masked -- it is a ratio and the
+    # aliasing artifact cancels in it (repo finding "Lightcone kappa upturn =
+    # CIC aliasing"; the audit's own suppression anchor used the full
+    # unmasked grid and matched production).
+    # NOTE: this field only takes effect for datasets ASSEMBLED after this
+    # change; `Emulator` also carries its own default mask config so already
+    # -assembled dataset files (whose serialized Target.mask_ell_above is
+    # None) still get masked -- see `emulator.core.DEFAULT_ELL_MASK_HEADS`.
+    mask_ell_above: float | None = None
 
 
 STAT_SPECS: dict[str, StatSpec] = {
-    # WL tomographic power (full 5x5xL cube; auto+cross packed together)
-    "cl_kappa":     StatSpec("Cl_kappa.npz", "cl", "log", None, "cl_err", ("ell",)),
-    # WL x tSZ and tSZ auto
-    "cl_kappa_y":   StatSpec("Cl_kappa_y.npz", "cl_ky", "raw", 0, "cl_ky_err", ("ell",)),
-    "cl_yy":        StatSpec("Cl_kappa_y.npz", "cl_yy", "log", None, "cl_yy_err", ("ell",)),
+    # WL tomographic power (full 5x5xL cube; auto+cross packed together).
+    # cl_kappa is not fit directly by bind.emulator.core.Emulator any more --
+    # see the COMPOSED-head note there -- this spec entry still describes how
+    # to load the raw block from disk.
+    "cl_kappa":     StatSpec("Cl_kappa.npz", "cl", "log", None, "cl_err", ("ell",),
+                             mask_ell_above=3.0e4),
+    # WL x tSZ and tSZ auto.  The signed cross (cl_kappa_y) uses asinh_std, not
+    # raw: papers/01_pipeline/audits/spectrum_head_experiment.md finding (ii) --
+    # raw signed cross-spectra are numerically broken under PCA+GP (~1e7% frac
+    # err) because of their >2-decade dynamic range even after ell-masking.
+    "cl_kappa_y":   StatSpec("Cl_kappa_y.npz", "cl_ky", "asinh_std", 0, "cl_ky_err",
+                             ("ell",), mask_ell_above=3.0e4),
+    "cl_yy":        StatSpec("Cl_kappa_y.npz", "cl_yy", "log", None, "cl_yy_err",
+                             ("ell",), mask_ell_above=3.0e4),
     # WL x tau, tau auto, y x tau
-    "cl_kappa_tau": StatSpec("Cl_tau.npz", "cl_kt", "raw", 0, "cl_kt_err", ("ell",)),
-    "cl_tt":        StatSpec("Cl_tau.npz", "cl_tt", "log", None, "cl_tt_err", ("ell",)),
-    "cl_yt":        StatSpec("Cl_tau.npz", "cl_yt", "raw", None, "cl_yt_err", ("ell",)),
+    "cl_kappa_tau": StatSpec("Cl_tau.npz", "cl_kt", "asinh_std", 0, "cl_kt_err",
+                             ("ell",), mask_ell_above=3.0e4),
+    "cl_tt":        StatSpec("Cl_tau.npz", "cl_tt", "log", None, "cl_tt_err",
+                             ("ell",), mask_ell_above=3.0e4),
+    "cl_yt":        StatSpec("Cl_tau.npz", "cl_yt", "asinh_std", None, "cl_yt_err",
+                             ("ell",), mask_ell_above=3.0e4),
     # peaks / minima vs S/N nu
     "peak_counts":  StatSpec("peak_counts.npz", "peak_counts", "log1p", 0,
                              "peak_counts_err", ("nu",)),
@@ -115,6 +145,7 @@ class Target:
     src_axis: int | None = None             # axis of *shape* indexing source planes
     axes: dict[str, np.ndarray] = field(default_factory=dict)
     valid: np.ndarray | None = None         # (N,) bool: run has this statistic
+    mask_ell_above: float | None = None     # see StatSpec.mask_ell_above
 
     def valid_mask(self) -> np.ndarray:
         if self.valid is not None:
@@ -168,7 +199,8 @@ class EmulatorDataset:
         idx = np.asarray(idx)
         tg = {k: Target(t.value[idx], None if t.err is None else t.err[idx],
                         t.transform, t.src_axis, t.axes,
-                        None if t.valid is None else t.valid[idx])
+                        None if t.valid is None else t.valid[idx],
+                        t.mask_ell_above)
               for k, t in self.targets.items()}
         return EmulatorDataset(
             param_names=list(self.param_names), X_native=self.X_native[idx],
@@ -208,6 +240,7 @@ class EmulatorDataset:
             manifest["targets"][name] = {
                 "transform": t.transform, "src_axis": t.src_axis,
                 "has_err": t.err is not None, "axes": list(t.axes.keys()),
+                "mask_ell_above": t.mask_ell_above,
             }
         blob["manifest"] = np.array(json.dumps(manifest))
         np.savez_compressed(path, **blob)
@@ -223,7 +256,11 @@ class EmulatorDataset:
                 value=d[f"t__{name}__value"],
                 err=d[f"t__{name}__err"] if m["has_err"] else None,
                 transform=m["transform"], src_axis=m["src_axis"], axes=axes,
-                valid=d[f"t__{name}__valid"] if f"t__{name}__valid" in d.files else None)
+                valid=d[f"t__{name}__valid"] if f"t__{name}__valid" in d.files else None,
+                # absent in datasets assembled before this field existed --
+                # None is the correct default (Emulator supplies its own
+                # mask config in that case; see core.DEFAULT_ELL_MASK_HEADS).
+                mask_ell_above=m.get("mask_ell_above"))
         return cls(
             param_names=list(d["param_names"]),
             X_native=d["X_native"], X_unit=d["X_unit"], run_ids=d["run_ids"],
@@ -254,6 +291,46 @@ def _scaling_from_parquet(parquet: Path, runs: list[int], snap: int,
         for k, v in sr.items():
             out.setdefault(k, []).append(np.asarray(v))
     return {k: np.asarray(v) for k, v in out.items()} if out else None
+
+
+def load_dmo_auto(dmo_dir: str | Path, *, verbose: bool = True) -> np.ndarray | None:
+    """DMO auto-spectra ``(n_src, n_ell)`` for the suppression denominator.
+
+    Prefers ``Cl_kappa_paired.npz`` (per-realization, seed-paired with the run
+    numerators' own realization ladder): its realization mean is the denominator
+    under which the runs' N-real numerators cancel cosmic variance.
+    ``Cl_kappa.npz`` stores only the mean over *whatever realizations the
+    producing trace had* — after the 2026-08-05 550-realization DMO retrace the
+    file at ``DEFAULT_DMO`` is a 550-real mean, which under the 50-real
+    seed-paired numerators injects ~3% rms low-ell cosmic-variance wiggles into
+    S(ell) (up to ~17% in the edge bin).  Falling back to it therefore warns.
+    """
+    dmo_dir = Path(dmo_dir)
+    paired = dmo_dir / "Cl_kappa_paired.npz"
+    if paired.exists():
+        with np.load(paired) as d:
+            auto = np.nanmean(np.asarray(d["cl_real"], float), axis=0)  # (n_src, n_ell)
+            n_real = int(d["n_real"]) if "n_real" in d.files else d["cl_real"].shape[0]
+        if verbose:
+            print(f"  [ok]   cl_dmo from {paired.name}: mean over {n_real} seed-paired reals")
+        return auto
+    legacy = dmo_dir / "Cl_kappa.npz"
+    if legacy.exists():
+        with np.load(legacy) as dmo:
+            if "cl" not in dmo.files:
+                return None
+            cl = dmo["cl"]
+        import warnings
+
+        warnings.warn(
+            f"suppression denominator taken from {legacy} (a pre-averaged mean over "
+            "that trace's OWN realizations). If its realization set differs from the "
+            "numerators' (e.g. the 2026-08-05 550-real DMO retrace vs 50-real run "
+            "numerators), S(ell) inherits uncancelled cosmic-variance wiggles. Build "
+            "the seed-paired per-realization cache Cl_kappa_paired.npz instead.",
+            stacklevel=2)
+        return np.array([cl[i, i] for i in range(cl.shape[0])])          # (n_src, n_ell)
+    return None
 
 
 def assemble(
@@ -315,7 +392,8 @@ def assemble(
                 valid[gi] = True
         targets[name] = Target(
             value=value, err=None if np.all(np.isnan(err)) else err,
-            transform=spec.transform, src_axis=spec.src_axis, axes=r["axes"], valid=valid)
+            transform=spec.transform, src_axis=spec.src_axis, axes=r["axes"], valid=valid,
+            mask_ell_above=spec.mask_ell_above)
 
     # Y-M family from parquet (optional).  The TNG300 halo sample populates
     # ~10^13–10^14.7 Msun/h; bins outside that are empty for every run and only
@@ -342,27 +420,26 @@ def assemble(
 
     # DMO trace for suppression S(ell) (cosmology fixed -> a single vector)
     cl_dmo = None
-    if dmo_dir is not None and (Path(dmo_dir) / "Cl_kappa.npz").exists():
-        dmo = np.load(Path(dmo_dir) / "Cl_kappa.npz")
-        if "cl" in dmo.files:
-            cl = dmo["cl"]
-            dmo_auto = np.array([cl[i, i] for i in range(cl.shape[0])])     # (n_src, n_ell)
-            cl_self = targets.get("cl_kappa")
-            if cl_self is not None and dmo_auto.shape[-1] == cl_self.value.shape[-1]:
-                cl_dmo = dmo_auto
-                # Emulate the suppression S(ell)=C_auto/C_DMO DIRECTLY, not derived
-                # from raw C_kappa: the raw spectrum is dominated by the fixed-cosmo
-                # LCDM shape and PCA buries the few-% baryon ratio.  S is O(1) and
-                # cosmic-variance-cancelled (shared DMO trace, r~0.98).
-                auto = np.moveaxis(np.diagonal(cl_self.value, axis1=1, axis2=2), -1, 1)
-                S = auto / np.where(cl_dmo > 0, cl_dmo, np.nan)      # (N, 5, L)
-                targets["suppression"] = Target(
-                    value=S, err=None, transform="raw", src_axis=0,
-                    axes={"ell": cl_self.axes.get("ell")}, valid=cl_self.valid)
-                if verbose:
-                    print(f"  [ok]   cl_dmo {cl_dmo.shape} + direct suppression target S")
-            elif verbose:
-                print("  [skip] cl_dmo: ell length mismatch vs cl_kappa")
+    if dmo_dir is not None:
+        dmo_auto = load_dmo_auto(dmo_dir, verbose=verbose)
+        cl_self = targets.get("cl_kappa")
+        if dmo_auto is None:
+            pass
+        elif cl_self is not None and dmo_auto.shape[-1] == cl_self.value.shape[-1]:
+            cl_dmo = dmo_auto
+            # Emulate the suppression S(ell)=C_auto/C_DMO DIRECTLY, not derived
+            # from raw C_kappa: the raw spectrum is dominated by the fixed-cosmo
+            # LCDM shape and PCA buries the few-% baryon ratio.  S is O(1) and
+            # cosmic-variance-cancelled (shared DMO trace, r~0.98).
+            auto = np.moveaxis(np.diagonal(cl_self.value, axis1=1, axis2=2), -1, 1)
+            S = auto / np.where(cl_dmo > 0, cl_dmo, np.nan)      # (N, 5, L)
+            targets["suppression"] = Target(
+                value=S, err=None, transform="raw", src_axis=0,
+                axes={"ell": cl_self.axes.get("ell")}, valid=cl_self.valid)
+            if verbose:
+                print(f"  [ok]   cl_dmo {cl_dmo.shape} + direct suppression target S")
+        elif verbose:
+            print("  [skip] cl_dmo: ell length mismatch vs cl_kappa")
 
     return EmulatorDataset(
         param_names=ASTRO_PARAM_NAMES,

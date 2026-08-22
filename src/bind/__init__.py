@@ -14,11 +14,13 @@ from bind.inference.paint import (  # noqa: E402
     paint,
 )
 from bind.params import (  # noqa: E402
-    PARAM_NAMES,
     N_PARAMS,
+    PARAM_NAMES,
+    TNG300_COSMOLOGY,
     fiducial_params,
     param_dataframe,
     random_params,
+    tng300_params,
     vary_param,
     vary_params,
 )
@@ -36,7 +38,9 @@ __all__ = [
     "THERMO_KEYS",
     "PARAM_NAMES",
     "N_PARAMS",
+    "TNG300_COSMOLOGY",
     "fiducial_params",
+    "tng300_params",
     "random_params",
     "vary_param",
     "vary_params",

@@ -6,18 +6,26 @@ human-readable descriptions are bundled in
 ``src/bind/assets/SB35_param_minmax.csv`` and exposed here as numpy arrays
 plus three convenience functions:
 
-- :func:`fiducial_params` — the fiducial CAMELS-IllustrisTNG vector.
+- :func:`fiducial_params` — the fiducial **CAMELS**-IllustrisTNG vector.
+- :func:`tng300_params`   — the same astrophysics on the **TNG300** cosmology.
 - :func:`random_params`   — uniform sample from the prior box (log10-uniform
   for parameters with ``LogFlag == 1``).
 - :func:`vary_param`      — fiducial vector with a single parameter set to a
   given value (or fraction of its range).
+
+.. warning::
+   ``fiducial_params()`` carries the **CAMELS SB35** cosmology (Omega0=0.3,
+   sigma8=0.8, OmegaBaryon=0.049, h=0.6711, n_s=0.9624) — correct for the CAMELS
+   L50 boxes the emulator was trained on, and WRONG for any other substrate.
+   Painting a TNG300 box with it conditions the model on Omega_b/Omega_m 3.8%
+   too high, which inflates the painted gas/tau power by ~7.7%.  Use
+   :func:`tng300_params` for TNG300 substrates.
 
 Use :func:`param_dataframe` to inspect names/ranges interactively.
 """
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -58,8 +66,41 @@ def _resolve_index(name_or_idx: str | int) -> int:
 
 
 def fiducial_params() -> np.ndarray:
-    """Return the fiducial 35-dim parameter vector (float64 copy)."""
+    """Return the fiducial 35-dim parameter vector (float64 copy).
+
+    This is the **CAMELS SB35** fiducial: its cosmology block (indices 0, 1, 6,
+    7, 8) is CAMELS', not TNG300's.  For a TNG300 substrate use
+    :func:`tng300_params` — see the module warning.
+    """
     return PARAM_FIDUCIAL.copy()
+
+
+# IllustrisTNG (TNG300-1 / TNG300-1-Dark) cosmology, Planck 2015 XIII.  Omega0,
+# OmegaBaryon and HubbleParam are also carried in the TNG snapshot HDF5 Header
+# (``Header/{Omega0,OmegaBaryon,HubbleParam}``); all three are compared against it
+# at stage-1 paint time by ``bind.inference.paint_stages._check_cosmology``
+# (``project_and_extract`` raises on a mismatch unless
+# ``allow_cosmology_mismatch=True``).  Painting from an existing stage 1 only WARNS,
+# and only on Omega0, because the stage-1 manifest records Omega_m alone.  sigma8
+# and n_s are not in the header and are hard-coded here (they are properties of the
+# initial conditions, not of the snapshot), so nothing can check them.
+TNG300_COSMOLOGY: dict[str, float] = {
+    "Omega0": 0.3089,
+    "sigma8": 0.8159,
+    "OmegaBaryon": 0.0486,
+    "HubbleParam": 0.6774,
+    "n_s": 0.9667,
+}
+
+
+def tng300_params() -> np.ndarray:
+    """Fiducial astrophysics on the **TNG300** cosmology (float64 copy).
+
+    Identical to :func:`fiducial_params` in all 30 astrophysical entries; the
+    five cosmological entries are replaced by :data:`TNG300_COSMOLOGY`.  This is
+    the vector to condition on when painting an IllustrisTNG(-Dark) box.
+    """
+    return vary_params(dict(TNG300_COSMOLOGY))
 
 
 def random_params(
@@ -158,8 +199,10 @@ __all__ = [
     "PARAM_LOG_FLAG",
     "N_PARAMS",
     "SB35_CSV",
+    "TNG300_COSMOLOGY",
     "param_dataframe",
     "fiducial_params",
+    "tng300_params",
     "random_params",
     "vary_param",
     "vary_params",

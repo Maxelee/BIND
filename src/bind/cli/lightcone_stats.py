@@ -55,6 +55,13 @@ def parse_args() -> argparse.Namespace:
                         "per source bin (nu = kappa_sm/sigma_fid for every run; "
                         "per-map sigma would absorb the sigma_kappa response). "
                         "Outputs get suffix '_nufid'.")
+    p.add_argument("--nu_grid", choices=["canon", "legacy"], default="canon",
+                   help="'canon' (default): PDF, peaks, minima and V0/V1/V2 all "
+                        "report length-22 arrays on ONE axis, nu = -2.5..8 step "
+                        "0.5 (stats.NU_CANON) — histograms binned on edges "
+                        "centred on those values, MFs evaluated at them. "
+                        "'legacy' keeps the old per-statistic grids (peaks "
+                        "-5..12/68 bins, MF -3..4/29, PDF in kappa units).")
     p.add_argument("--out_suffix", default=None,
                    help="Suffix for peak_counts/peak_cross output names; "
                         "defaults to '' (noiseless) or '_ngal<N>' with noise.")
@@ -85,17 +92,79 @@ def main() -> None:
         suffix = f"_ngal{args.shape_noise_ngal:g}" if args.shape_noise_ngal else ""
         if nu_norm == "fixed":
             suffix += "_nufid"
-    sig0 = None
+    nu_centers = S.NU_CANON if args.nu_grid == "canon" else None
+    nu_bins = S.NU_EDGES_CANON if nu_centers is not None else None
+    if nu_centers is not None and nu_norm != "fixed":
+        print("[stats] WARNING: --nu_grid canon without --nu_sigma0_from — nu is "
+              "normalised per map, so the canonical grid is NOT a common axis "
+              "across runs (the sigma_kappa response gets absorbed).")
+    sig0 = sig0_unsmoothed = sig0_ng = None
+    nu_fiducial = "per-map"
     if nu_norm == "fixed":
-        ref = np.load(Path(args.nu_sigma0_from) / "kappa_maps.npz")
-        rk, rfov = ref["kappa"], float(ref["fov_deg"])
-        nref = min(rk.shape[0], 20)            # sigma is stable; cap for speed
-        sig0 = np.array([[np.mean([S._gaussian_smooth(rk[r, i], sc, rfov).std()
-                                   for r in range(nref)])
-                          for i in range(rk.shape[1])]
-                         for sc in args.smoothing_arcmin])
-        print(f"[stats] fixed nu: sigma0 from {args.nu_sigma0_from} "
-              f"(scales {args.smoothing_arcmin}) = {np.array2string(sig0, precision=4)}")
+        ref_path = Path(args.nu_sigma0_from)
+        if ref_path.is_file():
+            # precomputed table from bind.cli.nu_sigma0 (preferred: identical
+            # sigma for every run, and no 21 GB re-read per job)
+            t = np.load(ref_path)
+            tab_scales = list(np.asarray(t["scales_arcmin"], float))
+            idx = []
+            for sc in args.smoothing_arcmin:
+                near = [i for i, s in enumerate(tab_scales) if abs(s - sc) < 1e-9]
+                if not near:
+                    raise SystemExit(f"[stats] {ref_path} has no sigma0 for scale {sc}' "
+                                     f"(has {tab_scales}); rebuild it with that scale.")
+                idx.append(near[0])
+            sig0 = np.asarray(t["sigma_smoothed"])[idx]
+            sig0_unsmoothed = np.asarray(t["sigma_unsmoothed"])
+            # the Minkowski functionals smooth at nongaussian's FIRST scale,
+            # which is not the peak scale — look their sigma up separately or
+            # V0/V1/V2 would be normalised by the wrong-scale sigma
+            ng_near = [i for i, sc in enumerate(tab_scales)
+                       if abs(sc - float(S.NG_SCALES_DEFAULT[0])) < 1e-9]
+            if not ng_near:
+                raise SystemExit(f"[stats] {ref_path} lacks sigma0 at the Minkowski "
+                                 f"scale {S.NG_SCALES_DEFAULT[0]}'; rebuild the table.")
+            sig0_ng = np.asarray(t["sigma_smoothed"])[ng_near]
+            nu_fiducial = str(t["source_run"])
+            print(f"[stats] fixed nu: sigma0 table {ref_path} "
+                  f"(fiducial {t['source_run']}, {int(t['n_real'])} reals)")
+        else:
+            # legacy: derive from a run dir, streamed one realization at a time
+            import zipfile
+
+            import numpy.lib.format as fmt
+            src = ref_path / "kappa_maps.npz"
+            with np.load(src) as f:
+                rfov = float(f["fov_deg"])
+            with zipfile.ZipFile(src) as z, z.open("kappa.npy") as f:
+                v = fmt.read_magic(f)
+                shp, _, dt = (fmt.read_array_header_1_0(f) if v == (1, 0)
+                              else fmt.read_array_header_2_0(f))
+                nref = min(shp[0], 20)          # sigma is stable; cap for speed
+                per = int(np.prod(shp[1:])) * dt.itemsize
+                acc = np.zeros((len(args.smoothing_arcmin), shp[1]))
+                accu = np.zeros(shp[1])
+                for r in range(nref):
+                    cube = np.frombuffer(f.read(per), dtype=dt).reshape(shp[1:])
+                    for i in range(shp[1]):
+                        m = cube[i].astype(np.float64)
+                        accu[i] += m.std()
+                        for k, sc in enumerate(args.smoothing_arcmin):
+                            acc[k, i] += S._gaussian_smooth(m, sc, rfov).std()
+            sig0, sig0_unsmoothed = acc / nref, accu / nref
+            sig0_ng = None          # legacy path: MFs fall back to per-map sigma
+            nu_fiducial = str(ref_path)
+            print(f"[stats] fixed nu: sigma0 from {ref_path} ({nref} reals, "
+                  f"scales {args.smoothing_arcmin}) = {np.array2string(sig0, precision=4)}")
+    # provenance stamped into every nu-binned product, so a later sweep can tell
+    # which convention a file was written under (and recompute if it changed)
+    nu_prov = dict(nu_grid=str(args.nu_grid), nu_norm_used=str(nu_norm),
+                   nu_fiducial=str(nu_fiducial),
+                   nu_sigma0_table=(np.asarray(sig0) if sig0 is not None
+                                    else np.zeros(0)),
+                   nu_sigma0_unsmoothed_table=(np.asarray(sig0_unsmoothed)
+                                               if sig0_unsmoothed is not None
+                                               else np.zeros(0)))
     noise_kw = dict(shape_noise_ngal=args.shape_noise_ngal, sigma_e=args.sigma_e,
                     noise_seed=args.noise_seed, nu_norm=nu_norm)
     km = np.load(rd / "kappa_maps.npz")
@@ -160,16 +229,19 @@ def main() -> None:
     sm = (args.smoothing_arcmin[0] if len(args.smoothing_arcmin) == 1
           else args.smoothing_arcmin)               # scalar -> legacy shapes
     pk = S.peak_counts(kappa, fov_deg=fov, smoothing_arcmin=sm,
+                       nu_bins=nu_bins,
                        nu_sigma0=(sig0 if len(args.smoothing_arcmin) > 1
                                   else (sig0[0] if sig0 is not None else None)),
                        **noise_kw)
-    np.savez(rd / f"peak_counts{suffix}.npz", **pk)
+    np.savez(rd / f"peak_counts{suffix}.npz", **pk, **nu_prov)
     print(f"[stats] peak_counts{suffix}.npz  peaks{pk['peak_counts'].shape} + minima")
 
     if not args.peaks_only:
-        ng = S.nongaussian_stats(kappa, fov_deg=fov)
-        np.savez(rd / "nongaussian_stats.npz", **ng)
-        print(f"[stats] nongaussian_stats.npz  pdf{ng['pdf'].shape}")
+        ng = S.nongaussian_stats(kappa, fov_deg=fov, nu_centers=nu_centers,
+                                 nu_sigma0=sig0_ng, nu_sigma0_unsmoothed=sig0_unsmoothed)
+        np.savez(rd / "nongaussian_stats.npz", **ng, **nu_prov)
+        print(f"[stats] nongaussian_stats.npz  pdf{ng['pdf'].shape}"
+              + ("  (nu units, canonical axis)" if nu_centers is not None else ""))
 
     if not (args.no_halo_scaling or args.peaks_only):
         snap_root = args.snap_root or rd

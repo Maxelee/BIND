@@ -56,6 +56,12 @@ def parse_args() -> argparse.Namespace:
                         "matching an anti-aliased reference (e.g. kappaTNG); doubles "
                         "stage-1 projection cost.")
     p.add_argument("--no_progress", action="store_true")
+    p.add_argument("--allow_cosmology_mismatch", action="store_true",
+                   help="Permit a params vector whose Omega_m disagrees with the "
+                        "snapshot header's Omega0.  By default stage 1 refuses: "
+                        "conditioning a substrate on another suite's cosmology "
+                        "silently mis-paints the baryons (use bind.tng300_params() "
+                        "for IllustrisTNG, bind.fiducial_params() for CAMELS).")
 
     # Lightcone transform support
     p.add_argument("--transforms", type=Path, default=None,
@@ -120,6 +126,7 @@ def main() -> None:
         transforms=transforms,
         transforms_snap_idx=args.transforms_snap_idx,
         mas_correct=args.mas_correct,
+        allow_cosmology_mismatch=args.allow_cosmology_mismatch,
         comm=comm,
         progress=not args.no_progress,
     )

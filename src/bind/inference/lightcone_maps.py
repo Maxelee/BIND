@@ -34,9 +34,8 @@ from pathlib import Path
 
 import numpy as np
 
-from bind.data import N_THERMO
-from .lensplane import comoving_distance_from_a, mass_map_to_delta_scaled, C_KMS
-from .pipeline import paste_halos_2d, circular_taper_weight, square_taper_weight
+from .lensplane import C_KMS, comoving_distance_from_a, mass_map_to_delta_scaled
+from .pipeline import circular_taper_weight, paste_halos_2d, square_taper_weight
 
 # Electron-column (kSZ tau / FRB DM) physical constants -------------------------
 SIGMA_T = 6.6524e-25            # Thomson cross-section [cm^2]
@@ -75,13 +74,20 @@ def _periodic_bilinear(plane: np.ndarray, box_size: float, L_ang: float,
     u = (np.arange(npix) + 0.5) / npix * L_ang
     cx = ((shift_x + u) % box_size) / box_size * N
     cy = ((shift_y + u) % box_size) / box_size * N
-    x0 = np.floor(cx).astype(np.int64); fx = cx - x0
-    y0 = np.floor(cy).astype(np.int64); fy = cy - y0
-    x0 %= N; x1 = (x0 + 1) % N
-    y0 %= N; y1 = (y0 + 1) % N
-    p00 = plane[np.ix_(x0, y0)]; p01 = plane[np.ix_(x0, y1)]
-    p10 = plane[np.ix_(x1, y0)]; p11 = plane[np.ix_(x1, y1)]
-    fx = fx[:, None]; fy = fy[None, :]
+    x0 = np.floor(cx).astype(np.int64)
+    fx = cx - x0
+    y0 = np.floor(cy).astype(np.int64)
+    fy = cy - y0
+    x0 %= N
+    x1 = (x0 + 1) % N
+    y0 %= N
+    y1 = (y0 + 1) % N
+    p00 = plane[np.ix_(x0, y0)]
+    p01 = plane[np.ix_(x0, y1)]
+    p10 = plane[np.ix_(x1, y0)]
+    p11 = plane[np.ix_(x1, y1)]
+    fx = fx[:, None]
+    fy = fy[None, :]
     return ((1 - fx) * (1 - fy) * p00 + (1 - fx) * fy * p01
             + fx * (1 - fy) * p10 + fx * fy * p11)
 
@@ -95,7 +101,8 @@ def _thermo_y_from_patches(d, r200_factor: float, taper_frac: float) -> np.ndarr
     """
     thermo = np.asarray(d["thermo_patches"], dtype=np.float32)   # (n, N_THERMO, pp, pp)
     n, _, pp, _ = thermo.shape
-    box = float(d["box_size"]); npix = d["composite"].shape[-1]
+    box = float(d["box_size"])
+    npix = d["composite"].shape[-1]
     centers, r200 = d["halo_centers"], d["halo_r200"]
     halos = [{"halo_center": centers[i]} for i in range(n)]
     sq = square_taper_weight(pp, taper_frac=taper_frac)
@@ -173,8 +180,10 @@ def assemble_lightcone(
                 print(f"[lightcone] skip snap {s}: no manifest")
             continue
         man = json.loads(man_path.read_text())
-        a_l = float(man["scale_factor"]); box = float(man["box_size"])
-        n_slabs = int(man["n_slabs"]); slab_depth = float(man["slab_depth"])
+        a_l = float(man["scale_factor"])
+        box = float(man["box_size"])
+        n_slabs = int(man["n_slabs"])
+        slab_depth = float(man["slab_depth"])
         Om = float(man.get("Omega_m", Omega_m))
         chi_snap = comoving_distance_from_a(a_l, Om)
         shift = rng.uniform(0.0, box, size=2)   # decorrelation / realization

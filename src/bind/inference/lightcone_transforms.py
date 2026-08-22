@@ -19,8 +19,9 @@ us which original axis maps to the transverse x, transverse y, and LOS slots.
 from __future__ import annotations
 
 import json
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 # (ix, iy, iz): original-axis indices that map to (transverse_x, transverse_y, LOS)
 PROJ_DIR_AXES: dict[int, tuple[int, int, int]] = {

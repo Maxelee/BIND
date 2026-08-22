@@ -18,7 +18,9 @@ from pathlib import Path
 import numpy as np
 
 from bind.inference.lux_io import (
-    load_kappa_realizations, load_y_realizations, load_tau_realizations, PLANE_TO_ZS,
+    load_kappa_realizations,
+    load_tau_realizations,
+    load_y_realizations,
 )
 
 

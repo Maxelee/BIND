@@ -91,7 +91,7 @@ def test_wlemu_loads_its_packaged_artifact_and_predicts():
 
 
 def test_wlemu_rejects_an_out_of_range_source_redshift():
-    from bind.wlemu import WLEmulator
+    from bind.wlemu_stats import WLEmulator
 
     emu = WLEmulator.load()
     with pytest.raises(ValueError):

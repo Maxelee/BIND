@@ -45,7 +45,6 @@ from tqdm import tqdm
 from bind.data import N_THERMO, THERMO_KEYS
 
 from . import io_gadget
-from .lightcone_transforms import LightconeTransforms
 from .artifacts import (
     PROVENANCE_KEY,
     bind_version,
@@ -54,6 +53,7 @@ from .artifacts import (
     read_provenance,
     to_jsonable,
 )
+from .lightcone_transforms import LightconeTransforms
 from .paint import (
     NATIVE_PIXEL_SIZE_MPCH,
     NATIVE_SLAB_DEPTH_MPCH,

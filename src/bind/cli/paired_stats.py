@@ -151,9 +151,12 @@ def main() -> None:
 
     np.savez_compressed(a.run_dir / a.out_name, **out)
     src = 1 if run["pk"].shape[1] > 1 else 0                       # band-integrated z_s=1 check
-    nu = out["nu"]; m = (nu >= 3) & (nu < 6)
-    rb = run["pk"][:n, src][:, m].sum(1); fb = fid["pk"][:n, src][:, m].sum(1)
-    resp = rb.mean() / fb.mean() - 1; err = (rb - fb).std() / fb.mean() / np.sqrt(n)
+    nu = out["nu"]
+    m = (nu >= 3) & (nu < 6)
+    rb = run["pk"][:n, src][:, m].sum(1)
+    fb = fid["pk"][:n, src][:, m].sum(1)
+    resp = rb.mean() / fb.mean() - 1
+    err = (rb - fb).std() / fb.mean() / np.sqrt(n)
     print(f"[paired] wrote {a.run_dir.name}/{a.out_name}  (N={n})  band-integrated "
           f"N_pk(nu>3) z_s=1: {resp*100:+.1f}% +/- {err*100:.2f}%  "
           f"({abs(resp)/max(err,1e-12):.1f}sigma)")

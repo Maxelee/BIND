@@ -26,7 +26,7 @@ from pathlib import Path
 
 import numpy as np
 
-from bind.inference.design import twobound_design, oneparam_design, sobol_design
+from bind.inference.design import oneparam_design, sobol_design, twobound_design
 from bind.params import PARAM_NAMES
 
 LIGHTCONE_SNAPSHOTS = (96, 90, 85, 80, 76, 71, 67, 63, 59, 56,

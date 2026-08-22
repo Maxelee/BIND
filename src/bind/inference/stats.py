@@ -154,7 +154,8 @@ def cl_kappa_y(
                    for i in range(n_src)])
         ell0, cyy = power_spectrum(y_maps[r], fov_deg=fov_deg)
         yy.append(cyy)
-    ky = np.asarray(ky); yy = np.asarray(yy)
+    ky = np.asarray(ky)
+    yy = np.asarray(yy)
     return {
         "ell": ell0,
         "cl_ky": ky.mean(0), "cl_ky_err": ky.std(0) / np.sqrt(max(n_real, 1)),
@@ -194,7 +195,8 @@ def cl_kappa_tau(
         if y_maps is not None:
             yt.append(power_spectrum(np.asarray(y_maps)[r], tau_maps[r],
                                      fov_deg=fov_deg)[1])
-    kt = np.asarray(kt); tt = np.asarray(tt)
+    kt = np.asarray(kt)
+    tt = np.asarray(tt)
     out = {
         "ell": ell0,
         "cl_kt": kt.mean(0), "cl_kt_err": kt.std(0) / np.sqrt(max(n_real, 1)),
@@ -443,10 +445,14 @@ def peak_cross_stats(
     off, ridx, redges = _radial_index(sr, n_r)
     r_arcmin = 0.5 * (redges[1:] + redges[:-1]) * pix_arcmin
 
-    kap_s = np.zeros((n_src, n_nu)); kap_sq = np.zeros((n_src, n_nu))
-    y_s = np.zeros((n_src, n_nu)); y_sq = np.zeros((n_src, n_nu))
-    ky = np.zeros((n_src, n_nu)); cnt = np.zeros((n_src, n_nu))
-    prof_s = np.zeros((n_src, n_nu, n_r)); prof_n = np.zeros((n_src, n_nu, n_r))
+    kap_s = np.zeros((n_src, n_nu))
+    kap_sq = np.zeros((n_src, n_nu))
+    y_s = np.zeros((n_src, n_nu))
+    y_sq = np.zeros((n_src, n_nu))
+    ky = np.zeros((n_src, n_nu))
+    cnt = np.zeros((n_src, n_nu))
+    prof_s = np.zeros((n_src, n_nu, n_r))
+    prof_n = np.zeros((n_src, n_nu, n_r))
     npk_real = np.zeros((n_real, n_src))
     valid_r = ridx >= 0
     ridx_v = ridx[valid_r]
@@ -469,14 +475,18 @@ def peak_cross_stats(
             if len(pi) == 0:
                 continue
             b = np.digitize(pnu, nu_bins) - 1
-            kval = ksm[pi, pj]; yval = ymap[pi, pj]
+            kval = ksm[pi, pj]
+            yval = ymap[pi, pj]
             for bb in range(n_nu):
                 m = b == bb
                 if not m.any():
                     continue
-                kap_s[i, bb] += kval[m].sum(); kap_sq[i, bb] += (kval[m] ** 2).sum()
-                y_s[i, bb] += yval[m].sum(); y_sq[i, bb] += (yval[m] ** 2).sum()
-                ky[i, bb] += (kval[m] * yval[m]).sum(); cnt[i, bb] += m.sum()
+                kap_s[i, bb] += kval[m].sum()
+                kap_sq[i, bb] += (kval[m] ** 2).sum()
+                y_s[i, bb] += yval[m].sum()
+                y_sq[i, bb] += (yval[m] ** 2).sum()
+                ky[i, bb] += (kval[m] * yval[m]).sum()
+                cnt[i, bb] += m.sum()
             if want_profile:
                 ix = (pi[:, None] + off[None, :]) % npix       # (npk, S)
                 iy = (pj[:, None] + off[None, :]) % npix
@@ -487,9 +497,11 @@ def peak_cross_stats(
                 np.add.at(prof_n[i].reshape(-1), flat, 1.0)
 
     c = np.where(cnt > 0, cnt, 1.0)
-    kap = kap_s / c; ym = y_s / c
+    kap = kap_s / c
+    ym = y_s / c
     cov = ky / c - kap * ym
-    vk = kap_sq / c - kap ** 2; vy = y_sq / c - ym ** 2
+    vk = kap_sq / c - kap ** 2
+    vy = y_sq / c - ym ** 2
     corr = cov / np.sqrt(np.where(vk > 0, vk, np.nan) * np.where(vy > 0, vy, np.nan))
     return {
         "nu": nu_c,
@@ -615,14 +627,19 @@ def nongaussian_stats(
                 s2 = d.var()
                 var[i, k] += s2
                 sk = (d ** 3).mean() / (s2 ** 1.5 + 1e-30)
-                skew[i, k] += sk; skew_r[r, i, k] = sk
+                skew[i, k] += sk
+                skew_r[r, i, k] = sk
                 kurt[i, k] += (d ** 4).mean() / (s2 ** 2 + 1e-30) - 3.0
             sm0 = _gaussian_smooth(m, scales[0], fov_deg)
             sig_mf = float(s0[0, i]) if s0 is not None else (sm0.std() + 1e-30)
             nu = (sm0 - sm0.mean()) / sig_mf
             v0, v1, v2 = minkowski_functionals(nu, mf_thresholds)
-            V0[i] += v0; V1[i] += v1; V2[i] += v2
-            V0_r[r, i] = v0; V1_r[r, i] = v1; V2_r[r, i] = v2
+            V0[i] += v0
+            V1[i] += v1
+            V2[i] += v2
+            V0_r[r, i] = v0
+            V1_r[r, i] = v1
+            V2_r[r, i] = v2
     for arr in (pdf, var, skew, kurt, V0, V1, V2):
         arr /= n_real
     out = {
@@ -751,8 +768,10 @@ def dm_stats(
     cent = 0.5 * (edges[1:] + edges[:-1])
 
     pdf = np.zeros((nS, n_bins))
-    mean = np.zeros((nR, nS)); sig = np.zeros((nR, nS))
-    sk = np.zeros((nR, nS)); ku = np.zeros((nR, nS))
+    mean = np.zeros((nR, nS))
+    sig = np.zeros((nR, nS))
+    sk = np.zeros((nR, nS))
+    ku = np.zeros((nR, nS))
     pdf_r = np.zeros((nR, nS, n_bins))
     for r in range(nR):
         for i in range(nS):
@@ -760,9 +779,13 @@ def dm_stats(
             if smoothing_arcmin > 0:
                 m = _gaussian_smooth(m, smoothing_arcmin, fov_deg)
             h = np.histogram(m, bins=edges, density=True)[0]
-            pdf[i] += h; pdf_r[r, i] = h
-            mu = m.mean(); d = m - mu; s2 = d.var()
-            mean[r, i] = mu; sig[r, i] = np.sqrt(s2)
+            pdf[i] += h
+            pdf_r[r, i] = h
+            mu = m.mean()
+            d = m - mu
+            s2 = d.var()
+            mean[r, i] = mu
+            sig[r, i] = np.sqrt(s2)
             sk[r, i] = (d ** 3).mean() / (s2 ** 1.5 + 1e-30)
             ku[r, i] = (d ** 4).mean() / (s2 ** 2 + 1e-30) - 3.0
     pdf /= max(nR, 1)
@@ -828,7 +851,8 @@ def halo_scaling(
                 out["T_mw_500c"].append(
                     float((thermo[h, 1][ap5] * gw).sum()) / (float(gw.sum()) + 1e-30))
             else:
-                out["Y_500c"].append(np.nan); out["T_mw_500c"].append(np.nan)
+                out["Y_500c"].append(np.nan)
+                out["T_mw_500c"].append(np.nan)
             out["halo_mass"].append(float(masses[h]))
             out["r200"].append(float(r200[h]))
     return {k: np.asarray(v) for k, v in out.items()}
@@ -870,7 +894,8 @@ def scaling_relations(
         if arr is None:
             continue
         arr = np.asarray(arr, dtype=float)
-        med = np.full(nb, np.nan); scat = np.full(nb, np.nan)
+        med = np.full(nb, np.nan)
+        scat = np.full(nb, np.nan)
         for b in range(nb):
             sel = (idx == b) & np.isfinite(arr)
             if int(sel.sum()) >= min_per_bin:

@@ -24,11 +24,11 @@ from __future__ import annotations
 import numpy as np
 
 from bind.params import (
-    PARAM_NAMES,
-    PARAM_MIN,
-    PARAM_MAX,
-    PARAM_LOG_FLAG,
     N_PARAMS,
+    PARAM_LOG_FLAG,
+    PARAM_MAX,
+    PARAM_MIN,
+    PARAM_NAMES,
     fiducial_params,
     vary_params,
 )

@@ -22,9 +22,9 @@ from bind.inference.design import (
     ASTRO_PARAM_INDICES,
     COSMO_PARAM_INDICES,
     TNG300_COSMO,
-    sobol_design,
-    oneparam_design,
     fiducial_vector,
+    oneparam_design,
+    sobol_design,
 )
 from bind.params import PARAM_NAMES
 

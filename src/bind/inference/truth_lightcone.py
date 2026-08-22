@@ -26,11 +26,28 @@ import numpy as np
 
 from . import io_gadget
 from .lightcone_transforms import LightconeTransforms
-from .paint import _project_zslabs, _round_npix, _round_n_slabs, _assign_halos_to_slabs, \
-    extract_halo_cutouts, NATIVE_PIXEL_SIZE_MPCH, NATIVE_SLAB_DEPTH_MPCH, PATCH_PIX
+from .paint import (
+    NATIVE_PIXEL_SIZE_MPCH,
+    NATIVE_SLAB_DEPTH_MPCH,
+    PATCH_PIX,
+    _assign_halos_to_slabs,
+    _project_zslabs,
+    _round_n_slabs,
+    _round_npix,
+    extract_halo_cutouts,
+)
 from .pipeline import (
-    gas_temperature_K, compton_y_integrand_per_particle, _safe_divide,
-    GAMMA, X_H, M_PROTON_KG, K_B_J_PER_K, MSUN_KG, KPC_IN_M, KEV_IN_J, MPC_IN_M,
+    GAMMA,
+    K_B_J_PER_K,
+    KEV_IN_J,
+    KPC_IN_M,
+    M_PROTON_KG,
+    MPC_IN_M,
+    MSUN_KG,
+    X_H,
+    _safe_divide,
+    compton_y_integrand_per_particle,
+    gas_temperature_K,
 )
 
 # THERMO_KEYS order: compton_y, temperature, entropy, pressure
@@ -94,7 +111,8 @@ def _accumulate_chunk(local, fname, transforms, snap_idx, box_size, n_slabs,
                                         box_size, npix, n_slabs)            # Gas mass [Msun/h]
             hot = np.asarray(sfr) <= 0.0
             if hot.any():
-                ph = pos_all[hot]; gmh = gm[hot]
+                ph = pos_all[hot]
+                gmh = gm[hot]
                 T = gas_temperature_K(u[hot], xe[hot])                       # [K]
                 rho = dens[hot] * density_to_kg_m3                           # [kg/m^3]
                 P = ((GAMMA - 1.0) * rho * u[hot] * 1e6)                     # [Pa]
@@ -191,14 +209,17 @@ def extract_truth_halos(
         path = output_dir / f"composite_slab{si:02d}.npz"
         if n == 0:
             np.savez(path, n_halos=0, slab_idx=si, n_slabs=n_slabs, box_size=box_size)
-            per_slab.append({"slab_idx": si, "n_halos": 0}); continue
+            per_slab.append({"slab_idx": si, "n_halos": 0})
+            continue
         xy = hpos[in_slab, :2]
 
         def cut(field):
             return np.stack([c["condition"] for c in
                              extract_halo_cutouts(field, xy, box_size=box_size, patch_pix=patch_pix)])
 
-        hdm = cut(g[0, si]); gas = cut(g[1, si]); star = cut(g[2, si])
+        hdm = cut(g[0, si])
+        gas = cut(g[1, si])
+        star = cut(g[2, si])
         y = cut(g[3, si])   # already in Compton-y units (divided by pixel area per particle)
         mh = cut(g[4, si])
         T = _safe_divide(cut(g[5, si]), mh)

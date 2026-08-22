@@ -37,14 +37,14 @@ from pathlib import Path
 
 import numpy as np
 
-from bind.inference.lightcone_transforms import LightconeTransforms
 from bind.inference.lensplane import (
-    mass_map_to_delta_scaled,
+    build_lightcone_geometry,
     density_to_lensplane,
+    mass_map_to_delta_scaled,
     write_lensplane,
     write_lux_config,
-    build_lightcone_geometry,
 )
+from bind.inference.lightcone_transforms import LightconeTransforms
 
 
 def parse_args() -> argparse.Namespace:
@@ -120,7 +120,6 @@ def main() -> None:
     n_slabs = int(manifest["n_slabs"])
     slab_depth = float(manifest["slab_depth"])
     Omega_m = float(manifest["Omega_m"])
-    scale_factor = float(manifest["scale_factor"])
     pps = args.planes_per_snapshot if args.planes_per_snapshot is not None else n_slabs
 
     if pps != n_slabs:
@@ -209,15 +208,8 @@ def main() -> None:
             Omega_m=Omega_m,
         )
 
-        # snap_stack booleans (needed for Lt in config.dat — already applied above)
+        # (snap_stack flags were already applied to Lt above)
         # transforms: (Ns, 3) disp and flip
-        snap_stack_arr = []
-        if args.snap_stack is not None:
-            snap_stack_arr = [s.strip().lower() == "true"
-                              for s in args.snap_stack.split(",")]
-        else:
-            snap_stack_arr = [False] * args.lc_n_snaps
-
         config_path = args.output_dir / "config.dat"
         write_lux_config(
             config_path,

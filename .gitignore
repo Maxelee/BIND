@@ -92,3 +92,17 @@ tng300_dm_mass_history.hdf5
 
 # Overleaf export bundles (regenerable via zip)
 papers/*.zip
+
+# ---------------------------------------------------------------------------
+# LaTeX build artifacts (papers compile in place; only sources are versioned)
+# ---------------------------------------------------------------------------
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.synctex.gz
+
+# disBatch job debris + transient subset-run notebook
+*_disBatch_*
+_subset_run.ipynb

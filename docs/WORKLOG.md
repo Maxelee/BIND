@@ -6,6 +6,817 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-08-21 — imgs_1000: one compute-once driver, run_id-alignment bug fixed, cache-driven fig06/fig10
+
+Goal: `BINDing_the_lightcone/imgs_1000/` = the exact `imgs/` figure set rebuilt on the
+N=1000 campaign, every figure reading only saved statistics (never raw map cubes).
+
+- **Audit of the prior hand-staged imgs_1000** (6-agent fan-out): per-run stats layer on
+  `ceph/bind_n1000` is clean (all products post-date the Aug-16 FFT + Aug-18 axis fixes; 319-slot
+  validity scan matches `n1000_stats_check --audit` exactly), but 8 of 14 staged figures were
+  rendered from the **107/256-node partial** `emulator_dataset_n1000.npz`; fig08/fig09 were
+  hand-renamed copies of Paper I's `fig05a_sl_response`/`fig05_param_response`; and
+  `family_model_section_figs.py` indexed the 256-row sci50 arrays (`amplitude_sets` a_sobol,
+  `agnostic_lambda_results_obs` X_ALL) with POSITIONS from the partial dataset, whose run_ids are a
+  non-contiguous subset — silently wrong row pairing (no crash).
+- **Driver**: `analysis/make_imgs_1000.py` — per-figure readiness gates matching each builder's
+  real inputs, builds + promotes (all the previously manual copy/rename steps), stamps
+  `imgs_1000/PROVENANCE.json`, `--assemble` for the Sobol dataset (refuses partial without
+  `--allow-partial`). Supersedes `imgs_1000_readiness.py`'s gating.
+- **Fixes**: run_id alignment via `SEL = dsn["run_ids"]` + amplitudes re-measured on the FIXED
+  shipped basis (`free_amps` + runtime convention check) in `family_model_section_figs.py`,
+  `gas_families.py`, `posterity_model_curves.py`; campaign wiring (+`_n1000` output tags,
+  paired_stats_fast fallback, V0_err NaN guard) in `paper_s3b_clusters.py`; `_build_figures_nb.py`
+  gained an n1000 save shim after an untagged run **clobbered sci50 `figs_v2/fig05a_sl_response.pdf`**
+  (restored via `_run_subset.py`); campaign-tagged caches for the texture template and
+  detectability numbers; `make_fig_noisy_tb49.py` campaign wiring.
+- **Compute-once caches added**: `build_yt_cache_n1000.py` → per-real y×τ legs for tb49+truth
+  (`field_cache/yt_stats_*_n1000.npz`), validating against the per-run MPI `Cl_tau` `cl_yt` at
+  3e-15. `fsfig6_spectra.py`/`fsfig10_covariation.py` n1000 branches are now fully cache-driven
+  (kill the `BIND_FIG_NR=50` cap and the literal-50 y×τ leg) with cache-vs-MPI guards asserted at
+  build time (all at ~3e-15). Texture template build rewritten to STREAM (the full-cube load
+  OOM'd the 17.5 GB session cgroup) with checkpoint/resume.
+- **Built today**: fig01/03/04/A1/A2 (verbatim copies — no realization axis), fig02, fig05,
+  fig06 (first full-N y/τ closure: ττ +2.1%, yτ −1.8%, yy 0.94 over ℓ 300–5000), figA3
+  (true N=1000 texture template, streamed 12 min: f_tex 0.09/0.67/2.52/8.49% at ℓ 2e3–3e4;
+  trough +2.98% → +0.89% debiased). Partial-dataset renders quarantined in
+  `imgs_1000/_partial_20260821/`. SOBOL-class figures rebuild via the driver once the campaign
+  + stats + `--assemble` complete.
+- **Adversarial verification** (4-agent workflow, everything executed live): amplitude
+  convention reproduces the shipped a_sobol to 1e-7–1e-14 for all 7 stats; X_ALL rows verified
+  run_id-ordered; all cache-vs-MPI guards at 2–4e-15; alignment logic confirmed correct in all
+  4 wired builders. Fixed from its findings: driver `--build` exact-name matching (substring
+  matching silently mis-selected), strict per-entry provisional flags, atomic tmp+rename
+  checkpoints (np.savez truncates on open — a mid-write kill destroyed the prior checkpoint),
+  fig10 yt-vs-numerator N assert, `make_fig_noisy_tb49.py` cgroup-memory precheck (noisy_grid
+  loads the whole ~21 GB cube), gas_families tagged preview copy, `_run_subset.py`
+  campaign-aware completeness print, dead `XZ_ALL` branch removed. Two flags left standing:
+  pfig_fm_model_curves ν-statistic LOO residuals blow up (RMS 32–127%) at 107 nodes — not an
+  indexing artifact (verified), recheck at 256; the pdf-clusters figure needs the MPI
+  `n1000_paired_stats.py` product for V0 errors (only 8/60 runs have it; `_fast` has NaN MF errors).
+
+## 2026-08-18 — N1000 stats: MPI `dm_stats` axis bug fixed, sweep driver for the interactive lane
+
+- **Bug (would have corrupted 112 runs)**: `bind.cli.lightcone_stats_mpi` fed `S.dm_stats` ONE
+  realization per call, and `dm_stats` derives its histogram range from the 0.1/99.9 percentiles of
+  whatever cube it is handed — so every realization got its own DM axis and their PDFs were averaged
+  together. Measured against the serial product for `truth/run_0000`: `dm_bins` off 5.5%, `dm_pdf`
+  12%. Fixed by `stats.dm_stats(..., dm_edges=)` plus a pooled fine-histogram percentile
+  (2^20 bins, min/max + histogram `Allreduce`) in the MPI CLI, so all ranks share one axis.
+  `dm_mean/sigma_dm/F/skewness/kurtosis` were always exact (per-realization means).
+- **Validated** on 4 truth realizations × 2 ranks against an in-process serial reference:
+  peak counts, MFs, PDF and Cl are now bit-identical (0.0–2e-16); `dm_bins` 2e-5, `dm_pdf` 1.9e-3
+  (fine-bin resolution of the pooled percentile, shrinks with N).
+- **Provenance split found while validating** — not an MPI issue: the uncommitted `_gaussian_smooth`
+  rewrite (scipy `gaussian_filter`, 4σ-truncated → exact FFT kernel) moves every *smoothed*
+  statistic by ~2e-4 (variance, V0/V1/V2) and up to 6% in the sparsest peak bins. `bind`, `dmo`,
+  `truth`, `twobound/run_0018` were statted 08-15/16 under the OLD operator; re-stat them with
+  `FORCE=1` so the fiducial denominator shares the numerators' convention.
+- New `n1000_stats_sweep.sh` — sweeps the MPI stats CLI over every traced run from inside one
+  interactive allocation (idempotent, per-run logs under `bind_n1000/analysis/stats_logs/`, whole
+  work-list scan in one interpreter: 5 s, not 15 min). 112 of 116 traced runs still need products;
+  `run_n1000_stats_mpi.sh` (SLURM array) stays the faster path for the full tree.
+- New `examples/n1000_stats_check.py` — `--compare` diffs a run's products against the
+  `analysis/stats_preFFT_20260816/` snapshot, `--audit` sweeps the tree for unloadable / off-axis /
+  wrong-fiducial products. Its dm_pdf norm test is exact: `density=True` normalises inside the
+  range, so a shared-axis PDF integrates to 1.0000 while the pre-fix MPI products give 0.9984.
+- **Submit-cap lesson**: both the `cca`/`gen` and `preempt` QOSs cap SUBMITTED tasks (pending +
+  running) at 500 per user, and every array ELEMENT counts — with the trace lanes holding 313
+  preempt and 339 gen elements, an `--array=0-318` is refused outright
+  (`QOSMaxSubmitJobPerUserLimit`). `SPEC=1 ./n1000_stats_sweep.sh` now prints the work list as a
+  compact `--array` spec (112 tasks, `MAX=<n>` truncates to free slots) so the array asks only for
+  runs that need work. `SPEC`/`DRY` need no allocation.
+- **sigma0-table provenance, quantified and closed**: `nu_sigma0_bind.npz` (50 reals, 08-15) was
+  built with the OLD smoothing operator. Measured on identical maps, regenerating it would move
+  `sigma_smoothed` by only −2e-5 (1′) to −9e-5 (8′) — and since one common sigma0 sets nu for every
+  run, that shift cancels exactly where the fixed-sigma convention is meant to. **Do not
+  regenerate it.** The guard only compared `nu_fiducial` (a path), so an in-place regeneration
+  would have gone unnoticed; both guards now also compare `nu_sigma0_unsmoothed_table` values
+  (scale-independent, so one test covers any `--smoothing_arcmin`).
+- **Census of what the sweep replaces** (traced=116): 82 runs have no `peak_counts.npz` at all,
+  30 carry STALE products in two superseded nu conventions — 16 on the 68-bin legacy grid
+  (−4.875…11.875, no provenance, 08-14) and 14 on the 21-bin canon precursor (−2.25…7.75, 08-15) —
+  and only 4 sit on today's 22-centre `NU_CANON`. Until the sweep finishes the tree is a mix of
+  three axes: do not build cross-run peak/MF figures from it yet.
+
+---
+
+## 2026-08-17 — Conference-talk asset campaign (lightcone section): `talk_figs/`
+
+- Enacted `presentation_agents.md` Tasks C/D/E via 5 parallel agents → `talk_figs/figs/{slides,bleed,anim}/`
+  (deck-ready filenames; Modernist style). Slides: `fig05/fig07/fig09/model_curves/families_slide.png`
+  rebuilt from the paper's own cells/caches (`_build_figures_nb.py`, `family_model_section_figs.py`,
+  `paper_s3b_clusters.py` — clustering reproduced C1 n=12/C2 n=7/C3 n=5/C4 n=5 + singleton exactly).
+  Bleed: κ/y/τ full-bleed crops (realization 144, `bind_lightcone_tng`, hero stretches). Anim:
+  `families_buildup.mp4` (45 s, 1600×900, h264, 15.4 MB) deriving `pfig_s3b_cl_clusters` in 9 scenes
+  (VWV pair = twobound run_0004/0005, fiducial run_0049) + poster + s1–s9 stills.
+- **Data gap confirmed**: methods-paper fig 5b (S(k), CV suite, Truth/BIND/hydro-replaced) is
+  unrecoverable — `ceph/fm_testsuite` deleted (already documented in `referee/R3a_prior_validation_memo.md`),
+  and the committed `paper_figures2.ipynb` cell retains no output. Shipped
+  `fig5b_slide_lightcone.png` instead (S(ℓ) full-hydro/BIND/halo-paste from `referee_work/fidswap`;
+  halo paste recovers ~69% of full-hydro suppression, BIND/paste = 1.011 over ℓ=300–5000).
+- **Stale-crib note**: `FIGURE_NUMBERS.md` fig5/fig9 ρ values predate the nu05 migration + 253→256
+  growth; live cell prints peak |ρ|=0.675 (was 0.706), same column order. Crib not edited.
+- Tasks A/B (flow-matching cover frames, θ-sweep morphs) not run — need GPU emulator inference; pending.
+
+---
+
+## 2026-08-14 — Paper I §3 opener rebuilt: `fig23_s3_opener` is now the S(ℓ)-vs-Stage-IV-precision figure
+
+- **Resolves `referee/FIDUCIAL_SWAP.md` §5.7** (the "[0 compute — AUTHOR DECISION]" item): `main.tex`'s
+  §`sec:astro` caption described `fig12_survey_context`, not the notebook's `fig23_s3_opener`
+  (an S(5000)-vs-f_gas scatter). Author named the slot; the cell is rebuilt to match the caption.
+- **New `fig23_s3_opener`** (`_build_figures_nb.py`): 3 stacked panels, shared ℓ. (a) S(ℓ) at z_s=1 —
+  Sobol 5–95% (grey, 256 nodes), fiducial (black), LSST-Y10 + *Euclid* ±1σ as **nested filled**
+  ribbons (outlined envelopes collapse onto the fiducial below ℓ~2000, where ±1σ is ~1 pt).
+  (b),(c) detection significance |S_node−S_fid|/σ per survey, 5–95% band + median, log y.
+- **Three provenance decisions, all deliberate**: fiducial = `twobound/run_0049` (the 2026-08-13
+  canonical replica) via a one-string `FID23` knob — **this figure is the first in the package to
+  adopt the swap; fig04/fig12 are still on `bind/run_0000`, so the package is temporarily mixed**.
+  Covariance = `bind_n1000`'s **TRUTH** arm, not the BIND arm (§4.3 deprecates the latter; the two
+  agree to 1.000–1.016 per bin, so this is hygiene, not a number change). S(ℓ) curves stay on the
+  50-real seed-paired trees — the band is a *relative* error and never enters a ratio with them.
+- **Two recipe fixes, both found by adversarial verification and both only ever widening the band**:
+  (1) the 8-bin rebin + `np.interp` **flat extrapolation** below ℓ=346 collapsed the genuinely
+  different ℓ=87/305 values (2.02%/1.20%) onto one 0.65% plateau — a 3.1×/1.9× understatement;
+  dropped, since N=1000 cuts the std estimator's MC error to 2.2%. (2) added a **Gaussian
+  mode-counting floor**, `max(measured, Knox_CV)`: rotations of one 25 deg² box cannot sample
+  independent large-scale modes, so the measured leg sat *below* the analytic floor at low ℓ
+  (2.02% vs 4.47% at ℓ=87). No-op above ℓ≈600, so **every headline number is unchanged** — it only
+  makes the large-scale end honest.
+- **The claim is scale-dependent and the text now says so.** LSST-Y10 spread/2σ > 10 over
+  ℓ = 2407–18537 (peak 20.7 at ℓ=6152); *Euclid* ℓ = 2693–13137 (peak 16.2). 100% of nodes exceed
+  1σ somewhere in 300<ℓ<3.7e4; 81.6% (71.5%) exceed 5σ. **Below ℓ≈800 the ordering reverses** — the
+  prior spread is *smaller* than the survey error. The draft caption's blanket "exceeds by more
+  than an order of magnitude" was false over roughly half the plotted range; `main.tex:597-606`
+  is rewritten with the scoped numbers, all read off the cell's own printed stamp (now the single
+  source of truth — the first draft's prose overstated the window's upper edge as 2e4 and the
+  *Euclid* >5σ fraction by 2 points because it was written before the cell was).
+- **Old opener preserved** as `fig23b_s3_bridge_scatter` (all locals re-suffixed `23b` — it used to
+  bind `lo23`/`hi23` as scalars, which now shadow fig 23's arrays). New cell is **self-contained**
+  (own `cl_relerr23`), so its `_run_subset.py` DEPS entry on the heavy `fig04` cell moved to
+  fig23b: `python _run_subset.py fig23_s3_opener` now renders in **7 s**.
+- Files: `_build_figures_nb.py`, `_run_subset.py`, `main.tex`, `PAPER_FIGURE_MAP.md`,
+  `imgs/fig23_s3_opener.png` (gitignored export target).
+
+**Same session — `pfig_fm_model_curves` reworked to ratio-to-reference form.**
+- **Problem**: drawn raw, the seven leave-one-out panels were unreadable — P(ν) spans four
+  decades, N_pk three, V₀ runs 1→0, so a few-percent feedback response was a line width and
+  all seven nodes lay on top of each other. Neither the parameter-driven spread nor the
+  model's ability to track it could be judged by eye.
+- **Fix** (`family_model_section_figs.py`): every panel divided by a reference (`REF_MODE`,
+  default the measured fiducial; `"mean"` gives the Sobol design mean). Residual sub-panel now
+  uses the **same** normalization as the panel above, with **per-panel** scales (response runs
+  ±1% for V₀ to ±80% for S(ℓ); the old shared ±7% hid one and clipped the other).
+- **The `C_ℓ^κκ` panel was dropped, at zero cost**: normalizing cancels the shared DMO band
+  spectrum, so `C_ℓ/C_ℓ^ref` ≡ `S(ℓ)/S(ℓ)^ref` — old panels (a) and (b) would have been the
+  same picture twice. 7 panels + legend/error-summary in the freed slot; also matches
+  main.tex's own "seven weak-lensing statistics".
+- **Tail mask is load-bearing, not cosmetic**: P, N_pk, N_min, V₀, V₁ all vanish in their
+  tails and **V₂ changes sign**. `REF_FLOOR = 0.05`. Measured: 1% → κ-PDF ratio goes negative
+  and V₂'s crossing blows up; 3% → stable but boundary spikes (N_min max 15.0%); 5% → 4.5%.
+  S(ℓ) never masked (reference never below 88% of peak).
+- **Model errors, rms/max as % of fiducial**: S(ℓ) 2.00/15.4, P(ν) 1.36/4.9, N_pk 1.55/8.2,
+  N_min 1.10/4.5, V₀ 0.05/0.2, V₁ 0.43/1.6, V₂ 1.03/4.4. The 15.4% is a genuine model error on
+  the most extreme enhancement node at ℓ≳10⁴, not a mask artifact.
+- `main.tex:816` had a literal `\caption{Caption}` + `\label{fig:placeholder}` (unreferenced);
+  both written properly, label now `fig:fm_model_curves`.
+- **Caveat carried forward**: `REF_MODE="fid"` references `amplitude_sets.npz`'s
+  `<st>__fid_measured`, derived from the retired `bind/run_0000`; refresh is deferred in
+  `referee/FIDUCIAL_SWAP.md`. `REF_MODE="mean"` sidesteps it.
+
+---
+
+## 2026-08-13 — Fiducial SWAP executed: twobound/run_0049 replaces the mis-conditioned fiducial (no repaint)
+
+- **Decision** (author, final): the repaint campaign staged below is **not run**. The three
+  twobound replicas whose parameter vector *is* the fiducial (`bind_science/runs/twobound/
+  run_{0018,0049,0053}`, byte-identical `params.npy`, correct TNG300 cosmology, shared stage-1
+  halos/checkpoint/paste settings) become the paper's fiducial. **Canonical = `run_0049`** —
+  most typical of the three (mean z 0.738 vs 0.843/0.842 over 21 statistic blocks; closest to
+  the trio mean in 14/21) *and* the least favourable for our own closure claim, so the pick
+  cannot read as tuning. Not the 3-mean: it would suppress paint texture by √3 and describe a
+  product no user downloads.
+- **Validity gates all passed**: seed pairing corr(DMO, tb49)=0.99977; ℓ/ν/mf/peak grids,
+  smoothing scales, halo lists and z_s **bit-identical** across bind/tb18/tb49/tb53/truth;
+  reduction path reproduces the shipped `truth_snap096.npz` and the released fiducial's stored
+  composite **bit-for-bit**; the same estimators on the retired fiducial reproduce main.tex:502
+  (1.037/1.065/0.943) and the abstract (0.7/1.4/5.6 %). The trio *adds* `Cl_tau.npz` +
+  `paired_stats.npz` that `bind/run_0000` never had.
+- **Rebuilt in ~45 min on 1 core, no GPU/Slurm/repaint** into `ceph/referee_work/fidswap/`:
+  recomposites, 20-snapshot halo atlas, per-realization field cache, extended-ν MF cache,
+  per-halo profiles, nu05 + ngal10 shards, R1 bind rung. 8 figures re-rendered under
+  `_fidswap` names (no `imgs/` file overwritten, no git action).
+- **What improved**: Y_200c 1.037→1.006 (6.4σ→1.0σ), τ_200c 1.065→1.020, M★ 0.943→0.966;
+  f_gas 500c 1.074→1.024; τ profiles ≤3.5 % and mass-decreasing; DM control 0.998–1.005;
+  C_ℓ^ττ med|resid| 11.2→2.8 %, C_ℓ^κτ 6.8→2.7 %, C_ℓ^yy 5.6→3.8 %. **C_ℓ^ττ NEW/OLD =
+  0.9239 vs the predicted (Ω_b/Ω_m)² = 0.9279** — the fix lands where theory says.
+  Family-model fiducial closure RMS 0.0105→0.0056, trough residual +0.0139→−0.0034 (trio mean)
+  and now *smaller than the 0.0054 paint scatter in the prediction* ⇒ **retires the
+  "trough miss = λ information ceiling" diagnosis**. All 8 latents move ≤0.31 σ_design.
+- **What got WORSE — the science blocker**: `S(ℓ)` closure vs full-hydro TNG300 degrades at
+  every band above ℓ≈860; RMS |S−S_truth| 0.0057→0.0242 for ℓ≥5000 (4.3×), trough gap
+  +0.0047→+0.0251; BIND's response capture 0.69→0.54 (the *pasted* rung 0.7035 is fiducial-free
+  and unchanged). The old sub-percent agreement was two errors cancelling: excess Ω_b/Ω_m
+  painted extra gas whose small-scale suppression masked BIND's intrinsic under-suppression.
+  Also C_ℓ^κκ med|resid| 0.65→1.18 % and paired χ²/dof 11.8→141. **No rebuild recovers this**;
+  main.tex's blanket LSST-Y10-indistinguishability claim must be narrowed to the morphological
+  statistics.
+- **Reproducibility, new publishable number**: paints are **not seeded**
+  (`src/bind/model.py:454`, unseeded `torch.randn`), so the trio spread *is* the model's
+  paint-to-paint scatter — 0.02–0.09 % per `S(ℓ)` band (median 0.4× our own paired SE),
+  0.1–0.5 % C_ℓ^ττ, 1–4 % C_ℓ^yy, 2–13 % of σ_design on the latents. main.tex:430's
+  "seed is shared across all lightcones" is therefore wrong and is rewritten.
+- **Deliverable**: `papers/01_pipeline/referee/FIDUCIAL_SWAP.md` — decision + evidence,
+  before/after table for every fiducial-derived number with its source file, drafted main.tex
+  replacements (l.200/422/430/502/513/516/574/576/586/589/592/886–912/948/950), the release
+  README wording (deprecate `bind_lightcone_tng` 350 GB in place + the `bind_n1000` **bind**
+  arm; truth/DMO arms unaffected), and the ordered deferred list. Deferred: the 60-run
+  `paired_stats` rebuild (**measured 12.3 h serial**, disBatch — gates Fig 11 and the three
+  `pfig_fm_*` that don't exist in `imgs/` at all), the noisy `fidtb49` target (~10 min, gates
+  the R2 twins), `amplitude_sets.npz` refresh, the Sec 5.4 ladder rungs, fig11 panel (d), the
+  §3c latent cell, and an author call on which cell is paper Fig 7.
+- **Two pre-existing bugs found in passing**: notebook fig11 panel (b) divides the pre-xpkfix
+  `bind/run_0000/Cl_kappa_y.npz` (1.24e7 low) by the correctly-normed truth cache ⇒ plots
+  −100 % everywhere for *both* fiducials; and `amplitude_sets.npz`'s `notes` misstates the
+  v0/v1/v2 provenance (nu05 shard, not mf_cache — the mf_cache route misses by up to 3.6 %).
+
+## 2026-08-13 — Fiducial cosmology bug: permanent fix + repaint campaign prepared
+
+- **Bug**: all 20 snapshots of the released fiducial lightcone
+  (`bind_lightcone_tng/snap_*/stage1/{params,fiducial_params}.npy`) carry the CAMELS SB35
+  cosmology, not TNG300's (Om .300/.3089, s8 .800/.8159, Ob .0490/.0486, h .6711/.6774,
+  ns .9624/.9667). Ωb/Ωm was 1.038141× high ⇒ +7.69% measured gas/τ plane power (+7.77%
+  predicted). Scope is confined to that one tree; `bind_science`/`bind_sb35` are correct.
+- **Root cause**: `run_lightcone_project.sh` wrote `bind.fiducial_params()` — the CAMELS
+  fiducial — as stage-1 `params.npy`, and `run_lightcone_generate.sh` passed no `--params`,
+  so `generate_from_stage1` fell back to it (`paint_stages.py:460-462`). `run_sobol_generate.sh`
+  *does* pass `--params`, which is why every other tree escaped.
+- **Permanent fix** (`src/bind/params.py` `tng300_params()`/`TNG300_COSMOLOGY`;
+  `paint_stages._check_cosmology`; `--allow_cosmology_mismatch`): stage 1 now RAISES when the
+  conditioning vector disagrees with the snapshot header on **Omega0, OmegaBaryon or
+  HubbleParam** — not Omega0 alone, since it was Ωb/Ωm that did the damage (an Omega0-only
+  guard passes the sneaky vector; unit-tested). Both project scripts also refuse a released
+  `OUTPUT_ROOT` and refuse to clobber an existing stage 1 without `FORCE=1`.
+- **Repaint campaign staged, NOT run**: `repaint/` (6 stages + `verify_repaint.py` gate) into a
+  fresh `bind_lightcone_tng_fixed`; stage 1 is cosmology-independent so the released DMO slabs
+  are symlinked, not rebuilt. Runbook `docs/fiducial_repaint_plan.md` — submit chain, per-stage
+  gates, costs, decision knobs, "what changes in the paper", and a triage log. **Awaiting author
+  submission.**
+- Hardened after three adversarial reviews (see the plan's §12): dropped `REUSE_MASS_PLANES`
+  (its symlinks would have been written *through* into the released 53.7 GB of lenspot planes —
+  `lensplane.py` uses truncating `open(...,"wb")`); guarded `LP_DIR` (an exported
+  `LENSPLANE_DIR` would have ray-traced the OLD planes into the NEW tree, passing every gate);
+  atomic per-chunk claims + job-unique scratch in the lux stage; `.trace_complete` keyed on
+  `.n_real` so the 50→550 extension is no longer a silent no-op; wall 5 h→48 h (the released
+  550-real trace was one 22.7 h job); direct CLI calls instead of delegating to scripts that
+  default `OUTPUT_ROOT` to the released tree; verifier inventory 252→493 files (the 241
+  `lensplanes/` paths were the one asset actually at risk) + content anchors.
+- §6 cross-check bands **remeasured** from the twobound trio (the rev-1 values were wrong):
+  `C_l^ττ` new/old 0.964→0.921 falling with ℓ (not "0.922–0.928 flat"); `C_l^κκ`(z_s=1)
+  **1.022** at ℓ=1e4–3e4 (not 1.029/1.019). Low-ℓ excursions are the known 50-vs-550 DMO
+  denominator artifact, so the stop/go criterion is restricted to ℓ>1000 and stage 5 now emits
+  a paired 50-real DMO denominator.
+- Also added to the stats stage: `nu05_stats.npz` (canonical 22-pt ν grid, consumed by the
+  family-basis machinery; never produced by `lightcone_stats`), the 50-real `n50/` sibling that
+  `bind_science/runs/bind/run_0000` provides today, and `--n_real 50` on `paired_stats` to keep
+  the fixed-ν σ₀ convention.
+
+## 2026-08-12 (later) — Twobound MFs remeasured on the canonical nu grid
+
+- `papers/01_pipeline/remeasure_twobound_nu05.py`: all 60 twobound runs + the BIND fiducial
+  re-reduced with the Sobol engine (`nu_grid.compute`) from stored `kappa_maps.npz` ->
+  `<run>/nu05_stats.npz` (six nu stats, 22-bin canonical grid). V0 validates EXACTLY vs the
+  old -3..4 grid at shared thresholds; V1/V2 differ only by delta-binning width (the old
+  values carried that mismatch vs the Sobol side). Serial in-session (1CPU/16GB allocation).
+- `family_basis_all.py` NMF 14->22 (native canonical MFs); bundle rebuilt (clk/pdf/pk/mn
+  bit-identical; v0/v2 ~unchanged; v1 now ships 1 family, span 0.970, e2e 0.946 — tail
+  variance + noise-backing gate). amplitude_sets refreshed (`refresh_amplitude_sets_mf22.py`);
+  priors preserved (*_mf14.npz). OBS agnostic search re-run: IDENTICAL 8 latents/path;
+  pooled 0.9137. Figures re-rendered — pfig_fm_model_curves MF panels now to nu=7.75.
+
+
+## 2026-08-12 — Referee campaign executed (6 agents, all 5 comments answered)
+
+- Deliverables in `papers/01_pipeline/referee/` (7 memos, ~3000 lines, drafted
+  LaTeX blocks throughout; main.tex untouched) + 3 new paper figures in `imgs/`
+  (`fig06b_full_hydro`, `fig05n_field_validation_noisy`, `fig23n_s3_opener_noisy`).
+- **Major finding (verified)**: the released fiducial paint was conditioned on the
+  CAMELS SB35 fiducial cosmology, not TNG300 (`bind_lightcone_tng/snap_096/stage1/
+  params.npy`; Ωb/Ωm +3.81% → +7.77% predicted gas/τ power vs +7.69% measured) —
+  ~98% of the paper's 5–10% gas "texture systematic" is this deterministic offset;
+  true stochastic texture is 0.13–0.45% of map power. Corrected vector staged at
+  `runs/fiducial/run_0000/params.npy`, never painted. AUTHOR DECISION pending.
+- **Second premise correction**: paints are not seed-shared (unseeded torch.randn,
+  no seed recorded) — the paper's seed-sharing sentence needs fixing; 1992+7r is
+  the ray-tracing ladder only. Twobound 18/49/53 = three free independent fiducial
+  paint replicas (exploited for the latent-absorption measurement).
+- Comment-by-comment: R1 full-hydro ladder — halo replacement captures 70.4% of
+  the DMO→full-hydro S(ℓ) suppression (not "~90%/virtually all"); R2 — all
+  statistics keep Stage-IV detectability under LSST-Y10 shape noise (minima
+  weakest, 82% of nodes >3σ; ℓ-domain strengthens to 57×); R3a — 102 held-out
+  SB35-test sims surfaced for §3; R4 — Elbers ξ² = arXiv:2403.12967, Stage-IV
+  bound ΔS≈0.01–0.02 (Ωm-dominated); R5 — noise absorption ≤0.26% of the
+  0.96-vs-0.6 gap (measured 0.07%), truth-atlas λ improves predictions; leg-1
+  repaint runbook written (89 A100-hr, optional).
+- Housekeeping found: `imgs/fig23_s3_opener.png` missing while referenced;
+  fig23 caption/figure mismatch; `\bibliography{biblio}` vs `references.bib`.
+
+## 2026-08-12 — Referee-comment response plan (Paper I)
+
+- Five pre-submission referee comments triaged against on-disk assets →
+  `papers/01_pipeline/REFEREE_PLAN.md`. Key findings: (R1) the full-hydro TNG300
+  seed-paired trace (`ceph/tng_full_validation/runs/hydro_full`, full stats suite)
+  already closes the generated→pasted→full-hydro loop — stronger than the
+  referee's κTNG suggestion, needs only a figure; (R2) the LSST-Y10 shape-noise
+  statistics cache (`emulator_dataset_nu05n.npz`, built 08-05) already exists —
+  the ruled-but-unrendered noisy twin figures answer the detectability comment.
+  New compute limited to two experiments: N-sample texture-averaging paint (R3b)
+  and a fresh-seed snap_096 repaint across 256 nodes to de-circularize the latent
+  measurement (R5). R4 (fixed cosmology) is a text-only quantitative caveat
+  pending Elbers citation verification. Decision points D1–D5 flagged for author.
+
+- **Latent set replaced** (author rulings: fully agnostic search; observables only; no
+  anchor/bin/count restrictions): `papers/01_pipeline/agnostic_lambda_search.py` (SFFS from
+  empty set, 97 observable candidates in 7 mass bins, pooled 7-stat CV objective, decoy
+  tripwire, threshold-stopped at k=8). First pick = f_bar[13.0-13.2] (van Daalen variable,
+  20/20 bootstraps), later floated out as redundant with same-bin Y+T. Final 8: f_star[13.2],
+  logT[13.0], logY[13.0], logPe[14.0], c_gas[14.0], logY_ss[13.4], c_gas[13.2], logPe[13.4].
+  Beats the two-bin 8 on all 7 stats (pooled e2e CV 0.9157 vs 0.9068); fiducial trough
+  0.895 vs measured 0.881 (0.7 sigma; was 0.908/1.4 sigma). Observability costs nothing
+  (unrestricted search: same path, c_gas->c_gas/c_dm swap, pooled 0.9154).
+- **Shipped**: `family_basis_all.py` LAT block + bundle rebuilt (priors preserved as
+  `family_model_bundle_{2bin8,4lat}.npz`); tutorial rebuilt (vD section now uses f_bar as an
+  auxiliary variable -- conditional sweep rides the cloud at RMS 0.0038 with the budget not a
+  model input); `family_model.py` docstring; FAMILY_BASIS_METHODS.md addendum; section figures
+  `family_model_section_figs.py` -> pfig_fm_*. Logs in `papers/01_pipeline/audits/`.
+- Paper I section 6 continuation drafted around the agnostic procedure (session scratchpad
+  `section_draft.tex`; referee-workflow-verified); user_section equation fixes flagged
+  (weights |p_j| sign-aligned not |rho|; Mfit needs centered Lambda; S=1 not absorbable).
+
+
+## 2026-08-12 — fiducial S(ℓ) closure diagnosed; amplitude bake-off → 8-latent map; DMO-denominator hazard fixed
+
+Two verified multi-agent campaigns on the family-basis model's fiducial closure
+(`family_model_tutorial.ipynb` showed pred 0.920 vs measured 0.881 at the trough).
+**Diagnosis** (4 agents, adversarially verified): NOT a provenance bug — fid/sobol
+atlas latents bit-exact symmetric, dataset suppression used the correct frozen
+paired-50 DMO denominator, ratio conventions <0.05%. The miss is the λ route's
+small-scale information ceiling: trough split 98.3% λ→a map / 1.7% basis; λ-nearest
+design runs span measured trough 0.880–0.983; the miss is a 1.4σ / 94th-pct draw of
+the 256-run LOO scatter. Separate finding: coherent ~1% low-ℓ offset between the
+bind_lightcone_tng fiducial paint and the bind_sb35 Sobol pipeline (fiducial
+measured point −2.2σ off the Sobol S–f̃_bar locus at ℓ~1533) — unresolved, distinct.
+**Bake-off** (8 agents; sobol/twobound/fiducial free amplitudes →
+`figs_preview/amplitude_sets.npz` + corner plots; 6 mapping families under one CV
+protocol): extended-λ **8 measured latents** (shipped 4 + logPe[grp], f_gas200[grp],
+f_gas200[cl], logPe[cl], greedy-selected) beats everything on ALL 7 stats (clk CV
+0.9603 vs 0.9219, trough RMSE 0.019 vs 0.027) and is the only candidate moving the
+fiducial trough toward truth (0.920→0.911). θ-route capped at 0.59–0.61 for every
+model class (linear/ridge/GBM/active-subspace GP/deep NN ensemble) — the latent
+bottleneck is real, not a weak-baseline artifact. More capacity (poly-λ, hybrids,
+NNs) *worsens* the fiducial: coverage problem, not capacity. Judge rec: ship the
+8-latent linear route; disclose the residual 0.030 trough gap as design coverage;
+next step is targeted design augmentation near the fiducial's latent neighborhood.
+Also: amplitude-space plots must use the bundle's estimator (ridge for clk) — plain
+lstsq puts the fiducial star at Mahalanobis 427 along the near-null basis direction
+(curve effect <2e-3); npz/plots fixed. The `clk_resp = Cl/Cl_fid−1` twobound
+convention reweights basis shapes by 1/S_fid (≤+13.5% at trough) — measured inert
+(span 0.99967→0.99964 reweighted).
+**Promotion shipped (same day, author-approved "lets try it"):** the 8-latent map is now
+the production pipeline. `family_basis_all.py` + `family_model.py` (latent-count-agnostic)
++ tutorial extended; first-4-latent computation byte-identical; 4-latent bundle preserved
+at `figs_preview/family_model_bundle_4lat.npz`. New pipeline-native e2e CV: clk 0.9585,
+pdf 0.9330, pk 0.7793, mn 0.8232, v0 0.9541, v1 0.9425, v2 0.9565 (zero regressions);
+trough sig_pred −31%; fiducial trough closure 0.920→0.911 vs measured 0.881 (1.5σ, 16%
+of effect, was 24%). Independent verifier: 8/8 checks CONFIRMED (bake-off numbers
+reproduce to 4 decimals; only repo consumers = loader + tutorial). Tutorial §0/§5 now
+document ȳ = measured design-mean (8.9% of ȳ−1 off-span → not absorbable into the basis)
+and the fragility inheritance of each model piece. `FAMILY_BASIS_METHODS.md` addendum.
+**Hazard fix** (code): `bind.emulator.dataset` grew `load_dmo_auto()` — assemble()
+now prefers `Cl_kappa_paired.npz` (reproduces the frozen dataset cl_dmo to 7e-9),
+warns on legacy fallback; `build_emulator.py` forces the provenance tensor diagonal
+to ds.cl_dmo; `sr_kernels_v2/v3.py` floor denominators → paired-50 mean. The stale
+550-real `runs/dmo/run_0000/Cl_kappa.npz` left in place deliberately (valid for the
+550-real campaign).
+
+---
+
+## 2026-08-11 — paper scope: family model for ALL WL statistics + GP fitting function
+
+Author ruling: the paper ships (i) the families, (ii) degeneracy/compression,
+(iii) per-Sobol-run amplitudes, (iv) a GP fitting function θ→a packaged for
+public use; the amplitude-physics identification is descoped to follow-up.
+`family_basis_all.py` runs the full pipeline for the **7 WL statistics with
+twobound legs** (S(ℓ), PDF, N_pk, N_min, V0, V1, V2 — gas spectra have no
+twobound responses): clustering (clk/pdf in established S3b spaces; counts
+gated by PAIRED-realization whole-curve χ² excess — RT seeds shared, cosmic
+variance cancels; single-bin count S/N is Poisson-dead), basis on canonical
+dataset grids (counts aggregate exactly 2:1 from the Δν=0.25 grid; MFs
+interp, capped at ν≤3.75), compression, shipped noise-backed subsets, house
+GP (Const×ARD-RBF+White) per amplitude, 5-fold CV. Verifier-driven fixes:
+(a) logbin/nb misalignment (clk S/N understated ~1.4× uniformly, no gate
+flips; also fixed upstream in paper_s3b_clusters.py); (b) the fig-05
+backing rule dropped mn's single strongest family (BHFeedbackFac — fig05
+|ρ| 0.142 vs null 0.177, a power-limited miss; the paired twobound
+contrast detects it) → SPAN SAFEGUARD: add twobound-backed-only families
+(flagged) until within 0.05 of the full span; (c) bundle r2 metadata now
+[full, ship-ceiling, model, GP-e2e]; row-alignment asserts. RESULTS (span |
+GP e2e CV): clk 0.9997|0.70, pdf 0.9852|0.64, pk 0.8569|0.43 (+C3,C8
+safeguard), mn 0.9084|0.58 (+C2,C5 safeguard), v0 0.9994|0.27, v1
+0.9864|0.67, v2 0.9854|0.70. Read: family COMPRESSION is excellent for
+S(ℓ)/PDF/MFs, good for counts after the safeguard; the GP θ→a map is the
+accuracy bottleneck everywhere (cf. λ-route 0.92 for clk — the known θ→λ
+nonlinearity; v0's amplitudes are the least θ-predictable). GP bundle
+verified: loader bit-identical to sklearn (1e-14); paired-realization count
+gate verified (IMFslope 17σ paired vs 0.5σ unpaired — RT-seed sharing).
+**GP DROPPED (author ruling) — the λ route IS the fitting function**:
+a = M·(λ−λ_ref)+a_ref with λ = the 4 measured group-bin halo latents (f_bar,
+f⋆, c_gas, logT; 13.3≤log10 M500c<13.6 medians) — evaluate the model for ANY
+simulation (TNG/SIMBA/…) or observed gas+stellar fractions; no CAMELS
+params anywhere. The λ route beat the GP θ-route for every statistic
+(λ|GP e2e CV): clk 0.917|0.70, pdf 0.887|0.64, pk 0.770|0.43, mn 0.814|0.58,
+v0 0.912|0.27, v1 0.928|0.67, v2 0.941|0.70 — the θ→λ nonlinearity was the
+GP's whole handicap; four measured numbers carry the response. The pipeline
+is now GP-free (runs in ~2 min); `family_model.py`'s API is
+`FamilyModel().predict(lam, stat)` (numpy-only; λ far outside the design
+extrapolates unphysically — linear map). Shipped artifact:
+`figs_preview/family_model_bundle.npz` (basis, mean, Sobol amplitudes,
+λ maps + convention string) + loader `family_model.py`. **Tutorial notebook**
+`family_model_tutorial.ipynb` (built by `_build_family_tutorial_nb.py`, run
+by `_run_family_tutorial_nb.py`, executes in ~45 s): model equations + λ
+conventions, basis plots, ALL-FOUR-latent sweep panels (log-y PDFs; f̃⋆
+drives the high-ν tail + high-ℓ upturn, log T̃ the high-ℓ suppression), the
+**van Daalen PROOF panel** (`tutorial_vandaalen_proof.png`: measured
+S(ℓ≈1533)–f̃_bar cloud r=+0.98; the model's CONDITIONAL sweep — other
+latents at design-conditional means — rides the binned medians at RMS
+0.0015, while the partial others-fixed sweep is visibly shallower: the
+marginal-vs-partial lesson in data), and the **fiducial TRUTH closure**
+(`tutorial_fiducial_truth.png`): model-from-4-measured-numbers vs the
+measured BIND fiducial suppression (seed-paired per-real Cl_kappa_paired —
+NB `runs/bind/run_0000/paired_perreal_fid.npz` has a ZEROED clk array, stale
+stub; ν-domain arrays are fine) vs the FULL-HYDRO TNG300 truth: median
+|pred−BIND| 1.26%, |pred−truth| 1.95% (max 5.75% at the ℓ~10⁴ trough),
+paint-vs-truth within ~1%; PDF closure tighter. **Trough diagnosis (author
+challenge: "0.92 vs 0.88 on a 0.12 effect — terrible")**: decomposed — the
+BASIS is not the limit (free-amp fit of the measured fiducial residual
+0.0013); the λ→a map's per-band predictive σ is strongly scale-dependent
+(0.004 at ℓ~1.3e3 → 0.028 at ℓ~1.3e4 → 0.048 at ℓ~2.7e4; per-band R²
+0.91-0.96 but σ = ~24% of the trough effect); design runs at ~the same λ
+(Mahalanobis 0.7–1.3) span measured trough S 0.88–0.954 — four group-bin
+numbers do not pin small-scale suppression (consistent with the documented
+high-ℓ per-bin R² collapse); the fiducial is a 1.4σ draw (its a_C1 is 2.9
+design-σ off the map's conditional mean — genuinely stronger small-scale
+response than typical at its λ). FIX SHIPPED: per-band CV predictive σ now
+in the bundle (`{stat}__sig_pred`), `FamilyModel.predictive_sigma(stat)`,
+and drawn as ±1σ bands in the tutorial closure panel; honest trough
+framing in the notebook text. Follow-up option: a 5th small-scale-sensitive
+latent (cluster-bin c_gas/c_dm) to tighten the trough. BYO-simulation recipe
+(demoed on the TNG300 fiducial atlas paint), and **`pfig_family_model_curves`** — the
+pfig_s4b_model_curves layout re-made with the family basis + λ amplitudes:
+7 statistics × 7 held-out Sobol runs, leave-one-out λ-map refits, median
+residuals 0.5% (S(ℓ)) and 0.0–0.2% (ν-domain stats). Figures
+`pfig_family_model_stages/_compression{,_pdf,_pk,_mn,_v0,_v1,_v2}` +
+`pfig_family_model_summary`.
+
+---
+
+## 2026-08-11 — SHIPPED family-basis models (both statistics) + amplitude physicals
+
+`family_basis_ship.py` — the production pipeline for BOTH statistics, per
+author rulings: figures reworked (`pfig_family_model_stages[_pdf]` = ALL-run
+model array colored by mean deviation / leading mode, with relative-residual
+subpanel; `pfig_family_model_compression[_pdf]` = scree without PCA;
+`pfig_family_model_amps[_pdf]` = per-amplitude identification scatters).
+**S(ℓ) ships {C1,C2,C3,C4}** (noise-backed rule; cond 520 → ridge amps, span
+R² 0.9997, e2e via latents 0.9166). **κ-PDF ships {C1,C2,C3}** (ThermalWindFrac
+singleton sub-noise — yet its shape alone spans 47% = the leading PDF mode;
+cond 58 → OLS, span 0.9695, e2e 0.8730). PDF leg: twobound raw-κ PDFs mapped
+to the canonical nu05 ν grid via self-implied moments (PDF_ν(ν)=σP(μ+σν));
+`pfig_s3b_pdf_clusters`' old κ/σ_κ x-label was WRONG (raw κ) — fixed.
+Equations in `FAMILY_BASIS_METHODS.md`. COND_RIDGE=100 calibrated (ridge at
+cond 58 costs 40% of model R²).
+
+**PDF grid bug (verifier-caught, conclusion-relevant, FIXED same day):** each
+twobound run's `nongaussian_stats` pdf_bins grid is set from that run's OWN
+map σ — grids drift up to ~1.5 bins between a bound pair, so index-aligned
+raw differencing (as in the original S3b pdf clustering AND the first ship
+pdf leg) corrupts the 1–2%-level responses at up to the 100% level (shape r
+vs corrected as low as −0.2 for BHRadEff). Fix: standardize every run on its
+OWN grid onto the canonical ν grid, difference there — applied to BOTH
+`paper_s3b_clusters.py` (pdf memberships CHANGED: now C1(16), C2(4) + 4
+singletons; ν axis genuine again) and `family_basis_ship.py` (singletons now
+each their own family; shipped pdf = {C1,C2,C3,C4} span 0.9852 cond 91 OLS,
+e2e 0.8866 — better than the buggy 0.9695/0.8730). clk verified unaffected
+(ℓ grid bit-identical across runs).
+
+`family_amp_physicals.py` — "one physical per amplitude" (author: marginal
+identification collapsed to stellar fraction for every amplitude — cause:
+non-orthogonal basis + one dominant design axis). Candidate library: ~60
+per-run scalars from the shared-2933-halo atlas on FIXED FoF-mass bins
+(f_bar/f_gas/f_star/c_gas/c_dm/σ_gas/σ_tot/logT/logK/logPe/logY × 4 bins +
+mass-slopes + group→cluster contrasts + Y–M/f_gas–M/K–M residual scatters).
+Identification = |marginal r| + 0.3|partial r| (partial = controlling other
+amplitudes), Hungarian-unique at the QUANTITY-FAMILY level (apertures and
+slope/contrast variants merged). Hunt workflow added self-similar-scaled
+thermodynamics (Y/M^{5/3}, T/M^{2/3}), c_gas/c_dm, and entropy-mass
+monotonicity. FINAL assignments — S(ℓ): a_C1↔f⋆[13.0–13.3] (+0.84),
+a_C2↔Y/M^{5/3}[>14.0] (−0.85; Y-at-fixed-mass is also THE unique C1/C2
+separator, partial +0.49/−0.51), a_C3↔f_bar[13.0–13.3] (+0.73),
+a_C4↔c_gas/c_dm[13.3–13.6] (+0.64, partial +0.46, QUADRATIC relation: CV
+0.40→0.59); PDF (corrected basis): a_C1↔σ_gas/σ_tot[13.6–14.0] (−0.76,
+partial −0.53), a_C2↔c_dm[13.0–13.3] (−0.71), a_C3↔f⋆[13.3–13.6] (+0.74),
+a_C4↔trend f⋆–M (+0.64); pdf amplitude-cloud PCA: PC1 99.84% (feedback
+axis) + PC2 0.12% REAL thermal mode (logT[13.6–14.0] −0.62, null-verified)
+— quote PCs for independent-information claims. Also learned: nonthermal
+support / gas binding-energy proxies have the STRONGEST marginals (−0.86)
+but ~zero partials — pure dominant-axis diagnostics, not discriminators.
+Figures show the assigned distinct physicals. Caches
+`figs_preview/family_amp_physicals_{clk,pdf}.npz` + `_extended.npz`.
+
+---
+
+## 2026-08-11 — staged family-basis model: perfect → degenerate → physical
+
+`papers/01_pipeline/family_basis_staged.py` (imports the verified
+family_basis_model machinery) + `pfig_family_model_stages` /
+`pfig_family_model_amps` / `figs_preview/family_model_stages.npz` — the
+author's 3-stage arc. **Stage 1**: all five C1–C5, free per-run LSQ
+amplitudes → total R² 0.9997, residual 1.8% of signal. Two nulls (verifier
+finding folded in): random orthonormal 5-basis R²≈0.20, but 5 random REAL
+single-param curves already reach 0.9991 — the deviation space is ~rank-2–3
+and smooth, so stage 1's perfection is about S(ℓ)'s low dimensionality; the
+families' value is conditioning + identifiability. **Stage 2**: degeneracy
+(basis cond 566;
+fitted-amplitude cross-run correlations reach ±0.95) → conditioning-aware
+adoption (min cond within 5e-4 of best R², sub-noise C5 excluded from
+adoption): **adopted {C1,C4}** R²=0.9960 ≈ PCA-2 ceiling 0.9966, cond 2.0;
+k=3 fallback {C2,C3,C4} 0.9995 (NB best-R² triplet {C1,C2,C3} has cond 119 —
+raw-R² ties hide 6× conditioning gaps). **Stage 3**: the two amplitudes ARE
+physical — a_C1 = stellar fraction (r=+0.85; all-4-latent CV R²=0.91),
+a_C4 = gas concentration/baryon budget (c_gas +0.84, f̃_bar +0.68; CV 0.93) —
+the budget×partition pair of fig20d, recovered as fit amplitudes. End-to-end
+λ→(a_C1,a_C4)→S: CV R² 0.9147 vs 0.9175 for the CV-refit 4-latent kernel
+model (2 physical amplitudes give up 0.003).
+
+---
+
+## 2026-08-11 — family-basis model: C1–C5 mean shapes AS the S(ℓ) basis
+
+`papers/01_pipeline/family_basis_model.py` (+ `pfig_family_basis_model`,
+`figs_preview/family_basis_model.npz`) answers the author question "can the
+family mean curves be the basis instead of the kernels?" **Yes for the span,
+no as an independent model**: amplitude-weighted unit-peak family means
+(twobound-built, out-of-design) span 99.97% of the 256-run Sobol S(ℓ)
+deviation variance (kernels 99.99%, PCA-5 100.00%), and cross-project onto
+the 4-kernel span at r=0.985–1.000 — the family basis is a rotation of the
+latent model. Catch: 5 vectors in a ~rank-2–3 space (sv 4.91/2.96/0.23/
+0.044/0.009, cond 566) ⇒ per-family amplitudes need ridge; best subsets
+{C1,C4}=0.9960, {C1,C2,C3}=0.9995. Amplitudes: a=Mλ (CV R² 0.82–0.90,
+ridge-α-dependent — disclosed sweep in stdout); end-to-end θ→λ→a→S matches
+the shipped latent model (CV 0.9152 vs 0.9162); direct linear θ→a fails
+(0.56) — the θ-nonlinearity must ride through measured λ (or a GP).
+Verified by a 3-agent adversarial pass (blind re-derivation matched to 4
+decimals; no leakage/sign/NaN bugs; protocol + α-disclosure fixes folded
+back in). Side-flag from the verifiers: main.tex ~line 845 still says
+"three-latent model" — stale vs the harmonized four-latent convention.
+
+---
+
+## 2026-08-11 — param context colors: formatted table + S3b cluster recolor
+
+`papers/01_pipeline/figs_preview/param_color_map.csv` reformatted from a raw
+table paste into a real CSV (one row per SB35 param: ParamName key, Ni et al.
+2023 serial, TeX label, fiducial/min/max, **Astrophysical Context**, hex
+Color). Coloring is decided by the Context column — 8 varied-physics contexts
+on a CVD-validated 8-hue palette (winds stay blue, AGN red; all ≥3:1 on
+white), Cosmology gray. `paper_s3b_clusters.py` now reads it (replacing the
+3-way agn/wind/other heuristic): context-colored curves + per-member labels,
+shared context legend; IMFslope emphasis is now bold/thick in its own
+Stellar-Evolution green, not black. Other figure scripts should color params
+from this CSV. Same-day style pass: panel titles bare C1–C4 (rbar to stdout),
+y label $\hat{R}_{C_\ell^{\kappa\kappa}}(\ell)$ (resp. $\hat R_{\rm PDF}$),
+member lists wrap to 2 columns past 8 names, and **line style = the fig-05
+row verdict** (solid = peak-|rho| Spearman clears that statistic's 200-shuffle
+permutation null, replicated in-script from `_build_figures_nb.py`, seed-4
+stream, S(ℓ) null 0.149 → 11/30 solid; dotted = below noise).
+
+---
+
+## 2026-08-11 (later) — diffuse τ correction folded into the N1000 campaign
+
+Per the validation verdict, `n1000_body.sh` now applies the diffuse-gas step
+(`DIFFUSE=1` default; knobs T_DIFFUSE_K / F_B_DIFFUSE, all in the cross-lane
+`.campaign_params` lock): truth/twobound/sb35 run `paint_diffuse_composite`
+between recomposite and plane painting (all 3 planes from the augmented
+composite — κ unchanged since mass is moved, not added); bind symlinks the
+master's lenspot+config.dat and paints only y/τ from diffuse-augmented master
+composites; dmo untouched. Smoke-tested the bind path end-to-end on master
+snap_096. Adversarial review: mass-conservation/symlink/params-lock/requeue
+windows verified clean; fixed its findings — recomposite completeness now gated
+on `summary.json` (written last) with torn-partial wipe, empty-slab
+(alpha/thermo-less) guard in the diffuse CLI, per-attempt log truncation.
+Campaign is cleared for launch (seed gate already PASSED bit-identically).
+
+---
+
+## 2026-08-11 — diffuse-gas validation COMPLETE: verdict + y-convention fix
+
+Both validation traces ran (~2.5 h each) + paired comparison. Verdict: **τ** pasted
+= 16–37% of the true mean column; the f_b·DMO·(1−α) diffuse add-on recovers the
+mean to 1% and Cl_ττ(ℓ<1000) to 4% (overshoots ℓ>5000 ×2.8 — unsmoothed DMO
+clumpiness vs pressure-smoothed gas). **y** pasted misses 11–28% of the mean
+(WHIM, growing with z_s) but Cl_yy agrees with full-hydro to ≤2% at all ℓ —
+fluctuation statistics essentially unbiased; per-z_s mean corrections recorded.
+**κ** pasted validated (Cl ratio 1.003/1.018/1.152 per ℓ band). Decision: fold
+the diffuse τ step into the N1000 paint stage. Mid-course fix: the first
+hydro_full trace used the legacy comoving-area y convention, but the truth
+lightcone thermo is PHYSICAL proper-area (`truth_lightcone.py`) — composites
+rescaled by 1/a², re-traced (legacy trace kept at `runs/hydro_full_legacyy`);
+plane-sum mean-y predictions matched the traced maps to 3 decimals. Results:
+`ceph/tng_full_validation/analysis/`; verdict in `docs/diffuse_gas_validation.md`.
+
+---
+
+## 2026-08-10 (later) — diffuse-gas validation before the N1000 campaign
+
+Seed gate PASSED (config.dat byte-identical AND kappa78 bit-identical vs master
+reals 51/52) — but the campaign lanes are held for a physics check the author
+called: pasted composites carry ZERO gas/y/tau outside the halo paste apertures
+(~80–85% of every slab, coverage 15.7–19.7% measured at snap_096), so traced
+tau misses most of the diffuse electron column and y misses the WHIM. Built two
+tests: (1) full-hydro TNG300 ray trace — `bind/cli/paint_project_hydro.py`
+(MPI-streaming full-snapshot → drop-in composite_slab npz; verified exact on
+synthetic data) + `run_hydro_full_project.sh`; (2) diffuse approximation —
+`bind/cli/paint_diffuse_composite.py` (gas_diffuse = f_b·ρ_DMO·(1−alpha),
+x_e=0.88, T=1e4 K; mass moved ch0→ch1 so κ unchanged) +
+`run_tng_validation_trace.sh` (both variants, 50 reals, seed 1992, paired).
+Comparison: `examples/tng_full_validation.py`. Conventions pinned: legacy
+comoving-area y everywhere (isolates the diffuse effect from the known z>0
+a-factor gap); full-hydro y uses per-particle physics w/ SFR cut; gas mass
+channel keeps all gas (tau convention). Key recon facts: truth run stores
+patches only (recomposite needed, like twobound); TNG mini snapshots have all
+needed gas fields; true counts ~1.56e10 DM + 1.45e10 gas/snapshot (header
+NumPart_Total is 32-bit truncated). Plan/runbook: `docs/diffuse_gas_validation.md`.
+
+---
+
+## 2026-08-10 — N1000 campaign: tooling to trace 1000 realizations/run into a fresh tree
+
+Decision (author): all 319 runs (bind/dmo/truth/twobound×60/sb35×256) to N=1000
+realizations, full κ/y/τ map cubes kept, max cluster throughput, output to a NEW tree
+`ceph/bind_n1000` — the 50-real trees stay untouched and canonical for Paper I; N1000 is
+for a future release. Built + adversarially reviewed (1 blocker, 3 majors — all fixed):
+`n1000_body.sh` (chunked seed-offset traces, 8×125 reals, base `1992+7·125c` ≡ the
+canonical `1992+7r` ladder — derivation verified against lux main.cpp; claims +
+campaign-params lock + per-chunk sentinels, requeue-convergent), lanes
+`run_n1000_cca.sh` (33×3 icelake = 99 nodes/6,336 cores, at the cca per-user caps) and
+`run_n1000_preempt.sh` (preempt QOS, reverse order, %40, 72 h), `run_n1000_stats.sh`,
+`n1000_seed_gate.sh` (2-real config.dat byte-compare vs master reals 51/52 — submit
+first). Also: `lux_io._sorted_run_dirs` numeric sort (real >999-real ordering bug,
+unit-tested); verified lux PreProjected mode never writes lensplane dirs; deleted 8
+stray twobound `_work/lensplanes` scratch dups (601 GB, products verified first).
+Budget ≈2.38M core-hr; forecast ~9–16 days both lanes. Runbook:
+`docs/lightcone_1000real_plan.md`.
+
+---
+
+## 2026-08-10 (evening) — Tier-1 SR prototype: closed-form latent-model kernels
+
+`papers/01_pipeline/sr_kernels_prototype.py` (pyoperon 0.6, installed into BIND_env):
+symbolic regression of the shipped kernel table (`latent_model_coeffs.npz`), two routes —
+separable rank-adaptive SVD (SR the 1-D ℓ-shapes u_r(log ℓ), power-law z-legs) and direct
+2-D SR. Methodology findings that cost debugging time: (1) **center the latents first**
+(λ′ = λ − λ_mid; the raw intercept spans ~19 via a c0 ↔ c_logT·λ cancellation that
+independent SR fits destroy — centered it spans 0.196 = S at the cloud center); (2) the
+intercept needs rank 2 despite a "100%" rank-1 variance share (mean-dominated; actual
+rank-1 floor 4.3%); (3) SVD sign convention must be carried into the hold-out projection
+(project onto the symbolic shape, not vt·s). Results: route A hits the SVD floors —
+f̃_bar 3.6%/floor 1.9, f̃_star 2.1/1.9, c_gas 2.5/1.6, logT 1.3/1.2, intercept 1.1/0.3
+(% of dynamic range); z_s=2.44 extrapolation hold-out 2–7%; z-legs are clean power laws
+v(z) ∝ (1+z)^{−0.36/−0.86/−1.70/−0.29} (f̃_bar/f̃_star/c_gas/logT — the fig20f dilution,
+now closed-form). S-space impact (conservative corner-quadrature): median 0.012, ℓ~5e3
+0.015 ≈ the model's own σ_CV, ~2× the measurement floor. Twobound WindEnergy ΔS closure
+with symbolic kernels: r = 0.966 (exact kernels 0.990), RMS 0.015 on a 0.123-peak signal.
+Verdict: closed-form S(ℓ, z_s | λ) is feasible at model-intrinsic accuracy; expressions
+are prototype-grade (operon default ops, len 13–29) — production pass = restricted
+operator set + harder parsimony, syren-style. 2-D direct SR is uniformly worse than the
+separable route.
+
+**v3 (author: "continue with that"): `sr_kernels_v3.py` → the released closed form.**
+Template-first fitting (readable parametric families — tanh step, Gaussian bump,
+exponential upturn, polynomials — multi-start LS, competing against operon; keep the
+fewest-parameter form within 5% of best, intercept accuracy-first at 1%): **every one of
+the 8 kernel shapes chose a template; zero operon fallbacks.** The whole model is now
+sums of gauss+exp / tanh+exp (5–6 constants each) + one quintic. Intercept 4.8%→1.1%
+(floor 0.3); composite kernels 1.2–2.2% of range (floors 1.2–1.9); hold-out z=2.44
+2–7%; end-to-end beats the table on 3/4 nodes (run 245: 0.0073 vs 0.0124); twobound
+r=0.963. Deliverables: **`symbolic_latent_model.py`** (generated, 87 lines, all constants
+inlined, self-test; max serialization diff 4e-5 ≪ floor) + **`SYMBOLIC_MODEL.md`**
+(LaTeX equation block + validation) + the 4 sr_* figures re-rendered with final forms.
+S(ℓ, z_s | λ) is now implementable from the paper text alone — HMCode/SP(k) form factor.
+
+**v2 (same evening, author asked for plots): `sr_kernels_v2.py`** — 4 operator menus ×
+5 seeds per shape, pooled Pareto, pick = shortest within 5% of best; adds a standalone
+end-to-end test (Sobol-node latents measured from the atlas cube exactly as
+paper_s3b_clusters.py) + 4 figures in `figs_preview/`: `sr_kernel_fits` (table points vs
+symbolic curves, viridis z_s ramp), `sr_zlegs` (the power-law dilution legs, the
+headline), `sr_pareto` (length–accuracy fronts, chosen model starred), `sr_endtoend`
+(S(ℓ) at 4 nodes + residual-vs-floor strip; twobound ΔS closure). Numbers: kernels
+3.1/2.1/2.5/1.3% of range (floors 1.9/1.9/1.6/1.2), intercept 4.8% (floor 0.3 — weakest
+fit, 0.009 absolute). **End-to-end the symbolic closed form matches or beats the
+tabulated kernels on 3 of 4 nodes** (e.g. 0.0057 vs 0.0091 RMS — the smooth forms
+regularize per-band table noise); twobound closure r=0.969 (table 0.990). Expressions
+still operon-idiomatic (nested tanh); the z-legs are the publishable part as-is.
+
+Author asked how good the analytic-latent-model curves actually are — the figure had no
+errors, no residual view, no χ². Rebuilt the cell (`_build_figures_nb.py`, s4b arc): each
+of the 13 panels is now main + residual strip, with (1) ±1σ measurement bands on the
+measured curves (fields/spectra: realization SE σ/√50 from `t__*__err`, suppression
+propagated from `cl_kappa`'s err; pdf/MFs: fiducial per-real floor from
+`nu05_shards/sci_bind.npz` — node-independent approximation), (2) a ±1σ *predictive* band
+on the model (LOO fit, s·√(1+leverage)), (3) strips of (model−meas)/σ with ±2 band, and
+(4) per-panel χ²/ν stamps + a printed table with caveats (shared seeds → σ common-mode →
+χ² is a lower bound; EDG24 quadrature assumes independent ℓ bins). **Data-semantics
+gotcha fixed en route**: `t__scaling_*__err` is the halo-to-halo POPULATION scatter in
+dex (std of log10 per mass bin, `bind.inference.stats.scaling_relations`) against a
+LINEAR median value — first render treated it as a linear SE (log Y band blew up to
+±10⁶, log T χ²/ν ~10¹⁴). Correct SE of the median = 1.2533·scatter/√n, with n recounted
+per (run, mass bin) from `analysis_cache/integrated.parquet` snap 96 on the assembly
+edges linspace(13, 14.75, 8). **Second σ defect found when the author flagged the huge
+spectra χ²**: independent-bin quadrature in EDG24 band-averaging understates the band
+floor because realization scatter is strongly correlated across ℓ within a band —
+measured direct-SE/quadrature ratio on the fiducial per-real clk grows 1.3→4.7 over
+ℓ 10³→2×10⁴ (identical for S and log₁₀Cl). Fixed with the measured per-band factor
+`CORR24` applied in `band_sig24`; spectra χ²/ν deflated ~20×. Final verified render:
+counting stats at/below the noise floor (χ²/ν 0.0–0.2 — their stamps measure shape
+agreement, as before); scalings χ²/ν 2.1 (log T), 4.3 (log Y), 20 (f_gas); spectra
+S(ℓ) 22, C^κy 29, C^κτ 216, C^yy 226 — genuine model error, concentrated at ℓ≳3×10³
+and the extreme S(5000) nodes (the second-latent/nonlinear regime; y-weighted channels
+worst, consistent with the thermal kernel being the least-constrained latent). The %
+stamps (0.1–0.7% median) remain the accuracy statement; χ² vs the floor says a 4-latent
+linear compression cannot reach a 50-realization 25 deg² measurement floor — expected.
+
+**Round 3 (same day, author request): full-covariance χ² + model-upgrade audit.** The
+stamped χ²/ν is now z^T Corr⁻¹ z (bin-bin correlations included): Corr from the 50
+fiducial per-realization draws in the exact panel space (banded/log/ν), 5% identity
+shrinkage, Hartlap (n−p−2)/(n−1); each node keeps its own diagonal σ. y/τ spectra have
+no per-real cache — their banded-log correlation is proxied by the banded log-kk
+template (flagged); scaling panels' mass bins are disjoint halo sets, so full == diag
+there. Full-cov vs diag: S(ℓ) 22→14, pdf 20→7, C^κτ 216→103, C^yy 226→165, C^κy 29→20;
+counting stats unchanged (~0.1–0.3). Model-upgrade audit (printed in-cell; nonlinearity
+is settled OFF per S0.0c, so it tests ADDED-information 5th latents on 5-fold CV, 253
+nodes): +c_tau cuts the high-ℓ S(ℓ) error 1.31%→1.01%; +f̃_bar(cluster bin) cuts
+f_gas(M) 0.89%→0.66% and trims yy/κτ marginally; overall medians move ≤0.06 pp — no
+candidate transforms the y-channel misfit (missing thermal-structure information, per
+the S0.0c diagnosis). No model change adopted — the audit table is the measurement;
+adoption would need the out-of-design fiducial check that ruled out the GP.
+
+fig05_param_response cells now painted with rho AT the peak-|rho| bin (`SGN`, RdBu_r,
+fig-5a's red/blue convention: red = raising the parameter raises the statistic) instead
+of unsigned max-|rho| on cividis — direction is readable off the map. ALL significance
+logic unchanged (nulls, x/numeral/divider judge |rho| = IMPg; |SGN| == IMPg asserted);
+numerals print signed; colorbar band + grid-null dashes mirrored about zero; diverging-
+aware contrast (mid-gray x on the pale midpoint, white numerals only on saturated ends).
+Captions (fig:srow "collapsed to |rho|" corrected — the matrix now keeps the peak-bin
+sign), §3a md, and fig05_significance_methods.md (§3 SGN eq, §5 marks key, primer)
+updated. Newly visible read, stamped in the md with signs from the print: wind velocity
+raises the y-side spectra (+0.57/+0.59/+0.50) while lowering the tau-side (−0.68/−0.62)
+and S(ell) (−0.55); mechanism left to the author's voice. Caveat kept explicit
+everywhere: a signed cell cannot show sign CHANGES across bins (WindEnergy S(ell)) —
+that remains fig 5a's job.
+
+## 2026-08-10 (later) — Paper I fig 5/5a: Nyquist cut on the Spearman scan (author ruling)
+
+The fig-5a/5/7 ranking machinery now restricts every ℓ-domain row to the map's
+axis-Nyquist mode ℓ_Ny = 36864 (1024² px over 5 deg = `ELL_MAX_PLOT`, the limit every
+C_ℓ panel already displays to): `LNYQ`/`_ranked()` in the fig-5a cell cut the arrays
+where the ranking consumes them (`Ys` + the rebin-stability check) while `STATS["A"]`
+stays full-grid for fig 7's own ELL_TRUST-masked plotting. Resolves the main.tex
+validity FLAG on fig:srow (peak-|ρ| circles used to sit at ℓ up to ~5.1e4, in the
+direction-sparse corner-mode zone). S(ℓ) matrix 30×45 → 30×31 (511/724 native bins,
+centers 637–35206). Re-rendered figs 5a/5/7; new numbers: grid max 0.675 (was 0.708,
+C_ℓ^ττ × VarWindVelFactor, peak now at the Nyquist edge), per-stat nulls 0.149–0.182,
+per-param 0.200 (11/30 clear; 16/30 ≥1 row null), grid 0.253 (71/360 cells). Captions,
+§2/§3a md numerals, and fig05_significance_methods.md (new §1a + §6.6 two-limits note)
+updated in lockstep. No disk cache bakes in the scan (fig 8's S(ℓ) bands already stop at
+ELL_TRUST; imf_mechanism.py is audit-only with its own CIC-safe range).
+
+## 2026-08-10 — Paper I fig 5: de-texting (author ruling) + significance methods doc
+
+fig05_param_response: removed the two above-panel annotations (the per-parameter
+look-elsewhere pointer and the ×/numeral key) and the colorbar's "per-stat null"/"grid
+null" text labels — the figure now carries only axis/tick/colorbar labels; all data marks
+(×s, numerals, dashed divider, colorbar band + dashed line, WL/auto/cross block tags)
+stay. Key moves to the caption (main.tex fig:corr_matrix) and the NEW
+`papers/01_pipeline/fig05_significance_methods.md`: a complete equation-level derivation
+of the pipeline — pre-averaging, masked Spearman, max-over-bins importance, and the
+4-level null ladder (analytic single-bin 2/√N; per-statistic / per-parameter / whole-grid
+Westfall–Young permutation nulls; seed rng(4), T=200, one shared stream) plus an
+effective-bins diagnostic and the marks key. Re-rendered via `_run_subset.py` and
+refreshed the §3a md numerals to the current 256-run dataset (repaint-fixed): 0.125 /
+0.150–0.182 / 0.200 (11/30 params clear; 15/30 clear ≥1 row null) / 0.253 (72/360 cells).
+
 ## 2026-08-06 — Paper I: latent-model HARMONIZATION (author ruling) + upstream provenance
 
 Canonical latent set flipped to the harmonized convention: ONE snapshot (096), ONE hinge

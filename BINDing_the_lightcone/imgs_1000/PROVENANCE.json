@@ -1,0 +1,166 @@
+{
+ "fig01_pipeline_diagram": {
+  "built_utc": "2026-08-21T22:41:10+00:00",
+  "campaign": {
+   "replica": "tb49",
+   "sobol_complete": false,
+   "sobol_nodes": 107,
+   "twobound_stats": 56
+  },
+  "note": "realization-independent; copied verbatim from imgs/ (single-draw showcase, no realization axis)",
+  "produced": [
+   "fig01_pipeline_diagram.png"
+  ],
+  "provisional": false,
+  "sources": {
+   "/mnt/home/mlee1/BIND/BINDing_the_lightcone/imgs/fig01_pipeline_diagram.png": "2026-08-14T13:06:03"
+  }
+ },
+ "fig02_hero": {
+  "built_utc": "2026-08-21T22:41:51+00:00",
+  "campaign": {
+   "replica": "tb49",
+   "sobol_complete": false,
+   "sobol_nodes": 107,
+   "twobound_stats": 56
+  },
+  "note": "fsfig2_hero.py, realization 0 of each arm",
+  "produced": [
+   "fig02_hero.png",
+   "fig02_hero.pdf"
+  ],
+  "provisional": false,
+  "sources": {
+   "/mnt/home/mlee1/ceph/bind_n1000/twobound/run_0049/kappa_maps.npz": "2026-08-17T22:42:59"
+  }
+ },
+ "fig03_halo_validation": {
+  "built_utc": "2026-08-21T22:41:11+00:00",
+  "campaign": {
+   "replica": "tb49",
+   "sobol_complete": false,
+   "sobol_nodes": 107,
+   "twobound_stats": 56
+  },
+  "note": "realization-independent; copied verbatim from imgs/ (per-halo snapshot atlas, no realization axis)",
+  "produced": [
+   "fig03_halo_validation.png"
+  ],
+  "provisional": false,
+  "sources": {
+   "/mnt/home/mlee1/BIND/BINDing_the_lightcone/imgs/fig03_halo_validation.png": "2026-08-14T14:38:24"
+  }
+ },
+ "fig04_radial_profiles": {
+  "built_utc": "2026-08-21T22:41:11+00:00",
+  "campaign": {
+   "replica": "tb49",
+   "sobol_complete": false,
+   "sobol_nodes": 107,
+   "twobound_stats": 56
+  },
+  "note": "realization-independent; copied verbatim from imgs/ (per-halo snapshot profiles, no realization axis)",
+  "produced": [
+   "fig04_radial_profiles.png"
+  ],
+  "provisional": false,
+  "sources": {
+   "/mnt/home/mlee1/BIND/BINDing_the_lightcone/imgs/fig04_radial_profiles.png": "2026-08-14T14:38:24"
+  }
+ },
+ "fig05_field_validation": {
+  "built_utc": "2026-08-21T22:42:11+00:00",
+  "campaign": {
+   "replica": "tb49",
+   "sobol_complete": false,
+   "sobol_nodes": 107,
+   "twobound_stats": 56
+  },
+  "note": "fsfig5_field.py on the n1000 field cache + nu05 shards",
+  "produced": [
+   "fig05_field_validation.png",
+   "fig05_field_validation.pdf"
+  ],
+  "provisional": false,
+  "sources": {
+   "/mnt/home/mlee1/ceph/bind_n1000/field_cache/field_stats_fid_n1000.npz": "2026-08-20T08:02:31",
+   "/mnt/home/mlee1/ceph/bind_n1000/nu05_shards/sci_bind_tb49_n1000.npz": "2026-08-20T07:47:17",
+   "/mnt/home/mlee1/ceph/bind_n1000/nu05_shards/sci_truth_n1000.npz": "2026-08-20T07:47:17"
+  }
+ },
+ "fig06_spectra_validation": {
+  "built_utc": "2026-08-21T22:51:13+00:00",
+  "campaign": {
+   "replica": "tb49",
+   "sobol_complete": false,
+   "sobol_nodes": 107,
+   "twobound_stats": 56
+  },
+  "note": "fsfig6_spectra.py, fully cache-driven at N=1000 (field cache + yt cache, cross-validated vs per-run MPI stats)",
+  "produced": [
+   "fig06_spectra_validation.png",
+   "fig06_spectra_validation.pdf"
+  ],
+  "provisional": false,
+  "sources": {
+   "/mnt/home/mlee1/ceph/bind_n1000/field_cache/field_stats_fid_n1000.npz": "2026-08-20T08:02:31",
+   "/mnt/home/mlee1/ceph/bind_n1000/field_cache/yt_stats_bind_tb49_n1000.npz": "2026-08-21T15:50:44",
+   "/mnt/home/mlee1/ceph/bind_n1000/field_cache/yt_stats_truth_n1000.npz": "2026-08-21T15:36:37"
+  }
+ },
+ "figA1_fullhydro_wl": {
+  "built_utc": "2026-08-21T22:41:12+00:00",
+  "campaign": {
+   "replica": "tb49",
+   "sobol_complete": false,
+   "sobol_nodes": 107,
+   "twobound_stats": 56
+  },
+  "note": "realization-independent; copied verbatim from imgs/ (one-off full-hydro lux trace (50-real R1 ladder))",
+  "produced": [
+   "figA1_fullhydro_wl.png",
+   "figA1_fullhydro_wl.pdf"
+  ],
+  "provisional": false,
+  "sources": {
+   "/mnt/home/mlee1/BIND/BINDing_the_lightcone/imgs/figA1_fullhydro_wl.png": "2026-08-14T14:32:31"
+  }
+ },
+ "figA2_fullhydro_gas": {
+  "built_utc": "2026-08-21T22:41:12+00:00",
+  "campaign": {
+   "replica": "tb49",
+   "sobol_complete": false,
+   "sobol_nodes": 107,
+   "twobound_stats": 56
+  },
+  "note": "realization-independent; copied verbatim from imgs/ (one-off full-hydro lux trace (50-real R1 ladder))",
+  "produced": [
+   "figA2_fullhydro_gas.png",
+   "figA2_fullhydro_gas.pdf"
+  ],
+  "provisional": false,
+  "sources": {
+   "/mnt/home/mlee1/BIND/BINDing_the_lightcone/imgs/figA2_fullhydro_gas.png": "2026-08-14T14:32:31"
+  }
+ },
+ "figA3_texture_debias": {
+  "built_utc": "2026-08-21T23:07:48+00:00",
+  "campaign": {
+   "replica": "tb49",
+   "sobol_complete": false,
+   "sobol_nodes": 107,
+   "twobound_stats": 56
+  },
+  "note": "make_fig_texture_debias.py; n1000-tagged texture template",
+  "produced": [
+   "figA3_texture_debias.pdf",
+   "figA3_texture_debias.png"
+  ],
+  "provisional": false,
+  "sources": {
+   "/mnt/home/mlee1/BIND/BINDing_the_lightcone/analysis/texture_template_maps_n1000.npz": "2026-08-21T16:07:46",
+   "/mnt/home/mlee1/ceph/bind_n1000/analysis/fig05_numbers_n1000.npz": "2026-08-21T15:42:11"
+  }
+ }
+}

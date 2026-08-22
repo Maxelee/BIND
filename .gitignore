@@ -106,3 +106,12 @@ papers/*.zip
 # disBatch job debris + transient subset-run notebook
 *_disBatch_*
 _subset_run.ipynb
+
+# ---------------------------------------------------------------------------
+# Paper II manuscript stays OUT of git (author-owned tex/bib/class/referee
+# docs live on disk only); the versioned parts are the figure-generation
+# chain (analysis/) and the imgs_1000 provenance record.
+# ---------------------------------------------------------------------------
+BINDing_the_lightcone/*
+!BINDing_the_lightcone/analysis/
+!BINDing_the_lightcone/imgs_1000/

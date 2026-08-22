@@ -1,0 +1,29 @@
+{
+ "N_cov": 1000,
+ "dlnl": 0.15,
+ "n_bands": 34,
+ "LSST-Y10": {
+  "peak": 21.6,
+  "peak_ell": 5395,
+  "window": [
+   2189,
+   17889
+  ],
+  "median_peak": 12.2,
+  "pct_gt1": 100.0,
+  "pct_gt5": 86.0
+ },
+ "Euclid-like": {
+  "peak": 16.7,
+  "peak_ell": 5395,
+  "window": [
+   2550,
+   11409
+  ],
+  "median_peak": 9.4,
+  "pct_gt1": 99.1,
+  "pct_gt5": 74.8
+ },
+ "sigma_pred_crossover_ell": 2725,
+ "sigma_pred_max_ratio": 2.05
+}

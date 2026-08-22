@@ -1,0 +1,704 @@
+{
+ "baseline_cv": {
+  "clk": 0.9632,
+  "pdf": 0.9386,
+  "pk": 0.7872,
+  "mn": 0.8379,
+  "v0": 0.9597,
+  "v1": 0.9458,
+  "v2": 0.9638
+ },
+ "baseline_pooled": 0.9137,
+ "ell_grid": {
+  "n_native_bins": 724,
+  "dlnl_native": 0.00276,
+  "n_bandpowers": 34,
+  "dlnl_band": 0.15,
+  "width_ratio": 54.4
+ },
+ "detect": {
+  "LSST-Y10": {
+   "as_shipped": {
+    "peak": 20.9,
+    "peak_ell": 6152,
+    "window": [
+     2406,
+     18753
+    ],
+    "frac_gt5sig": 1.0,
+    "frac_gt1sig": 1.0,
+    "median_peak": 14.3
+   },
+   "native": {
+    "peak": 3.3,
+    "peak_ell": 3917,
+    "window": null,
+    "frac_gt5sig": 0.035,
+    "frac_gt1sig": 1.0,
+    "median_peak": 2.7
+   },
+   "bandpower": {
+    "peak": 22.0,
+    "peak_ell": 5395,
+    "window": [
+     2189,
+     17889
+    ],
+    "frac_gt5sig": 1.0,
+    "frac_gt1sig": 1.0,
+    "median_peak": 14.0
+   },
+   "sigma_band_pct": {
+    "305": 1.282,
+    "1036": 0.56,
+    "2946": 0.409,
+    "6296": 0.578,
+    "13245": 1.327,
+    "20805": 2.51
+   },
+   "area_deg2": 18151,
+   "N_ell_sr": 2.119e-10
+  },
+  "Euclid-like": {
+   "as_shipped": {
+    "peak": 16.3,
+    "peak_ell": 6152,
+    "window": [
+     2692,
+     13210
+    ],
+    "frac_gt5sig": 0.969,
+    "frac_gt1sig": 1.0,
+    "median_peak": 11.5
+   },
+   "native": {
+    "peak": 2.5,
+    "peak_ell": 3917,
+    "window": null,
+    "frac_gt5sig": 0.004,
+    "frac_gt1sig": 0.969,
+    "median_peak": 2.1
+   },
+   "bandpower": {
+    "peak": 17.0,
+    "peak_ell": 5395,
+    "window": [
+     2550,
+     13245
+    ],
+    "frac_gt5sig": 0.996,
+    "frac_gt1sig": 1.0,
+    "median_peak": 11.0
+   },
+   "sigma_band_pct": {
+    "305": 1.42,
+    "1036": 0.635,
+    "2946": 0.499,
+    "6296": 0.753,
+    "13245": 1.755,
+    "20805": 3.324
+   },
+   "area_deg2": 14851,
+   "N_ell_sr": 2.538e-10
+  }
+ },
+ "Cl_kk_6000_zs1": 2.601e-11,
+ "N_over_C_6000_LSST": 8.1,
+ "sigma_pred": {
+  "ell": [
+   330,
+   400,
+   484,
+   587,
+   711,
+   861,
+   1044,
+   1265,
+   1532,
+   1856,
+   2249,
+   2725,
+   3302,
+   4000,
+   4846,
+   5872,
+   7114,
+   8618,
+   10442,
+   12650,
+   15326,
+   18568,
+   22496,
+   27255
+  ],
+  "sigma_pred": [
+   0.00073,
+   0.00075,
+   0.00104,
+   0.0013,
+   0.00144,
+   0.00176,
+   0.00218,
+   0.00291,
+   0.00315,
+   0.00337,
+   0.00391,
+   0.00469,
+   0.00563,
+   0.00673,
+   0.00816,
+   0.00993,
+   0.01207,
+   0.01411,
+   0.01648,
+   0.0188,
+   0.02126,
+   0.02416,
+   0.02745,
+   0.03181
+  ],
+  "sigma_survey": [
+   0.01227,
+   0.00998,
+   0.00926,
+   0.00741,
+   0.00791,
+   0.00708,
+   0.00555,
+   0.00566,
+   0.00489,
+   0.00443,
+   0.00416,
+   0.00402,
+   0.00395,
+   0.00404,
+   0.00446,
+   0.00506,
+   0.0059,
+   0.00714,
+   0.00884,
+   0.01122,
+   0.01452,
+   0.01933,
+   0.02617,
+   0.03528
+  ]
+ },
+ "sigma_pred_exceeds_survey_above_ell": 2725,
+ "chi2": {
+  "p": 34,
+  "N": 1000,
+  "hartlap": 0.965,
+  "median": 1366.9,
+  "min": 144.2,
+  "max": 10405.1,
+  "frac_gt_p": 1.0,
+  "frac_gt_25sig_equiv": 1.0
+ },
+ "decoy_path": [
+  {
+   "move": 1,
+   "name": "f_bar[13.0-13.2]",
+   "gain": 0.7161,
+   "best_decoy_gain": 0.0047,
+   "decoy_rank": 91,
+   "accepted_rank": 1
+  },
+  {
+   "move": 2,
+   "name": "f_star[13.2-13.4]",
+   "gain": 0.1401,
+   "best_decoy_gain": 0.0018,
+   "decoy_rank": 88,
+   "accepted_rank": 1
+  },
+  {
+   "move": 3,
+   "name": "logPe[14.0-14.3]",
+   "gain": 0.0189,
+   "best_decoy_gain": -0.0001,
+   "decoy_rank": 81,
+   "accepted_rank": 1
+  },
+  {
+   "move": 4,
+   "name": "logT[13.0-13.2]",
+   "gain": 0.0189,
+   "best_decoy_gain": 0.0001,
+   "decoy_rank": 76,
+   "accepted_rank": 1
+  },
+  {
+   "move": 5,
+   "name": "logY[13.0-13.2]",
+   "gain": 0.008,
+   "best_decoy_gain": -0.0001,
+   "decoy_rank": 83,
+   "accepted_rank": 1
+  },
+  {
+   "move": 6,
+   "name": "logPe[14.0-14.3]",
+   "gain": 0.0257,
+   "best_decoy_gain": -0.0001,
+   "decoy_rank": 80,
+   "accepted_rank": 1
+  },
+  {
+   "move": 7,
+   "name": "c_gas[14.0-14.3]",
+   "gain": 0.0049,
+   "best_decoy_gain": 0.0,
+   "decoy_rank": 73,
+   "accepted_rank": 1
+  },
+  {
+   "move": 8,
+   "name": "logY_ss[13.4-13.6]",
+   "gain": 0.0037,
+   "best_decoy_gain": -0.0001,
+   "decoy_rank": 69,
+   "accepted_rank": 1
+  },
+  {
+   "move": 9,
+   "name": "c_gas[13.2-13.4]",
+   "gain": 0.0025,
+   "best_decoy_gain": -0.0001,
+   "decoy_rank": 57,
+   "accepted_rank": 1
+  },
+  {
+   "move": 10,
+   "name": "logPe[13.4-13.6]",
+   "gain": 0.0021,
+   "best_decoy_gain": -0.0001,
+   "decoy_rank": 51,
+   "accepted_rank": 1
+  }
+ ],
+ "decoy_marginal_best": 0.0047,
+ "decoy_selected": 0,
+ "decoy_null200": [
+  {
+   "k": 1,
+   "null_mean": -0.01124,
+   "null_p95": 2e-05,
+   "null_max": 0.00949
+  },
+  {
+   "k": 2,
+   "null_mean": -0.00126,
+   "null_p95": 0.00118,
+   "null_max": 0.00484
+  },
+  {
+   "k": 3,
+   "null_mean": -0.00052,
+   "null_p95": 0.00013,
+   "null_max": 0.00158
+  },
+  {
+   "k": 4,
+   "null_mean": -0.00042,
+   "null_p95": 0.0002,
+   "null_max": 0.0015
+  },
+  {
+   "k": 5,
+   "null_mean": -0.00034,
+   "null_p95": 8e-05,
+   "null_max": 0.00095
+  },
+  {
+   "k": 6,
+   "null_mean": -0.00028,
+   "null_p95": 5e-05,
+   "null_max": 0.00044
+  },
+  {
+   "k": 7,
+   "null_mean": -0.00028,
+   "null_p95": 5e-05,
+   "null_max": 0.00044
+  },
+  {
+   "k": 8,
+   "null_mean": -0.00025,
+   "null_p95": 5e-05,
+   "null_max": 0.00024
+  },
+  {
+   "k": 9,
+   "null_mean": -0.00024,
+   "null_p95": 4e-05,
+   "null_max": 0.00025
+  },
+  {
+   "k": 10,
+   "null_mean": -0.00023,
+   "null_p95": 8e-05,
+   "null_max": 0.00025
+  }
+ ],
+ "eps_recommended": 0.0012,
+ "cv_fold_internal_mean": {
+  "clk": 0.9634,
+  "pdf": 0.9387,
+  "pk": 0.7873,
+  "mn": 0.8387,
+  "v0": 0.96,
+  "v1": 0.946,
+  "v2": 0.9639
+ },
+ "cv_fold_internal_std": {
+  "clk": 0.9632,
+  "pdf": 0.9386,
+  "pk": 0.7872,
+  "mn": 0.8379,
+  "v0": 0.9597,
+  "v1": 0.9458,
+  "v2": 0.9638
+ },
+ "cv_shift_mean": 0.0003,
+ "cv_shift_std": 0.0,
+ "theta_linear_cv": {
+  "clk": 0.5822,
+  "pdf": 0.5673,
+  "pk": 0.3864,
+  "mn": 0.4098,
+  "v0": 0.5134,
+  "v1": 0.4736,
+  "v2": 0.4919
+ },
+ "theta_linear_pooled": 0.4892,
+ "theta_gbt_cv": {
+  "clk": 0.0619,
+  "pdf": 0.4851,
+  "pk": 0.3965,
+  "mn": 0.4278,
+  "v0": 0.3737,
+  "v1": 0.5335,
+  "v2": 0.5709
+ },
+ "theta_gbt_pooled": 0.4071,
+ "replica_lambda_noise_frac": {
+  "f_star[13.2-13.4]": 0.0233,
+  "logT[13.0-13.2]": 0.0772,
+  "logY[13.0-13.2]": 0.058,
+  "logPe[14.0-14.3]": 0.1021,
+  "c_gas[14.0-14.3]": 0.1268,
+  "logY_ss[13.4-13.6]": 0.0219,
+  "c_gas[13.2-13.4]": 0.0217,
+  "logPe[13.4-13.6]": 0.0255
+ },
+ "replica_selfpred_median_pct": 0.739,
+ "replica_crosspred_median_pct": 0.75,
+ "replica_S_scatter_pct": 0.055,
+ "geometry": {
+  "0.5": {
+   "chi": 1318.0,
+   "transverse": 115.0,
+   "over_box": 0.56
+  },
+  "1.0": {
+   "chi": 2300.6,
+   "transverse": 200.8,
+   "over_box": 0.98
+  },
+  "1.5": {
+   "chi": 3034.5,
+   "transverse": 264.8,
+   "over_box": 1.29
+  },
+  "2.0": {
+   "chi": 3598.6,
+   "transverse": 314.0,
+   "over_box": 1.53
+  },
+  "2.44": {
+   "chi": 3997.2,
+   "transverse": 348.8,
+   "over_box": 1.7
+  },
+  "kernel_peak": {
+   "z": 0.428,
+   "chi": 1150.5,
+   "transverse": 100.4,
+   "patches_per_face": 4.2
+  }
+ },
+ "nested": {
+  "lambda": {
+   "nested_cv": {
+    "clk": 0.9542,
+    "pdf": 0.929,
+    "pk": 0.7838,
+    "mn": 0.8333,
+    "v0": 0.9586,
+    "v1": 0.9403,
+    "v2": 0.9627
+   },
+   "nested_pooled": 0.9089,
+   "sizes": [
+    7,
+    7,
+    6,
+    6,
+    7
+   ],
+   "picks": [
+    [
+     "f_star[13.2-13.4]",
+     "logT[13.0-13.2]",
+     "logY[13.0-13.2]",
+     "logPe[14.0-14.3]",
+     "c_gas[14.0-14.3]",
+     "f_gas200[13.8-14.0]",
+     "c_gas[13.4-13.6]"
+    ],
+    [
+     "logPe[14.0-14.3]",
+     "logT[13.0-13.2]",
+     "logY[13.0-13.2]",
+     "f_star[13.2-13.4]",
+     "f_bar[13.4-13.6]",
+     "f_gas200[14.3+]",
+     "c_gas[14.0-14.3]"
+    ],
+    [
+     "logT_ss[13.0-13.2]",
+     "f_star[13.6-13.8]",
+     "logY[13.0-13.2]",
+     "logPe[14.0-14.3]",
+     "f_bar[13.4-13.6]",
+     "c_gas[13.8-14.0]"
+    ],
+    [
+     "f_star[13.4-13.6]",
+     "logT[13.0-13.2]",
+     "logY[13.0-13.2]",
+     "c_gas[13.8-14.0]",
+     "logPe[13.6-13.8]",
+     "f_bar[13.4-13.6]"
+    ],
+    [
+     "f_star[13.4-13.6]",
+     "logPe[13.8-14.0]",
+     "logT[13.0-13.2]",
+     "trend_f_gas200",
+     "logPe[13.0-13.2]",
+     "scat_fbar[13.0-13.2]",
+     "c_gas[14.0-14.3]"
+    ]
+   ],
+   "stability": {
+    "logY[13.0-13.2]": 4,
+    "logT[13.0-13.2]": 4,
+    "c_gas[14.0-14.3]": 3,
+    "logPe[14.0-14.3]": 3,
+    "f_bar[13.4-13.6]": 3,
+    "c_gas[13.8-14.0]": 2,
+    "f_star[13.4-13.6]": 2,
+    "f_star[13.2-13.4]": 2,
+    "logT_ss[13.0-13.2]": 1,
+    "f_gas200[13.8-14.0]": 1,
+    "logPe[13.8-14.0]": 1,
+    "c_gas[13.4-13.6]": 1,
+    "f_star[13.6-13.8]": 1,
+    "trend_f_gas200": 1,
+    "scat_fbar[13.0-13.2]": 1,
+    "logPe[13.0-13.2]": 1,
+    "f_gas200[14.3+]": 1,
+    "logPe[13.6-13.8]": 1
+   },
+   "flat_selected": [
+    "f_star[13.2-13.4]",
+    "logT[13.0-13.2]",
+    "logY[13.0-13.2]",
+    "logPe[14.0-14.3]",
+    "c_gas[14.0-14.3]",
+    "logY_ss[13.4-13.6]",
+    "c_gas[13.2-13.4]",
+    "logPe[13.4-13.6]"
+   ],
+   "flat_score": 0.9143
+  },
+  "theta": {
+   "nested_cv": {
+    "clk": 0.534,
+    "pdf": 0.5073,
+    "pk": 0.3547,
+    "mn": 0.383,
+    "v0": 0.4953,
+    "v1": 0.4218,
+    "v2": 0.4434
+   },
+   "nested_pooled": 0.4485,
+   "sizes": [
+    14,
+    14,
+    14,
+    14,
+    13
+   ],
+   "picks": [
+    [
+     "BlackHoleRadiativeEfficiency",
+     "IMFslope",
+     "VariableWindVelFactor",
+     "RadioFeedbackReiorientationFactor",
+     "WindEnergyIn1e51erg",
+     "QuasarThreshold",
+     "WindFreeTravelDensFac",
+     "SeedBlackHoleMass",
+     "BlackHoleFeedbackFactor",
+     "VariableWindSpecMomentum",
+     "SNIa_Rate_Norm",
+     "BlackHoleAccretionFactor",
+     "BlackHoleEddingtonFactor",
+     "QuasarThresholdPower"
+    ],
+    [
+     "IMFslope",
+     "BlackHoleRadiativeEfficiency",
+     "QuasarThreshold",
+     "VariableWindVelFactor",
+     "WindEnergyIn1e51erg",
+     "RadioFeedbackReiorientationFactor",
+     "WindFreeTravelDensFac",
+     "QuasarThresholdPower",
+     "SeedBlackHoleMass",
+     "BlackHoleFeedbackFactor",
+     "WindEnergyReductionFactor",
+     "WindEnergyReductionMetallicity",
+     "SNIa_Rate_Norm",
+     "BlackHoleAccretionFactor"
+    ],
+    [
+     "BlackHoleRadiativeEfficiency",
+     "IMFslope",
+     "WindEnergyIn1e51erg",
+     "VariableWindVelFactor",
+     "QuasarThreshold",
+     "RadioFeedbackReiorientationFactor",
+     "WindFreeTravelDensFac",
+     "RadioFeedbackFactor",
+     "SeedBlackHoleMass",
+     "WindEnergyReductionFactor",
+     "UVBHepbeta",
+     "MinWindVel",
+     "FactorForSofterEQS",
+     "BlackHoleAccretionFactor"
+    ],
+    [
+     "BlackHoleRadiativeEfficiency",
+     "QuasarThreshold",
+     "IMFslope",
+     "WindEnergyIn1e51erg",
+     "VariableWindVelFactor",
+     "RadioFeedbackReiorientationFactor",
+     "WindFreeTravelDensFac",
+     "SeedBlackHoleMass",
+     "BlackHoleAccretionFactor",
+     "FactorForSofterEQS",
+     "WindEnergyReductionMetallicity",
+     "ThermalWindFraction",
+     "BlackHoleFeedbackFactor",
+     "MinWindVel"
+    ],
+    [
+     "BlackHoleRadiativeEfficiency",
+     "IMFslope",
+     "RadioFeedbackReiorientationFactor",
+     "VariableWindVelFactor",
+     "WindEnergyIn1e51erg",
+     "QuasarThreshold",
+     "WindFreeTravelDensFac",
+     "SeedBlackHoleMass",
+     "VariableWindSpecMomentum",
+     "BlackHoleAccretionFactor",
+     "RadioFeedbackFactor",
+     "BlackHoleEddingtonFactor",
+     "MinWindVel"
+    ]
+   ],
+   "stability": {
+    "RadioFeedbackReiorientationFactor": 5,
+    "WindEnergyIn1e51erg": 5,
+    "IMFslope": 5,
+    "QuasarThreshold": 5,
+    "BlackHoleAccretionFactor": 5,
+    "VariableWindVelFactor": 5,
+    "WindFreeTravelDensFac": 5,
+    "BlackHoleRadiativeEfficiency": 5,
+    "SeedBlackHoleMass": 5,
+    "MinWindVel": 3,
+    "BlackHoleFeedbackFactor": 3,
+    "BlackHoleEddingtonFactor": 2,
+    "SNIa_Rate_Norm": 2,
+    "FactorForSofterEQS": 2,
+    "WindEnergyReductionFactor": 2,
+    "WindEnergyReductionMetallicity": 2,
+    "RadioFeedbackFactor": 2,
+    "VariableWindSpecMomentum": 2,
+    "QuasarThresholdPower": 2,
+    "UVBHepbeta": 1,
+    "ThermalWindFraction": 1
+   },
+   "flat_selected": [
+    "BlackHoleRadiativeEfficiency",
+    "IMFslope",
+    "VariableWindVelFactor",
+    "QuasarThreshold",
+    "WindEnergyIn1e51erg",
+    "RadioFeedbackReiorientationFactor",
+    "WindFreeTravelDensFac",
+    "SeedBlackHoleMass",
+    "RadioFeedbackFactor",
+    "QuasarThresholdPower",
+    "BlackHoleAccretionFactor",
+    "FactorForSofterEQS",
+    "BlackHoleFeedbackFactor",
+    "WindEnergyReductionFactor"
+   ],
+   "flat_score": 0.5183
+  }
+ },
+ "theta_best8_cv": {
+  "clk": 0.5282,
+  "pdf": 0.4981,
+  "pk": 0.3854,
+  "mn": 0.415,
+  "v0": 0.5348,
+  "v1": 0.4571,
+  "v2": 0.481
+ },
+ "theta_best8_pooled": 0.4714,
+ "theta_sffs_k": 14,
+ "theta_sffs_pooled": 0.5183,
+ "detect_paired_denominator": {
+  "LSST-Y10": {
+   "peak": 21.8,
+   "peak_ell": 5395,
+   "win": [
+    2189,
+    17889
+   ],
+   "gt1": 100.0,
+   "gt5": 84.0,
+   "med": 11.9
+  },
+  "Euclid-like": {
+   "peak": 16.9,
+   "peak_ell": 5395,
+   "win": [
+    2550,
+    13245
+   ],
+   "gt1": 99.6,
+   "gt5": 73.0,
+   "med": 9.2
+  }
+ }
+}

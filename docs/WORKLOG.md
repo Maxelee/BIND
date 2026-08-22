@@ -6,6 +6,25 @@ files rather than restating diffs. (Maintained by Claude Code; see CLAUDE.md.)
 
 ---
 
+## 2026-08-22 — git curation (figure chain only) + v0.3.0 built and tagged
+
+- **papers branch curated** (6 commits): gitignore hardening; the src/bind lightcone
+  engine; the N1000 campaign/repaint/validation scripts; the complete Paper I figure
+  chain (183 files incl. referee/ + audits/); the Paper II figure chain — with the
+  **manuscript deliberately untracked and gitignored** (analysis/ + imgs_1000
+  provenance only). Chain-completeness verified: all 18+14 main.tex figure stems
+  resolve to tracked builders. Left untracked by design: plan/TODO/scorecard docs,
+  SR explorations, papers/06_universality (FLAMINGO, early).
+- **v0.3.0 assembled** on `release/v0.3.0` (worktree /mnt/home/mlee1/BIND_v030_worktree),
+  tagged locally: union-merge of origin/main (v0.2.0 methods) + the lightcone line.
+  BREAKING: `bind.wlemu` → `bind.wlemu_stats` (GP stats emulator; `bind-wlemu-stats`,
+  extra `wlemu-stats-fit`); `bind.wlemu` now = the field-level CFM κ generator.
+  Hand-merged: paint_stages (44 hunks: provenance/seed/paste_mode grafted onto
+  _check_cosmology/transforms/mas_correct/generate_halos), pipeline
+  (paste_mode+thermo coexist; sharing applies to mass channels — documented),
+   3 paint CLIs, pyproject (24+ scripts, extras union, 0.3.0). Release tree carries
+  NO papers/BINDing_the_lightcone. ruff clean (was 57 errors), pytest 54/54.
+
 ## 2026-08-21 — imgs_1000: one compute-once driver, run_id-alignment bug fixed, cache-driven fig06/fig10
 
 Goal: `BINDing_the_lightcone/imgs_1000/` = the exact `imgs/` figure set rebuilt on the

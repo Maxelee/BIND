@@ -1,0 +1,494 @@
+{
+ "item": "CR-5 \u2014 split fig04_field_validation into a WL figure + a new spectra figure (fig04b), strip the chi2/N_eff/band text, put the PDF on a nu axis over [-3,8], draw 5 source-plane lines in the top panels (errors at z_s=1 only), and extend ell past 20,000",
+ "figures": [
+  "fig04_field_validation",
+  "fig04b_spectra",
+  "fig11_zclosure",
+  "fig18_highell_localize"
+ ],
+ "code_locations": [
+  {
+   "what": "Fig 4 markdown cell (closure philosophy / noise audit / panel list / reading) \u2014 describes chi2 stamps, N_eff annotations, panels (i,j), kappa PDF x-axis, nu in [-3,4], ell in [100,1.5e4]; ALL of that becomes wrong and must be rewritten + a second md block added for fig04b",
+   "start_line": 1045,
+   "end_line": 1143
+  },
+  {
+   "what": "Fig 4 code cell \u2014 the whole block: code(r''' at 1145, closing ''') at 1519",
+   "start_line": 1145,
+   "end_line": 1519
+  },
+  {
+   "what": "Map loading + per-realization paired spectra loop (bk/by/tk/ty at ZI and y[:,-1]; builds kk_b,kk_t,ky_b,ky_t,yy_b,yy_t; defines ell_f, NR, RB, RT, ELL_LO)",
+   "start_line": 1153,
+   "end_line": 1170
+  },
+  {
+   "what": "Live per-realization peaks/minima/PDF recompute (peak_counts_fn with bk[:, None] -> single plane only; pdf_edges built from b_ng['pdf_bins'] in KAPPA units; the `del ... bk, by, tk, ty` at 1196 frees the maps)",
+   "start_line": 1172,
+   "end_line": 1196
+  },
+  {
+   "what": "mt mask (uses ELL_TRUST) + paired() + chi2_full() helpers",
+   "start_line": 1198,
+   "end_line": 1221
+  },
+  {
+   "what": "PART A noise-accounting audit (null_test, rho_realization, prints) \u2014 kept, but its md prose is tied to the deleted on-figure stamps",
+   "start_line": 1223,
+   "end_line": 1260
+  },
+  {
+   "what": "PART B data prep: paired_perreal load, f_ell, paired() calls for kk/ky/yy, S(ell) from dmo cache, fullcov dict + neff_note(), LSST cl_relerr + lsst_kk/lsst_S, CV_FSKY/cv_floor/cv_band, NU_LIM=(-3,4)",
+   "start_line": 1262,
+   "end_line": 1308
+  },
+  {
+   "what": "peaks/minima paired bands + chi2 (nu_ok uses NU_LIM)",
+   "start_line": 1310,
+   "end_line": 1330
+  },
+  {
+   "what": "Minkowski band/residual helper mf_band_res (BIND-only per-real, sqrt(2) truth kludge)",
+   "start_line": 1332,
+   "end_line": 1342
+  },
+  {
+   "what": "PDF paired band + residual + chi2 (pdf_b_real/pdf_t_real means)",
+   "start_line": 1344,
+   "end_line": 1353
+  },
+  {
+   "what": "chi2_fmt helper \u2014 becomes dead once the chi2 stamp is deleted",
+   "start_line": 1357,
+   "end_line": 1358
+  },
+  {
+   "what": "`panels` list: 10 dicts, tags (a)..(j). Keys: x, yb, yt, band, lsst, xl, yl, xs, ys, xlim, tag, chi2, kind, and optionally ctx/neff/rlim/logy_minor/ylpad. kind in {cl, pdf, nu, mf}",
+   "start_line": 1360,
+   "end_line": 1398
+  },
+  {
+   "what": "panels (a) Cl_kk and (b) S(ell) \u2014 the two LSST-Y10 panels",
+   "start_line": 1361,
+   "end_line": 1368
+  },
+  {
+   "what": "panel (c) PDF \u2014 x=pdf_cent (KAPPA units), xl=r'$\\kappa$', xlim=None; this is the panel the user wants converted to nu in [-3,8]",
+   "start_line": 1369,
+   "end_line": 1371
+  },
+  {
+   "what": "panels (d) N_pk, (e) N_min \u2014 x=b_pk['nu'], xlim=NU_LIM",
+   "start_line": 1372,
+   "end_line": 1377
+  },
+  {
+   "what": "panels (f,g,h) V0,V1,V2 \u2014 x=b_ng['mf_nu'] (grid is linspace(-3,4,29)), xlim=NU_LIM",
+   "start_line": 1378,
+   "end_line": 1386
+  },
+  {
+   "what": "panels (i) Cl_ky and (j) Cl_yy \u2014 THE TWO PANELS TO REMOVE and re-home into fig04b",
+   "start_line": 1387,
+   "end_line": 1397
+  },
+  {
+   "what": "figure construction: gridspec(8,4, height_ratios=[2.2,1,0.55,2.2,1,0.55,2.2,1], hspace 0.18, wspace 0.62) \u2014 3 blocks of (signal row, residual row, spacer); j<8 takes one column, j>=8 spans two",
+   "start_line": 1400,
+   "end_line": 1413
+  },
+  {
+   "what": "top-panel plotting (single BIND curve + single dashed truth curve)",
+   "start_line": 1414,
+   "end_line": 1425
+  },
+  {
+   "what": "residual computation per kind + band fill + the 'paired +-1sigma/sqrt(50)' TEXT (1436-1437) \u2014 DELETE that text",
+   "start_line": 1427,
+   "end_line": 1437
+  },
+  {
+   "what": "LSST/CV context band + its ctx label (1438-1441) \u2014 KEEP (user: 'the lsst year 10 is helpful')",
+   "start_line": 1438,
+   "end_line": 1441
+  },
+  {
+   "what": "residual line, rlim, axis labels",
+   "start_line": 1442,
+   "end_line": 1446
+  },
+  {
+   "what": "chi2 TEXT stamp (1447-1449) and N_eff/rho_bar TEXT stamp (1450-1451) \u2014 DELETE BOTH",
+   "start_line": 1447,
+   "end_line": 1451
+  },
+  {
+   "what": "legend (BIND / TNG300 hydro proxy lines) + save(fig, 'figs_v2/fig04_field_validation')",
+   "start_line": 1454,
+   "end_line": 1459
+  },
+  {
+   "what": "printed diagnostics: median |resid| kk/ky/yy, the 9-value chi2/dof line, PDF residual amplitude",
+   "start_line": 1461,
+   "end_line": 1479
+  },
+  {
+   "what": "full-covariance Hartlap prints + CV-floor print (ky/yy content moves with fig04b)",
+   "start_line": 1481,
+   "end_line": 1492
+  },
+  {
+   "what": "T2 unpaired chi2 (chi2_unpaired) \u2014 ky/yy legs move with fig04b",
+   "start_line": 1494,
+   "end_line": 1511
+  },
+  {
+   "what": "V0/V2 max-residual prints + ngal=10 shape-noise peaks print",
+   "start_line": 1512,
+   "end_line": 1518
+  },
+  {
+   "what": "Setup cell: ZS, ZI=1, ELL, ELL_TRUST=1.5e4 defined here \u2014 add ZCOLS / ELL_MAX_PLOT here so fig04, fig04b and fig11 share them",
+   "start_line": 139,
+   "end_line": 141
+  },
+  {
+   "what": "Fig 18 cell \u2014 reuses RB, RT, ZI and reloads maps itself; must keep RB/RT names alive in fig04's cell",
+   "start_line": 1592,
+   "end_line": 1595
+  },
+  {
+   "what": "Fig 11 cell \u2014 reuses RB, RT, ell_f and band_kk (the z_s=1 paired band) from fig04's cell; also defines zcols = plt.cm.plasma(np.linspace(0.02,0.82,5)) which fig04 should reuse",
+   "start_line": 1802,
+   "end_line": 1838
+  }
+ ],
+ "data_verified": [
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/runs/bind/run_0000/ and .../truth/run_0000/ (full directory listings)",
+   "keys": [
+    "Cl_kappa.npz",
+    "Cl_kappa_y.npz",
+    "kappa_maps.npz",
+    "y_maps.npz",
+    "nongaussian_stats.npz",
+    "peak_counts.npz",
+    "peak_counts_ngal10.npz",
+    "peak_counts_multi.npz",
+    "peak_cross*.npz",
+    "halo_scaling.npz",
+    "paired_perreal_fid.npz (BIND only)"
+   ],
+   "shape_note": "NEITHER side has tau_maps.npz or Cl_tau.npz. truth/run_0000 additionally holds snap_029..snap_096/ with composite_slab0{0..3}.npz + truth_manifest.json and NOTHING tau-like.",
+   "probe_command": "ls -la /mnt/home/mlee1/ceph/bind_science/runs/bind/run_0000/ ; ls -la /mnt/home/mlee1/ceph/bind_science/runs/truth/run_0000/ ; timeout 60 find /mnt/home/mlee1/ceph/bind_science/runs/truth -maxdepth 3 -type f | sed 's#.*/##' | sort -u"
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science (exhaustive tau search, depth 4)",
+   "keys": [
+    "runs/twobound/run_XXXX/tau_maps.npz",
+    "runs/twobound/run_XXXX/Cl_tau.npz"
+   ],
+   "shape_note": "The ONLY tau map/spectrum products anywhere under bind_science are in runs/twobound/ (BIND paints of the 60-run 2-bound design). No truth-side tau anywhere. runs/{bind,truth,dmo,fiducial,1P,sobol} have none.",
+   "probe_command": "timeout 60 find /mnt/home/mlee1/ceph/bind_science -maxdepth 4 -name '*tau*'"
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_lightcone_tng/tau_maps.npz",
+   "keys": [
+    "tau",
+    "source_redshifts",
+    "fov_deg",
+    "npix",
+    "n_real"
+   ],
+   "shape_note": "tau (50, 5, 1024, 1024) float32, 1.05 GB in RAM, 8.4 s to np.load fully, peak RSS 1.26 GB. The 5 planes are CUMULATIVE electron columns (realization-0 means 4.65e-4 -> 1.03e-3 -> 1.46e-3 -> 1.71e-3 -> 1.80e-3, saturating at z=2.44); min is exactly 0 everywhere.",
+   "probe_command": "python npzhdr.py /mnt/home/mlee1/ceph/bind_lightcone_tng/tau_maps.npz  (npy-header reader, no array load) ; then a timed np.load"
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_lightcone_tng/ vs .../runs/bind/run_0000/ \u2014 IDENTITY CHECK",
+   "keys": [
+    "kappa",
+    "y"
+   ],
+   "shape_note": "bind_lightcone_tng IS the BIND fiducial trace. kappa_maps.npz byte sizes are identical (970118984 both) and realization-0 per-plane mean/std/min/max agree to all printed digits (z_i=1: mean -0.00178, std 0.02246, min -0.0391, max +0.8335); y_maps.npz identical too (954935232 bytes; z_i=1 mean 7.41146e-07, std 2.52341e-06). TRUTH differs (kappa 970158826 bytes; z_i=1 std 0.02243, max +0.8171). => LC/tau_maps.npz is the seed-matched BIND-side tau for exactly the same 50 realizations as runs/bind/run_0000.",
+   "probe_command": "python probe_sigma.py  (zipfile+np.lib.format prefix reader: reads only realization 0 = 20 MB, prints mean/std/min/max per plane for bind, truth, LC)"
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_lightcone_tng/Cl_tau.npz",
+   "keys": [
+    "ell",
+    "cl_kt",
+    "cl_kt_err",
+    "cl_tt",
+    "cl_tt_err",
+    "cl_yt",
+    "cl_yt_err"
+   ],
+   "shape_note": "BIND-ONLY (it lives in the BIND trace dir). ell (724,), cl_kt (5,724), cl_tt (724,), cl_yt (724,). Conventions from bind/cli/lightcone_stats.py L141-150 + stats.cl_kappa_tau: cl_kt[i] = P(kappa_i, tau_TOTAL=tau[:,-1]); cl_tt = P(tau_total); cl_yt = P(y_total, tau_total). All strictly positive except 0.14% of cl_kt(z1) bins, so log-log is safe.",
+   "probe_command": "python npzhdr.py /mnt/home/mlee1/ceph/bind_lightcone_tng/Cl_tau.npz ; grep -n 'tau' src/bind/cli/lightcone_stats.py ; sed of src/bind/inference/stats.py L145-187"
+  },
+  {
+   "path": "bind.inference.stats.power_spectrum on a 1024^2 map, fov_deg=5.0",
+   "keys": [
+    "ell",
+    "C_ell"
+   ],
+   "shape_note": "len(ell)=724, ell[0]=86.911688, ell[1]=167.410, ell[-1]=52133.5688. 517 of the 724 bins sit ABOVE ELL_TRUST=1.5e4; 213 above the axis-Nyquist 36864. ell=70000 does not exist. Timing: auto 0.04 s/map, cross 0.13 s/map.",
+   "probe_command": "python -c \"from bind.inference.stats import power_spectrum; import numpy as np; ell,cl=power_spectrum(np.random.default_rng(0).normal(size=(1024,1024)).astype('f4')); print(len(ell), ell[0], ell[-1])\""
+  },
+  {
+   "path": "runs/{bind,truth}/run_0000/peak_counts.npz",
+   "keys": [
+    "nu",
+    "peak_counts",
+    "peak_counts_err",
+    "minima_counts",
+    "minima_counts_err",
+    "smoothing_arcmin",
+    "shape_noise_ngal",
+    "sigma_e",
+    "nu_norm"
+   ],
+   "shape_note": "BOTH sides: nu (68,) = -4.875..11.875 step 0.25 (identical arrays), peak_counts (5,68), minima_counts (5,68) => ALL FIVE source planes cached on both sides. smoothing_arcmin=2.0, nu_norm='map', ngal=0. Coverage: truth peaks>5 counts only out to nu ~ +3.6-3.9 at every plane; at nu=7.875 mean counts are 0.56/0.28/0.10/0.10/0.08 per plane (nonzero but Poisson-dominated). Minima are identically ZERO above nu~+3.6 and below nu~-3.4.",
+   "probe_command": "python npzhdr.py .../peak_counts.npz ; python -c \"...print nu ranges where truth counts>5 and >0 per plane...\""
+  },
+  {
+   "path": "runs/{bind,truth}/run_0000/nongaussian_stats.npz",
+   "keys": [
+    "pdf",
+    "pdf_bins",
+    "smoothing_scales_arcmin",
+    "variance",
+    "skewness",
+    "kurtosis",
+    "mf_nu",
+    "V0",
+    "V1",
+    "V2"
+   ],
+   "shape_note": "BOTH sides: pdf (5,41), pdf_bins (41,) float32, V0/V1/V2 (5,29), mf_nu (29,) = linspace(-3,4,29) IDENTICAL on both sides. pdf_bins are NOT identical between bind and truth (edges = linspace(-6*sig, +6*sig) with sig = kappa_maps.std() over the WHOLE cube, stats.py L501-503) \u2014 bind spans +-0.208631 in KAPPA, step 0.0104316, i.e. 6*sigma_global with sigma_global=0.035641. variance (5,4) at smoothing (1,2,5,8) arcmin.",
+   "probe_command": "python npzhdr.py .../nongaussian_stats.npz ; python -c \"...print pdf_bins, mf_nu, variance, and allclose(bind,truth)...\""
+  },
+  {
+   "path": "runs/bind/run_0000/paired_perreal_fid.npz",
+   "keys": [
+    "ell",
+    "nu",
+    "mf_nu",
+    "mf_scales",
+    "clk",
+    "pk",
+    "min",
+    "V0",
+    "V1",
+    "V2",
+    "sk",
+    "sigma0"
+   ],
+   "shape_note": "BIND-ONLY per-realization cache, ALL FIVE PLANES: clk (50,5,724), pk (50,5,68), min (50,5,68), V0/V1/V2 (50,5,29), sk (50,5,4), sigma0 (5,) float32 = [0.005619,0.010517,0.014266,0.017282,0.019519] which equals sqrt(nongaussian variance[:,1]) i.e. the 2.0-arcmin-smoothed per-plane kappa rms (the peak-counts nu normalization). There is NO truth-side per-realization cache for anything.",
+   "probe_command": "python npzhdr.py .../paired_perreal_fid.npz ; compared sigma0 against sqrt(nongaussian_stats['variance'][:,1])"
+  },
+  {
+   "path": "runs/{bind,truth}/run_0000/kappa_maps.npz \u2014 unsmoothed per-plane kappa sigma (needed for the nu conversion of the PDF)",
+   "keys": [
+    "kappa"
+   ],
+   "shape_note": "realization 0, BIND: std = [0.00946, 0.02246, 0.03395, 0.04387, 0.05129] for z_s=[0.5,1,1.5,2,2.44]; TRUTH: [0.00949, 0.02243, 0.03383, 0.04366, 0.05100] (differ by <=0.5%). Map MINIMA are only nu=-1.23/-1.66/-1.90/-2.08/-2.26 (positive-definite column has a floor), maxima nu=+48/+37/+34/+35/+34. So a PDF panel drawn over nu in [-3,8] is EXACTLY ZERO left of nu=-1.2 (z_s=0.5) / -1.7 (z_s=1).",
+   "probe_command": "python probe_sigma.py"
+  },
+  {
+   "path": "cached-grid reach in nu units (pdf_bins edge 0.213847 kappa / per-plane sigma)",
+   "keys": [
+    "pdf_bins"
+   ],
+   "shape_note": "The EXISTING pdf_bins grid reaches nu = +-22.6 / +-9.52 / +-6.30 / +-4.87 / +-4.17 at z_s = 0.5/1/1.5/2/2.44. So nu=8 is reachable on the cached grid ONLY at z_s<=1. Not a blocker: fig04 already RE-HISTOGRAMS the PDF live (lines 1192-1195), so a bespoke nu grid is free.",
+   "probe_command": "derived from probe_sigma.py stds and the pdf_bins probe; 0.20863108 + 0.01043156/2 = 0.2138469"
+  },
+  {
+   "path": "live PDF / MF behaviour at nu=8 (z_s=1, realization 0)",
+   "keys": [
+    "V0",
+    "V1",
+    "V2",
+    "pdf(nu)"
+   ],
+   "shape_note": "On a linspace(-3,8,45) grid: PDF(nu) = 0.00591 / 0.00147 / 0.000447 at nu = 4/6/8 (first 3 bins exactly 0); 0.10% of pixels have nu>8. Smoothed-map (1') MFs at nu=4/6/8: V0 = 6.87e-3/1.82e-3/6.01e-4, V1 = 5.70e-4/1.82e-4/6.22e-5, V2 = 7.44e-5/2.31e-5/1.17e-5 \u2014 all nonzero, so the extension is meaningful, but invisible on the current linear-y MF axes. Cost of recomputing MFs: _gaussian_smooth 0.076 s + minkowski_functionals 0.178 s = 0.25 s/map => 50x5x2 sides = ~130 s.",
+   "probe_command": "python -c \"...from bind.inference.stats import minkowski_functionals,_gaussian_smooth; thr=np.linspace(-3,8,45)...\""
+  },
+  {
+   "path": "peak_counts timing / 5-plane feasibility",
+   "keys": [
+    "peak_counts_real",
+    "minima_counts_real"
+   ],
+   "shape_note": "peak_counts(kappa[(2,5,1024,1024)], smoothing_arcmin=2.0, nu_norm='map', return_realizations=True) took 1.05 s = 0.105 s/map; peak_counts_real comes back (n_real, n_src, 68). Full 5-plane both-sides recompute (500 maps) = ~53 s. nu_bins default = linspace(-5,12,69) (stats.py L286-288), so nu in [-3,8] is fully inside the grid with no argument change.",
+   "probe_command": "python -c \"...peak_counts(a, return_realizations=True) on a (2,5,1024,1024) prefix...\""
+  },
+  {
+   "path": "high-ell residual behaviour from the cached mean spectra (decides the honest xlim / rlim)",
+   "keys": [
+    "cl",
+    "cl_ky",
+    "cl_yy"
+   ],
+   "shape_note": "BIND/truth-1 medians by ell band [300-5e3 | 5e3-1.5e4 | 1.5e4-3e4 | 3e4-5.22e4]: Cl_kk(z_s=1) +0.65 | +0.69 | -0.30 | -1.36 %; Cl_kk(z_s=0.5) +0.35|-0.81|-2.56|-4.82 %; Cl_ky(z1) -0.12 | +11.09 | +22.25 | +33.39 %; Cl_yy -5.60 | +7.60 | +29.70 | +60.00 %. S(ell)=BIND/DMO at z1: 0.973/0.886/0.898/0.954. So the current rlim=25/30 will clip badly past 1.5e4 on the y channels.",
+   "probe_command": "python -c \"...load runs/{bind,truth}/run_0000/Cl_kappa.npz + Cl_kappa_y.npz + runs/dmo/run_0000/Cl_kappa.npz and print median ratios per ell band...\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz (fallback context band for the un-validatable tau panels)",
+   "keys": [
+    "t__cl_tt__value",
+    "t__cl_yt__value",
+    "t__cl_kappa_tau__value",
+    "t__cl_yy__value",
+    "t__cl_kappa_y__value",
+    "a__cl_tt__ell"
+   ],
+   "shape_note": "cl_tt (253,724), cl_yt (253,724), cl_kappa_tau (253,5,724), all with __valid = 253/253 True. a__cl_tt__ell is byte-identical to a__cl_kappa__ell, range 86.91-52133.57. These are BIND-side Sobol nodes only (no truth).",
+   "probe_command": "python npzhdr.py /mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz | grep -Ei 'tt|tau|yt' ; python -c \"...print __valid sums and ell equality...\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/tau_profiles/tau_profiles_snap096.npz (the ONLY truth-side tau product that exists)",
+   "keys": [
+    "r_r500",
+    "mass_bins",
+    "scale_factor",
+    "bind_prof",
+    "bind_ap1",
+    "bind_ap2",
+    "bind_cnt",
+    "truth_prof",
+    "truth_ap1",
+    "truth_ap2",
+    "truth_cnt"
+   ],
+   "shape_note": "bind_prof/truth_prof (4,15) stacked halo tau(r/r500) profiles + 2 aperture summaries. Halo-level, NOT map-level. Already consumed by fig13 (builder line 857). This is the closest achievable truth validation of the tau channel.",
+   "probe_command": "python npzhdr.py /mnt/home/mlee1/ceph/bind_science/tau_profiles/tau_profiles_snap096.npz"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/run_figures.sbatch",
+   "keys": [
+    "--mem=128G",
+    "--cpus-per-task=16",
+    "--time=08:00:00",
+    "NB_CELL_TIMEOUT=10800"
+   ],
+   "shape_note": "The notebook executes with 128 GB and a 3 h per-cell timeout, so holding five (50,5,1024,1024) float32 cubes (5.25 GB) plus a 1.05 GB decompress transient is safe there \u2014 the 10 GB ceiling applies only to this audit session.",
+   "probe_command": "cat /mnt/home/mlee1/BIND/papers/01_pipeline/run_figures.sbatch"
+  }
+ ],
+ "data_gaps": [
+  {
+   "requested": "C_l^{tau tau} and C_l^{kappa tau} shown as BIND-vs-truth validation (residual panel, paired band) in the new spectra figure",
+   "why_blocked": "There is NO truth-side tau map anywhere. Exhaustive check: runs/truth/run_0000 contains only Cl_kappa.npz, Cl_kappa_y.npz, kappa_maps.npz, y_maps.npz, halo_scaling.npz, nongaussian_stats.npz, peak_counts*.npz, peak_cross*.npz, truth_manifest.json and snap_0NN/composite_slab0{0..3}.npz. `find /mnt/home/mlee1/ceph/bind_science -maxdepth 4 -name '*tau*'` returns ONLY runs/twobound/run_XXXX (which are BIND paints, not truth). bind_lightcone_tng/{tau_maps.npz,Cl_tau.npz} are the BIND trace (proved: LC kappa/y are byte-identical to runs/bind/run_0000). The truth composite slabs do carry a Gas surface-density channel (generated_patches (n_halo,3,128,128) = [DM,Gas,Stars]) from which tau = sigma_T x_e Sigma_gas/m_p could in principle be built, but that requires re-running the slab->lensplane->lux ray-trace over 20 snapshots x 4 slabs x 50 realizations \u2014 a multi-hour pipeline job, not a figure-cell operation, and it is not cached.",
+   "closest_alternative": "(1) SHOW C_l^{tau tau}, C_l^{kappa tau} (and C_l^{y tau}) as BIND-only curves with no residual strip, replacing the residual strip with the 16-84 percentile spread of the 253-node Sobol suite (d['t__cl_tt__value'] (253,724), d['t__cl_kappa_tau__value'] (253,5,724), d['t__cl_yt__value'] (253,724)) so the strip still carries information (feedback response instead of closure). Stamp 'BIND only \u2014 no seed-matched truth tau map exists' on those panels. (2) Point the caption at fig13, whose tau_profiles/tau_profiles_snap096.npz DOES carry truth_prof (4,15) \u2014 the halo-level tau closure (already quoted at 1.040 for r<r500c) is the only tau validation the release can make. (3) The truth-validated legs of the new figure are exactly kappa-kappa, kappa-y and yy."
+  },
+  {
+   "requested": "ell axis out to 70,000",
+   "why_blocked": "Physically impossible for these maps. power_spectrum on a 1024^2, 5-deg map returns exactly 724 bins spanning ell = 86.911688 to 52133.5688 (measured). 52134 is the CORNER mode; the axis Nyquist is 36864. There are no modes at ell>52134, so a 70,000 limit would be blank axis.",
+   "closest_alternative": "Set the panel xlim to the full available grid: ELL_MAX_PLOT = float(ell_f[-1]) = 52133.57 (write it as 5.22e4). That is a 3.5x extension over the current 1.5e4 and 2.6x over 'not 20,000'. Shade ell > ELL_TRUST=1.5e4 lightly and label it once as the CIC-aliasing regime."
+  },
+  {
+   "requested": "nu in [-3, 8] for the Minkowski functionals V0, V1, V2",
+   "why_blocked": "The cached MF grid is hard-capped: nongaussian_stats.npz['mf_nu'] = linspace(-3,4,29) on BOTH bind and truth, and paired_perreal_fid.npz V0/V1/V2 are (50,5,29) on the same grid. stats.nongaussian_stats defaults mf_thresholds=linspace(-3,4,29) (stats.py L497-498). Nothing above nu=4 exists in any cache.",
+   "closest_alternative": "Either (a) keep the MF panels on nu in [-3,4] and apply [-3,8] only to the PDF (and optionally peaks), stating the grid limit in the caption; or (b) recompute live \u2014 for each side loop 50x5 maps doing _gaussian_smooth(m, 1.0, 5.0) then minkowski_functionals((sm-sm.mean())/sm.std(), np.linspace(-3,8,45)); measured cost 0.25 s/map => ~130 s for both sides. Option (b) is affordable and has a bonus: it yields TRUTH per-realization V0/V1/V2 draws, which would retire the current sqrt(2) 'truth scatter assumed equal to BIND' kludge at builder lines 1332-1342. V0/V1/V2 are all nonzero at nu=8 (6.0e-4 / 6.2e-5 / 1.2e-5), so the extension is real but requires log-y (or an inset) to be visible."
+  },
+  {
+   "requested": "5 source-plane lines for C_l^{yy} and C_l^{tau tau}",
+   "why_blocked": "The RELEASED caches store only the total-column auto: Cl_kappa_y.npz['cl_yy'] is (724,) and Cl_tau.npz['cl_tt'] is (724,) \u2014 one curve, computed from y[:,-1] / tau[:,-1] (lightcone_stats.py L123, L144). There is no per-plane yy/tt in any cache.",
+   "closest_alternative": "Recompute live: y_maps.npz['y'] and tau_maps.npz['tau'] are BOTH (50,5,1024,1024) with CUMULATIVE per-plane columns (verified: realization-0 means rise 4.18e-7 -> 1.04e-6 for y and 4.65e-4 -> 1.80e-3 for tau), so C_l^{yy}(z_i) = P(y[r,zi]) and C_l^{tau tau}(z_i) = P(tau[r,zi]) are directly computable. 50 realizations x 5 planes x 0.04 s = 10 s per auto spectrum family. Truth y_maps.npz is also (50,5,...) so C_l^{yy} per plane IS truth-validatable at all 5 planes."
+  },
+  {
+   "requested": "keep the residual chi2 numbers exactly as published while extending ell",
+   "why_blocked": "Not blocked, but note: the chi2/dof values quoted in FIGURE_NUMBERS.md (kk 19, ky 120, yy 177, PDF 128, ...) are computed over the mask mt = (ell_f>=100)&(ell_f<=ELL_TRUST) and over NU_LIM=(-3,4). Changing the PLOT range does not change them; changing mt or NU_LIM would.",
+   "closest_alternative": "Extend only the axis limits; leave mt, chi2_full, chi2_unpaired and nu_ok bound to ELL_TRUST / (-3,4) so every published number in FIGURE_NUMBERS.md stays reproducible. If the nu panels move to [-3,8], nu_ok changes and x2_pk/x2_min WILL shift \u2014 recompute and update FIGURE_NUMBERS.md."
+  }
+ ],
+ "change_spec": [
+  {
+   "step": "1. Add shared constants to the SETUP cell (builder lines 139-141) so fig04, fig04b and fig11 agree",
+   "detail": "After `ELL_TRUST = 1.5e4` insert: `ELL_MAX_PLOT = 52133.57  # corner mode of the 1024^2 / 5-deg maps = ell_f[-1]; the axis Nyquist is 36864. ell=7e4 does not exist.` and `ZCOLS = plt.cm.plasma(np.linspace(0.02, 0.82, 5))  # one color per source plane, shared by figs 4, 4b, 11`. Then delete the local `zcols = plt.cm.plasma(np.linspace(0.02, 0.82, 5))` at line 1812 and replace the two `zcols[zi]` uses at 1815/1835 with `ZCOLS[zi]`. Do NOT touch ELL_TRUST itself \u2014 it still gates every chi2 mask."
+  },
+  {
+   "step": "2. Widen the map load in fig04's cell from one plane to all five",
+   "detail": "Replace lines 1159-1160. New: `f = np.load(RB/\"kappa_maps.npz\"); BK = f[\"kappa\"]; del f` ; same for TK from RT ; `f = np.load(RB/\"y_maps.npz\"); BY = f[\"y\"]; del f` ; `TY` from RT ; and (for fig04b) `f = np.load(LC/\"tau_maps.npz\"); BTAU = f[\"tau\"]; del f`. Each is (50,5,1024,1024) float32 = 1.05 GB; five of them = 5.25 GB, safe under the job's --mem=128G. Keep `NR = BK.shape[0]` (=50). NOTE: LC is already defined in the setup cell (line 126) and LC/tau_maps.npz is proven to be the SAME 50 realizations as RB (kappa/y byte-identical), so it is legitimately seed-paired with BK/BY."
+  },
+  {
+   "step": "3. Compute per-realization spectra for all 5 planes (fig04 cell) and stash them for fig04b",
+   "detail": "Replace the loop at 1162-1170 with a z-indexed version producing dicts keyed by plane: `KKB = np.empty((5, NR, 724)); KKT, YYB, YYT, KYB, KYT = (np.empty_like(KKB) for _ in range(5))` plus `TTB = np.empty((5, NR, 724)); KTB = np.empty_like(TTB); YTB = np.empty_like(TTB)` (tau legs BIND-only). Inner loops: `for zi in range(5): for r in range(NR): ell_f, c = power_spectrum(BK[r,zi]); KKB[zi,r]=c ; KKT[zi,r]=power_spectrum(TK[r,zi])[1] ; YYB[zi,r]=power_spectrum(BY[r,zi])[1] ; YYT[zi,r]=power_spectrum(TY[r,zi])[1] ; KYB[zi,r]=power_spectrum(BK[r,zi], BY[r,zi])[1] ; KYT[zi,r]=power_spectrum(TK[r,zi], TY[r,zi])[1] ; TTB[zi,r]=power_spectrum(BTAU[r,zi])[1] ; KTB[zi,r]=power_spectrum(BK[r,zi], BTAU[r,zi])[1] ; YTB[zi,r]=power_spectrum(BY[r,zi], BTAU[r,zi])[1]`. Cost check from measured timings: 5 planes x 50 real x (4 autos @0.04 s + 3 crosses @0.13 s) ~= 140 s. CONVENTION DECISION (state it on-figure): this uses MATCHED-DEPTH pairing (kappa(z_i) x field-integrated-to-z_i), which differs from the released cache (Cl_kappa_y.npz cl_ky[i] and Cl_tau.npz cl_kt[i] pair kappa_i with the TOTAL column y[:,-1]/tau[:,-1], lightcone_stats.py L123/L144, and that is what fig11(b) plots). If you prefer cache-consistency instead, use `BY[r,-1]`/`BTAU[r,-1]` in the cross terms. Keep backward-compatible aliases so nothing downstream breaks: `kk_b, kk_t = KKB[ZI], KKT[ZI]` ; `ky_b, ky_t = KYB[ZI], KYT[ZI]` ; `yy_b, yy_t = YYB[ZI], YYT[ZI]`."
+  },
+  {
+   "step": "4. Widen the live peaks/minima recompute to 5 planes (fig04 cell, replaces 1179-1191)",
+   "detail": "Drop the `[:, None]` single-plane trick: `_pb = peak_counts_fn(BK, fov_deg=5.0, smoothing_arcmin=float(b_pk['smoothing_arcmin']), nu_norm=str(b_pk['nu_norm']), return_realizations=True)` and the same for TK. Returned `peak_counts_real` / `minima_counts_real` are then (50,5,68); index `[:, zi]`. Keep the convention guard but per plane: `assert np.allclose(_pb['peak_counts'], b_pk['peak_counts'])` and `assert np.allclose(_pt['minima_counts'], t_pk['minima_counts'])` (whole (5,68) arrays now). Measured cost: 0.105 s/map x 500 maps = ~53 s. Set `pk_b_real, pk_t_real = _pb['peak_counts_real'][:, ZI], _pt['peak_counts_real'][:, ZI]` for the band (band stays z_s=1-only per the user)."
+  },
+  {
+   "step": "5. Convert the PDF panel from kappa to nu in [-3, 8] (replaces 1192-1195 and panel (c) at 1369-1371)",
+   "detail": "The cell already re-histograms live, so define a bespoke nu grid: `NU_PDF = np.linspace(-3.0, 8.0, 45)` (44 bins, dnu=0.25, matching the peak grid step) and `nu_pdf_cent = 0.5*(NU_PDF[1:] + NU_PDF[:-1])`. Then `pdf_b_real = np.array([[np.histogram((BK[r,zi]-BK[r,zi].mean())/BK[r,zi].std(), bins=NU_PDF, density=True)[0] for r in range(NR)] for zi in range(5)])` -> shape (5,50,44); same for `pdf_t_real` from TK. This is the same nu_norm='map' convention peak_counts uses (stats.py L301: nu=(sm-sm.mean())/sig, sig = map std) except UNSMOOTHED, which is what the PDF has always been. Per-plane unsmoothed sigmas are [0.00946,0.02246,0.03395,0.04387,0.05129] (BIND) vs [0.00949,0.02243,0.03383,0.04366,0.05100] (truth) \u2014 a <=0.5% difference; use each side's own sigma (consistent with peaks/MFs) and say so in the caption, or normalize both by the truth sigma if you want a pure shape comparison. Panel (c) becomes: `x=nu_pdf_cent, xl=r'$\\nu=(\\kappa-\\bar\\kappa)/\\sigma_\\kappa$', yl=r'PDF$(\\nu)$', xs='linear', ys='log', xlim=(-3, 8)`. DELETE `pdf_cent`, `_dpc`, `pdf_edges` and the `b_ng['pdf_bins']` dependency. CAVEAT to caption: the PDF is EXACTLY ZERO below nu=-1.23 (z_s=0.5) and -1.66 (z_s=1) because the projected column is positive-definite, so the left ~1.3 nu units of the axis are empty at low z_s; PDF at nu=8 is ~4.5e-4 (0.10% of pixels exceed nu=8 at z_s=1)."
+  },
+  {
+   "step": "6. Rework the residual/band quantities to be z_s=1-only while the top curves carry 5 planes",
+   "detail": "Keep every `paired(...)`/band/chi2 call bound to ZI: `KKb, KKt, res_kk, band_kk, x2_kk = paired(KKB[ZI], KKT[ZI])` (band_kk MUST survive \u2014 fig11 line 1817 uses it), `..._S` from `S_b = pr['clk'][:, ZI, :]/dmo_mean` with `dmo_mean = dcl0['cl'][ZI, ZI]` and `S_t = KKT[ZI]/dmo_mean` (unchanged). For the top curves add 5-plane mean arrays: `KKb_z = KKB.mean(1); KKt_z = KKT.mean(1)`; `S_b_z = pr['clk'].mean(0)/np.where(dcl0['cl'][np.arange(5), np.arange(5)] > 0, dcl0['cl'][np.arange(5), np.arange(5)], np.nan)` and `S_t_z = KKT.mean(1)/(same denominator)` \u2014 dcl0['cl'] is (5,5,724) so the per-plane DMO autos are `dcl0['cl'][zi,zi]`. PDF/peaks/minima/MF 5-plane curves come straight from the caches: `b_pk['peak_counts'][zi]`, `t_pk['peak_counts'][zi]`, `b_ng['V0'][zi]`, `t_ng['V0'][zi]` for zi in range(5) \u2014 all verified (5,68) / (5,29) on BOTH sides. Bands stay: pk_band/min_band from the ZI slice of the recomputed per-real arrays; band_V0/V1/V2 from `pr['V0'][:, ZI, :]` (unchanged); band_pdf from `pdf_b_real[ZI] - pdf_t_real[ZI]`."
+  },
+  {
+   "step": "7. Restructure the `panels` dict schema (lines 1360-1398) for multi-z top curves",
+   "detail": "Replace scalar `yb`/`yt` with `yb_z` and `yt_z`, each a (5, n) array, and add a precomputed `res` (1D, z_s=1). New key list per dict: `x, yb_z, yt_z, res, band, lsst, xl, yl, xs, ys, xlim, tag, ctx (optional), rlim (optional), logy_minor (optional), ylpad (optional)`. DELETE the `chi2` and `neff` keys entirely, and DELETE the `kind` key's residual branch. Precompute `res` per panel as it is today: kk/S/cl -> `100*(yb_z[ZI]/yt_z[ZI] - 1)`; mf -> `100*(yb_z[ZI]-yt_z[ZI])/np.max(np.abs(yt_z[ZI]))`; pdf -> `res_pdf` (max-normalized difference). Keep `kind` only if you still need it for the mf sci-notation tick formatting at 1419-1420 and the logy_minor branch."
+  },
+  {
+   "step": "8. New fig04 panel list \u2014 exactly 8 WL panels, tags (a)-(h)",
+   "detail": "(a) Cl_kk: x=ell_f, yb_z=f_ell*KKb_z, yt_z=f_ell*KKt_z, band=band_kk, lsst=lsst_kk, ctx='LSST-Y10', xlim=(ELL_LO, ELL_MAX_PLOT), rlim=25. (b) S(ell): yb_z=S_b_z, yt_z=S_t_z, band=band_S, lsst=lsst_S, ctx='LSST-Y10', xlim=(ELL_LO, ELL_MAX_PLOT), ys='linear', rlim=25. (c) PDF(nu): x=nu_pdf_cent, yb_z=pdf_b_real.mean(1), yt_z=pdf_t_real.mean(1), band=band_pdf, lsst=None, xlim=(-3,8), ys='log'. (d) N_pk: x=b_pk['nu'], yb_z=b_pk['peak_counts'], yt_z=t_pk['peak_counts'], band=pk_band, xlim=NU_LIM, ys='log'. (e) N_min: same with minima_counts, xlim=NU_LIM. (f,g,h) V0,V1,V2: x=b_ng['mf_nu'], yb_z=b_ng['V0'] (already (5,29)), yt_z=t_ng['V0'], band=band_V0, xlim=NU_LIM. DELETE the two SZ dicts at 1387-1397. NU_LIM DECISION: with the cached grids, (d),(e) can honestly go to (-3,8) but truth peak counts fall below 5/realization above nu~3.9 and minima are IDENTICALLY ZERO above nu~+3.6 and below -3.4 \u2014 recommend `NU_LIM_PDF=(-3,8)` for panel (c) only and keep `NU_LIM=(-3,4)` for (d)-(h); the MF grid mf_nu=linspace(-3,4,29) makes (f,g,h) IMPOSSIBLE beyond 4 without the live recompute described in data_gaps."
+  },
+  {
+   "step": "9. New fig04 geometry: 8 panels in 2 blocks of 4 columns",
+   "detail": "Change line 1401-1404 to `fig = plt.figure(figsize=(TWO_COL[0], 5.9))` and `gs = fig.add_gridspec(5, 4, height_ratios=[2.2, 1, 0.55, 2.2, 1], hspace=0.18, wspace=0.45)`. Row mapping in the loop becomes `r0 = (j//4)*3; cs, cr = gs[r0, j % 4], gs[r0+1, j % 4]` and the `else` branch for j>=8 (lines 1409-1411) is DELETED along with the wspace=0.62 gutter comment (that gutter existed only for panel (j)'s y-label)."
+  },
+  {
+   "step": "10. Multi-z drawing in the top panels (replaces lines 1414-1415)",
+   "detail": "`for zi in range(5): a.plot(p['x'], p['yb_z'][zi], color=ZCOLS[zi], lw=1.1)` then `for zi in range(5): a.plot(p['x'], p['yt_z'][zi], color=ZCOLS[zi], ls='--', lw=0.6)`. On the ell panels also add the aliasing shade: `a.axvspan(ELL_TRUST, ELL_MAX_PLOT, color='0.85', alpha=0.35, lw=0, zorder=0)` and the same on `ar`. Legend: replace lines 1454-1457 with a two-part legend \u2014 on axs[0] a linestyle proxy pair (`solid = BIND`, `dashed = TNG300 hydro`) at loc='lower left', fontsize=6; and on the (c) or (a) axis a 5-entry color legend `[f'$z_s$={ZS[zi]:.1f}' for zi in range(5)]` with `ncol=2, fontsize=5` (copy fig11's idiom at line 1816/1822). Add one small note on the residual row: `ar.text(0.03, 0.05, r'residual: $z_s=1$', fontsize=4.2)` on panel (a) only, so the reader knows the strip is single-plane."
+  },
+  {
+   "step": "11. DELETE the three text objects the user called out (and their now-dead helpers)",
+   "detail": "DELETE builder lines 1436-1437 (the `paired $\\pm1\\sigma/\\sqrt{50}$` label, drawn on EVERY residual strip). DELETE lines 1447-1449 (the `$\\chi^2/{\\rm dof}=...$` stamp). DELETE lines 1450-1451 (the `\\overline{|\\rho|}_{bin} => N_eff` stamp). KEEP lines 1438-1441 (the LSST-Y10 / CV-floor fill_between and its `ctx` label) \u2014 user: 'the lsst year 10 is helpful'. Consequently DELETE the now-unused `chi2_fmt` helper (1357-1358) and `neff_note` (1284-1287). KEEP the computations `x2_kk, x2_S, x2_pdf, x2_pk, x2_min, x2_V0, x2_V1, x2_V2` and the `fullcov` dict \u2014 they still feed the printed output at 1466-1471 and 1485-1489, which FIGURE_NUMBERS.md quotes; only the on-figure stamps go."
+  },
+  {
+   "step": "12. Extend the ell axis and enlarge the residual limits",
+   "detail": "In all `xlim=(ELL_LO, ELL_TRUST)` panel entries substitute `xlim=(ELL_LO, ELL_MAX_PLOT)`. Do NOT touch `mt` (line 1198), `chi2_full`'s msk4 (1211) or `chi2_unpaired`'s msk4 (1498) \u2014 those must stay at ELL_TRUST so the published chi2 numbers stay reproducible. Because the measured residuals reach -4.8% (Cl_kk z_s=0.5), +33% (Cl_ky) and +60% (Cl_yy) above 3e4, raise rlim: 25 for kk/S(ell), 50 for kappa-y, 100 for yy/tau-tau/kappa-tau \u2014 or set `ar.set_yscale('symlog', linthresh=10)` on the SZ/tau panels. In fig11 (lines 1819, 1838) consider matching `ax[0].set_xlim(90, ELL_MAX_PLOT)` / `ax[1].set_xlim(90, ELL_MAX_PLOT)` and widening its ylims (kk z_s=0.5 hits -4.8%, ky hits +33%) so figs 4 and 11 do not disagree about where the plots stop."
+  },
+  {
+   "step": "13. Create the NEW cell fig04b_spectra (insert a new md(...) + code(...) pair immediately after fig04's cell ends at line 1519)",
+   "detail": "It plots from the arrays computed in step 3, so it must come AFTER fig04's cell and BEFORE the `del BK, TK, BY, TY, BTAU` cleanup (put that del at the END of the fig04b cell, not in fig04's). Six panels, gridspec(5,3, height_ratios=[2.2,1,0.55,2.2,1]): (a) $C_\\ell^{\\kappa\\kappa}$ = f_ell*KKB.mean(1) vs f_ell*KKT.mean(1), residual at ZI, LSST-Y10 band; (b) $C_\\ell^{yy}$ = f_ell*YYB.mean(1) vs YYT.mean(1), residual at ZI (TRUTH-VALIDATED, y_maps are (50,5,...) on both sides), CV-floor band; (c) $C_\\ell^{\\tau\\tau}$ = f_ell*TTB.mean(1), BIND-ONLY; (d) $C_\\ell^{\\kappa y}$ = f_ell*KYB.mean(1) vs KYT.mean(1), residual at ZI, CV-floor band; (e) $C_\\ell^{\\kappa\\tau}$ = f_ell*KTB.mean(1), BIND-ONLY; (f) $C_\\ell^{y\\tau}$ = f_ell*YTB.mean(1), BIND-ONLY. All on `xs='log', ys='log', xlim=(ELL_LO, ELL_MAX_PLOT)` with the ell>ELL_TRUST aliasing shade. 5 z_s lines per panel using ZCOLS. Same text-deletion rules as fig04 (no chi2, no N_eff, no band label). `save(fig, 'figs_v2/fig04b_spectra')`."
+  },
+  {
+   "step": "14. Handle the un-validatable tau panels (c),(e),(f) of fig04b",
+   "detail": "Their lower strip cannot be a BIND/truth residual. Replace it with the Sobol feedback spread: `dtt = d['t__cl_tt__value']` (253,724), `dkt = d['t__cl_kappa_tau__value'][:, ZI]` (253,724), `dyt = d['t__cl_yt__value']` (253,724); compute `lo, hi = np.nanpercentile(100*(X/np.nanmedian(X,0) - 1), [16,84], axis=0)` and `ar.fill_between(ELL, lo, hi, color=COLORS['secondary'], alpha=0.25, lw=0)` with `ar.set_ylabel('Sobol 16-84% [%]')`. `d['a__cl_tt__ell']` is byte-identical to the map ell grid (verified) so no regridding is needed; all three have `__valid` = 253/253. Stamp on each tau panel: `ar.text(0.03, 0.88, 'BIND only: no seed-matched truth $\\\\tau$ map', fontsize=4.2)` and put a caption sentence pointing at fig13's halo-level tau closure (tau_profiles_snap096.npz truth_prof, ratio 1.040 for r<r500c) as the only available tau validation."
+  },
+  {
+   "step": "15. Move the ky/yy printed diagnostics into the fig04b cell; keep the WL ones in fig04",
+   "detail": "From lines 1461-1471: split the `median |resid| in ell=300-5000` print (keep Cl_kk in fig04, move Cl_ky/Cl_yy to fig04b, add Cl_tt/Cl_kt/Cl_yt as BIND-only Sobol-percentile statements). From the chi2/dof print keep `kk, S(ell), PDF, N_pk, N_min, V0, V1, V2` in fig04 and move `ky, yy` to fig04b. Lines 1481-1492 (`fullcov` Hartlap loop over ('kk','ky','yy') and the CV-floor print) and lines 1494-1511 (`chi2_unpaired`) reference ky/yy \u2014 either move the whole block to fig04b or keep it in fig04 and note in the md that it now audits both figures. `infl` (line 1248/1253) is computed and never used downstream \u2014 it can be dropped."
+  },
+  {
+   "step": "16. Preserve every cross-cell name fig11 and fig18 depend on",
+   "detail": "Verified by grep over lines >1520: only `RB`, `RT`, `ell_f` and `band_kk` escape fig04's cell (fig18 at 1592-1595 uses RB/RT/ZI and reloads maps itself; fig11 at 1802-1838 uses RB/RT/ell_f/band_kk). All four must remain defined in the fig04 cell after the edit \u2014 `band_kk` in particular must stay the z_s=1 paired band, since fig11(a) draws it as its scale reference. Nothing named ky_*/yy_*/cv_band/fullcov/b_pk/t_pk/b_ng/t_ng/pdf_* is used after 1520, so moving them is safe."
+  },
+  {
+   "step": "17. Rewrite the markdown",
+   "detail": "Lines 1046-1143 must be rewritten: it currently promises on-figure chi2/dof stamps, on-figure N_eff annotations, panels (i,j), a kappa PDF axis, 'All five nu-domain panels share one nu in [-3,4]' and 'every ell panel uses a clean, un-clipped ell in [100,1.5e4]' \u2014 every one of those becomes false. New fig04 md must state: 8 WL panels (a)-(h); 5 source planes drawn in the signal rows; residual strips at z_s=1 only; PDF now in S/N units nu; ell to the corner mode 5.2e4 with the >1.5e4 region flagged as CIC-aliased (and the note from project memory that the aliasing largely cancels in the BIND/truth ratio, which is why the residual strip is still readable there); chi2/dof values now live in the printed cell output, not on the figure. Add a new md block for fig04b covering the 3 autos + 3 crosses, the matched-depth convention choice, and the explicit statement that the tau legs are BIND-only."
+  },
+  {
+   "step": "18. Update the crib sheets after re-running",
+   "detail": "FIGURE_NUMBERS.md '## fig4' section (lines ~44-50) lists the chi2 stamps, panel (i,j) content and the 'PDF residual (percent of peak density)' numbers \u2014 the PDF chi2 and residual amplitude WILL change (new nu bin grid, 44 bins instead of 41, different bin widths per plane), and if NU_LIM moves for peaks/minima then x2_pk/x2_min change too. Add a '## fig4b' section. Also SCORECARD.md and papers/01_pipeline/FIGURE_EDIT_PLAN.md likely reference fig04 panels (i,j)."
+  }
+ ],
+ "risks": [
+  "HARD BLOCKER, unavoidable: C_l^{tau tau} and C_l^{kappa tau} (and C_l^{y tau}) CANNOT be validated against truth. There is no truth-side tau map anywhere on disk \u2014 runs/truth/run_0000 has no tau file at any depth, and the only tau products under bind_science are runs/twobound/* (BIND paints). bind_lightcone_tng/tau_maps.npz is the BIND fiducial trace (proved byte-identical kappa/y to runs/bind/run_0000). Those three panels can be SHOWN but not closed; the residual strip must be repurposed (Sobol spread) and labelled.",
+  "HARD BLOCKER: ell = 70,000 does not exist. power_spectrum returns exactly 724 bins over 86.91-52133.57 for a 1024^2 / 5-deg map (measured). Max honest xlim is 5.213e4 (corner mode); the axis Nyquist is 36864. Anything beyond is empty axis.",
+  "The MF grid is hard-capped at nu=4 (mf_nu = linspace(-3,4,29) in BOTH nongaussian_stats.npz files and in paired_perreal_fid.npz's (50,5,29) arrays). If the user insists on -3..8 for V0/V1/V2 the cell must recompute MFs live (~130 s for both sides at 0.25 s/map). Doing so silently changes V0/V1/V2 chi2 and would also retire the current sqrt(2) 'truth scatter = BIND scatter' assumption at lines 1332-1342 \u2014 a scientific improvement, but the fig4 md and FIGURE_NUMBERS.md both describe the old kludge.",
+  "Minima counts are IDENTICALLY ZERO above nu ~ +3.6 and truth peak counts fall below 5 per realization above nu ~ +3.9. Drawing panels (d)/(e) over -3..8 wastes half the axis and makes the residual strip Poisson-noise garbage above nu~4. Recommend applying -3..8 to the PDF only.",
+  "The kappa PDF is exactly zero below nu = -1.23 (z_s=0.5) / -1.66 (z_s=1) because the projected column is positive-definite \u2014 a -3 lower limit leaves visible blank space at the left of panel (c). This is physics, not a bug, but it needs a caption sentence or a reviewer will read it as a plotting error.",
+  "Convention fork on the cross spectra: the released caches pair kappa(z_i) with the TOTAL column y[:,-1]/tau[:,-1] (lightcone_stats.py L123/L144), and fig11(b) plots that. If fig04b switches to matched-depth (kappa_i x y_i) the two figures will show different C_l^{kappa y}(z_s) curves for the same data. Pick one and say so in both captions.",
+  "Deleting the chi2/N_eff stamps orphans ~60 lines of markdown (1057-1092 the noise-accounting audit paragraph, 1104-1116 the stamp description) that explicitly tell the reader to read numbers off the figure. If the md is not rewritten the paper will reference annotations that no longer exist.",
+  "Extending ell past ELL_TRUST=1.5e4 exposes the CIC-aliasing regime (517 of 724 bins). The raw top-row spectra will show the known kappa upturn there; the ratio strips largely cancel it, but the y-channel residuals genuinely blow up (Cl_yy +60% median at ell>3e4, Cl_ky +33%), so the current rlim=25/30 will clip and the panels will look broken unless rlim is raised or symlog is used.",
+  "Memory: the 5-plane rewrite holds up to five (50,5,1024,1024) float32 cubes = 5.25 GB plus a ~1.05 GB decompression transient. That is fine under the notebook's --mem=128G Slurm allocation but will OOM a 10 GB interactive session \u2014 do not test-run the cell outside the batch job (or loop one plane at a time with a fresh np.load per plane, 8.4 s each).",
+  "Runtime added to the fig04 cell: ~140 s of spectra + ~53 s of peak_counts + ~40 s of PDF histogramming + 5 x 8.4 s of npz decompression, i.e. roughly 4-5 minutes on top of the current cost. Well inside NB_CELL_TIMEOUT=10800 but it makes fig04 the most expensive cell in the notebook.",
+  "papers/01_pipeline/main.tex is already divergent from figs_v2 \u2014 it \\includegraphics only 13 figures from a separate figs/ directory (its 'fig04' is figs/fig04_cross_spectra.pdf, and the field-validation figure is figs/fig02_validation_field.pdf). Adding fig04b to figs_v2 does not touch the tex; whoever wires the new figure into the paper must reconcile that separately.",
+  "b_ng['pdf_bins'] and t_ng['pdf_bins'] are NOT the same grid (each is 6*sigma of its own map cube). The current code silently uses the BIND grid for both sides. Moving to a shared nu grid removes that asymmetry \u2014 good \u2014 but it also means the plotted PDF will no longer reproduce the cached nongaussian_stats.npz 'pdf' array at all, so drop the '~0.3% reproduces the cache' comment at lines 1176-1178."
+ ]
+}

@@ -125,6 +125,27 @@ from scipy.stats import rankdata
 
 CEPH = Path("/mnt/home/mlee1/ceph")
 SB35, SCI, LC = CEPH/"bind_sb35", CEPH/"bind_science", CEPH/"bind_lightcone_tng"
+# BIND_CAMPAIGN=n1000 re-points the map-level roots and the Sobol dataset at the
+# 1000-realization campaign tree (whose layout drops the 'runs/' level).  Derived
+# 50-real caches have no n1000 twin, so cells needing those fail loudly rather
+# than mixing realization counts.
+import os as _os
+_CAMPAIGN = _os.environ.get("BIND_CAMPAIGN", "sci50")
+if _CAMPAIGN == "n1000":
+    _N1K = CEPH/"bind_n1000"
+    class _RunsShim:
+        """SCI/'runs/<cat>/run_x' -> bind_n1000/<cat>/run_x"""
+        def __init__(self, root): self._r = root
+        def __truediv__(self, sub):
+            sub = str(sub)
+            return self._r / (sub[5:] if sub.startswith("runs/") else sub)
+    SCI = _RunsShim(_N1K)
+    LC = _N1K/"bind/run_0000"
+    # n1000 renders must NEVER clobber the sci50 figs_v2/ + figs_preview/ files
+    # (2026-08-21: an untagged n1000 run overwrote figs_v2/fig05a_sl_response.pdf)
+    _save_sci50 = save
+    def save(fig, stem):  # noqa: F811
+        _save_sci50(fig, str(stem) + "_n1000")
 assert Path.cwd().name == "01_pipeline", "run this notebook from papers/01_pipeline/"
 Path("figs_v2").mkdir(exist_ok=True)
 
@@ -152,7 +173,8 @@ Path("figs_v2").mkdir(exist_ok=True)
 # running -- if the assembled file is not there yet, raise loudly naming that
 # job rather than quietly falling back to the stale _xpkfix grid (which would
 # make every downstream nu-domain figure silently wrong).
-DS_PATH = SB35/"emulator_dataset_nu05.npz"
+DS_PATH = (CEPH/"bind_n1000/emulator_dataset_n1000.npz" if _CAMPAIGN == "n1000"
+           else SB35/"emulator_dataset_nu05.npz")
 if not DS_PATH.exists():
     raise FileNotFoundError(
         f"{DS_PATH} does not exist yet. It is assembled by the user-submitted "
@@ -839,13 +861,15 @@ Conventions used by every validation and response figure:
 - **Maps carry no beam**, 0.29296875′/px; aperture-photometry users must match both conventions.
   (Exception: the released *stacked $y$-CAP profile product* — §6 products table — is measured
   on the patch pixel grid and already carries an ACT-like 1.6′ beam.)
-- **Significance thresholds.** For $n=253$ runs, the single-cell 2σ Spearman null is
-  $|\rho|=2/\sqrt{n}\simeq0.126$. The max-over-bins importance is judged against
-  *per-statistic* permutation nulls (200 seeded label shuffles, max over that statistic's
-  bins; 95th percentiles $\simeq0.147$–$0.177$ depending on bin count), and the two
-  multiplicity corrections the fig-5 grid needs — a per-parameter look-elsewhere null over
-  the 12 statistics ($\simeq0.196$) and a whole-grid one ($\simeq0.257$). All are printed by
-  the fig-5 cell, and fig 5 *marks* sub-threshold cells rather than hiding them.
+- **Significance thresholds.** For $n=256$ runs, the single-cell 2σ Spearman null is
+  $|\rho|=2/\sqrt{n}=0.125$. The max-over-bins importance (ℓ-domain rows scanned only to
+  the map Nyquist mode $\ell_{\rm Ny}=36864$) is judged against *per-statistic*
+  permutation nulls (200 seeded label shuffles, max over that statistic's bins; 95th
+  percentiles $\simeq0.149$–$0.182$ depending on bin count), and the two multiplicity
+  corrections the fig-5 grid needs — a per-parameter look-elsewhere null over the 12
+  statistics ($\simeq0.200$) and a whole-grid one ($\simeq0.253$). All are printed by the
+  fig-5 cell, and fig 5 *marks* sub-threshold cells rather than hiding them. The full
+  derivation lives in `papers/01_pipeline/fig05_significance_methods.md`.
 ''')
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -3305,69 +3329,380 @@ print("map-level kappa-y closure (median resid %, ell 300-5000, per z_s): "
 
 # ═════════════════════════════════════════════════════════════════════════════
 md(r'''
-## §3 opener — Fig 23: why feedback matters at survey precision (the bridge, in one panel)
+## §3 opener — Fig 23: the feedback prior against Stage-IV precision
 
-The section opener (the planning sessions' "New Image 1(a)", ruled 2026-08-03: panel (a)
-alone, wired from the prototype): every Sobol node's WL suppression $S(\ell{=}5000, z_s{=}1)$
-against its group-scale gas fraction $f_{\rm gas}$ ($\log_{10}M_{500c}\simeq13.0$–$13.25$, the
-most feedback-sensitive bin), coloured by the dominant lever (WindEnergy). Two things in one
-panel: (i) the feedback prior's $S$ span (5–95%) is many times the LSST-Y10/Euclid statistical
-precision at this scale — the shaded/outlined gauges at $S{=}1$ — so unmodelled feedback is a
-*survey-level* systematic (quantified per-statistic in figs 5/7/12); and (ii) the span is not
-noise: it is *indexed by a gas observable* (log-linear fit over the full node set; $r$ printed
-live), which is the §3c bridge in miniature and the reason gas data can close the loop. The
-prototype's second (ejection–heating) panel is deliberately NOT included — at population
-level ejection and heating are strongly coupled (see the 3c-companion evaluation memo).
+The opener for §3 (*Astrophysical effects*), rebuilt 2026-08-14 to match the section's
+argument: at **fixed cosmology**, does the TNG feedback prior move the WL power spectrum by
+more than a Stage-IV survey can measure? Three stacked panels on a shared $\ell$ axis.
+
+**(a)** $S(\ell) = C_\ell^{\kappa\kappa}(\theta)/C_\ell^{\kappa\kappa,{\rm DMO}}$ at $z_s=1$:
+the 5–95% spread across the 256 Sobol nodes (grey), the TNG fiducial (black), and the
+LSST-Y10 / *Euclid*-like $\pm1\sigma$ precision drawn **on** the fiducial as nested filled
+ribbons. Filled, not outlined (fig 12's idiom): below $\ell\sim2000$ the $\pm1\sigma$ width is
+$\simeq0.5\%$, about one point on this axis, so outlined envelopes collapse onto the fiducial
+and stop being decodable. The ribbons open up at high $\ell$ where shape noise takes over.
+
+**(b), (c)** the same content as a *detection significance*,
+$|S_{\rm node}(\ell) - S_{\rm fid}(\ell)|/[\sigma_{\rm survey}(\ell)\,S_{\rm fid}(\ell)]$ —
+how many survey $\sigma$ each node sits from the fiducial, envelope = 5–95% across nodes,
+line = median. This is the panel the section text leans on.
+
+**Ensembles (deliberate, do not "unify").** The $S(\ell)$ *curves* stay on the canonical
+50-realization seed-paired trees, so numerator and denominator share the box realizations and
+$S$ remains a cosmic-variance-cancelling ratio; there is no $N=1000$ version of the 256 Sobol
+nodes, only of the fiducial. The survey *band* is a **relative** error and is measured on the
+$N=1000$ fiducial covariance campaign (`bind_n1000`, landed 2026-08-13) — it never enters a
+ratio against a 50-real quantity, so the mixing is safe. Going 50 → 1000 **widens** the band
+by 8–18% (the 50-real std was biased low), i.e. the new band is the more conservative one.
+The band is the scatter of the **unpaired** $\log C_\ell$, not of the paired ratio: a survey
+divides a measured $C_\ell$ by a fixed theory DMO prediction, whereas the paired ratio cancels
+the shared box's cosmic variance (bind–dmo $\mathrm{corr}(\log C_\ell) = 0.9999$ at
+$\ell<500$) and would understate the survey error by orders of magnitude.
+
+The **caveats survive the $N=1000$ upgrade**: the realizations are random *rotations of one*
+$25\,\mathrm{deg}^2$ lightcone, not independent volumes, so the measured leg likely
+under-estimates true low-$\ell$ cosmic variance; and the shape-noise leg is Gaussian,
+single-bin and non-tomographic, ignoring non-Gaussian + super-sample covariance (factors of a
+few at $\ell\gtrsim3000$). What $N=1000$ buys is the removal of the small-$N$ estimator noise,
+not independence. The previous opener (the $S(5000)$-vs-$f_{\rm gas}$ scatter) is retained
+below as **fig 23b** — it is the §3c bridge in miniature and is no longer the section opener.
 ''')
 
 code(r'''
-# ── Fig 23 (§3 opener): S(5000) vs group f_gas + survey-precision gauges ─────
+# ── Fig 23 (§3 opener): the feedback prior vs Stage-IV precision ─────────────
+# The section opener for §3 (Astrophysical effects). Three stacked panels on a
+# shared ell axis:
+#   (a) S(ell) = Cl_kappa(feedback)/Cl_kappa(DMO) at z_s=1 -- the 5-95% spread
+#       across the 256 Sobol nodes (grey), the TNG fiducial (black), and the
+#       LSST-Y10 / Euclid-like +-1sigma envelopes drawn ON the fiducial.
+#   (b),(c) the same information as a detection significance:
+#       |S_node - S_fid| / (sigma_survey * S_fid), i.e. how many survey sigma a
+#       node sits from the fiducial, per ell bin. Envelope = 5-95% across nodes,
+#       line = median.
+# Self-contained given the setup cell (its own cl_relerr23; it does NOT reuse
+# fig 4's cl_relerr, so it carries no _run_subset.py DEPS entry).
+#
+# ENSEMBLE PROVENANCE (deliberate, do not "unify") -- see the markdown above.
+A2SR = (np.pi/180/60)**2                    # sr per arcmin^2
+
+
+def cl_relerr23(cl, ngal, sige, fsky, dlnl=0.15):
+    """Gaussian (Knox) fractional error on C_ell in log bins Delta_ell = dlnl*ell.
+    Mode count (2ell+1)*Delta_ell*fsky ~ ell^2, so the cosmic-variance leg falls
+    as 1/ell and the band is WIDEST at the LARGEST scales -- correct, not a bug
+    (same note as fig 12). Shape noise Nl = sige^2/n_gal takes over at high ell."""
+    Nl = sige**2*A2SR/ngal
+    dl = np.maximum(ELL*dlnl, 1.0)
+    return np.sqrt(2.0/((2*ELL + 1)*dl*fsky))*(1 + Nl/cl)
+
+
+def cl_relerr23_cv(fsky, dlnl=0.15):
+    """The pure mode-counting piece of cl_relerr23 (no shape noise), used to peel
+    off the analytic shape-noise EXCESS that is added to the measured band."""
+    dl = np.maximum(ELL*dlnl, 1.0)
+    return np.sqrt(2.0/((2*ELL + 1)*dl*fsky))
+
+
+# survey conventions -- identical to figs 4 and 12, do not re-tune here
+SURVEYS23 = (("LSST-Y10", 27.0, 0.26, 0.44, COLORS["bind"], "--"),
+             ("Euclid-like", 30.0, 0.30, 0.36, COLORS["secondary"], "-."))
+AREA_BOX_SR23 = 25.0*(np.pi/180.0)**2       # the 5x5 deg lightcone footprint
+
+# ── the S(ell) curves (50-real seed-paired trees) ────────────────────────────
+# FIDUCIAL SOURCE -- the one knob in this cell (referee/FIDUCIAL_SWAP.md §5.7,
+# which names this figure as the pending author decision).
+#   "run_0049" = twobound/run_0049, the fiducial ruled canonical 2026-08-13. An
+#                independent paint at the fiducial 30 astrophysical parameters
+#                with the CORRECT TNG300 cosmology, same DM substrate, same
+#                checkpoint, same paste settings; its 50 realizations are
+#                seed-paired to the DMO set (corr 0.99977), so dmo_paired_cl()
+#                remains the right denominator.
+#   "run_0000" = bind/run_0000, the retired fiducial, conditioned on the CAMELS
+#                SB35 cosmology. Omega_b/Omega_m high by 1.0381 -> kappa biased
+#                0.03% below ell=4000 and 0.9-1.9% above. DEPRECATED for new
+#                science; kept here only so this figure can be rendered in the
+#                old convention while the rest of the package is still on it.
+# The choice MOVES this figure: S_fid differs by +0.07% at ell=1000 but +1.3% at
+# ell=5000, +2.6% at 2e4 and +3.8% at 3.7e4, i.e. up to ~2.7 LSST-Y10 sigma, so
+# panels (b)/(c) shift visibly. Flip this one string, re-render, done.
+FID23 = "run_0049"
+FID_PATH23 = (SCI/"runs/twobound/run_0049/Cl_kappa.npz" if FID23 == "run_0049"
+              else SCI/"runs/bind/run_0000/Cl_kappa.npz")
+S_all23 = d["t__suppression__value"][:, ZI, :]                # (n_node, n_ell)
+cl_fid23 = np.load(FID_PATH23)["cl"][ZI, ZI]
+# denominator = seed-paired-prefix DMO mean (dmo_paired_cl, setup cell), NOT the
+# shipped 550-real Cl_kappa.npz -- matches the dataset's own cl_dmo to 5e-10.
+S_fid23 = cl_fid23/dmo_paired_cl()[ZI]
+
+# ── the covariance leg: N=1000 fiducial campaign, guarded ───────────────────
+# TRUTH arm, not the BIND arm, and deliberately so: FIDUCIAL_SWAP.md §4.3
+# deprecates bind_n1000's BIND arm along with bind/run_0000 (it inherits the same
+# conditioning), while "the truth and dmo arms are unaffected (no conditioning
+# enters them)" and the release note blesses truth-derived covariance sets. This
+# leg wants the realization-to-realization scatter of the 25 deg^2 lightcone
+# geometry, which is a property of the box and not of the paint: measured, the
+# two arms agree to 1.000-1.016 per bin (median ratio 1.023), so the choice is
+# about provenance hygiene, not about moving the band. It also matches fig 4's
+# nu-domain convention, whose survey band is already the TRUTH-side scatter.
+N1K23 = CEPH/"bind_n1000/analysis/stream_stats_truth_run_0000.npz"
+if N1K23.exists():
+    _s23 = np.load(N1K23)
+    assert np.array_equal(_s23["ell"], ELL), "N1000 stream-stats ell grid != dataset ell grid"
+    # The N1000 stream-stats npz stores NO source_redshifts array, so the
+    # meaning of its axis-1 index is not self-documenting. Assert it rather than
+    # assume it. The test is a NEAREST-PLANE match, not an equality: the shipped
+    # runs/truth/run_0000/Cl_kappa.npz is the 550-real retrace mean (Aug 2026)
+    # while this is a 1000-real mean over a different realization set, so the two
+    # legitimately differ by ~0.45% of cosmic variance -- an equality test here
+    # fires on that difference and hides the thing it was meant to catch. Plane
+    # confusion is 67%-1200%, i.e. two orders of magnitude above the CV floor, so
+    # "which plane is closest" separates the two cases cleanly.
+    _ref23 = np.load(SCI/"runs/truth/run_0000/Cl_kappa.npz")["cl"]
+    _mz23 = [float(np.nanmedian(np.abs(_s23["cl"][:, _j, :].mean(0)/_ref23[ZI, ZI] - 1)))
+             for _j in range(_s23["cl"].shape[1])]
+    assert int(np.argmin(_mz23)) == ZI, (
+        f"N1000 stream-stats plane axis {ZI} is not the z_s={ZS[ZI]} plane: the closest "
+        f"match is axis {int(np.argmin(_mz23))} (per-axis median |ratio-1| = "
+        f"{[f'{v:.3g}' for v in _mz23]}) -- the source-plane ordering is not what this "
+        "cell assumes")
+    kk_real23, COV_SRC23 = _s23["cl"][:, ZI, :], "bind_n1000 TRUTH arm (N=1000 campaign)"
+else:
+    kk_real23 = np.load(SCI/"runs/bind/run_0000/paired_perreal_fid.npz")["clk"][:, ZI, :]
+    COV_SRC23 = "bind_science paired_perreal_fid (50-real BIND-arm FALLBACK)"
+    print(f"fig 23 WARNING: {N1K23} absent -- covariance leg falls back to the 50-real "
+          "cache. The caption's '1000 realizations' claim must be edited to match the "
+          "N_COV printed below.")
+N_COV23 = int(kk_real23.shape[0])
+
+# measured covariance: std of the log-Cl across realizations (log so that
+# std(ln X) reads as a fractional error), area-scaled from this box's 25 deg^2 to
+# each survey footprint (sample variance ~ 1/area) and combined in quadrature
+# with the analytic shape-noise excess.
+#
+# WHY the UNPAIRED log-Cl scatter and not the scatter of the paired ratio: a
+# survey measures C_ell^kappakappa on the sky and divides by a fixed theory DMO
+# prediction, so the error on S is the error on the measured C_ell. The
+# per-realization ratio cancels the shared box's cosmic variance almost exactly
+# (corr(log Cl) bind-vs-dmo = 0.9999 at ell<500; the cancellation factor runs
+# 206x at ell~87 down to 2.5x at ell~3.7e4) and would understate the survey
+# error by 4-70x across the plotted range.
+#
+# TWO CHANGES FROM THE 50-REAL RECIPE OF figs 4 and 12, both enabled by N=1000
+# and both of which only ever WIDEN this band (they can weaken, never strengthen,
+# this figure's own claim):
+#  (1) NATIVE resolution, no 8-bin rebin. The rebin existed to stabilise a std
+#      estimated from 50 draws (MC error 1/sqrt(2(N-1)) = 10.1% at N=50, 2.2% at
+#      N=1000, so its purpose has evaporated), and np.interp then FLAT-
+#      EXTRAPOLATED it below the first block centre at ell=346 -- which collapsed
+#      the genuinely different ell=87 and ell=305 values (2.02% and 1.20%) onto
+#      one 0.65% plateau, understating the band by 3.1x and 1.9x there.
+#  (2) A GAUSSIAN FLOOR: the CV term is max(measured, Knox mode-counting). The
+#      realizations are rotations of ONE 25 deg^2 box, so they cannot sample
+#      independent large-scale modes and the measured scatter sits BELOW the
+#      analytic floor at low ell (2.02% vs 4.47% at ell=87) -- the code's own
+#      long-standing "underestimates low-ell cosmic variance" caveat, now
+#      quantified. Above ell~600 the measured leg exceeds Knox (it carries the
+#      non-Gaussian growth Knox misses) and the max is a no-op, so this changes
+#      NOTHING in the ell range the section's claim lives in: the >10x window and
+#      every headline number below are identical with and without the floor.
+#      No double counting: shot is the shape-noise EXCESS over Knox's own CV leg.
+sig_ln25_23 = np.nanstd(np.log(np.where(kk_real23 > 0, kk_real23, np.nan)), axis=0)
+SIG23 = {}
+for _nm, _ng, _se, _fs, _c, _ls in SURVEYS23:
+    _meas = sig_ln25_23*np.sqrt(AREA_BOX_SR23/(_fs*4*np.pi))
+    _shot = cl_relerr23(cl_fid23, _ng, _se, _fs) - cl_relerr23_cv(_fs)
+    _cv = np.maximum(_meas, cl_relerr23_cv(_fs))
+    SIG23[_nm] = np.sqrt(_cv**2 + _shot**2)
+    SIG23[_nm + "/meas"], SIG23[_nm + "/shot"] = _meas, _shot
+
+# ── the figure ──────────────────────────────────────────────────────────────
+mS23 = ELL <= ELL_MAX_PLOT
+lo23, hi23 = np.percentile(S_all23, [5, 95], axis=0)
+fig, axs = plt.subplots(3, 1, figsize=(ONE_COL[0]*1.35, 4.9), sharex=True,
+                        gridspec_kw=dict(height_ratios=[2.5, 1.0, 1.0], hspace=0.08))
+axa = axs[0]
+axa.fill_between(ELL[mS23], lo23[mS23], hi23[mS23], color=COLORS["dmo"], alpha=0.40,
+                 lw=0, zorder=1, label=f"Sobol 5–95% ({len(S_all23)} nodes)")
+# Survey precision as NESTED FILLED ribbons on the fiducial, widest first: at
+# ell<2000 the +-1sigma width is ~0.5%, i.e. ~1 pt on this axis, so outlined
+# curves (fig 12's idiom) collapse onto the fiducial and become undecodable.
+# Saturated fills keep both surveys readable where they are hairlines and open
+# up naturally at high ell, where shape noise dominates. Drawn UNDER a thinned
+# fiducial line so the ribbon is never covered.
+for _nm, _ng, _se, _fs, _c, _ls in SURVEYS23[::-1]:
+    _s = SIG23[_nm]
+    axa.fill_between(ELL[mS23], (S_fid23*(1 - _s))[mS23], (S_fid23*(1 + _s))[mS23],
+                     color=_c, alpha=0.90, lw=0, zorder=2 + (_nm == "LSST-Y10"),
+                     label=fr"{_nm} $\pm1\sigma$")
+axa.plot(ELL[mS23], S_fid23[mS23], color=COLORS["truth"], lw=0.9, zorder=4,
+         label="TNG fiducial")
+axa.axhline(1, color=COLORS["dmo"], ls=":", lw=0.8, zorder=0)
+axa.set_ylabel(r"$S(\ell)$ at $z_s=1$")
+# ylim covers the plotted 5-95% band exactly; the full node extent runs to
+# S=0.76-1.92 and is deliberately NOT drawn (it would compress the panel by 2x
+# and the caption quotes 5-95%). The true extent is printed in the stamp below.
+axa.set_ylim(0.79, 1.46)
+axa.legend(loc="upper left", fontsize=5.2, ncol=2, columnspacing=1.0, handlelength=1.8)
+panel_label(axa, "(a)", loc="lower left")
+
+# (b),(c): detection significance. sigma_survey is a RELATIVE error on C_ell, so
+# the absolute 1sigma on S is sigma*S_fid.
+DEV23 = np.abs(S_all23 - S_fid23)
+Z23 = {}
+for _ax, (_nm, _ng, _se, _fs, _c, _ls) in zip(axs[1:], SURVEYS23):
+    _z = DEV23/(SIG23[_nm]*S_fid23)
+    Z23[_nm] = _z
+    _p5, _p50, _p95 = np.percentile(_z, [5, 50, 95], axis=0)
+    _ax.fill_between(ELL[mS23], _p5[mS23], _p95[mS23], color=_c, alpha=0.28, lw=0,
+                     label="node 5–95%")
+    _ax.plot(ELL[mS23], _p50[mS23], color=_c, lw=1.3, label="median across nodes")
+    _ax.axhline(1, color=COLORS["truth"], ls="--", lw=0.8)
+    _ax.axhline(5, color=COLORS["truth"], ls=":", lw=0.6)
+    for _lv, _tx in ((1, r"$1\sigma$"), (5, r"$5\sigma$")):
+        _ax.text(0.008, _lv, _tx, transform=_ax.get_yaxis_transform(), ha="left",
+                 va="bottom", fontsize=5.0, color=COLORS["truth"])
+    _ax.text(0.985, 0.08, _nm, transform=_ax.transAxes, ha="right", va="bottom",
+             fontsize=5.8, color=_c)
+    _ax.set_yscale("log")
+    _ax.set_ylim(0.02, 200)
+    _ax.set_ylabel(r"$|\Delta S|/\sigma$", fontsize=7)
+axs[1].legend(loc="upper left", fontsize=5.0, ncol=2, columnspacing=1.0)
+panel_label(axs[1], "(b)", loc="upper right")
+panel_label(axs[2], "(c)", loc="upper right")
+axs[-1].set_xscale("log")
+axs[-1].set_xlim(90, ELL_MAX_PLOT)
+axs[-1].set_xlabel(r"$\ell$")
+# S(ell) is a RATIO statistic: the CIC/pixelization artifact cancels between the
+# painted and DMO spectra, so no ELL_TRUST marker here (package-wide convention).
+# NB no tight_layout: sharex + an explicit height_ratios/hspace gridspec is not
+# tight_layout-compatible (it warns and mis-spaces); save() already crops with
+# bbox_inches="tight".
+save(fig, "figs_v2/fig23_s3_opener")
+plt.show()
+
+# ── provenance + the numbers the caption and the section text quote ──────────
+_ratio23 = (hi23 - lo23)/(2*SIG23["LSST-Y10"]*S_fid23)
+_gt10 = ELL[(_ratio23 > 10) & mS23]
+print(f"fig 23 (§3 opener) FIDUCIAL = {FID23} ({FID_PATH23}) -- "
+      + ("the 2026-08-13 canonical replica (correct TNG300 cosmology)" if FID23 == "run_0049"
+         else "the RETIRED CAMELS-conditioned fiducial, DEPRECATED for new science"))
+print(f"fig 23 (§3 opener) covariance leg: {COV_SRC23}, N_COV={N_COV23} realizations, "
+      f"5x5 deg box area-scaled to each survey footprint + analytic shape-noise excess")
+print(f"fig 23 Sobol set: {len(S_all23)} nodes, z_s={ZS[ZI]:.1f}, "
+      f"S in [{S_all23[:, mS23].min():.3f}, {S_all23[:, mS23].max():.3f}] over the plotted "
+      f"range (the 5-95% band drawn in panel (a) is narrower by construction)")
+print(f"{'ell':>7} {'S 5%':>7} {'S 95%':>7} {'S fid':>7} {'sig_L%':>7} {'sig_E%':>7} "
+      f"{'spread/2sL':>10} {'med|dS|/sL':>10} {'p95|dS|/sL':>10}")
+for _t in (100, 300, 1000, 2000, 5000, 10000, 20000, 36864):
+    _i = int(np.argmin(np.abs(ELL - _t)))
+    print(f"{ELL[_i]:7.0f} {lo23[_i]:7.3f} {hi23[_i]:7.3f} {S_fid23[_i]:7.3f} "
+          f"{100*SIG23['LSST-Y10'][_i]:7.2f} {100*SIG23['Euclid-like'][_i]:7.2f} "
+          f"{_ratio23[_i]:10.1f} {np.median(Z23['LSST-Y10'][:, _i]):10.1f} "
+          f"{np.percentile(Z23['LSST-Y10'][:, _i], 95):10.1f}")
+# THESE PRINTS ARE THE SINGLE SOURCE OF TRUTH for every number quoted in the
+# main.tex caption and in the sec:astro prose. Do not hand-copy numbers from an
+# older draft: re-render and read them off here. (An independent audit of the
+# first draft found the ">10x" window's upper edge overstated as 2e4 when the
+# down-crossing is at 1.85e4, and the Euclid >5sigma fraction off by 2 points --
+# both because the prose was written before the cell was.)
+for _nm, _, _, _, _, _ in SURVEYS23:
+    _r = (hi23 - lo23)/(2*SIG23[_nm]*S_fid23)
+    _g = ELL[(_r > 10) & mS23]
+    _win = (f"ell = {_g.min():.0f}-{_g.max():.0f}" if _g.size else "NOWHERE in the plotted range")
+    print(f"fig 23 order-of-magnitude claim [{_nm}]: (S95-S5)/2sigma > 10 over {_win}, "
+          f"peaking at {_r[mS23].max():.1f} (ell={ELL[np.argmax(np.where(mS23, _r, -1))]:.0f}) "
+          f"-- SCALE-DEPENDENT, not global: quote the window, never the peak alone")
+_mtr23 = (ELL >= 300) & mS23
+for _nm, _, _, _, _, _ in SURVEYS23:
+    _pk = Z23[_nm][:, _mtr23].max(1)
+    print(f"fig 23 per-node PEAK |dS|/sigma over ell 300-{ELL_MAX_PLOT:.0f} [{_nm}]: "
+          f"median {np.median(_pk):.1f}, range {_pk.min():.1f}-{_pk.max():.1f}; "
+          f"{100*(_pk > 1).mean():.1f}% of nodes exceed 1sigma, "
+          f"{100*(_pk > 5).mean():.1f}% exceed 5sigma")
+_xo23 = [np.median(Z23[_nm], axis=0) for _nm, *_ in SURVEYS23]
+for _nm, _z in zip([s[0] for s in SURVEYS23], _xo23):
+    _ok = mS23 & (_z > 1)
+    print(f"fig 23 median-node crossover [{_nm}]: the median node first exceeds 1sigma at "
+          f"ell = {ELL[_ok].min():.0f} and stays above it to ell = {ELL[_ok].max():.0f} "
+          "-- BELOW that scale the survey out-resolves the whole feedback prior, which the "
+          "text must not paper over")
+print("fig 23 CAVEAT (carry into the caption): the measured covariance leg comes from "
+      f"{N_COV23} ray-tracing realizations that are random ROTATIONS of ONE 25 deg^2 "
+      "lightcone, not independent cosmological volumes, so it likely UNDER-estimates true "
+      "low-ell cosmic variance; the shape-noise leg is Gaussian, single-bin, non-tomographic "
+      "and ignores non-Gaussian + super-sample covariance (factors of a few at ell>3000).")
+''')
+
+# ═════════════════════════════════════════════════════════════════════════════
+md(r'''
+## §3 opener companion — Fig 23b: the same span, indexed by a gas observable
+
+The previous §3 opener (ruled 2026-08-03, demoted 2026-08-14 when the opener became the
+$S(\ell)$/precision figure above). Every Sobol node's WL suppression $S(\ell{=}5000, z_s{=}1)$
+against its group-scale gas fraction $f_{\rm gas}$ ($\log_{10}M_{500c}\simeq13.0$–$13.25$, the
+most feedback-sensitive bin), coloured by the dominant lever (WindEnergy). Its point is the
+one fig 23 does *not* make: the span is not noise, it is *indexed by a gas observable*
+(log-linear fit over the full node set; $r$ printed live), which is the §3c bridge in
+miniature and the reason gas data can close the loop. The prototype's second
+(ejection–heating) panel is deliberately NOT included — at population level ejection and
+heating are strongly coupled (see the 3c-companion evaluation memo).
+''')
+
+code(r'''
+# ── Fig 23b (§3 opener companion): S(5000) vs group f_gas + survey gauges ────
 # Ported from proto_bridge_hero.py panel (a) (fork ruling 2026-08-03: panel (a)
 # alone; panel (b) dropped -- population-level ejection/heating coupling). The
 # survey gauges reuse cl_relerr from the fig 4 cell (LSST-Y10 27/0.26/0.44,
 # Euclid 30/0.30/0.36 -- fig 12's exact conventions) at the same ell bin;
 # sigma(S)/S = sigma(Cl)/Cl since S is referenced to a fixed theory DMO trace.
-ell23 = d["a__suppression__ell"]
-i5k23 = int(np.argmin(np.abs(ell23 - 5000)))
-S23 = d["t__suppression__value"][:, ZI, i5k23]
-fg23 = d["t__scaling_f_gas__value"][:, 0]          # group bin, log M500c ~ 13.0-13.25
-mb23 = float(d["a__scaling_f_gas__log_mass_bins"][0])
-we23 = np.log10(d["X_native"][:, 2])               # WindEnergyIn1e51erg (native col 2)
-we23 = (we23 - we23.min())/np.ptp(we23)
+# NB every name here carries a 23b suffix: the fig-23 cell above binds lo23/hi23
+# as (n_ell,) ARRAYS, and this cell used to bind them as scalars -- the notebook
+# runs top to bottom, so the old names would silently shadow fig 23's.
+ell23b = d["a__suppression__ell"]
+i5k23b = int(np.argmin(np.abs(ell23b - 5000)))
+S23b = d["t__suppression__value"][:, ZI, i5k23b]
+fg23b = d["t__scaling_f_gas__value"][:, 0]         # group bin, log M500c ~ 13.0-13.25
+mb23b = float(d["a__scaling_f_gas__log_mass_bins"][0])
+we23b = np.log10(d["X_native"][:, 2])              # WindEnergyIn1e51erg (native col 2)
+we23b = (we23b - we23b.min())/np.ptp(we23b)
 
-bcl23 = np.load(SCI/"runs/bind/run_0000/Cl_kappa.npz")
-i5c23 = int(np.argmin(np.abs(bcl23["ell"] - 5000)))
-sig_lsst23 = float(cl_relerr(bcl23["cl"][ZI, ZI], 27.0, 0.26, 0.44)[i5c23])
-sig_euc23  = float(cl_relerr(bcl23["cl"][ZI, ZI], 30.0, 0.30, 0.36)[i5c23])
-lo23, hi23 = np.percentile(S23, [5, 95])
-r_log23 = np.corrcoef(np.log10(fg23), S23)[0, 1]
-z23 = np.polyfit(np.log10(fg23), S23, 1)
+bcl23b = np.load(SCI/"runs/bind/run_0000/Cl_kappa.npz")
+i5c23b = int(np.argmin(np.abs(bcl23b["ell"] - 5000)))
+sig_lsst23b = float(cl_relerr(bcl23b["cl"][ZI, ZI], 27.0, 0.26, 0.44)[i5c23b])
+sig_euc23b  = float(cl_relerr(bcl23b["cl"][ZI, ZI], 30.0, 0.30, 0.36)[i5c23b])
+lo23b, hi23b = np.percentile(S23b, [5, 95])
+r_log23b = np.corrcoef(np.log10(fg23b), S23b)[0, 1]
+z23b = np.polyfit(np.log10(fg23b), S23b, 1)
 
 fig, ax = plt.subplots(figsize=(ONE_COL[0]*1.35, 3.0))
-ax.axhspan(lo23, hi23, color="0.92", lw=0, zorder=0, label="Sobol 5–95%")
-ax.axhspan(1 - sig_lsst23, 1 + sig_lsst23, color=COLORS["highlight"], alpha=0.30, lw=0,
+ax.axhspan(lo23b, hi23b, color="0.92", lw=0, zorder=0, label="Sobol 5–95%")
+ax.axhspan(1 - sig_lsst23b, 1 + sig_lsst23b, color=COLORS["highlight"], alpha=0.30, lw=0,
            zorder=1, label=r"LSST-Y10 $\pm1\sigma$")
-for yv23 in (1 - sig_euc23, 1 + sig_euc23):
-    ax.axhline(yv23, color=COLORS["secondary"], ls="-.", lw=0.8, zorder=1)
+for yv23b in (1 - sig_euc23b, 1 + sig_euc23b):
+    ax.axhline(yv23b, color=COLORS["secondary"], ls="-.", lw=0.8, zorder=1)
 ax.plot([], [], color=COLORS["secondary"], ls="-.", lw=0.8, label=r"Euclid $\pm1\sigma$")
-sc23 = ax.scatter(fg23, S23, c=we23, cmap="coolwarm", s=16, edgecolor="k", lw=0.25, zorder=3)
-xg23 = np.linspace(fg23.min(), fg23.max(), 50)
-ax.plot(xg23, np.polyval(z23, np.log10(xg23)), color=COLORS["truth"], lw=1.3, zorder=4,
-        label=fr"log-linear fit ($r={r_log23:.2f}$)")
+sc23b = ax.scatter(fg23b, S23b, c=we23b, cmap="coolwarm", s=16, edgecolor="k", lw=0.25,
+                   zorder=3)
+xg23b = np.linspace(fg23b.min(), fg23b.max(), 50)
+ax.plot(xg23b, np.polyval(z23b, np.log10(xg23b)), color=COLORS["truth"], lw=1.3, zorder=4,
+        label=fr"log-linear fit ($r={r_log23b:.2f}$)")
 ax.axhline(1, color=COLORS["dmo"], ls=":", lw=0.8, zorder=2)
 ax.set_xlabel(fr"$f_{{\rm gas}}$ ($\log_{{10}}\,M_{{500c}}/{{\rm M}}_\odot"
-              fr"\simeq{mb23:.2f}$)")
+              fr"\simeq{mb23b:.2f}$)")
 ax.set_ylabel(r"$S(\ell{=}5000)$ at $z_s=1$")
 ax.legend(fontsize=5.2, loc="lower right")
-cb23 = fig.colorbar(sc23, ax=ax, fraction=0.046, pad=0.03)
-cb23.set_label(r"norm. $\log_{10}$ WindEnergy", fontsize=6)
-cb23.ax.tick_params(labelsize=5.5)
-save(fig, "figs_v2/fig23_s3_opener")
+cb23b = fig.colorbar(sc23b, ax=ax, fraction=0.046, pad=0.03)
+cb23b.set_label(r"norm. $\log_{10}$ WindEnergy", fontsize=6)
+cb23b.ax.tick_params(labelsize=5.5)
+save(fig, "figs_v2/fig23b_s3_bridge_scatter")
 plt.show()
-print(f"fig 23 (§3 opener): Sobol 5-95% span of S(5000, z_s=1) = {100*(hi23-lo23):.1f}% "
-      f"vs LSST-Y10 sigma {100*sig_lsst23:.2f}% ({(hi23-lo23)/sig_lsst23:.0f}x) and "
-      f"Euclid sigma {100*sig_euc23:.2f}% ({(hi23-lo23)/sig_euc23:.0f}x) at that ell bin; "
-      f"log-linear bridge r={r_log23:.2f} over {len(S23)} nodes (WindEnergy-coloured)")
+print(f"fig 23b (§3 opener companion): Sobol 5-95% span of S(5000, z_s=1) = "
+      f"{100*(hi23b-lo23b):.1f}% vs LSST-Y10 sigma {100*sig_lsst23b:.2f}% "
+      f"({(hi23b-lo23b)/sig_lsst23b:.0f}x) and Euclid sigma {100*sig_euc23b:.2f}% "
+      f"({(hi23b-lo23b)/sig_euc23b:.0f}x) at that ell bin; log-linear bridge "
+      f"r={r_log23b:.2f} over {len(S23b)} nodes (WindEnergy-coloured). NOTE these gauges "
+      "are the v1 Knox-only analytic form at ONE ell bin -- fig 23 supersedes them with the "
+      "N=1000 measured-covariance band across all ell.")
 ''')
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -3383,7 +3718,11 @@ $\rho_{jb}=\mathrm{corr}\,[\mathrm{rank}(\theta_j),\,\mathrm{rank}(S_b)]$ betwee
 unit-cube parameter $\theta_j$ ($\log_{10}$-mapped where the prior is logarithmic) and the
 WL suppression $S(\ell)$ in the pre-averaged ($\times16$) $\ell$ bin $b$, over the
 completed Sobol runs at $z_s=1$: red = raising the parameter *raises* $S(\ell)$ (less
-suppression, toward enhancement), blue = raising it *deepens* the suppression. Columns
+suppression, toward enhancement), blue = raising it *deepens* the suppression. The scan
+stops at the map's axis-Nyquist mode $\ell_{\rm Ny}=36864$ ($1024^2$ pixels over 5 deg) —
+the same limit every $C_\ell$ panel plots to; the $3.7{\times}10^4$–$5.2{\times}10^4$
+corner-mode zone holds only direction-sparse diagonal modes with no azimuthal-averaging
+support and enters neither the display nor the ranking. Columns
 carry fig 5's ordering (peak importance over all 12 statistics), so the two figures share
 one $x$ axis; a circle marks each column's peak-$|\rho|$ bin, and the value at that circle
 **is** the corresponding cell of fig 5's $S(\ell)$ row — the collapse is asserted in code
@@ -3397,10 +3736,9 @@ free-travel density push $S(\ell)$ the same way over (essentially) every scale, 
 them fig 5's max-over-bins collapse discards only *where* the response peaks, not its
 character. The instructive exception is the SN-wind energy: its correlation **changes
 sign with scale** (enhancement side at low $\ell$, suppression at high $\ell$), structure
-that a $\max_b|\rho|$ cell is blind to — which is precisely why the bin-resolved view is
-shown before the collapse. Where each circle sits tells the scale at which a parameter
-bites hardest; the $\ell=5000$ guide line separates the survey-primary range from the
-small scales.
+that any single per-cell summary — fig 5's signed peak included — is blind to, which is
+precisely why the bin-resolved view is shown before the collapse. Where each circle sits tells the scale at which a parameter
+bites hardest.
 ''')
 
 code(r'''
@@ -3495,7 +3833,24 @@ for s in STATS:
     print(f"validity {s['k']:>14s}: finite {fr:6.2f}%"
           + ("" if fr == 100 else "  <- masked pairwise in the Spearman"))
 
-Ys   = {s["k"]: rebin_nan(s["A"], s["rb"]) for s in STATS}
+# Nyquist cut on the RANKING (2026-08-10 author ruling): every ell-domain row's
+# Spearman scan stops at the axis-Nyquist mode ELL_MAX_PLOT (36864 for 1024^2
+# pixels over 5 deg) -- the same limit every C_ell panel already plots to.
+# Previously the scan ran the full measured grid out to the ell=52134 corner
+# mode, and several columns' peak-|rho| bins landed BEYOND Nyquist (the
+# direction-sparse diagonal-mode zone with no azimuthal-averaging support; the
+# main.tex validity FLAG on fig:srow). The cut is applied HERE, where the
+# ranking consumes the arrays -- STATS[..]["A"] itself stays full-grid because
+# fig 7 plots those raw curves under its own (tighter) ELL_TRUST display mask.
+ELL_ROWS = {"suppression", "cl_yy", "cl_tt", "cl_kappa_y", "cl_kappa_tau", "cl_yt"}
+LNYQ = ELL <= ELL_MAX_PLOT
+def _ranked(s):
+    """The array the ranking sees: ell rows Nyquist-cut, nu rows untouched."""
+    return s["A"][..., LNYQ] if s["k"] in ELL_ROWS else s["A"]
+print(f"Nyquist cut for the ranking: {int(LNYQ.sum())}/{len(ELL)} native ell bins "
+      f"kept (ell <= {ELL_MAX_PLOT:.0f})")
+
+Ys   = {s["k"]: rebin_nan(_ranked(s), s["rb"]) for s in STATS}
 Rs   = {s["k"]: spearman_masked(X_unit, Ys[s["k"]]) for s in STATS}   # each (30, nb)
 IMPg = np.array([np.nanmax(np.abs(Rs[s["k"]]), 1) for s in STATS])    # (12, 30) THE map
 RHO_2SIG = 2/np.sqrt(len(X_unit))       # single-bin 2-sigma null, grid-independent
@@ -3506,7 +3861,7 @@ col_order = np.argsort(-peak_col)
 
 # the S(ell) leg, bin-resolved and SIGNED, in fig-5 column order
 RS     = Rs["suppression"]                     # (30 params, nb ell bins)
-ELL_RB = rebin(ELL, 16)                        # centers of the pre-averaged bins
+ELL_RB = rebin(ELL[LNYQ], 16)                  # centers of the pre-averaged (Nyquist-cut) bins
 edges  = np.concatenate([[1.5*ELL_RB[0] - 0.5*ELL_RB[1]],
                          0.5*(ELL_RB[1:] + ELL_RB[:-1]),
                          [1.5*ELL_RB[-1] - 0.5*ELL_RB[-2]]])
@@ -3525,11 +3880,12 @@ axa.scatter(np.arange(NPAR), ELL_RB[pk_bin], s=7.0, facecolor="none",
             edgecolor="k", linewidths=0.55, zorder=3)
 # NB (2026-08-05 ruled edit): the ell=5000 horizontal guide line + its inline
 # label were removed at the author's request -- REMOVED, not relocated.
-axa.text(-0.5, edges[-1]*1.012,
-         r"$\circ$: peak-$|\rho|$ bin — the value exported into fig 5's $S(\ell)$ row",
-         ha="left", va="bottom", fontsize=4.6, color="0.25", clip_on=False)
+# NB (2026-08-11 ruled edits): the circle-legend annotation and the "single-bin
+# +-2sigma" colorbar text were removed at the author's request; the colorbar
+# label was then restored as the bare math (no "(signed Spearman)" suffix).
+# The dashed +-2sigma pair stays: it is a line, not text, and main.tex cites it.
 axa.set_ylim(edges[0], edges[-1])
-axa.set_yticks([2000, 10000, 20000, 30000, 40000, 50000])
+axa.set_yticks([2000, 10000, 20000, 30000])
 axa.set_ylabel(r"$\ell$", fontsize=6.5)
 axa.set_xlim(-0.5, NPAR - 0.5)
 axa.set_xticks(range(NPAR))
@@ -3537,13 +3893,11 @@ axa.set_xticklabels([short_label(pnames[i]) for i in col_order], rotation=55,
                     ha="right", fontsize=4.4)
 axa.tick_params(axis="x", length=1.5, pad=1.0)
 axa.tick_params(axis="y", length=1.5, labelsize=6)
-axa.set_xlabel("30 SB35 astrophysical parameters (fig-5 order)", fontsize=6.5)
+axa.set_xlabel(r"$\theta$", fontsize=6.5)
 cb = fig.colorbar(im, ax=axa, fraction=0.022, pad=0.055,
-                  label=r"$\rho\,[\theta_j,\,S(\ell_b)]$ (signed Spearman)")
+                  label=r"$\rho\,[\theta_j,\,S(\ell_b)]$")
 for v in (RHO_2SIG, -RHO_2SIG):
     cb.ax.axhline(v, color="k", lw=0.6, ls="--")
-cb.ax.text(-0.45, 0.0, r"single-bin $\pm2\sigma$", rotation=90, ha="center",
-           va="center", fontsize=3.6, color="0.35", clip_on=False)
 save(fig, "figs_v2/fig05a_sl_response")
 plt.show()
 
@@ -3569,12 +3923,21 @@ over bins, for every canonical statistic at once, into a single map: the
 non-$\kappa$ auto-spectra and the 3 crosses of fig 4b) against the 30 SB35 parameters.
 $C_\ell^{\kappa\kappa}$ is deliberately not a row: at fixed cosmology it is $S(\ell)$ times a
 single run-independent DMO trace (identity stated once in the §4a text), so it carries
-no information beyond the $S(\ell)$ row. The cell value is an
-*importance* $I_{sj}=\max_b|\rho_{jb}|$: the largest Spearman rank correlation
+no information beyond the $S(\ell)$ row. Each cell is painted with the **signed** Spearman
+rank correlation at its peak-$|\rho|$ bin, $\rho_{jb^\ast}$ with
+$b^\ast=\arg\max_b|\rho_{jb}|$, on the same red/blue convention as fig 5a (red: raising
+the parameter *raises* the statistic; blue: lowers it) — so one map carries both the
+strength and the *direction* of every response. Its magnitude is the importance
+$I_{sj}=\max_b|\rho_{jb}|$, and every significance judgement below is made on $|\rho|$;
+a single signed cell still cannot show a sign *change* across bins (the SN-wind energy's
+$S(\ell)$ response flips with scale) — that bin-resolved structure is fig 5a's job. Here
 $\rho_{jb}=\mathrm{corr}\,[\mathrm{rank}(\theta_j),\,\mathrm{rank}(s_b)]$, over the
 (pre-averaged) bins $b$ of statistic $s$, between the unit-cube parameter $\theta_j$
 ($\log_{10}$-mapped where the prior is logarithmic) and the measured bin value across the
-253 runs, at $z_s=1$ where tomographic. Shot-noisy bins are pre-averaged (spectra ×16); the
+256 runs, at $z_s=1$ where tomographic. The $\ell$-domain rows are scanned only to the
+map's axis-Nyquist mode $\ell_{\rm Ny}=36864$ ($1024^2$ pixels over 5 deg — the same limit
+every $C_\ell$ panel plots to), so no cell can be driven by the corner-mode zone beyond
+it. Shot-noisy bins are pre-averaged (spectra ×16); the
 six $\nu$-domain statistics need no further pre-averaging of their own -- the canonical
 $\Delta\nu=0.5$ grid (`nu_grid.py`, 22 bins) was chosen specifically so every bin already
 holds a well-populated, integer realization-summed count, the same property fig 4 uses for
@@ -3586,20 +3949,27 @@ finite in the current dataset, so this is a hygiene guarantee, not a numerical c
 
 **Reading it.** Columns are sorted by peak importance; rows keep the fig-4/4b order, so the
 WL / auto / cross blocks read as blocks. Four thresholds are drawn or printed rather than
-assumed: the single-cell $2\sigma$ null ($|\rho|=0.126$); each statistic's *own* permutation
+assumed: the single-cell $2\sigma$ null ($|\rho|=0.125$); each statistic's *own* permutation
 null (200 seeded shuffles of the run labels, max over that statistic's bins; 95th percentiles
-0.147–0.177, marked as a band on the colorbar), below which a cell is crossed out; the
-per-parameter look-elsewhere null over the 12 rows (0.196 — the dashed vertical divider,
-which 11 of 30 parameters clear; 14 clear at least one row-level null); and the whole-grid
-look-elsewhere null (0.257), which the printed numerals mark.
+0.149–0.182, marked as a band on the colorbar — mirrored about zero, since thresholds on
+$|\rho|$ apply to both signs), below which a cell is crossed out; the
+per-parameter look-elsewhere null over the 12 rows (0.200 — the dashed vertical divider,
+which 11 of 30 parameters clear; 16 clear at least one row-level null); and the whole-grid
+look-elsewhere null (0.253), which the printed numerals mark. The full derivation of this
+null ladder, with equations, lives in `fig05_significance_methods.md`.
 
 **Reading.** The response is concentrated, not diffuse: `VariableWindVelFactor`, `IMFslope`,
 `WindEnergyIn1e51erg`, `BlackHoleRadiativeEfficiency` and `WindFreeTravelDensFac` command
 *every* probe, and the remaining two-thirds of the design is statistically inert — visibly
 so, because no parameter column is truncated away. The gas spectra respond most strongly
-(peak $|\rho|=0.71$ for $C_\ell^{\tau\tau}$ against wind velocity, 0.65 for
-$C_\ell^{\kappa\tau}$, 0.59 for $C_\ell^{\kappa y}$, and 0.54 for the new $C_\ell^{y\tau}$ row
-— wind velocity is also $C_\ell^{y\tau}$'s own peak lever over all 30 params); the WL
+(peak $|\rho|=0.68$ for $C_\ell^{\tau\tau}$ against wind velocity, 0.62 for
+$C_\ell^{\kappa\tau}$, 0.59 for $C_\ell^{\kappa y}$, and 0.50 for the new $C_\ell^{y\tau}$ row
+— wind velocity is also $C_\ell^{y\tau}$'s own peak lever over all 30 params). The signed
+display adds a read the unsigned map could not: the wind velocity *raises* the $y$-side
+spectra ($C_\ell^{yy}$ +0.57, $C_\ell^{\kappa y}$ +0.59, $C_\ell^{y\tau}$ +0.50) while
+*lowering* the $\tau$-side ones ($C_\ell^{\tau\tau}$ −0.68, $C_\ell^{\kappa\tau}$ −0.62)
+and $S(\ell)$ (−0.55) — opposite-sign responses of the two gas probes to the same knob
+(mechanism = author's physics to voice). The WL
 morphology statistics
 respond least, and are led by `IMFslope` rather than the wind velocity. That the same handful
 of SN-wind, IMF and BH parameters dominates WL, tSZ and $\tau$ alike is the empirical basis
@@ -3630,22 +4000,39 @@ NULL_GRID = float(np.percentile(null.max(axis=(1, 2)), 95))  # whole-grid look-e
 # columns sorted by peak importance (col_order, bound in the fig-5a cell); ALL
 # 30 stay (the inert two-thirds is the point). Rows keep the STATS order so the
 # WL / auto / cross blocks read as blocks.
-M         = IMPg[:, col_order]
+# SIGNED display (2026-08-10 author request): each cell is painted with rho AT
+# its peak-|rho| bin (sign = direction of the response, |value| = strength) on
+# the same RdBu_r diverging scale as fig 5a, replacing the unsigned max-|rho|
+# cividis map. ALL significance logic (nulls; x / numeral / divider membership)
+# is unchanged -- it judges |rho| = IMPg exactly as before; only the painted
+# value gained its sign. NB a single signed cell still cannot show a sign
+# CHANGE across bins (WindEnergy's S(ell) row flips with scale) -- that
+# structure remains fig 5a's job.
+def _signed_peak(R):
+    """rho at each parameter's peak-|rho| bin: (30, nb) -> (30,) signed."""
+    b = np.nanargmax(np.abs(R), 1)
+    return R[np.arange(R.shape[0]), b]
+SGN = np.array([_signed_peak(Rs[s["k"]]) for s in STATS])   # (12, 30) signed peaks
+assert np.allclose(np.abs(SGN), IMPg, equal_nan=True), "|signed peak| != IMPg"
+M         = SGN[:, col_order]
+MA        = np.abs(M)                              # significance is judged on |rho|
 n_col_ok  = int((peak_col >= NULL_COL).sum())      # params clearing the 12-row null
 VMAX      = float(np.nanmax(IMPg))
 
 fig, axh = plt.subplots(figsize=(TWO_COL[0], 3.6), layout="constrained")
-im = axh.imshow(M, aspect="auto", cmap="cividis", vmin=0, vmax=VMAX,
+im = axh.imshow(M, aspect="auto", cmap="RdBu_r", vmin=-VMAX, vmax=VMAX,
                 interpolation="nearest", rasterized=True)
 # significance is ANNOTATED, not hidden: a cross marks cells below that
 # statistic's own permutation null; a numeral marks cells that also clear the
-# whole-grid look-elsewhere null.
-sub_r, sub_c = np.where(M < NULL_ROW)
-axh.scatter(sub_c, sub_r, marker="x", s=1.6, linewidths=0.22, color="0.82", zorder=3)
+# whole-grid look-elsewhere null. Contrast logic is diverging-aware: sub-
+# threshold cells sit on the PALE midpoint (mid-gray x, was light-gray on
+# cividis), numerals go white only on the saturated ends.
+sub_r, sub_c = np.where(MA < NULL_ROW)
+axh.scatter(sub_c, sub_r, marker="x", s=1.6, linewidths=0.22, color="0.45", zorder=3)
 for (i, j), v in np.ndenumerate(M):
-    if v >= NULL_GRID:
-        axh.text(j, i, f"{v:.2f}".lstrip("0"), ha="center", va="center", fontsize=3.4,
-                 color="k" if v/VMAX > 0.55 else "w", zorder=4)
+    if abs(v) >= NULL_GRID:
+        axh.text(j, i, f"{v:.2f}".replace("0.", ".", 1), ha="center", va="center",
+                 fontsize=3.4, color="w" if abs(v)/VMAX > 0.55 else "k", zorder=4)
 # WL / auto / cross block separators + right-edge group labels
 _blk = ["WL" if s["grp"].startswith("WL") else s["grp"] for s in STATS]
 for i in range(1, NSTAT):
@@ -3657,14 +4044,11 @@ for gname in ("WL", "auto", "cross"):
              va="center", fontsize=5.0, color="0.25", clip_on=False)
 # the multiplicity divider: everything right of it fails the per-parameter null
 axh.axvline(n_col_ok - 0.5, color="k", lw=0.8, ls="--")
-axh.text(n_col_ok - 0.3, -0.62,
-         f"$\\rightarrow$ peak $|\\rho|$ below the per-parameter look-elsewhere "
-         f"null ({NULL_COL:.3f})",
-         ha="left", va="bottom", fontsize=4.4, color="0.25", clip_on=False)
-axh.text(-0.5, -1.75,
-         r"$\times$: below that statistic's own permutation null   |   "
-         f"numeral: clears the whole-grid null ({NULL_GRID:.2f})",
-         ha="left", va="bottom", fontsize=4.6, color="0.25", clip_on=False)
+# NB (2026-08-10 ruled edit): the two explanatory annotations above the panel
+# (the "-> peak |rho| below the per-parameter look-elsewhere null" pointer and
+# the "x: ... | numeral: ..." key) are REMOVED at the author's request -- the
+# figure carries only axis + colorbar labels; the key lives in the caption
+# (main.tex fig:corr_matrix) and in fig05_significance_methods.md.
 axh.set_xticks(range(NPAR))
 axh.set_xticklabels([short_label(pnames[i]) for i in col_order], rotation=55,
                     ha="right", fontsize=4.4)
@@ -3674,17 +4058,18 @@ axh.tick_params(axis="x", length=1.5, pad=1.0)
 axh.tick_params(axis="y", length=1.5)
 axh.set_xlabel("30 SB35 astrophysical parameters (sorted by peak $|\\rho|$)", fontsize=6.5)
 cb = fig.colorbar(im, ax=axh, fraction=0.022, pad=0.055,
-                  label=r"peak $|\rho|$ over bins")
-# band on the colorbar: the RANGE of the 12 per-statistic permutation nulls (95%)
-cb.ax.axhspan(min(NULL95.values()), max(NULL95.values()),
-              color=COLORS["highlight"], alpha=0.30, lw=0)
-cb.ax.axhline(NULL_GRID, color="w", lw=0.7, ls="--")
-# tiny labels so the band and line read as deliberate, not rendering artifacts
-cb.ax.text(-0.45, 0.5*(min(NULL95.values()) + max(NULL95.values())),
-           "per-stat null", rotation=90, ha="center", va="center",
-           fontsize=3.6, color=COLORS["highlight"], clip_on=False)
-cb.ax.text(-0.45, NULL_GRID, "grid null", rotation=90, ha="center", va="center",
-           fontsize=3.6, color="0.35", clip_on=False)
+                  label=r"$\rho$ at the peak-$|\rho|$ bin (signed)")
+# band + dashed pair on the colorbar, MIRRORED about zero on the signed scale:
+# the RANGE of the 12 per-statistic permutation nulls (95%) and the whole-grid
+# null are thresholds on |rho|, so they apply symmetrically to both signs.
+for lo, hi in ((min(NULL95.values()), max(NULL95.values())),
+               (-max(NULL95.values()), -min(NULL95.values()))):
+    cb.ax.axhspan(lo, hi, color=COLORS["highlight"], alpha=0.30, lw=0)
+for v in (NULL_GRID, -NULL_GRID):
+    cb.ax.axhline(v, color="k", lw=0.6, ls="--")
+# NB (2026-08-10 ruled edit): the colorbar's "per-stat null" / "grid null" text
+# labels are REMOVED at the author's request (the band and dashed lines stay,
+# explained in the caption instead).
 save(fig, "figs_v2/fig05_param_response")
 plt.show()
 
@@ -3696,7 +4081,7 @@ print(f"significance: single-cell 2sigma |rho| = {RHO_2SIG:.3f}; per-statistic p
 print("per-statistic permutation nulls (95th pct): "
       + ", ".join(f"{s['k']} {NULL95[s['k']]:.3f}" for s in STATS))
 print(f"grid {NSTAT} statistics x {NPAR} params: max peak |rho| = {VMAX:.3f} "
-      f"({STATS[r_max]['k']} x {short_label(pnames[c_max])}); "
+      f"({STATS[r_max]['k']} x {short_label(pnames[c_max])}, signed {SGN[r_max, c_max]:+.2f}); "
       f"{int((IMPg >= NULL_GRID).sum())}/{IMPg.size} cells clear the whole-grid null")
 print(f"{n_col_ok}/{NPAR} params clear the per-parameter look-elsewhere null; "
       f"{int((IMPg >= NULL_ROW).any(0).sum())}/{NPAR} have >=1 cell above their own "
@@ -3705,7 +4090,7 @@ print("column order by peak |rho|: "
       + ", ".join(f"{short_label(pnames[i])} {peak_col[i]:.2f}" for i in col_order[:8]))
 for r, s in enumerate(STATS):
     tops = np.argsort(-IMPg[r])[:3]
-    print(f"{s['k']:>14s}: " + ", ".join(f"{short_label(pnames[i])}({IMPg[r, i]:.2f})"
+    print(f"{s['k']:>14s}: " + ", ".join(f"{short_label(pnames[i])}({SGN[r, i]:+.2f})"
                                          for i in tops))
 def _rankcorr(a, b):
     """Spearman between two length-30 parameter orderings."""
@@ -3740,7 +4125,7 @@ def _ranking(scale):
     out = {}
     for s in STATS:
         k = max(1, int(round(s["rb"]*scale)))
-        R = spearman_masked(X_unit, rebin_nan(s["A"], k))
+        R = spearman_masked(X_unit, rebin_nan(_ranked(s), k))   # same Nyquist cut as fig 5
         out[s["k"]] = tuple(np.argsort(-np.nanmax(np.abs(R), 1))[:3].tolist())
     return out
 
@@ -3798,12 +4183,12 @@ not a sign check, so $V_2$'s genuine zero-crossing is never mistaken for a spars
 dropout). The full 22-bin grid and $\nu\in(-3,8)$ axis are unchanged; see `nu_solid_drawn()`
 in the cell below.
 
-All 253 measured Sobol runs are drawn for **each of the canonical 12 statistics** — the same
+All 256 measured Sobol runs are drawn for **each of the canonical 12 statistics** — the same
 list, in the same order, as fig 5's rows (panel (a) is $S(\ell)$, not $C_\ell^{\kappa\kappa}$:
 the identity note in the §4a text is why) — and every panel is coloured by the **same**
 parameter, `VariableWindVelFactor` (`param_names[2]`, prior units, $\log_{10}$-mapped over a
-native 3.7–14.7). It is the suite's single strongest lever: top-ranked for 7 of the 12
-statistics and holder of the grid maximum (peak $|\rho|=0.71$ on $C_\ell^{\tau\tau}$; printed
+native 3.7–14.7). It is the suite's single strongest lever: top-ranked for 6 of the 12
+statistics and holder of the grid maximum (peak $|\rho|=0.68$ on $C_\ell^{\tau\tau}$; printed
 by the cell). Holding the knob fixed across panels is the point — what varies from panel to
 panel is the *probe*, so the response coherence across WL, tSZ and $\tau$ can be read directly
 instead of inferred from twelve different colorbars.
@@ -6048,6 +6433,15 @@ print("pfig_s4b_app_zs + pfig_s4b_app_epoch: fig20f panels (a,b) as "
 # on the ok9 universe (repaint trio excluded so SZ panels share nodes);
 # per-panel stamp = median|pred-meas| / median|meas| x 100 over shown
 # nodes+bins (robust to zero crossings, unlike a plain % error).
+# (2026-08-10 upgrade, author request.) Three additions so the figure can be
+# READ quantitatively: (1) +-1sigma measurement bands on the measured curves
+# (every node's statistic is a mean over its 50 shared-seed ray-trace
+# realizations -> realization SE sigma/sqrt(50)) and a +-1sigma PREDICTIVE
+# band on the model (LOO linear fit, s_bin*sqrt(1+h), h = leverage of the
+# held-out node); (2) a per-panel residual strip, (model-meas)/sigma_meas,
+# with a +-2 reference band; (3) a per-panel chi2/nu stamp over the shown
+# nodes+bins. sigma sources per statistic are in MC_ERR below; caveats are
+# printed with the chi2 table at the end of the cell.
 MC_STATS = [
     ("suppression", "band", False, r"$S(\ell)$"),
     ("pdf", "pdf_bins", False, r"$P(\nu)$"),
@@ -6070,14 +6464,174 @@ mc_nodes = [int(ok9_idx[np.argmin(np.abs(sv9 - np.quantile(sv9, q)))])
             for q in (0.05, 0.2, 0.35, 0.5, 0.65, 0.8, 0.95)]
 A9full = np.c_[fb1[ok9], fst1[ok9], c_gas20[ok9], logT20[ok9],
                np.ones(int(ok9.sum()))]
-fig, AXm = plt.subplots(4, 4, figsize=(TWO_COL[0], 8.2))
-AXm = AXm.ravel()
+# ── measurement-error model for the panels ─────────────────────────────────
+# Per-bin 1-sigma of each node's plotted statistic (mean over that node's 50
+# ray-trace realizations -> SE sigma/sqrt(50)). Sources:
+#   "node" -- the dataset's own t__<key>__err (realization SE per node);
+#   "cl"   -- suppression/log-spectra: propagate the spectrum's err
+#             (sigma_S = |S| x err_cl/cl over the shared, effectively
+#             noiseless DMO denominator; sigma_log10 = err/(|val| ln10));
+#   "fid"  -- pdf/MFs carry no per-node err in the dataset; use the FIDUCIAL
+#             per-realization draws (nu05_shards/sci_bind.npz, the SAME
+#             estimator + nu05 grid) as a node-independent noise floor.
+# GUARDED, refuse-don't-guess: a missing fiducial shard raises rather than
+# silently rendering error-free curves with void chi2 stamps.
+_FIDSH_P = SB35/"nu05_shards/sci_bind.npz"
+if not _FIDSH_P.exists():
+    raise FileNotFoundError(
+        f"{_FIDSH_P} missing -- it is the fiducial per-realization shard the "
+        "pdf/MF noise floors come from (rebuild: python build_nu_cache.py "
+        "--run bind --sci). NOT falling back to error-free curves.")
+_fidsh = np.load(_FIDSH_P)
+for _k in ("pdf_real", "mf_v0_real", "mf_v1_real", "mf_v2_real"):
+    assert _k in _fidsh.files, (
+        f"{_FIDSH_P.name} lacks {_k} -- rebuilt without per_real=True?")
+# Scalings ("scal"): the dataset's t__scaling_*__err is the halo-to-halo
+# POPULATION scatter in dex (std of log10 per mass bin -- see
+# bind.inference.stats.scaling_relations), NOT an SE, and the value is the
+# LINEAR median. The measured-curve uncertainty is the SE of the median,
+# 1.2533 x scatter/sqrt(n_halos); n_halos per (run, bin) is not in the
+# dataset, so recount it from the integrated parquet with the exact
+# assembly-time binning (snap 96, edges linspace(13.0, 14.75, 8) -- see
+# bind.emulator.dataset.assemble). n from M200 alone slightly overcounts
+# bins where a quantity is NaN for a few halos; negligible for an SE.
+_PQ_P = SB35/"analysis_cache/integrated.parquet"
+if not _PQ_P.exists():
+    raise FileNotFoundError(
+        f"{_PQ_P} missing -- it supplies the per-(run, mass-bin) halo counts "
+        "the scaling-relation median-SEs need. NOT falling back to the "
+        "population scatter, which is ~sqrt(n)x too wide for the chi2.")
+import pandas as _pd
+_dfn = _pd.read_parquet(_PQ_P, columns=["run", "snap", "M200"])
+_dfn = _dfn[_dfn.snap == 96]
+_medg = np.linspace(13.0, 14.75, 8)
+_bi = np.digitize(np.log10(_dfn.M200.values), _medg) - 1
+_inb = (_bi >= 0) & (_bi < 7)
+_cts = (_pd.DataFrame({"run": _dfn.run.values[_inb], "b": _bi[_inb]})
+        .groupby(["run", "b"]).size())
+SCAL_NH = np.zeros((stat_leg20("scaling_Y").shape[0], 7))
+for _i, _r in enumerate(run_ids):
+    for _b in range(7):
+        SCAL_NH[_i, _b] = _cts.get((int(_r), _b), 0)
+del _dfn, _bi, _inb, _cts
+MC_ERR = {"suppression": ("cl", "cl_kappa"), "pdf": ("fid", "pdf"),
+          "peak_counts": ("node", "peak_counts"),
+          "minima_counts": ("node", "minima_counts"),
+          "mf_v0": ("fid", "mf_v0"), "mf_v1": ("fid", "mf_v1"),
+          "mf_v2": ("fid", "mf_v2"), "scaling_Y": ("scal", "scaling_Y"),
+          "scaling_f_gas": ("scal", "scaling_f_gas"),
+          "scaling_T": ("scal", "scaling_T"),
+          "cl_kappa_tau": ("cl", "cl_kappa_tau"), "cl_yy": ("cl", "cl_yy"),
+          "cl_kappa_y": ("cl", "cl_kappa_y")}
+LN10 = np.log(10.0)
+
+def err_leg20(key):
+    """t__<key>__err sliced exactly like stat_leg20 slices the value."""
+    e = d[f"t__{key}__err"].astype(float)
+    if e.ndim == 4:
+        return e[:, ZI, ZI, :]
+    return e[:, ZI, :] if (e.ndim == 3 and e.shape[1] == 5) else e
+
+def mc_sigma(nm, uselog):
+    """Per-node 1-sigma in the panel's NATIVE bin space (pre band-average),
+    in the same (log/linear) space as the plotted value. Zero errs (empty
+    counting bins) become NaN and are nan-dropped from the strips + chi2."""
+    kind, key = MC_ERR[nm]
+    if kind == "fid":
+        R = _fidsh[f"{key}_real"][:, ZI]
+        s0 = R.std(0, ddof=1)/np.sqrt(R.shape[0])
+        s0 = np.where(s0 > 0, s0, np.nan)
+        return np.broadcast_to(s0, (stat_leg20(key).shape[0], s0.size)).copy()
+    val, err = stat_leg20(key), err_leg20(key)
+    if kind == "scal":
+        # err = population scatter in DEX; SE of the median = 1.2533 x
+        # scatter/sqrt(n). log-displayed panels take it directly; the linear
+        # f_gas panel converts on the median: sigma_lin = med x ln10 x se_dex.
+        se_dex = 1.2533*err/np.sqrt(np.maximum(SCAL_NH, 1))
+        se_dex = np.where((SCAL_NH >= 5) & (se_dex > 0), se_dex, np.nan)
+        return se_dex if uselog else np.abs(val)*LN10*se_dex
+    if nm == "suppression":
+        S = stat_leg20("suppression")
+        return np.abs(S)*np.where(np.abs(val) > 0, err/np.abs(val), np.nan)
+    if uselog:
+        return np.where(val > 0, err/(np.abs(val)*LN10), np.nan)
+    return np.where(err > 0, err, np.nan)
+
+# Band-averaging a sigma with INDEPENDENT-bin quadrature understates the
+# floor badly: the realization scatter is strongly correlated across the
+# native ell bins inside an EDG24 band (same 50 maps, shared large-scale
+# modes). Measured on the fiducial per-real clk (band-average each
+# realization THEN take the SE, vs quadrature/n): the direct/quadrature
+# ratio grows from ~1.3 at ell~1e3 to ~4.7 at ell~2e4 (log10-Cl and S give
+# the same ratios to <1%). Calibrate every band sigma by this measured
+# per-band factor; the correlation structure is geometry/CV-driven, so the
+# fiducial ratio transfers across nodes (all nodes share seeds anyway).
+_prS24 = np.load(SCI/"runs/bind/run_0000/paired_perreal_fid.npz"
+                 )["clk"][:, ZI, :]
+CORR24 = np.ones(24)
+for _i in range(24):
+    _m = (ELL >= EDG24[_i]) & (ELL < EDG24[_i+1])
+    if _m.sum() >= 2:
+        _se = _prS24[:, _m].std(0, ddof=1)/np.sqrt(_prS24.shape[0])
+        _quad = np.sqrt((_se**2).sum())/_m.sum()
+        _dir = _prS24[:, _m].mean(1).std(ddof=1)/np.sqrt(_prS24.shape[0])
+        CORR24[_i] = max(_dir/_quad, 1.0)
+print("band-sigma correlation calibration CORR24 (direct SE / independent-"
+      "bin quadrature, fiducial per-real clk): "
+      + ", ".join(f"{c:.2f}" for c in CORR24))
+# ── panel-space fiducial draws for the FULL-covariance chi2 ────────────────
+# (2026-08-10, author request: capture the bin-bin correlations, not just
+# the diagonal.) The chi2 stamps use chi2 = z^T Corr^-1 z with z the
+# diagonal-normalized residual and Corr the bin-bin CORRELATION matrix of
+# the statistic measured on the 50 fiducial realizations in the exact panel
+# space (banded / log / nu bins) -- each node keeps its own diagonal sigma.
+# The runs/dmo denominator under the S draws is the 550-real mean (the
+# 2026-08-05 retrace); that offsets the MEAN S, not the realization-to-
+# realization scatter the correlation is built from. The y/tau spectra have
+# no cached per-real draws; their banded-log correlation is proxied by the
+# banded log10 kappa Cl template (shared-mode geometry; flagged in the
+# print). Scaling panels: the mass bins are DISJOINT halo sets, so the
+# measurement off-diagonals vanish and diagonal chi2 == full-cov chi2.
+def _band24_real(P):
+    return np.stack([np.nanmean(P[:, (ELL >= EDG24[i])
+                                   & (ELL < EDG24[i+1])], 1)
+                     for i in range(24)], 1)
+_dmoF = np.load(SCI/"runs/dmo/run_0000/Cl_kappa.npz")["cl"][ZI, ZI]
+FID_REAL = {"suppression": _band24_real(
+                _prS24/np.where(_dmoF > 0, _dmoF, np.nan)),
+            "_logcl": _band24_real(
+                np.log10(np.where(_prS24 > 0, _prS24, np.nan)))}
+for _k in ("pdf", "mf_v0", "mf_v1", "mf_v2", "peak_counts",
+           "minima_counts"):
+    FID_REAL[_k] = _fidsh[f"{_k}_real"][:, ZI]
+del _prS24
+
+def band_sig24(sig_nat, val_nat):
+    """Quadrature-average a native-ell sigma onto the 24 EDG24 bands
+    (matching the nanmean the values get), then scale by the measured
+    per-band correlation factor CORR24."""
+    out = np.full((sig_nat.shape[0], 24), np.nan)
+    for i in range(24):
+        m = (ELL >= EDG24[i]) & (ELL < EDG24[i+1])
+        s = np.where(np.isfinite(val_nat[:, m]), sig_nat[:, m], np.nan)
+        n = np.isfinite(s).sum(1)
+        out[:, i] = CORR24[i]*np.sqrt(np.nansum(s**2, 1))/np.maximum(n, 1)
+    return out
+fig = plt.figure(figsize=(TWO_COL[0], 9.8), constrained_layout=True)
+gs0 = fig.add_gridspec(4, 4)
+chi2_rows = []
+MC_CACHE = {}                    # nm -> (Ys, xg9, xkind) for the audit below
 for kst, (nm, xkind, uselog, ylab) in enumerate(MC_STATS):
-    axm = AXm[kst]
+    sgs = gs0[kst//4, kst % 4].subgridspec(2, 1, height_ratios=(2.3, 1.0),
+                                           hspace=0.06)
+    axm = fig.add_subplot(sgs[0])
+    axr = fig.add_subplot(sgs[1], sharex=axm)
     Ys = stat_leg20(nm)
+    SG = mc_sigma(nm, uselog)
     if xkind == "band":
         if uselog:
             Ys = np.log10(np.where(Ys > 0, Ys, np.nan))
+        SG = band_sig24(SG, Ys)
         Ys = np.stack([np.nanmean(Ys[:, (ELL >= EDG24[i])
                                       & (ELL < EDG24[i+1])], 1)
                        for i in range(24)], axis=1)
@@ -6086,49 +6640,206 @@ for kst, (nm, xkind, uselog, ylab) in enumerate(MC_STATS):
         if uselog:
             Ys = np.log10(np.where(Ys > 0, Ys, np.nan))
         xv = d[f"a__{nm}__{xkind}"]
-    Ys = Ys[ok9]
+    Ys, SG = Ys[ok9], SG[ok9]
     gd = np.isfinite(Ys).all(0) & (np.nanstd(Ys, 0) > 0)
-    Ys, xg9 = Ys[:, gd], np.asarray(xv)[gd]
-    errs = []
+    Ys, SG, xg9 = Ys[:, gd], SG[:, gd], np.asarray(xv)[gd]
+    MC_CACHE[nm] = (Ys, xg9, xkind)
+    errs, zs, sg_shown = [], [], []
     for gnode in mc_nodes:
         gpos = int(np.where(ok9_idx == gnode)[0][0])
         tr = np.arange(int(ok9.sum())) != gpos
         bmc, *_ = np.linalg.lstsq(A9full[tr], Ys[tr], rcond=None)
         pred = A9full[gpos] @ bmc
-        axm.plot(xg9, Ys[gpos], color="k", lw=0.8, alpha=0.75)
+        # predictive band of the LOO fit: per-bin training residual rms x
+        # sqrt(1 + leverage of the held-out node)
+        resid_tr = A9full[tr] @ bmc - Ys[tr]
+        s2 = (resid_tr**2).sum(0)/max(int(tr.sum()) - A9full.shape[1], 1)
+        hlev = float(A9full[gpos] @ np.linalg.pinv(
+            A9full[tr].T @ A9full[tr]) @ A9full[gpos])
+        sig_pred = np.sqrt(s2*(1.0 + hlev))
+        meas, sg = Ys[gpos], SG[gpos]
+        axm.fill_between(xg9, meas - sg, meas + sg, color="k",
+                         alpha=0.13, lw=0)
+        axm.plot(xg9, meas, color="k", lw=0.8, alpha=0.75)
+        axm.fill_between(xg9, pred - sig_pred, pred + sig_pred,
+                         color=COLORS["bind"], alpha=0.15, lw=0)
         axm.plot(xg9, pred, color=COLORS["bind"], lw=0.9, ls="--")
-        errs.append(np.abs(pred - Ys[gpos]))
+        errs.append(np.abs(pred - meas))
+        zs.append((pred - meas)/sg)
+        sg_shown.append(sg)
+        axr.plot(xg9, zs[-1], color=COLORS["bind"], lw=0.55, alpha=0.55)
+    zall = np.concatenate(zs)
+    n_z = int(np.isfinite(zall).sum())
+    chi2nu = float(np.nanmean(zall**2))
+    # full-covariance chi2: z^T Corr^-1 z per node, Corr from the fiducial
+    # panel-space draws (5% shrinkage to the identity for a stable inverse
+    # at p up to 24 with n=50; Hartlap (n-p-2)/(n-1) applied). Scalings:
+    # disjoint mass bins -> full == diagonal.
+    _kind_e = MC_ERR[nm][0]
+    Rf = FID_REAL.get("_logcl" if (_kind_e == "cl" and nm != "suppression")
+                      else nm)
+    if Rf is not None:
+        Rg = Rf[:, gd]
+        okc = Rg.std(0, ddof=1) > 0
+        if int(okc.sum()) >= 2:
+            Cfull = np.corrcoef(Rg[:, okc], rowvar=False)
+            Cfull = 0.95*Cfull + 0.05*np.eye(int(okc.sum()))
+            cumc = np.cumsum(okc) - 1
+            x2f, nuf = 0.0, 0
+            for zn in zs:
+                keep = np.isfinite(zn) & okc
+                p = int(keep.sum())
+                if p == 0:
+                    continue
+                idx = cumc[keep]
+                Cs = Cfull[np.ix_(idx, idx)]
+                hart = max((50 - p - 2)/(50 - 1), 0.05)
+                x2f += hart*float(zn[keep] @ np.linalg.solve(Cs, zn[keep]))
+                nuf += p
+            chi2fc = x2f/max(nuf, 1)
+        else:
+            chi2fc = chi2nu
+    else:
+        chi2fc = chi2nu
+    chi2_rows.append((nm, chi2nu, chi2fc, n_z, zall.size - n_z,
+                      float(np.nanmedian(np.concatenate(sg_shown))
+                            / np.nanmedian(np.abs(Ys)))))
     stamp = 100*np.median(np.concatenate(errs))/np.median(np.abs(Ys))
     axm.text(0.04, 0.05, f"{stamp:.1f}%", transform=axm.transAxes,
              fontsize=6, color=COLORS["bind"])
+    c2txt = f"{chi2fc:.1f}" if chi2fc < 10 else f"{chi2fc:.0f}"
+    axr.text(0.04, 0.72, rf"$\chi^2/\nu\,$={c2txt}", transform=axr.transAxes,
+             fontsize=5, color="0.25")
+    axr.axhspan(-2, 2, color="0.5", alpha=0.12, lw=0)
+    axr.axhline(0.0, color="0.4", lw=0.5)
+    L = (float(np.clip(1.15*np.nanpercentile(np.abs(zall), 99), 3.0, 12.0))
+         if n_z else 3.0)
+    axr.set_ylim(-L, L)
     if xkind == "band":
         axm.set_xscale("log")
-        axm.set_xlabel(r"$\ell$", fontsize=6.5)
+        axr.set_xlabel(r"$\ell$", fontsize=6.5)
     elif xkind == "log_mass_bins":
-        axm.set_xlabel(r"$\log_{10} M_{500c}$", fontsize=6.5)
+        axr.set_xlabel(r"$\log_{10} M_{500c}$", fontsize=6.5)
     else:
-        axm.set_xlabel(r"$\nu$", fontsize=6.5)
+        axr.set_xlabel(r"$\nu$", fontsize=6.5)
     axm.set_ylabel(ylab, fontsize=6.5)
-    axm.tick_params(labelsize=5.5)
+    if kst % 4 == 0:
+        axr.set_ylabel(r"$\Delta/\sigma$", fontsize=5.5)
+    axm.tick_params(labelsize=5.5, labelbottom=False)
+    axr.tick_params(labelsize=5)
     panel_label(axm, f"({chr(97 + kst)})")
-for axm in AXm[len(MC_STATS):]:
-    axm.set_visible(False)
 # figure-level legend in the empty bottom-right grid region (a per-axes
 # legend in panel (a) covered its panel label)
 from matplotlib.lines import Line2D as _L2
-fig.legend(handles=[_L2([], [], color="k", lw=1.2,
-                        label="measured (7 leave-one-out nodes)"),
-                    _L2([], [], color=COLORS["bind"], lw=1.2, ls="--",
-                        label="analytic latent model")],
-           loc="lower center", bbox_to_anchor=(0.62, 0.10), fontsize=7)
-fig.tight_layout()
+from matplotlib.patches import Patch as _Pt
+fig.legend(handles=[
+    _L2([], [], color="k", lw=1.2, label="measured (7 leave-one-out nodes)"),
+    _Pt(fc="k", alpha=0.13, label=r"measured $\pm1\sigma$ (meas. SE)"),
+    _L2([], [], color=COLORS["bind"], lw=1.2, ls="--",
+        label="analytic latent model"),
+    _Pt(fc=COLORS["bind"], alpha=0.15, label=r"model $\pm1\sigma$ predictive"),
+    _Pt(fc="0.5", alpha=0.12,
+        label=r"strips: $(\mathrm{model}-\mathrm{meas})/\sigma$, $\pm2$ band")],
+    loc="lower center", bbox_to_anchor=(0.62, 0.09), fontsize=6.5)
 save(fig, "figs_v2/pfig_s4b_model_curves")
 plt.show()
 print("pfig_s4b_model_curves: fig09c layout with the analytic latent model; "
-      "7 LOO nodes, 13 statistics, per-panel median-|err|/median-|val| "
-      "stamps; note peaks/minima panels predict the population-mean curve "
-      "(per-bin node scatter is noise-dominated at Delta-nu=0.5 -- the "
-      "stamps there measure shape agreement, not per-node discrimination)")
+      "7 LOO nodes x 13 statistics. Per panel: measured +-1sigma measurement-"
+      "SE band (fields/spectra: realization SE sigma/sqrt(50); scalings: "
+      "median SE over the bin's halos), model +-1sigma predictive band (LOO "
+      "fit, "
+      "s_bin*sqrt(1+leverage)), residual strip (model-meas)/sigma_meas with "
+      "+-2 reference band, median-%-error stamp (main) and chi2/nu stamp "
+      "(strip; diagonal, nu = finite nodes x bins, no Hartlap -- the n=50 "
+      "sigma estimate biases 1/sigma^2 by ~(n-1)/(n-3) = 1.04, reported not "
+      "corrected).")
+print("sigma sources: dataset t__*__err for peaks/minima/spectra (50-real "
+      "SE); suppression propagated from cl_kappa's err (shared, effectively "
+      "noiseless DMO denominator); scalings = SE of the binned median, "
+      "1.2533 x (t__scaling_*__err, a POPULATION scatter in dex)/sqrt(n), "
+      "n recounted per (run, mass bin) from integrated.parquet snap 96 with "
+      "the assembly-time edges linspace(13, 14.75, 8); pdf/MFs from the "
+      "FIDUCIAL per-real noise floor (nu05_shards/sci_bind.npz, same "
+      "estimator+grid) -- a node-independent approximation. CAVEATS: (i) "
+      "all nodes share ray-trace "
+      "seeds, so part of sigma_meas is common-mode and is absorbed by the "
+      "per-bin intercept -> sigma over-counts residual noise and chi2/nu is "
+      "a LOWER bound on model-error significance; (ii) band-averaged sigma "
+      "is quadrature/n scaled by the MEASURED per-band correlation factor "
+      "CORR24 (1.0-4.7, printed above -- naive independent-bin quadrature "
+      "understates the high-ell floor ~5x); (iii) zero-err (empty counting) "
+      "bins are nan-dropped from strips and chi2; (iv) the strips stay "
+      "diagonal-normalized for readability -- the bin-bin correlations "
+      "enter the STAMPED full-covariance chi2 (table below).")
+print("chi2/nu per panel -- STAMPED value is the FULL-covariance chi2 "
+      "(z^T Corr^-1 z; Corr from the 50 fiducial panel-space draws, 5% "
+      "identity shrinkage, Hartlap (n-p-2)/(n-1); y/tau spectra use the "
+      "banded log-kk correlation as TEMPLATE -- no per-real y/tau cache; "
+      "scalings: disjoint mass bins -> full == diag). Table: diag | full "
+      "(n = bins used, drop = nan-dropped, floor = median sigma/|val|):")
+for nm, c2, c2f, nz, ndrop, relf in chi2_rows:
+    print(f"  {nm:15s} diag={c2:9.2f}  full={c2f:9.2f}  n={nz:4d}  "
+          f"drop={ndrop:3d}  floor~{100*relf:6.2f}%")
+print("reading: chi2/nu ~ 1 -> residuals sit at the measurement floor (the "
+      "nu-domain counting panels; their stamps measure shape agreement, not "
+      "per-node discrimination, as before); chi2/nu >> 1 -> the model's "
+      "~1-3% error dominates a much smaller 50-real floor (smooth spectra) "
+      "-- there the % stamp, not chi2, is the accuracy statement.")
+
+# ── model-upgrade audit ────────────────────────────────────────────────────
+# (2026-08-10, author question: can the model be improved?) The
+# nonlinear-in-lambda challenge is SETTLED (doc S0.0c, 2026-08-06: GP/KRR
+# in the 4 latents buys ~nothing; the thermal gap is MISSING INFORMATION,
+# not curvature) -- so audit ADDED-INFORMATION candidates instead: measured
+# 5th latents already computed in this cell, same deterministic 5-fold CV
+# as fig 20e, same transformed panel spaces as the figure above.
+#   +c_tau      snap085 stacked-tau concentration (the retained cross-check)
+#   +f~gas      hinge-bin gas fraction
+#   +f~bar_cl   the budget latent re-measured one bin up-mass (carries the
+#               mass-dependence the y-weighted channels are sensitive to)
+def _cv_pred(Y, A, k=5):
+    m = len(Y)
+    fold = np.arange(m) % k
+    pred = np.empty_like(Y)
+    for f in range(k):
+        tr = fold != f
+        b, *_ = np.linalg.lstsq(A[tr], Y[tr], rcond=None)
+        pred[fold == f] = A[fold == f] @ b
+    return pred
+
+j_cl = min(j_b + 2, ft_bar.shape[1] - 1)
+CAND5 = [("4L(canon)", None), ("+c_tau", c_tau20[ok9]),
+         ("+f~gas", ft_gas[ok9, j_b]), ("+f~bar_cl", ft_bar[ok9, j_cl])]
+_okx = np.ones(int(ok9.sum()), bool)
+for _, _cnd in CAND5[1:]:
+    _okx &= np.isfinite(_cnd)
+print(f"\nmodel-upgrade audit: deterministic 5-fold CV, median|err|/"
+      f"median|val| x100, {int(_okx.sum())} shared nodes; cluster bin = "
+      f"[{MEDG[j_cl]:.2f},{MEDG[j_cl+1]:.2f})")
+print(f"  {'stat':15s}" + "".join(f"{lab:>11s}" for lab, _ in CAND5)
+      + "   band ell>3e3: canon -> best(+cand)")
+for nm, (Ysx, xg9x, xkx) in MC_CACHE.items():
+    Yx = Ysx[_okx]
+    res = []
+    for lab, _cnd in CAND5:
+        A = (A9full[_okx] if _cnd is None else
+             np.c_[A9full[_okx, :4], _cnd[_okx], np.ones(int(_okx.sum()))])
+        pred = _cv_pred(Yx, A)
+        res.append((pred, 100*np.median(np.abs(pred - Yx))
+                    / np.median(np.abs(Yx))))
+    line = f"  {nm:15s}" + "".join(f"{e:11.2f}" for _, e in res)
+    if xkx == "band":
+        hi = xg9x > 3e3
+        he = [100*np.median(np.abs(p[:, hi] - Yx[:, hi]))
+              / np.median(np.abs(Yx[:, hi])) for p, _ in res]
+        jbest = 1 + int(np.argmin(he[1:]))
+        line += (f"   {he[0]:.2f} -> {min(he[1:]):.2f} "
+                 f"({CAND5[jbest][0]})")
+    print(line)
+print("audit reading: a candidate earns a place only if it beats the canon "
+      "column consistently AND survives the out-of-design fiducial check "
+      "(the fig 20e criterion that ruled out the GP) -- this table is the "
+      "measurement, not the ruling.")
 
 del cz, mt5, mg5, ms5, logm5, fbar5, fgas5, xpb20, tau20, ta20
 ''')

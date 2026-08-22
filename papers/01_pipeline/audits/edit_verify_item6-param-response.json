@@ -1,0 +1,140 @@
+{
+ "item": "item6-param-response",
+ "confirmed": [
+  "LINE RANGES (fig05) \u2014 all read and verified in /mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py: md cell 2003-2037 (`md(r'''` at 2003, `''')` at 2037); code cell 2039-2206; `def rebin_nan` 2042-2047; FAM5 2065-2073 (families S, Cl_ky, Cl_yy, Cl_tt, N_pk, PDF, V1 with rb 16/16/16/16/4/3/2 \u2014 exactly as claimed); FAM_EXTRA 2074-2078 (N_min rb=4, f_gas(M) rb=1, Y(M) rb=1); FAM_ALL/labs5/labs_all 2079-2081; validity print loop 2083-2087; Yfam/Rfam/IMP 2089-2091; blocks/edges5/R5/order 2093-2096; significance block 2098-2111; show/rows_h/n_hid 2113-2117; figure+gridspec width_ratios [1.5,1.0] 2119-2121; panel (a) imshow RdBu_r vmin/vmax -0.75/0.75 2123-2155; panel (b) cividis dot matrix 2157-2190; `save(fig, \"figs_v2/fig05_param_response\")` at 2191; diagnostic prints 2194-2205.",
+  "LINE RANGES (fig07) \u2014 verified: md cell 2250-2266; code cell 2268-2355; `color_curves` 2271-2273; `cbar` 2275-2282; `IMP[r'$R(\\nu)$']` injection 2284-2285; p_S/p_yy/p_fg/p_tt/p_Y/p_R 2286-2291; mS/mE/f_e/mass/nuR 2293-2297; `plt.subplots(2, 3, figsize=(TWO_COL[0], 4.6))` at 2299; panels (a)(b)(c) 2300-2322 incl. the LogLocator/LogFormatterSciNotation subs=(2.0,5.0) idiom at 2319-2321; panel (d) f_gas 2324-2328; panel (e) Y(M)+y_dex 2330-2342; panel (f) R(nu) 2343-2346; tight_layout/save/prints 2348-2354. Rebin-stability md 2208-2220 and code 2222-2247 also verified.",
+  "GLOBAL HELPERS \u2014 verified at the claimed lines: DS_PATH 133, `d = np.load(...)` 134, X_unit 135, X_native 136, run_ids 137, pnames 138, `ZS = d['source_redshifts']; ZI = 1` 139, `ELL = d['a__suppression__ell']` 140, `ELL_TRUST = 1.5e4` 141, `def rebin` 143-146, `def spearman` 148-152. The claim that spearman_masked wraps 'the global spearman() at line 148' is correct.",
+  "DATASET KEYS/SHAPES \u2014 probe on /mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz confirms every shape and validity claim: cl_kappa (253,5,5,724) 253 valid 100.00% finite; cl_kappa_y/cl_kappa_tau/suppression (253,5,724); cl_yy/cl_tt/cl_yt (253,724); peak_counts/minima_counts (253,5,68); pdf (253,5,41); mf_v0/v1/v2 (253,5,29) \u2014 all 253/253 valid and 100.00% finite. Contrast keys confirmed: peak_R (253,5,14) 253 valid but 98.83% finite; wst 40/253 valid (15.81% finite); dm_pdf 177/253 valid (69.96% finite).",
+  "ELL GRIDS \u2014 all seven a__*__ell arrays are byte-identical (np.array_equal True across cl_kappa/cl_kappa_tau/cl_kappa_y/cl_tt/cl_yt/cl_yy/suppression), 724 bins, 86.9117 -> 52133.5688; 207 bins <=1.5e4, 277 bins <=2e4. a__pdf__pdf_bins (41,) float32 spanning -0.221385..+0.221385 with center 0.0; a__peak_counts__nu identical to a__minima_counts__nu, (68,) -4.875..11.875; a__mf_v*__mf_nu (29,) -3..4.",
+  "Cl_kappa SYMMETRY + SUPPRESSION IDENTITY \u2014 `np.allclose(ck, np.swapaxes(ck,1,2))` is True. `t__suppression__value[:,1,:] == t__cl_kappa__value[:,1,1,:]/cl_dmo[1]` with max relative deviation EXACTLY 0.0 (not just allclose). Off-diagonal blocks at ell index 200 are 1.0e-19 against diagonals 6.616e-13 ... 2.721e-11; cross/sqrt(C_ii C_jj) median 4.86e-8, max 6.84e-8 \u2014 the 'numerically null, do not use as tomographic cross-spectra' verdict is correct.",
+  "SPEARMAN DEGENERACY Cl_kk vs S \u2014 verified: max|rho_Cl_kk - rho_S| = 0.0 exactly on the un-rebinned 30x724 grid. After rebin=16: max |delta max|rho|| = 0.016580, mean 0.002138, Spearman rank-corr of the two rows' 30-parameter orderings = 0.9960. All three figures reproduce the spec exactly.",
+  "PARAM_NAMES / X_unit \u2014 param_names[2] == 'VariableWindVelFactor' confirmed; the full ordered 30-name list in the spec is byte-correct. X_unit[:,2] spans 0.0021233..0.9964157; maps to X_native column 4 (Spearman rank-corr 1.0, native range 3.7109..14.7266); Pearson corr with log10(native col 4) = 1.0000 vs 0.9846 with the linear native value, so 'log10-mapped' is correct.",
+  "THE 13x30 IMPORTANCE GRID \u2014 I independently reimplemented rebin_nan + spearman_masked from lines 2042-2063 and reproduced EVERY per-row top-3/top-4 value in step 2 to 3 decimals: Cl_kk [VarWindVel 0.576, IMFslope 0.464, BHRadEff 0.428, WindEnergy 0.336]; S [0.576, 0.472, 0.428, 0.319]; PDF [0.586, BHRadEff 0.421, IMFslope 0.354]; N_pk [IMFslope 0.439, BHRadEff 0.414, WindEnergy 0.314]; N_min [0.485, 0.420, VarWindVel 0.334]; V0 [0.593, VarWindVel 0.427, BHRadEff 0.417]; V1 [0.533, 0.484, 0.299]; V2 [0.608, 0.421, RadioFdbkReorient 0.325]; Cl_yy [0.561, WindEnergy 0.419, IMFslope 0.368]; Cl_tt [0.706, 0.541, WindFreeTravelDens 0.446]; Cl_ky [0.590, 0.472, 0.442]; Cl_ktau [0.652, 0.509, 0.389]; Cl_yt [0.543, 0.487, BHRadEff 0.354]. Rebinned bin counts also match: 45/45/13/17/17/14/14/14/45/45/45/45/45. Grid max = 0.70594 at (row 9 = cl_tt, col 2 = VariableWindVelFactor).",
+  "COLUMN ORDER \u2014 the full 30-entry descending peak-|rho| ordering in the spec is exactly reproduced, head to tail: VarWindVel 0.706, IMFslope 0.608, WindEnergy 0.541, BHRadEff 0.484, WindFreeTravelDens 0.446, RadioFdbkReorient 0.350, QuasarThreshold 0.317, VarWindSpecMomentum 0.296, QuasarThresholdPower 0.252, BHAccretionFactor 0.229, WindEnergyReductionFactor 0.219, BHEddingtonFactor 0.194, SNII_MinMass 0.187, SeedBlackHoleMass 0.182, then 16 params <=0.166 in the stated order down to SNIa_Rate_Norm 0.088.",
+  "PERMUTATION NULLS \u2014 reproduced with rng=np.random.default_rng(4), 200 iterations, one shared permutation stream: RHO_2SIG = 2/sqrt(253) = 0.12574. Per-row NULL95 all match to 3dp: cl_kappa 0.150, suppression 0.150, pdf 0.155, peak_counts 0.177, minima_counts 0.163, mf_v0 0.155, mf_v1 0.147, mf_v2 0.148, cl_yy 0.158, cl_tt 0.159, cl_kappa_y 0.153, cl_kappa_tau 0.158, cl_yt 0.157; span 0.14664-0.17740. NULL_GRID (95th pct of the whole-grid max) = 0.25695 -> 0.257 as claimed. Runtime 8.2 s, consistent with the '~10 s, no caching needed' claim. Also confirmed: exactly 14/30 columns have >=1 cell above their OWN row's null.",
+  "MAX vs MEAN |rho| METRIC \u2014 confirmed: Spearman rank agreement between the max-|rho| and mean-|rho| 30-parameter orderings is 0.9039 (~0.904 as claimed); the 3rd/4th slot swaps (max: WindEnergy 3rd / BHRadEff 4th; mean: BHRadEff 3rd / WindEnergy 4th); mean|rho| puts SeedBlackHoleMass 9th while max|rho| ranks it 14th.",
+  "fig07 DYNAMIC-RANGE AUDIT \u2014 every number reproduced. Max-over-bins 16-84 spread of value/median: Cl_kk 0.205, S 0.225, PDF 1.976, N_pk 2.000, N_min 1.000, V0 0.023, V1 0.581, V2 0.549, Cl_yy 0.714, Cl_tt 0.836, Cl_ky 0.757, Cl_ktau 1.046, Cl_yt 0.873. Bin-to-bin median dynamic range: Cl_kk 2.66e3, Cl_yy 3.19e3, Cl_tt 4.79e3, Cl_ky 5.11e3, Cl_ktau 1.03e4, Cl_yt 4.30e3, V0 162, S 1.11. The legibility conclusion (Cl_kk and V0 will be flat on an absolute axis) is sound.",
+  "fig07 SIGN/ZERO STRUCTURE \u2014 reproduced: mf_v2 27.59% negative (linear y mandatory); mf_v1 10.34% zeros, 0% negative; mf_v0 strictly positive in [0.005994, 1.0]; pdf 39.02% zeros; peak_counts 17.76% zeros with 11/68 bins all-zero and nonzero nu range -2.125..11.875; minima_counts 66.25% zeros with 44/68 all-zero and nonzero nu range -2.625..3.625. cl_kappa_y 0.126% negative with first non-positive bin at index 717 (ell = 51727); cl_kappa_tau 0.062% negative, first at index 721 (ell = 52032). cl_kappa/cl_yy/cl_tt/cl_yt/suppression strictly positive over all 724 bins.",
+  "fig07 PER-PANEL STAMP VALUES (IMP[:,2]) \u2014 all 13 reproduce exactly: Cl_kk 0.576, S 0.576, PDF 0.586, N_pk 0.239, N_min 0.334, V0 0.427, V1 0.206, V2 0.236, Cl_yy 0.561, Cl_tt 0.706, Cl_ky 0.590, Cl_ktau 0.652, Cl_yt 0.543. VariableWindVelFactor is the #1 lever in exactly 8 of the 13 rows, and its minimum value (0.206, mf_v1) is above the maximum row null (0.177), so 'ranks below its own row null nowhere' is correct. IMFslope values quoted for N_pk/V1/V2 (0.439/0.533/0.608) are correct.",
+  "param_labels.py \u2014 short_label mappings confirmed verbatim: VariableWindVelFactor->'VarWindVelFactor', IMFslope->'IMFslope', WindEnergyIn1e51erg->'WindEnergy1e51erg', BlackHoleRadiativeEfficiency->'BHRadiativeEff', WindFreeTravelDensFac->'WindFreeTravelDens', RadioFeedbackReiorientationFactor->'RadioFdbkReorient', SofteningComovingType01->'SofteningComType01'. Imported at _build_figures_nb.py:114 after `sys.path.insert` at :111.",
+  "paper_style.py \u2014 ONE_COL=(3.5,2.63), ONE_COL_SQ=(3.5,3.4), TWO_COL=(7.2,3.1), TWO_COL_TALL=(7.2,5.6) all correct; `def save(fig, stem)` at line 81; `def panel_label` at 61; COLORS['highlight']='#FF2C00' exists (the axhspan idiom at 2185-2190 is real). Imported at _build_figures_nb.py:112-113. Normalize/ScalarMappable already imported at 118/120.",
+  "DOWNSTREAM DEPENDENCY SCAN \u2014 the core claim holds: `grep -n 'rebin_nan|spearman_masked|IMP|Rfam|FAM_ALL|FAM5|labs_all|labs5|NULL95|NULL_MAX95|R5|Yfam|color_curves|p_S|p_yy|p_tt|p_fg|p_Y|p_R|y_dex|peak_R|BLOCK_RANGE|edges5|rows_h|rows_d|M6' _build_figures_nb.py` returns NO hits above line 2355 except line 3338, which is the unrelated string literal `\"scaling_Y\", \"scaling_f_gas\"` inside the fig09 STATS_EMU list. Deleting the fig07 R(nu) panel does remove the last consumer of t__peak_R__value and a__peak_R__nu anywhere in the builder (only hits are 2284/2285/2297/2343).",
+  "NAME COLLISION \u2014 `grep -n '\\bSTATS\\b' _build_figures_nb.py` returns nothing; the only similar name is STATS_EMU at line 3336. Introducing a global `STATS` is safe."
+ ],
+ "corrections": [
+  {
+   "claim": "Step 4/5/10: '12 columns clear NULL_COL=0.196 (that is 12 columns: index 0..11, since BlackHoleEddingtonFactor 0.194 < 0.196)' and '12 of 30 parameters clear the per-parameter look-elsewhere null'.",
+   "verdict": "WRONG",
+   "correct_fact": "It is ELEVEN columns, not 12 \u2014 and the spec's own parenthetical proves it. NULL_COL = 0.19554 (13-row) / 0.19540 (12-row canonical). The 12th-ranked column IS BlackHoleEddingtonFactor at 0.194, which the spec correctly says is BELOW the null; therefore the columns that clear are indices 0..10 = 11 columns (VarWindVel 0.706 ... WindEnergyReductionFactor 0.219). My probe prints 'cols with peak >= NULL_COL: 11' for both the 13-row and 12-row tables. The two counts to report are 11/30 (peak clears the per-parameter look-elsewhere null) and 14/30 (>=1 cell clears its own row null)."
+  },
+  {
+   "claim": "Step 10 (fig07 markdown): 'note the 2 panels where it is not the leading lever (V1, V2 -> IMFslope)'.",
+   "verdict": "WRONG",
+   "correct_fact": "VariableWindVelFactor is not the leading lever in FIVE of the 13 rows, not 2. Verified ranks of VarWindVel within each row: peak_counts rank 7, minima_counts rank 3, mf_v0 rank 2, mf_v1 rank 7, mf_v2 rank 7. It is #1 in the other 8 (cl_kappa, suppression, pdf, cl_yy, cl_tt, cl_kappa_y, cl_kappa_tau, cl_yt). This directly contradicts the spec's own step 8, which correctly says '#1 lever for 8 of the 13 statistics'. The caption must name 5 panels (N_pk, N_min, V0, V1, V2)."
+  },
+  {
+   "claim": "Step 4: \"save(fig, 'figs_v2/fig05_param_response') \u2014 keep the stem UNCHANGED so main.tex \\includegraphics keeps resolving.\"",
+   "verdict": "WRONG",
+   "correct_fact": "main.tex does not reference this figure at all. `grep -c 'figs_v2' main.tex` = 0. Its 13 \\includegraphics lines all point at the OLD figs/ set: line 463 figs/fig05_bridge_hero.pdf and line 529 figs/fig07_bridge_response.pdf \u2014 entirely different figures. FIGURE_EDIT_PLAN.md lines 5-6 states this explicitly: 'main.tex still points at the *old* figs/ set ... that divergence is pre-existing and out of scope here; only FIGURE_NUMBERS.md is re-stamped.' Keeping the stem is still correct, but for the FIGURE_NUMBERS.md/figs_v2 crib, not for main.tex. The spec never mentions the mandatory FIGURE_NUMBERS.md re-stamp."
+  },
+  {
+   "claim": "Step 7: 'Keep mS = ELL <= 2e4 and mE = ELL <= ELL_TRUST (1.5e4) and f_e = ... from lines 2293-2295 unchanged' and 'VERIFIED no negatives for ell<=2e4 in cl_ky/cl_ktau ... so log is safe under mE'.",
+   "verdict": "WRONG",
+   "correct_fact": "This contradicts the governing plan. FIGURE_EDIT_PLAN.md constraint 1 (line 48) mandates: '**Action: extend the ell axis from 2x10^4 to the full 5.2x10^4** and say so', repeated for fig04 at line 133 ('ell axis to 5.2x10^4'). Under that extension the log-y safety argument INVERTS: I verified cl_kappa_y first goes non-positive at ell = 51727 (bin 717, 0.126% of values negative, min -4.475e-18) and cl_kappa_tau at ell = 52032 (bin 721, 0.062% negative, min -3.234e-15). cl_kappa/cl_yy/cl_tt/cl_yt/suppression remain strictly positive over all 724 bins. So on the mandated full-range axis the two kappa-cross panels need explicit masking of the top ~7 bins (or a symlog axis), which the spec does not provide."
+  },
+  {
+   "claim": "Step 7: 'PDF: x=a__pdf__pdf_bins, yscale log (39% zeros -> mask ...)' \u2014 i.e. plot the PDF against kappa.",
+   "verdict": "WRONG",
+   "correct_fact": "The canonical statistic table in FIGURE_EDIT_PLAN.md (row 3) requires the PDF x-axis be converted kappa->nu via sigma0[zi], and item 5 (line 121) gives the values. I verified the cache: /mnt/home/mlee1/ceph/bind_science/runs/bind/run_0000/paired_perreal_fid.npz key 'sigma0' shape (5,) = [0.00561871, 0.0105165, 0.01426624, 0.0172823, 0.01951945] \u2014 exactly the plan's numbers. Also material and unflagged by the spec: at z_s=1 the 41 kappa bins map to nu = -21.05..+21.05, so only 10 of 41 bins fall inside the plan's uniform nu = -3..8 window."
+  },
+  {
+   "claim": "Step 7: 'N_pk: xlim NU_LIM=(-3,4)' / 'N_min: xlim (-3,4)' / 'V0/V1: xlim (-3,4)' / 'V2: xlim (-3,4)', citing 'fig04 already uses NU_LIM=(-3,4) at line 1310'.",
+   "verdict": "WRONG",
+   "correct_fact": "Two errors. (a) The constant is at line 1308, not 1310 (`NU_LIM = (-3, 4)   # common nu-axis range/units for ALL five nu-domain panels`). (b) FIGURE_EDIT_PLAN.md constraint 2 changes it: 'Action: uniform -3...8 axis on all six nu panels; the V_i curves terminate at 4' \u2014 because the MF grid is a hard -3.0..4.0 cache limit while peak/minima run to 11.875. Reusing (-3,4) reverts a mandated change."
+  },
+  {
+   "claim": "data_gaps #1 recommendation: 'RECOMMENDED: build the fig05 heatmap with 12 unique rows and label the WL-auto row C_l^{kappa kappa} = S(l) with a one-line caption note ... ALTERNATIVE ... A THIRD option is to add t__cl_yt__value.' Presented as an open decision ('Decide the merge-or-relabel question BEFORE implementing').",
+   "verdict": "WRONG",
+   "correct_fact": "The decision was already made and is binding. FIGURE_EDIT_PLAN.md 'Canonical statistic list' (lines 8-40) states: '**Decision: 12 unique rows/panels, with C_l^{kappa kappa} KEPT and explicitly marked as an identity anchor** (a dagger on the label + a printed np.allclose check)' \u2014 i.e. two separate rows, NOT merged into one 'C_l^kk = S(l)' label. It further states 'cl_yt exists in the dataset but is **not** in the canonical list ... It stays in STATS_EMU for fig09'. The spec's recommended merge and its repeated 'optionally append cl_yt to reach 13' both contradict the plan, and it never cites the plan."
+  },
+  {
+   "claim": "Step 2/3/6 reference values and Step 11 acceptance criteria, computed over a 13-row STATS table that includes cl_yt (e.g. 'rebin HALVED -> top-1 identical 12/13, top-2 set 12/13, top-3 set 10/13'; 'rebin DOUBLED -> 12/13, 12/13, 8/13'; step 11 'rebin-stability 12/13 top-1 in both directions').",
+   "verdict": "IMPRECISE",
+   "correct_fact": "Those 13-row numbers are arithmetically correct (I reproduced all six exactly) but they are for a table the plan excludes. On the CANONICAL 12-row table (no cl_yt) the verification targets are: rebin halved -> top-1 11/12, top-2 set 11/12, top-3 set 9/12; rebin doubled -> top-1 11/12, top-2 set 11/12, top-3 set 8/12. Everything else is invariant: identical column order, identical per-row NULL95, NULL_COL 0.19540 (vs 0.19554), NULL_GRID 0.25694 (vs 0.25695), 14 columns above >=1 row null, 11 columns above NULL_COL, grid max 0.70594."
+  },
+  {
+   "claim": "Step 6: 'Every disagreement is confined to the near-tied IMFslope / BHRadiativeEfficiency / VariableWindVelFactor triple or to 3rd place.'",
+   "verdict": "WRONG",
+   "correct_fact": "Falsified by one case I reproduced: under rebin DOUBLED, mf_v0 goes ['IMFslope','VariableWindVelFactor','BHRadiativeEfficiency'] -> ['IMFslope','WindFreeTravelDensFac','RadioFeedbackReiorientationFactor'] \u2014 the RANK-2 slot changes to WindFreeTravelDensFac, which is outside the named triple and is not 3rd place. That is precisely the one row that breaks 'top-2 set' in the doubled direction. (The other four doubled changes and all five halved changes do fit the claim.)"
+  },
+  {
+   "claim": "Step 6: 'the 5 spectrum rows (Cl_kk, S, Cl_yy, Cl_tt, Cl_ky, Cl_ktau) are 100% stable in both directions'.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "The parenthetical lists SIX rows, not 5. The stability claim is true for those six (none appear in either change list), but it silently omits cl_yt \u2014 the 7th spectrum row in the spec's own 13-row table \u2014 which is NOT stable: under doubling it goes ['VarWindVel','WindEnergy','BHRadiativeEff'] -> ['VarWindVel','WindEnergy','WindFreeTravelDensFac']."
+  },
+  {
+   "claim": "Dependency scan: 'IMP is mutated in the fig07 cell (line 2284 injects the R(nu) key) -- that is the ONLY cross-cell coupling and it disappears when R(nu) is dropped.'",
+   "verdict": "WRONG",
+   "correct_fact": "There are at least three cross-cell couplings, and the other two do NOT disappear with R(nu). (1) The fig07 cell READS fig05's IMP dict at lines 2286-2290 for p_S/p_yy/p_fg/p_tt/p_Y. (2) The fig07 cell CALLS fig05's spearman_masked at line 2284. (3) The rebin-stability cell (2222-2247) reads fig05's FAM_ALL (2226), labs_all (2235-2243), rebin_nan and spearman_masked (2228), plus X_unit/pnames. The 'fully self-contained between 2003 and 2355' conclusion happens to survive only because the rebin cell sits inside that span."
+  },
+  {
+   "claim": "data_gaps #2: the off-diagonal cl_kappa blocks 'do vary run to run (183172 unique values)'.",
+   "verdict": "WRONG",
+   "correct_fact": "1,831,720 unique values, an order of magnitude larger than stated (np.unique over the 20 off-diagonal (i!=j) blocks of shape (253,724); the theoretical max after symmetry is 10*253*724 = 1,831,880). Range -1.484e-21 to 2.267e-15. The qualitative conclusion (not a constant fill) is unaffected."
+  },
+  {
+   "claim": "code_locations: 'fig04 panels list -- the current 10 panels', start_line 1354, end_line 1399.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "The `panels = [` literal runs 1360-1398. Lines 1354-1359 are x2_pdf, a blank, `cB, cH = COLORS[...]`, a blank, and `def chi2_fmt`; line 1399 is blank and 1400 is the LogLocator import. The 10-panel ORDER claim ((a) Cl_kk, (b) S, (c) PDF, (d) N_pk, (e) N_min, (f) V0, (g) V1, (h) V2, (i) Cl_ky, (j) Cl_yy) is correct."
+  },
+  {
+   "claim": "code_locations: 'only Cl_tt and Cl_kappa_tau are missing from fig04's SZ row -- the fig04 CR must add them for the 3-auto/2-cross claim to hold'.",
+   "verdict": "WRONG",
+   "correct_fact": "FIGURE_EDIT_PLAN.md item 5 (lines 118-127) SPLITS fig04 in two: 'fig04 keeps the 8 WL panels (a)-(h)' and a NEW '**fig04b_spectra** = the 3 autos + 2 crosses (canonical #1, 9, 10, 11, 12)'. So fig04 does not gain an SZ row; panels (i)/(j) MOVE out. Any statement that fig05/fig07 must 'mirror fig04's panel order' has to mirror fig04 + fig04b together."
+  },
+  {
+   "claim": "code_locations: 'def spearman_masked(P, Y, min_n=100) ... KEEP verbatim', start_line 2049, end_line 2062.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "The function body ends at line 2063 (`    return R`). Line 2062 is `            R[:, j:j+1] = spearman(P[m], Y[m, j][:, None])`. A verbatim copy of 2049-2062 would silently drop the return statement. (rebin_nan's 2042-2047 range IS complete \u2014 2047 is its return.)"
+  },
+  {
+   "claim": "data_gaps #5: 'The fig05 markdown at lines 2028-2032 also cites the scaling relations in the dot matrix.'",
+   "verdict": "WRONG",
+   "correct_fact": "Lines 2028-2032 are a blank line plus the opening of the '**Reading.**' paragraph (coherent response / statistically inert parameters). The scaling-relation citations are at lines 2021-2023 ('adding minima counts and the group-scale $f_{\\rm gas}(M)$ / $Y(M)$ scaling relations') and line 2034 ('dominates WL, tSZ, $\\tau$, and the halo scalings')."
+  },
+  {
+   "claim": "data_gaps #5: 'If the Y(M) is rigid number is cited in main.tex ... Grep main.tex for 0.17 dex / rigid first.'",
+   "verdict": "WRONG",
+   "correct_fact": "I ran the grep: neither '0.17' nor 'rigid' nor '0.172' appears in main.tex (its only dex figures are 0.23-0.44 / 0.24-0.41 / 0.12-0.22 / 0.074 / 0.223 / 0.54, all from the per-halo atlas, different provenance). The actual consumer the spec missed is FIGURE_NUMBERS.md:64 \u2014 'fig7 Y(M) run-to-run scatter per mass bin: 0.172 -> 0.027 dex (median 0.051) (cell 25)'. Deleting fig07 panel (e) orphans that crib line."
+  },
+  {
+   "claim": "Step 7: 'Layout: 12 panels -> fig, ax = plt.subplots(3, 4, figsize=(TWO_COL[0], 6.6)) ... iterate ax.ravel() over STATS'.",
+   "verdict": "WRONG",
+   "correct_fact": "Internally inconsistent with the spec's own step 1, which builds STATS with 13 entries (12 + optional cl_yt), and with step 8, which stamps 13 rho values. `plt.subplots(3,4)` gives 12 axes; `zip(ax.ravel(), STATS)` would silently drop the 13th statistic. Under the canonical 12-row table 3x4 is right, but then step 9's option (A) (drop the Cl_kk panel from fig07) leaves 11 and the grid has a hole. The panel count must be pinned to len(STATS) at build time (e.g. nrows = ceil(len(STATS)/4) with unused axes turned off)."
+  },
+  {
+   "claim": "Step 1: 'Define the canonical statistic table ONCE, above fig05 ... Insert immediately after line 2062'.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "Line 2062 is inside the fig05 CODE cell, which is at builder lines 2039-2206 \u2014 i.e. AFTER the fig04 cell (which ends around line 1520) and after fig18/fig11. FIGURE_EDIT_PLAN.md line 10 requires the canonical table be 'Fixed once, used identically in fig04, fig05, fig07, fig08, fig09'. A definition at 2062 cannot serve fig04/fig04b. It must go in the shared setup cell (builder lines 104-152, e.g. right after ELL_TRUST at 141) if fig04 is to consume it; fig08 (~3095) and fig09 (~3327) are downstream and would be fine either way."
+  },
+  {
+   "claim": "param_labels: 'Longest abbreviation is 18 chars -- WindFreeTravelDens / SofteningComType01'.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "Three names tie at 18 chars: 'FactorForSofterEQS', 'WindFreeTravelDens', 'SofteningComType01'. The 18-char figure and the rotation=90 / fontsize<=5 consequence are correct."
+  },
+  {
+   "claim": "Step 3: 'NULL_COL ... 0.196' and 'NULL_GRID ... 0.257' as exact acceptance targets.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "Rounded correctly but they sit on a boundary that matters. Exact values: NULL_COL = 0.195537 (13-row) / 0.195404 (12-row); NULL_GRID = 0.256949 / 0.256936. Because BlackHoleEddingtonFactor's peak is 0.19427, the 11-vs-12 column split turns on the third decimal \u2014 so the divider must be computed at build time (as the spec itself says) and never hardcoded to '0.196'."
+  }
+ ],
+ "additional_findings": [
+  "THE SPEC NEVER CITES ITS OWN GOVERNING DOCUMENT. /mnt/home/mlee1/BIND/papers/01_pipeline/FIGURE_EDIT_PLAN.md is the change-request source (section '### 6 \u2014 fig05_param_response + fig07_covariation (~L2039\u20132250, ~L2268\u20132360)' at line 129). It contains a 'Canonical statistic list' table (lines 8-40) that already answers, with verification, the two questions the spec spends its 'data_gaps' section re-deriving (12-vs-13 rows; whether to add cl_yt) \u2014 and answers them the OTHER way. Anyone executing this spec would regress two already-settled decisions. Read lines 1-45 of FIGURE_EDIT_PLAN.md before implementing.",
+  "MISSING DELIVERABLE: FIGURE_NUMBERS.md must be re-stamped, and the spec's step 11 does not mention it. Three lines go stale: line 59 ('fig5 significance: ... 7-family row-max null 0.191; 14/30 params super-null, 16 hidden'), line 60 ('fig5 top-5 levers by peak |rho|: VarWindVelFactor 0.71, WindEnergy1e51erg 0.54, IMFslope 0.53, BHRadiativeEff 0.48, WindFreeTravelDens 0.45'), line 61 ('fig5 rebin stability: top-1 identical 9/10 both directions; top-2 set 10/10 both'), and line 64 (the fig7 Y(M) dex numbers, which are deleted outright). Note line 60 also shows the CR CHANGES THE PUBLISHED LEVER ORDER: the current 7-family ranking puts WindEnergy (0.54) above IMFslope (0.53), whereas the new 12/13-row grid puts IMFslope (0.608) above WindEnergy (0.541) \u2014 because the MF/minima rows are promoted into the table. That reordering is a real, citable change the spec does not call out.",
+  "IDENTITY-ANCHOR MECHANICS THE SPEC OMITS. FIGURE_EDIT_PLAN.md requires the Cl_kk row carry 'a dagger on the label + a printed np.allclose check'. The check is trivially satisfiable and I verified the exact form: np.allclose(d['t__suppression__value'][:,ZI,:], d['t__cl_kappa__value'][:,ZI,ZI,:]/d['cl_dmo'][ZI]) is True with max relative deviation exactly 0.0. The plan also records a stronger consequence the spec does not mention: 'fig08's CCA gives rho_1 = rho_2 = 1.000 exactly' \u2014 so item 9's fig08 rework inherits a rank-deficiency from the same duplication and will need the same anchor treatment.",
+  "REBIN FACTORS ARE NOT IN THE CANONICAL TABLE. FIGURE_EDIT_PLAN.md's table specifies keys and x-axes but no rebin factors; the spec's rb = 16/3/4/2 are inherited from FAM5/FAM_EXTRA (builder lines 2066-2077) and are correct as a continuation, but note that FAM_EXTRA gave N_min rb=4 while N_min was ranking-only. Promoting N_min into the heatmap at rb=4 (17 bins) is consistent, and its null (0.163) is already computed in the current cell \u2014 no new interpretation needed.",
+  "PDF REBIN INTERACTS WITH THE kappa->nu CHANGE. If the plan's nu conversion is applied only as an x-axis relabel (a monotone per-bin rescale by a run-independent constant), the Spearman rows are UNCHANGED \u2014 same invariance argument as suppression/cl_dmo. But if the nu = -3..8 window is also applied before rebinning, the PDF row drops from 13 rebinned bins to ~3 (only 10 of 41 kappa bins land in that window at z_s=1), which WOULD move the PDF row's permutation null well above 0.155. Decide explicitly which one fig05 uses; the spec is silent.",
+  "fig07's cbar() HELPER CANNOT BE 'KEPT AND CALLED ONCE'. Step 7 says 'keep the function but call it ONCE' then immediately writes a different inline ScalarMappable/fig.colorbar block. The existing cbar (2275-2282) takes an `ax` and a `rank2` flag and appends a per-axes colorbar; a figure-level colorbar over `ax.ravel().tolist()` is a different call signature. Just delete cbar outright rather than 'keeping' it.",
+  "MEMORY/RUNTIME ARE A NON-ISSUE HERE, CONFIRMED. Everything fig05/fig07 needs comes from the single 253-run emulator_dataset_xpkfix.npz; the largest array touched is cl_kappa (253,5,5,724) float64 ~36 MB. No lightcone map cube is loaded. Full 13-row grid + 200-permutation nulls ran in 8.2 s in this ~10 GB cgroup."
+ ]
+}

@@ -1,0 +1,124 @@
+Building candidate library ...
+[OBS_ONLY] dropping 14 DM-referencing candidates: ['c_dm[13.0-13.2]', 'cgas_over_cdm[13.0-13.2]', 'c_dm[13.2-13.4]', 'cgas_over_cdm[13.2-13.4]', 'c_dm[13.4-13.6]', 'cgas_over_cdm[13.4-13.6]', 'c_dm[13.6-13.8]', 'cgas_over_cdm[13.6-13.8]', 'c_dm[13.8-14.0]', 'cgas_over_cdm[13.8-14.0]', 'c_dm[14.0-14.3]', 'cgas_over_cdm[14.0-14.3]', 'c_dm[14.3+]', 'cgas_over_cdm[14.3+]']
+  90 real candidates (+10 decoys), dropped 0: []
+
+--- marginal scan (k=1, selection folds, pooled score) ---
+  f_bar[13.0-13.2]           pooled R2 = 0.7161
+  trend_f_bar                pooled R2 = 0.6976
+  f_bar[13.2-13.4]           pooled R2 = 0.6733
+  f_bar[13.4-13.6]           pooled R2 = 0.6249
+  logPe[13.0-13.2]           pooled R2 = 0.6111
+  c_gas[13.0-13.2]           pooled R2 = 0.5770
+  f_bar[13.6-13.8]           pooled R2 = 0.5745
+  logPe[13.2-13.4]           pooled R2 = 0.5542
+  f_bar[13.8-14.0]           pooled R2 = 0.5413
+  c_gas[13.2-13.4]           pooled R2 = 0.5233
+  trend_logPe                pooled R2 = 0.5115
+  logPe[13.4-13.6]           pooled R2 = 0.4998
+  (best DECOY: 0.0047)
+
+--- exhaustive pairs (k=2) ---
+  f_bar[13.0-13.2]         + f_star[13.2-13.4]        = 0.8562
+  f_bar[13.0-13.2]         + f_star[13.0-13.2]        = 0.8560
+  f_bar[13.0-13.2]         + f_star[13.4-13.6]        = 0.8559
+  f_bar[13.0-13.2]         + f_star[13.6-13.8]        = 0.8554
+  f_bar[13.2-13.4]         + logY_ss[13.2-13.4]       = 0.8552
+
+--- exhaustive triples (k=3, top-40 marginals) ---
+  f_bar[13.0-13.2]       + logPe[14.0-14.3]       + f_gas200[13.0-13.2]    = 0.8706
+  f_bar[13.0-13.2]       + logPe[13.8-14.0]       + f_gas200[13.0-13.2]    = 0.8702
+  f_bar[13.0-13.2]       + c_gas[13.8-14.0]       + f_gas200[13.0-13.2]    = 0.8701
+  f_bar[13.0-13.2]       + c_gas[13.6-13.8]       + f_gas200[13.0-13.2]    = 0.8701
+  f_bar[13.0-13.2]       + logPe[13.6-13.8]       + f_gas200[13.0-13.2]    = 0.8683
+
+--- SFFS from empty set (EPS = 0.002, pooled objective) ---
+  + f_bar[13.0-13.2]           -> pooled 0.7161 (gain +0.7161)
+  + f_star[13.2-13.4]          -> pooled 0.8562 (gain +0.1401)
+  + logPe[14.0-14.3]           -> pooled 0.8751 (gain +0.0189)
+  + logT[13.0-13.2]            -> pooled 0.8941 (gain +0.0189)
+  + logY[13.0-13.2]            -> pooled 0.9021 (gain +0.0080)
+  - f_bar[13.0-13.2]           (float-out) -> pooled 0.9011
+  - logPe[14.0-14.3]           (float-out) -> pooled 0.8754
+  + logPe[14.0-14.3]           -> pooled 0.9011 (gain +0.0257)
+  + c_gas[14.0-14.3]           -> pooled 0.9060 (gain +0.0049)
+  + logY_ss[13.4-13.6]         -> pooled 0.9098 (gain +0.0037)
+  + c_gas[13.2-13.4]           -> pooled 0.9123 (gain +0.0025)
+  + logPe[13.4-13.6]           -> pooled 0.9143 (gain +0.0021)
+  STOP: best gain +0.0013 < EPS (f_gas200[13.8-14.0])
+
+CHOSEN (8): ['f_star[13.2-13.4]', 'logT[13.0-13.2]', 'logY[13.0-13.2]', 'logPe[14.0-14.3]', 'c_gas[14.0-14.3]', 'logY_ss[13.4-13.6]', 'c_gas[13.2-13.4]', 'logPe[13.4-13.6]']
+decoys selected: 0  (tripwire clean)
+
+--- bootstrap stability (20 resamples, plain greedy) ---
+  boot  0: k=8 ['f_bar[13.0-13.2]', 'f_star[13.2-13.4]', 'c_gas[13.6-13.8]', 'logT[13.0-13.2]']...
+  boot  1: k=8 ['f_bar[13.0-13.2]', 'f_star[13.6-13.8]', 'logPe[14.0-14.3]', 'logT_ss[13.4-13.6]']...
+  boot  2: k=11 ['f_bar[13.0-13.2]', 'f_gas200[14.0-14.3]', 'logPe[13.8-14.0]', 'scat_fbar[13.0-13.2]']...
+  boot  3: k=9 ['f_bar[13.0-13.2]', 'f_star[13.2-13.4]', 'logPe[13.8-14.0]', 'logT[13.0-13.2]']...
+  boot  4: k=9 ['f_bar[13.0-13.2]', 'f_star[13.0-13.2]', 'logT[13.0-13.2]', 'logPe[14.0-14.3]']...
+  boot  5: k=7 ['f_bar[13.0-13.2]', 'f_star[13.2-13.4]', 'logPe[14.0-14.3]', 'logT_ss[13.0-13.2]']...
+  boot  6: k=8 ['f_bar[13.0-13.2]', 'f_star[13.2-13.4]', 'logT_ss[13.0-13.2]', 'logPe[14.0-14.3]']...
+  boot  7: k=8 ['f_bar[13.0-13.2]', 'f_star[13.0-13.2]', 'logPe[14.0-14.3]', 'logT_ss[13.2-13.4]']...
+  boot  8: k=9 ['f_bar[13.0-13.2]', 'f_star[13.2-13.4]', 'logPe[13.8-14.0]', 'logT_ss[13.0-13.2]']...
+  boot  9: k=10 ['f_bar[13.0-13.2]', 'f_star[13.0-13.2]', 'logT[13.2-13.4]', 'logPe[14.0-14.3]']...
+  boot 10: k=9 ['f_bar[13.0-13.2]', 'f_star[13.2-13.4]', 'scat_fbar[13.0-13.2]', 'logPe[14.0-14.3]']...
+  boot 11: k=7 ['f_bar[13.0-13.2]', 'f_star[13.6-13.8]', 'logT_ss[13.4-13.6]', 'logPe[14.0-14.3]']...
+  boot 12: k=9 ['f_bar[13.0-13.2]', 'f_star[13.0-13.2]', 'logT_ss[13.4-13.6]', 'logPe[14.0-14.3]']...
+  boot 13: k=10 ['f_bar[13.0-13.2]', 'f_star[13.2-13.4]', 'logT_ss[13.4-13.6]', 'logPe[14.0-14.3]']...
+  boot 14: k=9 ['f_bar[13.0-13.2]', 'f_star[13.0-13.2]', 'logT[13.0-13.2]', 'logPe[13.8-14.0]']...
+  boot 15: k=9 ['f_bar[13.0-13.2]', 'f_star[13.0-13.2]', 'logPe[14.0-14.3]', 'logT_ss[13.2-13.4]']...
+  boot 16: k=10 ['f_bar[13.0-13.2]', 'f_gas200[14.0-14.3]', 'logPe[14.0-14.3]', 'scat_fbar[13.0-13.2]']...
+  boot 17: k=7 ['f_bar[13.0-13.2]', 'f_star[13.6-13.8]', 'logT[13.2-13.4]', 'logPe[14.0-14.3]']...
+  boot 18: k=9 ['f_bar[13.0-13.2]', 'f_gas200[13.8-14.0]', 'c_gas[13.8-14.0]', 'scat_fbar[13.0-13.2]']...
+  boot 19: k=7 ['f_bar[13.0-13.2]', 'f_star[13.2-13.4]', 'logT[13.0-13.2]', 'logPe[13.8-14.0]']...
+
+selection frequency (>=25%):
+  f_bar[13.0-13.2]           20/20
+  logPe[14.0-14.3]           14/20
+  c_gas[14.0-14.3]           14/20
+  scat_fbar[13.0-13.2]       14/20
+  logK[13.0-13.2]            9/20
+  f_star[13.2-13.4]          8/20
+  logPe[13.0-13.2]           8/20
+  logT_ss[13.0-13.2]         7/20
+  logPe[13.8-14.0]           6/20
+  trend_f_gas200             6/20
+  f_star[13.0-13.2]          6/20
+  logY[13.0-13.2]            6/20
+  logT[13.0-13.2]            5/20
+  f_star[13.6-13.8]          5/20
+
+--- near-duplicates (|r|>0.95) of each chosen latent ---
+  f_star[13.2-13.4]         : ['f_star[13.0-13.2]', 'f_star[13.4-13.6]', 'f_star[13.6-13.8]', 'f_star[13.8-14.0]', 'f_star[14.0-14.3]', 'f_star[14.3+]', 'trend_f_star']
+  logT[13.0-13.2]           : ['logT_ss[13.0-13.2]']
+  logY[13.0-13.2]           : ['f_gas200[13.0-13.2]', 'logK[13.0-13.2]', 'logY_ss[13.0-13.2]', 'scat_logY[13.0-13.2]', 'f_gas200[13.2-13.4]', 'logK[13.2-13.4]', 'logY[13.2-13.4]', 'logY_ss[13.2-13.4]', 'f_gas200[13.4-13.6]', 'logK[13.4-13.6]', 'logY_ss[13.4-13.6]', 'logK[13.6-13.8]', 'logK[13.8-14.0]', 'trend_logY']
+  logPe[14.0-14.3]          : ['logPe[13.6-13.8]', 'logPe[13.8-14.0]']
+  c_gas[14.0-14.3]          : ['c_gas[13.6-13.8]', 'c_gas[13.8-14.0]']
+  logY_ss[13.4-13.6]        : ['logY[13.0-13.2]', 'logY_ss[13.0-13.2]', 'scat_logY[13.0-13.2]', 'f_gas200[13.2-13.4]', 'logY[13.2-13.4]', 'logY_ss[13.2-13.4]', 'scat_logY[13.2-13.4]', 'f_gas200[13.4-13.6]', 'logY[13.4-13.6]', 'f_gas200[13.6-13.8]', 'logK[13.6-13.8]', 'logY[13.6-13.8]', 'logY_ss[13.6-13.8]', 'logK[13.8-14.0]', 'logK[14.0-14.3]']
+  c_gas[13.2-13.4]          : ['c_gas[13.0-13.2]', 'logPe[13.0-13.2]', 'logPe[13.2-13.4]', 'c_gas[13.4-13.6]', 'logPe[13.4-13.6]', 'logPe[13.6-13.8]']
+  logPe[13.4-13.6]          : ['logPe[13.0-13.2]', 'c_gas[13.2-13.4]', 'logPe[13.2-13.4]', 'c_gas[13.4-13.6]', 'c_gas[13.6-13.8]', 'logPe[13.6-13.8]', 'logPe[13.8-14.0]']
+
+--- FINAL (pipeline-native rng(1) reporting folds) ---
+  agnostic-8               clk:0.9632  pdf:0.9386  pk:0.7872  mn:0.8379  v0:0.9597  v1:0.9458  v2:0.9638   pooled:0.9137
+  shipped-8 (bundle, rng(1) canon): clk:0.9593 pdf:0.9330 pk:0.7793 mn:0.8232 v0:0.9541 v1:0.9425 v2:0.9565 pooled:0.9211
+
+--- fiducial closure (fit all 256, predict fid; NEVER used above) ---
+  clk: median |dev| = 1.09%
+    clk trough band19: pred=0.8950 measured=0.8812 (8-latent shipped: 0.908, 4-latent: 0.920)
+  pdf: median |dev| = 10.50%
+  pk: median |dev| = 2.28%
+  mn: median |dev| = 1.56%
+  v0: median |dev| = 0.21%
+  v1: median |dev| = 0.54%
+  v2: median |dev| = 0.70%
+
+--- fiducial percentile of each chosen latent ---
+  f_star[13.2-13.4]          fid pct =  64.5
+  logT[13.0-13.2]            fid pct =  30.9
+  logY[13.0-13.2]            fid pct =  27.0
+  logPe[14.0-14.3]           fid pct =  25.0
+  c_gas[14.0-14.3]           fid pct =  36.7
+  logY_ss[13.4-13.6]         fid pct =  34.8
+  c_gas[13.2-13.4]           fid pct =  25.4
+  logPe[13.4-13.6]           fid pct =  24.2
+
+DONE in 143s

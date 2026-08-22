@@ -1,0 +1,256 @@
+{
+ "item": "CHANGE REQUEST 1 \u2014 fig00_hero.pdf: source panels e/f from the twobound 1P A_SN1 pair, rename \"painted\"\u2192\"BIND\", delete the footer text, drop the kappa colorbar extend arrow, put tau/y colorbars on plain log units.",
+ "figures": [
+  "fig00_hero"
+ ],
+ "code_locations": [
+  {
+   "what": "md() caption cell for Fig 0 (hero). Describes VariableWindVelFactor nodes, the extend arrow, and \"the footer's depth clauses\" \u2014 all three become false after this change. Lines 182-186 (weakest/strongest-VWV nodes), 193-195 (extend arrow declaration), 196 (footer clause), 197 (stamped node ids).",
+   "start_line": 175,
+   "end_line": 198
+  },
+  {
+   "what": "code(r'''...''') cell that builds fig00_hero, entire block.",
+   "start_line": 200,
+   "end_line": 330
+  },
+  {
+   "what": "Header data-provenance comment; line 205-206 names bind_sb35/runs/run_NNNN as the e/f source and must be rewritten to bind_science/runs/twobound.",
+   "start_line": 201,
+   "end_line": 208
+  },
+  {
+   "what": "SB35 Sobol wind-node selection: sob/valid/VWV0/r_hw/r_hs. DELETE. (sob and valid are re-defined at lines 386/388 in the Fig 1 cell, which runs before their only other use at lines 643-645 in Fig 17, so removing them here is safe.)",
+   "start_line": 212,
+   "end_line": 216
+  },
+  {
+   "what": "_hero_map() loader helper (np.load of the full npz key, gaussian_filter sigma=1 px, del+gc). Unchanged, reused for the twobound maps.",
+   "start_line": 218,
+   "end_line": 222
+  },
+  {
+   "what": "Six map loads. Lines 228-229 (y_weak0 from SB35 run r_hw, y_str0 from SB35 run r_hs) are replaced by the twobound pair.",
+   "start_line": 224,
+   "end_line": 229
+  },
+  {
+   "what": "Colour stretches: vk0 = 2*sigma_kappa (235), knorm0 = Normalize(-vk0,vk0) (236), tnorm0 = LogNorm(p99.8/30, p99.8) (237-238), ynorm0 = LogNorm(p50_of_positive, p99.8) (239-240).",
+   "start_line": 231,
+   "end_line": 240
+  },
+  {
+   "what": "log2-ratio construction: eps0 (248), rw0/rs0 (249-250), vr0 = 99th pct of |log2 ratio| (251), rnorm0 (252), RTICKS0 (253). Only the input variable names change.",
+   "start_line": 242,
+   "end_line": 253
+  },
+  {
+   "what": "Top-row panel spec list panels0; labels \"(b) painted $\\kappa$\", \"(c) painted $\\tau$\", \"(d) painted $y$\" are the painted->BIND rename targets.",
+   "start_line": 268,
+   "end_line": 271
+  },
+  {
+   "what": "Top-row draw loop; lines 280-289 build the tau/y colorbars with the scl=1e3/1e6 FuncFormatter and the \"[10^-3]\" / \"[10^-6]\" bar labels \u2014 the \"weird normalization units\" to replace.",
+   "start_line": 272,
+   "end_line": 289
+  },
+  {
+   "what": "Shared kappa colorbar; line 290 carries extend=\"max\" (the arrow to remove); line 292 sets explicit ticks [-0.03, 0, 0.03].",
+   "start_line": 290,
+   "end_line": 293
+  },
+  {
+   "what": "Bottom-row imshow of the two ratio maps (rw0, rs0).",
+   "start_line": 299,
+   "end_line": 301
+  },
+  {
+   "what": "Bottom-row (e)/(f) in-panel labels: currently \"weakest/strongest winds (run NNN): <y> = X x fiducial\", drawn at (0.025, 0.975) with a white bbox. Replace with the A_SN1 value only.",
+   "start_line": 302,
+   "end_line": 308
+  },
+  {
+   "what": "Ratio colorbar cbb, with extend=\"both\" (309) and log2 tick labels rendered as plain ratios (311-313). Not named in the request; flag for confirmation.",
+   "start_line": 309,
+   "end_line": 313
+  },
+  {
+   "what": "fig.text(0.5, 0.045, ...) footer \u2014 the ONLY figure-level bottom text. This is the \"all text at the bottom\" to delete.",
+   "start_line": 315,
+   "end_line": 318
+  },
+  {
+   "what": "save(fig, \"figs_v2/fig00_hero\") -> writes figs_v2/fig00_hero.pdf + figs_preview/fig00_hero.png (paper_style.save, /mnt/home/mlee1/BIND/papers/_tools/paper_style.py:81-93).",
+   "start_line": 319,
+   "end_line": 320
+  },
+  {
+   "what": "print() stamp line: node ids, VWV values, mean-y ratios, kappa rms, norm limits. Must be rewritten to A_SN1 values.",
+   "start_line": 321,
+   "end_line": 327
+  },
+  {
+   "what": "del of the six maps + rw0/rs0, then gc.collect(). Variable names must track the rename.",
+   "start_line": 328,
+   "end_line": 329
+  }
+ ],
+ "data_verified": [
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/runs/twobound/run_0000/params.npy and run_0001/params.npy and /mnt/home/mlee1/ceph/bind_science/runs/fiducial/run_0000/params.npy",
+   "keys": [
+    "(35,) float64 native parameter vector"
+   ],
+   "shape_note": "run_0000[2] = 0.9, run_0001[2] = 14.4, fiducial[2] = 3.6 (WindEnergyIn1e51erg = CAMELS A_SN1). np.nonzero(p0 != p1) == array([2]) \u2014 the two vectors differ in EXACTLY ONE entry; all 34 other entries equal the fiducial vector. bind_science/runs/fiducial/run_0000/ contains ONLY params.npy (no maps).",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; p0=np.load('/mnt/home/mlee1/ceph/bind_science/runs/twobound/run_0000/params.npy'); p1=np.load('/mnt/home/mlee1/ceph/bind_science/runs/twobound/run_0001/params.npy'); f=np.load('/mnt/home/mlee1/ceph/bind_science/runs/fiducial/run_0000/params.npy'); print(np.nonzero(p0!=p1)[0], p0[2], p1[2], f[2])\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/runs/twobound/run_0000/y_maps.npz, run_0001/y_maps.npz",
+   "keys": [
+    "y",
+    "source_redshifts",
+    "fov_deg",
+    "npix",
+    "n_real"
+   ],
+   "shape_note": "y = (50, 5, 1024, 1024) float32, deflate-compressed (compress_type 8, 1048576128 B uncompressed). fov_deg=5.0, npix=1024, n_real=50, source_redshifts=[0.5,1,1.5,2,2.44] \u2014 IDENTICAL geometry/metadata to bind_lightcone_tng/y_maps.npz. So _hero_map(path,'y',-1) works unchanged (realization 0, last source plane z=2.44).",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import zipfile,numpy as np; z=zipfile.ZipFile('/mnt/home/mlee1/ceph/bind_science/runs/twobound/run_0000/y_maps.npz'); [print(i.filename,i.compress_type,np.lib.format._read_array_header(z.open(i.filename),np.lib.format.read_magic(z.open(i.filename)))[0]) for i in z.infolist()]\" ; and np.load(...)['fov_deg'/'npix'/'n_real'/'source_redshifts']"
+  },
+  {
+   "path": "PIXEL ALIGNMENT: bind_science/runs/twobound/run_0000/kappa_maps.npz vs bind_lightcone_tng/kappa_maps.npz, realization 0, z-plane index ZI=1",
+   "keys": [
+    "kappa"
+   ],
+   "shape_note": "r(twobound run_0000 real0, LC fiducial real0) = 0.9808 raw; 0.99565 at 1-px smoothing; 0.99822 at 2 px; 0.99935 at 4 px; 0.99978 at 8 px. CONTRAST TEST: r(twobound run_0000 real0, LC fiducial real *1*) = 0.0029. => realization ordering is shared and realization 0 is the SAME SKY. The residual 0.19 relative rms is real painting difference (feedback + generator sampling), not misregistration. y maps agree the same way: r(y_twobound0000[0,-1], y_LC[0,-1]) = 0.9837, r in log10 = 0.9895. Also verified bind_science/runs/bind/run_0000/kappa_maps.npz realization 0 is BIT-IDENTICAL to LC (max|diff| = 0.0), i.e. LC == runs/bind/run_0000.",
+   "probe_command": "streamed only the first realization out of each compressed npz member (np.lib.format header parse + f.read(5*1024*1024*4)), then np.corrcoef; script at /tmp/claude-2107/-mnt-home-mlee1-BIND/cd141c7e-20d2-47a8-b36e-6fe94e24b33b/scratchpad/reader.py (read_real0(path,key,nreal)) \u2014 never loads the full 1 GB cube"
+  },
+  {
+   "path": "MEAN-y RESPONSE of the twobound A_SN1 pair (1-px smoothed, realization 0, z-plane -1)",
+   "keys": [
+    "y"
+   ],
+   "shape_note": "mean y: fiducial 1.0447e-06, A_SN1=0.9 -> 9.7781e-07 (0.936x fid), A_SN1=14.4 -> 1.1238e-06 (1.076x fid); high/low = 1.149. eps0 = 1e-3*p99.5(y_fid) = 1.5417e-08. vr0 = 99th pct of |log2 ratio| over both maps = 0.7636 (x1.70) \u2014 so the existing rnorm0/RTICKS0 machinery still produces a sensible bar (ticks 0.625, 0.8, 1.0, 1.25, 1.6 survive the |log2 t| < vr0 filter).",
+   "probe_command": "read_real0(<path>,'y')[0,-1] -> gaussian_filter(...,1.0) for LC/y_maps.npz, twobound/run_0000/y_maps.npz, twobound/run_0001/y_maps.npz; then .mean() ratios and np.percentile(np.abs(np.log2((y+eps)/(yfid+eps))), 99)"
+  },
+  {
+   "path": "GENERATOR-NOISE FLOOR: twobound run_0058/run_0059 (SofteningComovingType01, effectively null for y) vs LC fiducial",
+   "keys": [
+    "y"
+   ],
+   "shape_note": "null pair mean ratios 0.9950 / 0.9857; |log2 ratio| p50 = 0.124/0.131, p90 = 0.319/0.330, p99 = 0.556/0.567. A_SN1 pair for comparison: p50 = 0.167/0.177, p90 = 0.412/0.454, p99 = 0.679/0.839. => per-pixel ratio S/N over sampling noise is only ~1.3 at 1-px smoothing (1.30 at 2 px, 1.38 at 4 px, 1.59 at 8 px). The MEAN shift (0.936/1.076 vs null 0.995/0.986) is a clean signal; the per-pixel texture is mostly generator sampling noise.",
+   "probe_command": "same read_real0 + gaussian_filter loop over twobound run_0058/run_0059 y_maps.npz, comparing np.percentile(np.abs(log2 ratio), [50,90,99]) at sigma = 1,2,4,8 px"
+  },
+  {
+   "path": "KAPPA STRETCH: bind_science/runs/dmo/run_0000/kappa_maps.npz and bind_lightcone_tng/kappa_maps.npz, realization 0, ZI=1, after 1-px gaussian_filter",
+   "keys": [
+    "kappa"
+   ],
+   "shape_note": "sigma_DMO = 0.018700 -> vk0 = 2*sigma = 0.037399. vk0 sits at the 96.381st percentile of |kappa|_DMO and the 96.608th of |kappa|_BIND => 3.62% (DMO) / 3.39% (BIND) of pixels saturate at the TOP. ZERO pixels saturate at the bottom: kappa_min = -0.0349 (DMO) / -0.0347 (BIND) = -1.86 sigma > -vk0, which is exactly why extend='max' (not 'both') was correct. kappa_max = 0.4034 (DMO) / 0.4183 (BIND) = 10.8 / 11.2 x vk0. Percentiles of kappa: p99 = 0.0669/0.0649 (1.79/1.74 x vk0), p99.5 = 0.0861/0.0837 (4.60/4.48 sigma), p99.9 = 0.1386/0.1376 (7.41/7.36 sigma), p99.99 = 0.2394/0.2434 (12.8/13.0 sigma).",
+   "probe_command": "read_real0(<kappa npz>,'kappa')[0,1] -> gaussian_filter(...,1.0); then np.mean(np.abs(m)>vk0), np.mean(m<-vk0), np.percentile(m,[99,99.5,99.9,99.99]), m.min(), m.max()"
+  },
+  {
+   "path": "TAU / Y LOG-BAR RANGES: bind_lightcone_tng/tau_maps.npz, y_maps.npz, realization 0, plane -1, 1-px smoothed",
+   "keys": [
+    "tau",
+    "y"
+   ],
+   "shape_note": "tau: min 1.161e-05, p50 1.637e-03, p99.8 6.240e-03 (= current vmax), current vmin = p99.8/30 = 2.080e-04, max 1.463e-02. Current range spans 1.477 decades and contains only ONE decade tick (1e-3); it clips 0.293% low and 0.200% high. Decade-snapped LogNorm(1e-4, 1e-2) gives THREE decade ticks and clips LESS: 0.082% low, 0.011% high. y: min>0 1.405e-10, p50(>0) 4.526e-07 (= current vmin), p99.8 2.452e-05 (= current vmax), max 1.363e-04. Current range spans 1.734 decades (two decade ticks 1e-6, 1e-5) and clips 50.0% of pixels at the bottom (vmin is literally the median). Decade-snapped LogNorm(1e-7, 1e-4) gives FOUR decade ticks and clips only 9.57% low / 0.0015% high.",
+   "probe_command": "read_real0(LC/'tau_maps.npz','tau')[0,-1] and read_real0(LC/'y_maps.npz','y')[0,-1] -> gaussian_filter(...,1.0); np.percentile(...), np.mean(t<1e-4), np.mean(t>1e-2), np.mean(y<1e-7), np.mean(y>1e-4)"
+  },
+  {
+   "path": "COLORBAR FORMATTER behaviour (matplotlib 3.10.1 in /mnt/home/mlee1/venvs/BIND_env)",
+   "keys": [
+    "LogLocator",
+    "LogFormatterSciNotation"
+   ],
+   "shape_note": "A plain LogFormatterSciNotation() labels ONLY decade ticks \u2014 with the current tau range that leaves exactly one label on the bar, which is why the FuncFormatter hack exists. LogFormatterSciNotation(labelOnlyBase=False, minor_thresholds=(np.inf, np.inf)) DOES label sub-ticks: with LogLocator(base=10., subs=(1.,3.), numticks=12) it renders ['1e-4','3e-4','1e-3','3e-3','1e-2'] as $10^{-4}$, $3\\times10^{-4}$, $10^{-3}$, $3\\times10^{-3}$, $10^{-2}$ (mathtext). Verified rendering after fig.canvas.draw(). matplotlib.colors.AsinhNorm and SymLogNorm are both available; AsinhNorm(linear_width=vk0, vmin=-0.045, vmax=0.42) puts zero at norm(0)=0.246 (NOT centred -> breaks RdBu_r), while SymLogNorm(linthresh=vk0, linscale=1.0, vmin=-0.42, vmax=0.42, base=10) puts norm(0)=0.500 exactly (centred, no clipping).",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python: build a dummy imshow+colorbar per (vmin,vmax,subs,formatter) combination, cb.update_ticks(); fig.canvas.draw(); print([t.get_text() for t in cb.ax.get_yticklabels()])"
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/design/astro_params_sobol.npy (what is being REMOVED)",
+   "keys": [
+    "(256, 35) native Sobol design"
+   ],
+   "shape_note": "Current e/f nodes: r_hw = 153 (VariableWindVelFactor = 3.711), r_hs = 160 (VWV = 14.727). Their A_SN1 values are 1.852 and 9.119 and they differ in ALL 30 astrophysical entries \u2014 this is exactly the user's complaint: the current panels are NOT a 1P comparison.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; sob=np.load('/mnt/home/mlee1/ceph/bind_sb35/design/astro_params_sobol.npy'); d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz',allow_pickle=True); v=np.asarray(sorted(d['run_ids'].tolist())); V=sob[:,4]; print(v[np.argmin(V[v])], v[np.argmax(V[v])], sob[153,2], sob[160,2])\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/runs/twobound/ \u2014 full 60-run map (astro index -> run pair -> native column)",
+   "keys": [
+    "twobound_params.npy (60,35)"
+   ],
+   "shape_note": "Confirmed the documented mapping for all 30 params. astro 0 WindEnergyIn1e51erg col 2 (0.9/14.4, fid 3.6) = runs 0000/0001; astro 1 RadioFeedbackFactor col 3; astro 2 VariableWindVelFactor col 4 (3.7/14.8, fid 7.4) = runs 0004/0005; astro 3 col 5; astro 4 MaxSfrTimescale col 9; ... astro 29 SofteningComovingType01 col 34 = runs 0058/0059. NB if the user ever prefers the wind-VELOCITY 1P pair (to match the old caption wording) that is runs 0004/0005, which also lacks tau.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python: load twobound_params.npy + emulator_dataset_xpkfix.npz['param_names'], loop i in range(30) printing np.nonzero(tp[2*i] != tp[2*i+1])"
+  }
+ ],
+ "data_gaps": [
+  {
+   "requested": "tau maps for the twobound A_SN1 pair (would be needed if panels e/f are ever extended to tau, or if a tau response is wanted alongside y)",
+   "why_blocked": "bind_science/runs/twobound/run_0000 and run_0001 contain ONLY kappa_maps.npz and y_maps.npz \u2014 no tau_maps.npz. Verified by directory listing: tau_maps.npz exists for run_0008 through run_0059 only; runs 0000-0007 (astro indices 0-3: WindEnergyIn1e51erg, RadioFeedbackFactor, VariableWindVelFactor, RadioFeedbackReiorientationFactor) all lack it.",
+   "closest_alternative": "The request only asks for y in panels e/f, so this is not blocking. If tau is ever wanted for a 1P pair, use runs 0008/0009 (MaxSfrTimescale) or any pair >= 0008. bind_lightcone_tng/tau_maps.npz remains the only tau available for the fiducial (panel c)."
+  },
+  {
+   "requested": "A sampling-noise-free feedback ratio map (i.e. the twobound runs painted with the same generator noise as the fiducial)",
+   "why_blocked": "No same-seed paired fiducial exists for the twobound suite. bind_science/runs/bind/run_0000 (== bind_lightcone_tng) is bit-identical to the LC fiducial but was painted independently of the twobound runs; the null-parameter twobound pair (run_0058/0059) shows a residual |log2 y ratio| of p50 = 0.124-0.131 / p90 = 0.32-0.33 relative to it, which is pure generator sampling noise. Regenerating a noise-paired fiducial would require re-running the painter (out of scope, and Slurm is forbidden here).",
+   "closest_alternative": "Two mitigations, both zero-cost: (a) keep the ratio-to-fiducial construction and declare the noise floor in the LaTeX caption (per-pixel colour is ~1.3x the sampling floor; the mean shifts 0.936x / 1.076x are 13x / 5x the null pair's 0.995 / 0.986); (b) if a cleaner map is wanted, plot ONE panel of log2(y_high/y_low) (run_0001/run_0000), whose feedback contrast is 1.149 in the mean and whose common-mode noise partially cancels \u2014 but that costs the two-panel layout the user asked for."
+  },
+  {
+   "requested": "An honest (non-saturating) linear symmetric kappa bar with no extend arrow",
+   "why_blocked": "Mathematically impossible: kappa is one-sided-heavy. A symmetric linear Normalize that covers the data needs vmax = kappa_max = 0.418 = 11.2 x vk0 = 22.8 sigma, at which point 99.97% of pixels fall inside +/-0.09 of a +/-0.42 bar and the sky renders as flat grey. Removing the arrow while keeping +/-2 sigma necessarily makes the top-end saturation silent (3.39% of BIND pixels, 3.62% of DMO pixels).",
+   "closest_alternative": "Preferred: keep Normalize(-vk0, vk0), remove extend (or set extend='neither'), and move the saturation statement into the LaTeX caption (the user is deleting in-figure text, not caption text). Alternative if silent clipping is unacceptable: SymLogNorm(linthresh=vk0, linscale=1.0, vmin=-0.42, vmax=0.42, base=10) \u2014 verified to put zero exactly at the RdBu_r midpoint (norm(0) = 0.500), covers the full data range so extend='neither' is truthful, and keeps a near-linear core out to 2 sigma; it needs explicit cb.set_ticks([-0.03, 0, 0.03, 0.1, 0.3]) plus a FixedFormatter because the default symlog formatter blanks non-decade labels. Do NOT use AsinhNorm: norm(0) = 0.246, so zero would not be white."
+  }
+ ],
+ "change_spec": [
+  {
+   "step": "1. Replace the SB35 wind-node selection (lines 212-216) with the twobound 1P pair.",
+   "detail": "DELETE lines 212-216 (sob, valid, VWV0, r_hw, r_hs) \u2014 safe, because `sob` and `valid` are re-defined at lines 386/388 in the Fig 1 cell, which executes before their only other consumer at lines 643-645 (Fig 17). Keep line 211 (FOV = 5.0). INSERT in their place:\n\nTB    = SCI/\"runs/twobound\"   # two-bound 1P design: 60 runs = 30 astro params x (low, high)\np_lo  = np.load(TB/\"run_0000/params.npy\")                  # (35,) native\np_hi  = np.load(TB/\"run_0001/params.npy\")\np_fid = np.load(SCI/\"runs/fiducial/run_0000/params.npy\")\nassert np.count_nonzero(p_lo != p_hi) == 1, \"twobound 0000/0001 must differ in one entry\"\nASN_LO, ASN_HI, ASN_FID = float(p_lo[2]), float(p_hi[2]), float(p_fid[2])  # 0.9 / 14.4 / 3.6\n\nNative column 2 = WindEnergyIn1e51erg = CAMELS A_SN1 (astro index 0 -> runs 0000/0001, even = LOW). Every other one of the 35 entries in both vectors equals the fiducial vector (verified)."
+  },
+  {
+   "step": "2. Repoint the two bottom-row map loads (lines 228-229).",
+   "detail": "Replace:\n  y_weak0  = _hero_map(SB35/f\"runs/run_{r_hw:04d}/y_maps.npz\", \"y\", -1)\n  y_str0   = _hero_map(SB35/f\"runs/run_{r_hs:04d}/y_maps.npz\", \"y\", -1)\nwith:\n  y_lo0 = _hero_map(TB/\"run_0000/y_maps.npz\", \"y\", -1)   # A_SN1 = 0.9\n  y_hi0 = _hero_map(TB/\"run_0001/y_maps.npz\", \"y\", -1)   # A_SN1 = 14.4\nUse the 0-SUFFIXED names y_lo0/y_hi0, NOT y_lo/y_hi \u2014 Fig 17 (line ~655) already binds y_lo/y_hi in the shared notebook namespace. Key name is \"y\", shape (50,5,1024,1024) float32, [0,-1] = realization 0, source plane z=2.44, identical to the LC fiducial file. _hero_map is unchanged."
+  },
+  {
+   "step": "3. Rename the ratio arrays (lines 249-250) and the del list (line 328).",
+   "detail": "rw0 -> rl0 = np.log2((y_lo0 + eps0)/(y_fid0 + eps0)); rs0 -> rh0 = np.log2((y_hi0 + eps0)/(y_fid0 + eps0)). Line 251 becomes np.concatenate([rl0.ravel(), rh0.ravel()]). Lines 299/301 imshow rl0 / rh0. Line 328: `del kap_dmo0, kap_fid0, tau_fid0, y_fid0, y_lo0, y_hi0, rl0, rh0`. Verified values with this data: eps0 = 1.5417e-08, vr0 = 0.7636 (x1.70), so RTICKS0 keeps 0.625, 0.8, 1.0, 1.25, 1.6."
+  },
+  {
+   "step": "4. painted -> BIND on the top-row panel tags (lines 269-271).",
+   "detail": "panels0 entries become:\n  (axk, kap_fid0, \"RdBu_r\", knorm0, \"(b) BIND $\\\\kappa$\"),\n  (axt, tau_fid0, \"magma\",  tnorm0, \"(c) BIND $\\\\tau$\"),\n  (axy, y_fid0,   \"inferno\", ynorm0, \"(d) BIND $y$\")\nLine 268 \"(a) DMO $\\\\kappa$\" is unchanged. Also update the word \"painted\" wherever it appears in the print stamp (step 8) and in the md caption (step 9)."
+  },
+  {
+   "step": "5. tau / y colorbars: plain log units (lines 280-289).",
+   "detail": "Add LogFormatterSciNotation to the line-209 import:\n  from matplotlib.ticker import LogLocator, LogFormatterSciNotation\n(FuncFormatter is still needed at line 312 for the ratio bar, so keep it in the import.)\nReplace the body of the `if nrm is not knorm0` branch (lines 280-289) with:\n  cb = fig.colorbar(im, ax=a, fraction=0.05, pad=0.04)\n  cb.set_label(r\"$\\tau$\" if nrm is tnorm0 else r\"$y$\", fontsize=7, labelpad=1)\n  cb.locator   = LogLocator(base=10.0, subs=(1.0, 3.0), numticks=12)\n  cb.formatter = LogFormatterSciNotation(labelOnlyBase=False,\n                                         minor_thresholds=(np.inf, np.inf))\n  cb.update_ticks()\n  cb.ax.tick_params(labelsize=6)\nDELETE the `scl = 1e3 if nrm is tnorm0 else 1e6` line entirely.\nVERIFIED in mpl 3.10.1: with minor_thresholds=(inf,inf) and labelOnlyBase=False this renders $10^{-4}$, $3\\times10^{-4}$, $10^{-3}$, $3\\times10^{-3}$, $10^{-2}$ \u2014 real log labels, no rescaling. WITHOUT minor_thresholds it labels only decade ticks, which on the current tau range (2.08e-3..6.24e-3, 1.477 decades) leaves exactly ONE label on the bar.\nOPTIONAL but recommended companion change to lines 237-240 \u2014 snap the ranges to decades so plain decade ticks suffice AND less data is clipped:\n  tnorm0 = LogNorm(1e-4, 1e-2)     # 3 decade ticks; clips 0.082% low / 0.011% high (current: 0.293% / 0.200%)\n  ynorm0 = LogNorm(1e-7, 1e-4)     # 4 decade ticks; clips 9.57% low / 0.0015% high (current vmin is the MEDIAN: 50.0% clipped low)\nIf the extra decade visibly flattens the halos, use ynorm0 = LogNorm(5e-7, 5e-5) instead (2 decades, labelled ticks at 1e-6 and 1e-5)."
+  },
+  {
+   "step": "6. Remove the kappa colorbar arrow (line 290).",
+   "detail": "Change `cbk0 = fig.colorbar(imk0, ax=[axd, axk], fraction=0.028, pad=0.025, extend=\"max\")` to `cbk0 = fig.colorbar(imk0, ax=[axd, axk], fraction=0.028, pad=0.025)`. Keep vk0 = 2*kap_dmo0.std() (= 0.037399) and knorm0 = Normalize(-vk0, vk0) and the explicit ticks [-0.03, 0.0, 0.03]. CONSEQUENCE (must be stated in the LaTeX caption, since in-figure text is being deleted): 3.39% of BIND-kappa pixels and 3.62% of DMO-kappa pixels exceed +vk0 and now saturate to solid red with no visual declaration; kappa_max = 0.418 = 11.2 x vk0. Nothing saturates at the blue end (kappa_min = -0.035 = -1.86 sigma), so extend='max' was the correct arrow \u2014 it is being removed for style, not because it was wrong. If silent clipping is unacceptable, substitute SymLogNorm(linthresh=vk0, linscale=1.0, vmin=-0.42, vmax=0.42, base=10) with cbk0.set_ticks([-0.03, 0, 0.03, 0.1, 0.3]) and an explicit FixedFormatter \u2014 verified norm(0) = 0.500 so the diverging map stays centred, and no pixel is clipped."
+  },
+  {
+   "step": "7. Rewrite the (e)/(f) in-panel labels (lines 302-308).",
+   "detail": "Replace the label loop with:\n  for a, lab in [(axw, rf\"(e) $A_{{\\rm SN1}} = {ASN_LO:g}$\"),\n                 (axs, rf\"(f) $A_{{\\rm SN1}} = {ASN_HI:g}$\")]:\n      a.set_xticks([]); a.set_yticks([])\n      a.text(0.025, 0.975, lab, transform=a.transAxes, fontsize=8, va=\"top\", bbox=BOX0)\nRenders as \"(e) $A_{\\rm SN1} = 0.9$\" and \"(f) $A_{\\rm SN1} = 14.4$\". The `<y> = X x fiducial` clause is dropped per the request; those numbers (0.936 / 1.076) move to the print stamp and the LaTeX caption. Keep the (e)/(f) tags so the caption can reference panels."
+  },
+  {
+   "step": "8. Delete the bottom footer text (lines 315-318) and rewrite the stamp (lines 321-327).",
+   "detail": "DELETE the entire `fig.text(0.5, 0.045, \"same DMO halo skeleton ... z=2.44\", ...)` call \u2014 it is the ONLY figure-level bottom text in this cell (the (e)/(f) labels sit at the TOP of their panels, va='top'; the (a)-(d) tags sit above the axes). After deleting it, reclaim the space by changing the gridspec bottom on line 257 from bottom=0.075 to bottom=0.015. NOTE the deleted text carried the only statement of the depth convention (kappa at z_s=1; tau,y integrated to z=2.44) and of the shared-skeleton claim \u2014 both MUST be moved into the LaTeX caption in main.tex or the figure becomes under-specified.\nReplace the print() with:\n  print(f\"hero: realization 0; kappa at z_s={ZS[ZI]:.1f}, tau/y integrated to z={ZS[-1]:.2f}; \"\n        f\"panels e/f = twobound 1P pair run_0000/run_0001, A_SN1 = {ASN_LO:g} / {ASN_HI:g} \"\n        f\"(fiducial {ASN_FID:g}), all 34 other parameters fixed; \"\n        f\"mean y fid/low/high = {y_fid0.mean():.3e}/{y_lo0.mean():.3e}/{y_hi0.mean():.3e} \"\n        f\"(node/fid = {y_lo0.mean()/y_fid0.mean():.3f}/{y_hi0.mean()/y_fid0.mean():.3f}); \"\n        f\"kappa rms DMO/BIND = {kap_dmo0.std():.4f}/{kap_fid0.std():.4f}; \"\n        f\"kappa norm +-{vk0:.4f} (2 sigma; {100*np.mean(np.abs(kap_fid0) > vk0):.1f}% of BIND \"\n        f\"pixels saturate); y-ratio norm +-{vr0:.3f} in log2 (x{2**vr0:.2f})\")\nEXPECTED OUTPUT with the verified data: A_SN1 = 0.9 / 14.4 (fiducial 3.6); mean y 1.045e-06 / 9.778e-07 / 1.124e-06 (node/fid = 0.936 / 1.076); kappa rms 0.0187 / 0.0183; kappa norm +-0.0374 (3.4% saturate); y-ratio norm +-0.764 (x1.70)."
+  },
+  {
+   "step": "9. Update the provenance comment (lines 205-206) and the md caption (lines 175-198).",
+   "detail": "Comment lines 205-206: replace \"bind_sb35/runs/run_NNNN/y_maps.npz for the weakest/strongest VariableWindVelFactor nodes (selected live below, fig 17's criterion)\" with \"bind_science/runs/twobound/run_0000 and run_0001 y_maps.npz \u2014 the A_SN1 (WindEnergyIn1e51erg) 1P pair, 0.9 / 14.4 about the TNG fiducial 3.6, with all 34 other parameters held fixed\".\nmd caption edits, by line:\n  - 182-186: \"the suite's weakest- and strongest-VariableWindVelFactor nodes\" -> \"the two bounds of the 1P wind-energy axis, $A_{\\rm SN1} = 0.9$ and $14.4$ about the TNG fiducial $3.6$, with every other parameter held fixed\". Reword the \"fig 17 gives the same view for kappa and tau\" cross-reference: fig 17 still uses the SB35 min/max VariableWindVelFactor Sobol nodes (lines 643-645, unchanged), so it is no longer 'the same' comparison \u2014 say \"fig 17 shows the analogous kappa and tau response for the Sobol wind-velocity extremes\".\n  - 193-195: delete \"(peaks saturate, declared by the bar's extend arrow)\" and replace with a plain statement that the bar is linear and symmetric at +-2 sigma_kappa and that the brightest ~3.4% of pixels saturate.\n  - 195-196: \"tau/y log\" -> \"tau/y on plain decadal log bars in physical units\"; delete \"The 1 degree scale bar and the footer's depth clauses apply to all panels\" and keep only \"The 1 degree scale bar (panel a) applies to all panels\"; move the depth clause (kappa at z_s=1, tau/y to z=2.44) into the caption prose since the in-figure footer is gone.\n  - 197: \"All stamped numbers (node ids, mean-y response)\" -> \"All stamped numbers (A_SN1 bounds, mean-y response)\".\nAlso mirror these caption changes into the paper's main.tex figure caption for fig00_hero, and add the two honesty statements there: (i) 3.4% top-end kappa saturation, (ii) the per-pixel colour in e/f is only ~1.3x the generator sampling-noise floor while the mean shifts (0.936x, 1.076x) are clean."
+  },
+  {
+   "step": "10. Decide the ratio colorbar's arrows (line 309) \u2014 needs user confirmation.",
+   "detail": "cbb = fig.colorbar(imw, ax=[axw, axs], ..., extend=\"both\") still draws arrows on BOTH ends of the bottom bar. The request names only the kappa bar, so leave it as-is unless the parent agent reads \"the colorbar for kappa should not have an arrow on top\" as a blanket no-arrows rule. Note that here the arrows ARE load-bearing: vr0 is the 99th percentile of |log2 ratio|, so ~1% of pixels genuinely lie outside the bar at each end (|log2 r| p99.9 = 0.956 for the low node, 1.288 for the high node vs vr0 = 0.764). If the arrows are removed, widen vr0 to the 99.9th percentile instead."
+  }
+ ],
+ "risks": [
+  "SCIENCE HONESTY \u2014 per-pixel noise in panels e/f. The A_SN1 1P pair's per-pixel |log2 y ratio| (p50 0.167/0.177, p90 0.412/0.454) is only ~1.3x the flow-matching sampling-noise floor measured from the near-null twobound pair run_0058/0059 (p50 0.124/0.131, p90 0.319/0.330). Most of the red/blue TEXTURE a reader sees is generator noise, not feedback; only the mean shift (0.936x / 1.076x vs the null pair's 0.995 / 0.986) is a clean signal. This must be stated in the caption. There is no same-noise paired fiducial for the twobound suite and building one requires re-painting.",
+  "SILENT KAPPA SATURATION. Removing extend='max' while keeping the +-2 sigma linear stretch makes 3.39% of BIND and 3.62% of DMO pixels clip to solid red with zero visual declaration \u2014 and those pixels are precisely the massive halos the hero figure is advertising (kappa_max = 11.2 x vk0). Because the in-figure footer is also being deleted, the ONLY remaining place to declare this is the LaTeX caption. If that is not acceptable, use the SymLogNorm variant given in step 6.",
+  "LOSS OF THE DEPTH DECLARATION. The deleted fig.text footer is the only place the figure states 'kappa at z_s = 1; tau, y integrated to z = 2.44' and 'same DMO halo skeleton and ray-tracing seed in every panel'. Both claims must be relocated to the main.tex caption or the figure becomes scientifically ambiguous (a reader cannot tell which of the 5 source planes is shown).",
+  "VARIABLE-NAME COLLISION. Fig 17 (line ~655) binds y_lo, y_hi, k_lo, k_hi, t_lo, t_hi in the same notebook namespace. Fig 0 must use the 0-suffixed y_lo0 / y_hi0. Fig 0 runs first, so a clash would silently corrupt Fig 17's ratio maps rather than raise.",
+  "DELETED GLOBALS. Removing sob/valid from the Fig 0 cell is only safe because lines 386/388 (Fig 1 cell) re-create them before Fig 17 (line 643) reads them. If anyone later reorders or deletes the Fig 1 cell, Fig 17 breaks with a NameError. Consider leaving a one-line comment at line 212 recording that dependency.",
+  "MEMORY. _hero_map calls np.load(path)[key], which decompresses the ENTIRE (50, 5, 1024, 1024) float32 member (~1 GB) before slicing [0, zi]. With the 10 GB cgroup the existing sequential del+gc pattern is fine and must be preserved \u2014 do NOT hoist the six loads into a list comprehension or load the twobound pair alongside the SB35 nodes during a transitional edit. (My probes never did this: I stream-decompressed only the first realization, ~21 MB, via np.lib.format header parsing.)",
+  "COLORBAR TICK REGRESSION. If the tau/y formatter is swapped to a bare LogFormatterSciNotation() without minor_thresholds=(np.inf, np.inf), the tau bar collapses to a SINGLE labelled tick (only 1e-3 falls inside 2.08e-4..6.24e-3). Verified in mpl 3.10.1. Either pass minor_thresholds, or snap the norms to decade limits as in step 5.",
+  "CROSS-REFERENCE DRIFT. The Fig 0 caption currently claims fig 17 'gives the same view for kappa and tau'. After this change fig 17 still uses the SB35 min/max VariableWindVelFactor Sobol nodes (a 30-parameter-different comparison), so the two figures no longer show the same physics contrast. Reword, or a referee will read fig 17 as the tau/kappa counterpart of the A_SN1 1P panels.",
+  "SIGN INTUITION. Higher A_SN1 (14.4) gives MORE mean y (1.076x) and lower A_SN1 (0.9) gives LESS (0.936x). Confirm this is the expected direction before writing interpretive caption prose \u2014 the old caption's 'weakest/strongest winds' language cannot be carried over verbatim onto a wind-ENERGY axis."
+ ]
+}

@@ -1,0 +1,247 @@
+{
+ "item": "CR-3 \u2014 delete two redundant figures: fig02_map_suite and fig17_feedback_sky",
+ "figures": [
+  "fig02_map_suite (DELETE)",
+  "fig17_feedback_sky (DELETE)",
+  "fig00_hero (narrative edits, no re-run strictly needed)",
+  "fig01_pipeline_diagram (ON-FIGURE text edit -> MUST be re-run)"
+ ],
+ "code_locations": [
+  {
+   "what": "fig02 CELL BLOCK \u2014 clean deletion unit: separator banner + md(...) cell + code(...) cell, ending at the blank line before fig17's banner. md content = lines 491-532; code content = lines 536-604; save() at line 601.",
+   "start_line": 489,
+   "end_line": 606
+  },
+  {
+   "what": "fig17 CELL BLOCK \u2014 clean deletion unit: separator banner + md(...) cell + code(...) cell, ending at the blank line before the \u00a72.0 banner. md content = lines 609-629; code content = lines 633-749; save() at line 744.",
+   "start_line": 607,
+   "end_line": 751
+  },
+  {
+   "what": "COMBINED single-range deletion (both blocks are contiguous): delete lines 489-751 inclusive (263 lines). Leaves line 487 ''') / 488 blank / 752 '# \u2550\u2550\u2550' / 753 md(r''' \u00a72.0 \u2014 correct adjacency, no fixup needed.",
+   "start_line": 489,
+   "end_line": 751
+  },
+  {
+   "what": "Reader's guide (cell 1 md): '\u00a71 Methods (fig 0 hero, figs 1, 2, 17)' -> must drop 2 and 17.",
+   "start_line": 55,
+   "end_line": 55
+  },
+  {
+   "what": "Hero md (cell 3): 'so the hero shows the ratio; fig 17 gives the same view for $\\kappa$ and $\\tau$ as well.' \u2014 dangling ref, and the ONLY promise that \u03ba/\u03c4 response is shown anywhere.",
+   "start_line": 186,
+   "end_line": 187
+  },
+  {
+   "what": "Hero md (cell 3): '$\\kappa$ moves only at the percent level (figs 4, 17)' -> '(fig 4)'.",
+   "start_line": 190,
+   "end_line": 190
+  },
+  {
+   "what": "Hero md (cell 3): 'Conventions: 1-px cosmetic smoothing throughout (fig 2);' -> drop '(fig 2)'; the hero becomes the convention source.",
+   "start_line": 192,
+   "end_line": 192
+  },
+  {
+   "what": "Hero code (cell 4) comments: '(selected live below, fig 17's criterion)' / '(fig 17's memory pattern). 1-px cosmetic smoothing = fig 2.' \u2014 comment-only, no runtime effect.",
+   "start_line": 206,
+   "end_line": 208
+  },
+  {
+   "what": "Hero code (cell 4) comment inside _hero_map: '# 1-px cosmetic smoothing (fig 2)'.",
+   "start_line": 220,
+   "end_line": 220
+  },
+  {
+   "what": "Hero code (cell 4) comment: 'Same construction as fig 17, / inverted (node/fid, not fid/node) ...'.",
+   "start_line": 246,
+   "end_line": 247
+  },
+  {
+   "what": "Hero code (cell 4) comment: 'log bars in FIXED UNITS with 1-3-10 ticks (fig 2's convention)'.",
+   "start_line": 280,
+   "end_line": 281
+  },
+  {
+   "what": "fig01 md (cell 5): 'assembled into the 20-shell lightcone and ray-traced in \u00a71d (fig 2)' \u2014 refs BOTH a deleted section heading and a deleted figure.",
+   "start_line": 368,
+   "end_line": 368
+  },
+  {
+   "what": "fig01 code (cell 6) \u2014 RENDERED ON-FIGURE ANNOTATION: fig.text(...) string '\\to $\\kappa/\\tau/y$ lightcone maps (figs 0, 2)'. Editing this changes the PDF; fig01 must be re-executed.",
+   "start_line": 476,
+   "end_line": 480
+  },
+  {
+   "what": "Deleted headings that create \u00a7-lettering gaps: '## \u00a71d \u2014 Fig 2: ...' (491) and '## \u00a71e \u2014 Fig 17: ...' (609). After deletion \u00a71c (line 334) is followed directly by \u00a72.0 (line 754).",
+   "start_line": 491,
+   "end_line": 609
+  },
+  {
+   "what": "Cell-index arithmetic anchor: CELLS list order is md@28=cell0, md@64=1, code@104=2, md@175=3, code@200=4, md@333=5, code@373=6, md@490=7(fig02 md), code@535=8(fig02 code), md@608=9(fig17 md), code@632=10(fig17 code), md@753=11. Deleting cells 7,8,9,10 shifts every later cell index by -4.",
+   "start_line": 490,
+   "end_line": 632
+  }
+ ],
+ "data_verified": [
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py",
+   "keys": [
+    "fig02_map_suite@601",
+    "fig17_feedback_sky@744",
+    "load_node_maps@647(used 656,657 only)",
+    "verdict17@680(used 685,686 only)",
+    "ratio_fmt17@688(used 727 only)",
+    "kap_s/tau_s/y_s@547(read 557-567 fig02, 659-673 fig17, NOWHERE later)",
+    "ext@261(hero) and @550(fig02); last read 700 (fig17)",
+    "FOV@211(hero) and @543(fig02)",
+    "VWV/r_wlo/r_whi@643-645 (last read 747)",
+    "headline@674 (read 743,747)",
+    "vk17/vt17/vy17/nk17/nt17/ny17/eps_t/eps_y/rt_*/ry_*/dk_*/k_lo..y_hi/cn17/rows17/ims17/col_labels17/col_verdicts17/k_tag/cb_k17/cb_t17/cb_y17 \u2014 every one last-read at or before line 748"
+   ],
+   "shape_note": "Exhaustive per-name grep over all 4654 lines: NO name defined inside the fig02 or fig17 cells is read after line 748. 'ext' and 'FOV' and the FuncFormatter/LogLocator imports are ALSO defined in the hero cell (lines 209, 211, 261), so fig17's use of 'ext' at line 700 never depended on fig02. run_ids(@137), ZI(@139), sob/valid(@386-388, fig01 cell) are external and unaffected.",
+   "probe_command": "for v in FOV '\\bext\\b' kap_s tau_s y_s load_node_maps verdict17 ratio_fmt17 VWV r_wlo r_whi headline 'vk17|vt17|vy17' 'nk17|nt17|ny17' 'y_ratio_|t_ratio_|k_ratio_' 'eps_t|eps_y' 'rt_lo|rt_hi|ry_lo|ry_hi|dk_lo|dk_hi' 'k_lo|t_lo|y_lo|k_hi|t_hi|y_hi' 'cb_k17|cb_t17|cb_y17' run_ids valid '\\bsob\\b' '\\bZI\\b'; do echo \"=== $v\"; grep -nE \"$v\" _build_figures_nb.py; done"
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/{emulator_dataset_xpkfix.npz, design/astro_params_sobol.npy}",
+   "keys": [
+    "run_ids (253)",
+    "astro_params_sobol (256,35), column 4 = VariableWindVelFactor"
+   ],
+   "shape_note": "REDUNDANCY CLAIM VERIFIED for fig17: hero (line 215-216) picks r_hw=argmin/r_hs=argmax of sob[:,4] over valid; fig17 (line 644-645) uses the byte-identical expression. Probe returns weak node 153 (VWV=3.711), strong node 160 (VWV=14.727) \u2014 fig17 plots the SAME TWO NODES as the hero, adding only the \u0394\u03ba and \u03c4-ratio columns to the hero's y-ratio panels (e,f).",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np,pathlib; SB35=pathlib.Path('/mnt/home/mlee1/ceph/bind_sb35'); d=np.load(SB35/'emulator_dataset_xpkfix.npz',allow_pickle=True); rid=d['run_ids']; sob=np.load(SB35/'design/astro_params_sobol.npy'); valid=np.asarray(sorted(rid.tolist())); V=sob[:,4]; print(int(valid[np.argmin(V[valid])]), int(valid[np.argmax(V[valid])]))\""
+  },
+  {
+   "path": "_build_figures_nb.py lines 200-333 (hero) vs 535-605 (fig02)",
+   "keys": [
+    "hero panel (b) kap_fid0 = _hero_map(LC/'kappa_maps.npz','kappa',ZI)",
+    "hero (c) tau_fid0 = LC/'tau_maps.npz' index -1",
+    "hero (d) y_fid0 = LC/'y_maps.npz' index -1",
+    "fig02 kap = LC kappa [0,ZI]; tau = LC tau [0,-1]; ym = LC y [0,-1]"
+   ],
+   "shape_note": "REDUNDANCY CLAIM VERIFIED for fig02: identical source files, identical realization (0), identical slices (kappa at ZI=z_s=1; tau,y at [-1]=total column to z=2.44), identical 1-px gaussian_filter. fig02 panels (a,b,c) are a strict subset of hero panels (b,c,d). Only differences: (i) hero's kappa Normalize uses 2*std of the DMO map (\u00b10.0374) vs fig02's 2*std of the painted map (\u00b10.0367); (ii) fig02 draws theta_x/theta_y degree axes+ticks, hero replaces them with a single 1-degree scale bar.",
+   "probe_command": "sed -n '200,333p' _build_figures_nb.py ; sed -n '535,605p' _build_figures_nb.py"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/{figs_v2,figs_preview}",
+   "keys": [
+    "figs_v2/fig02_map_suite.pdf (1,534,169 B, Jul 29 12:20)",
+    "figs_v2/fig17_feedback_sky.pdf (2,518,486 B, Jul 28 17:24)",
+    "figs_preview/fig02_map_suite.png (877,238 B)",
+    "figs_preview/fig17_feedback_sky.png (1,355,333 B)"
+   ],
+   "shape_note": "figs_v2 currently holds fig00,01,02,03,04,05,07,08,09,10,11,12,13,14,15,16,17,18,19,20 (note: fig06 already ABSENT \u2014 a numbering gap already exists in the released set, which is precedent for the keep-gaps option). papers/_tools/paper_style.save() only writes; it never prunes, so the 4 stale files above must be deleted by hand.",
+   "probe_command": "ls figs_v2/ && ls -l figs_v2/fig00_hero.pdf figs_v2/fig02_map_suite.pdf figs_v2/fig17_feedback_sky.pdf figs_preview/fig02_map_suite.png figs_preview/fig17_feedback_sky.png && grep -n 'def save' -A 25 /mnt/home/mlee1/BIND/papers/_tools/paper_style.py"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/main.tex",
+   "keys": [
+    "\\includegraphics ... figs/fig01_map_gallery.pdf ... figs/fig13_bridge_residual.pdf (13 includes, ALL from figs/, none from figs_v2/)",
+    "figs/fig02_validation_field.pdf @ line 322"
+   ],
+   "shape_note": "NO DEPENDENCY. main.tex is still wired to the OLD v1 figure set in figs/ (produced by fig_scripts/*.py). 'fig02_validation_field' is a DIFFERENT figure that merely collides on the fig02 prefix \u2014 it is the field-level WL closure plot, not the map suite. grep 'figs_v2' main.tex returns ZERO hits. Do NOT edit main.tex for this change request.",
+   "probe_command": "grep -n 'includegraphics' main.tex; grep -n 'figs_v2' main.tex"
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/runs/run_{0153,0160}/{kappa,tau,y}_maps.npz",
+   "keys": [
+    "run_0153: kappa 970 MB, tau 932 MB, y 955 MB",
+    "run_0160: kappa 970 MB, tau 930 MB, y 954 MB"
+   ],
+   "shape_note": "All six node map files EXIST. Relevant only for the optional mitigation below (preserving fig17's kappa/tau verdict numbers inside the hero cell) \u2014 that would add 4 extra ~1 GB key loads on top of the hero's existing 6, and MUST reuse the existing del/gc.collect() sequential pattern given the ~10 GB cgroup.",
+   "probe_command": "for r in 0153 0160; do for f in kappa_maps.npz tau_maps.npz y_maps.npz; do ls -l /mnt/home/mlee1/ceph/bind_sb35/runs/run_$r/$f; done; done"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/{FIGURE_NUMBERS.md,SCORECARD.md,audits/,_run_figures_nb.py,run_figures.sbatch}",
+   "keys": [
+    "FIGURE_NUMBERS.md:12-13 'fig 17 prints the same numbers inverted, as fid/node (cell 4)'",
+    "FIGURE_NUMBERS.md:22-25 '## fig2' block",
+    "FIGURE_NUMBERS.md:27-28 '## fig17' block",
+    "SCORECARD.md:78,90,95,100 fig 17 credit lines"
+   ],
+   "shape_note": "audits/ has ZERO references. _run_figures_nb.py and run_figures.sbatch have ZERO figure-name references (they just execute the whole notebook) \u2014 no hardcoded figure list or cell-count assertion to update.",
+   "probe_command": "timeout 60 grep -rn -i --include='*.py' --include='*.tex' --include='*.md' --include='*.ipynb' -E 'fig ?0?2\\b|fig ?17\\b|fig02|fig17|map_suite|feedback_sky' . --exclude-dir=.git"
+  }
+ ],
+ "data_gaps": [
+  {
+   "requested": "Delete fig02_map_suite outright.",
+   "why_blocked": "NOT blocked as a figure. BUT the fig02 markdown cell (builder lines 491-532) is the ONLY place in the whole notebook that states the lightcone METHODS: 20 TNG300-Dark snapshots z=0.034-2.44; 4 slabs x 51.25 h^-1 Mpc = 80 lens planes; compositing at 4xR200c with 15% edge taper; the tau definition tau = sigma_T (x_e/m_p) Sigma_gas with x_e=0.88; 'y painted directly in physical units, summed over slabs, no extra 1/a^2 weighting'; lens potentials from the TOTAL matter planes; 50 realizations with seed 1992+7r shared with the DMO and hydro-truth traces; 1024^2 over 5x5 deg^2 = 0.293'/px, no beam. Deleting the cell wholesale silently deletes all of it.",
+   "closest_alternative": "Delete only the FIGURE (the code(...) cell, builder lines 535-605 plus its banner) and KEEP the prose: retitle the md cell from '## \u00a71d \u2014 Fig 2: from painted halos to the released map suite' to '## \u00a71d \u2014 From painted halos to the released map suite (lightcone construction)' and delete only its last two paragraphs (lines 517-532, the 'This figure shows...' and the colormap-convention paragraphs, which describe the deleted panels). This preserves every methods number and costs nothing at run time."
+  },
+  {
+   "requested": "Delete fig17_feedback_sky outright.",
+   "why_blocked": "NOT blocked as a figure. BUT after deletion NO figure in the package shows the kappa or tau feedback response \u2014 the hero's bottom row is y-only. The surviving hero md sentence at line 190 ('kappa moves only at the percent level (figs 4, 17)') would point at fig 4, which is a BIND-vs-hydro-truth validation figure, not a weak-vs-strong feedback comparison. The supporting numbers (kappa-rms ratio 0.989/1.005, mean-tau fid/weak, fid/strong) exist ONLY in fig17's live print and in FIGURE_NUMBERS.md:28.",
+   "closest_alternative": "Two options. (a) Cheap/zero-IO: soften the hero md to 'kappa moves only at the percent level' and cite the printed hero value kappa rms DMO/painted = 0.0187/0.0183 instead. (b) Full preservation: inside the hero code cell (after line 305) add 4 sequential _hero_map() calls for SB35/runs/run_{r_hw,r_hs:04d}/{kappa,tau}_maps.npz (slices ['kappa'][0,ZI] and ['tau'][0,-1]; all four files verified present, ~0.93-0.97 GB each) and extend the hero's print() with k_rms_ratio = kap_fid0.std()/k_node.std() and tau mean ratios, then del/gc each immediately. Cost: +4 GB of sequential reads and ~2x the hero cell's runtime; safe under the ~10 GB cgroup ONLY with the existing del/gc.collect() pattern."
+  },
+  {
+   "requested": "Confirm main.tex cross-references need rewriting.",
+   "why_blocked": "They do NOT. main.tex has zero 'figs_v2' references; the figs_v2/fig00..fig20 package has never been wired into the LaTeX. The only main.tex hit for 'fig02' is figs/fig02_validation_field.pdf, an unrelated v1 figure with a colliding prefix.",
+   "closest_alternative": "No main.tex edit. When figs_v2 is eventually ingested into main.tex, LaTeX assigns its own \\ref numbering, so the basename gaps are invisible to readers."
+  }
+ ],
+ "change_spec": [
+  {
+   "step": "1. Delete both figure blocks from the builder in ONE contiguous cut.",
+   "detail": "In /mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py delete lines 489-751 INCLUSIVE (263 lines): from the '# \u2550\u2550\u2550...' separator at 489 (immediately after fig01's closing ''') at 487 and the blank line 488) through the blank line 751. Result: line 487 ''') / 488 blank / [old 752] '# \u2550\u2550\u2550...' / [old 753] md(r''' '## \u00a72.0 \u2014 Statistical conventions'. No other fixup at the seam. IF the CR-3 alternative in data_gaps is adopted, instead cut 489-489+? in two pieces: keep 490-533 (the fig02 md call) editing its content per step 8, and delete 534-751."
+  },
+  {
+   "step": "2. Do NOT touch anything defined inside the deleted cells \u2014 verified zero downstream readers.",
+   "detail": "load_node_maps (647), verdict17 (680), ratio_fmt17 (688), kap_s/tau_s/y_s (547), kap/tau/ym (544-546), vk/tau_hi/tau_lo/ims/titles/cbl/SCL/cbs (557-591), VWV/r_wlo/r_whi (643-645), headline (674), k_tag/col_verdicts17 (683-686), vk17/vt17/vy17/nk17/nt17/ny17 (666-669), eps_t/eps_y/rt_*/ry_*/dk_* (659-664), k_lo..y_hi (656-657), rows17/cn17/ims17/col_labels17 (664,696-697,694), cb_k17/cb_t17/cb_y17 (723-725) \u2014 every last read is at or before line 748. WARNING: deleting fig02 ALONE without fig17 raises NameError on kap_s/tau_s/y_s at line 659; the two cells must go together (or fig17 alone may be deleted safely). 'ext' (line 700) and 'FOV' and the FuncFormatter/LogLocator import survive because the hero cell defines them at 209/211/261."
+  },
+  {
+   "step": "3. Fix the reader's guide (cell 1 md).",
+   "detail": "Line 55: '**Reader's guide** (sections mirror the paper): \u00a71 Methods (fig 0 hero, figs 1, 2, 17),' -> '\u00a71 Methods (fig 0 hero, fig 1),'. Leave lines 56-59 (figs 3,4,11 / 5,7,20,12,13,8 / 9,15,10,16 / 14 / 18,16c,19) untouched."
+  },
+  {
+   "step": "4. Fix the hero markdown cross-references (cell 3, builder lines 175-198).",
+   "detail": "Line 186-187: 'so the hero shows the ratio; fig 17 gives the same view for\\n$\\kappa$ and $\\tau$ as well.' -> 'so the hero shows the ratio.' (or, if the data_gaps option (b) is taken, '...shows the ratio; the $\\kappa$ and $\\tau$ response ratios are printed by the cell.'). Line 190: '(figs 4, 17)' -> '(fig 4)'. Line 192: 'Conventions: 1-px cosmetic smoothing throughout (fig 2); $\\kappa$ on a **linear**' -> 'Conventions: 1-px cosmetic smoothing throughout; $\\kappa$ on a **linear**'."
+  },
+  {
+   "step": "5. Fix the hero code-cell COMMENTS (cell 4). Comment-only; does not change the rendered PDF, so fig00 need NOT be re-executed for these.",
+   "detail": "Line 206: '#       VariableWindVelFactor nodes (selected live below, fig 17's criterion).' -> '...(selected live below: min/max of design column 4).'  Lines 207-208: '#       Realization 0 everywhere; six ~1 GB key loads, sequential with del/gc\\n#       (fig 17's memory pattern). 1-px cosmetic smoothing = fig 2.' -> '...sequential with del/gc\\n#       (required: the session cgroup is ~10 GB). 1-px cosmetic smoothing throughout.'  Line 220: '# 1-px cosmetic smoothing (fig 2)' -> '# 1-px cosmetic smoothing'.  Lines 246-247: 'Same construction as fig 17,\\n# inverted (node/fid, not fid/node) so the color reads as the node's own effect.' -> 'node/fid (not fid/node) so the color reads as the node's own effect.'  Lines 280-281: 'log bars in FIXED UNITS with 1-3-10 ticks (fig 2's convention): sci' -> 'log bars in FIXED UNITS with 1-3-10 ticks: sci'."
+  },
+  {
+   "step": "6. Fix the fig01 markdown (cell 5) \u2014 it references BOTH a deleted section and a deleted figure.",
+   "detail": "Line 368: 'snapshots are assembled into the 20-shell lightcone and ray-traced in \u00a71d (fig 2) \u2014 the' -> if step 8's prose-preserving option is taken keep '\u00a71d' and drop the figure: '...ray-traced in \u00a71d \u2014 the'. If \u00a71d is deleted entirely: '...are assembled into the 20-shell lightcone and ray-traced (fig 0) \u2014 the'."
+  },
+  {
+   "step": "7. Fix the fig01 ON-FIGURE annotation (cell 6) \u2014 THIS ONE CHANGES THE PDF.",
+   "detail": "Lines 476-480, the fig.text(1.015, 0.5, ...) call. Change the literal '\\n' r\"$\\to$ $\\kappa/\\tau/y$ lightcone maps (figs 0, 2)\",' to '...lightcone maps (fig 0)\",'. Because this text is drawn into figs_v2/fig01_pipeline_diagram.pdf, the fig01 cell MUST be re-executed. Its inputs are small (bind_lightcone_tng/snap_096/stage1/stage1_slab00.npz + bind_sb35/runs/run_{58,145,56}/snap_096/composite_slab00.npz + design/astro_params_sobol.npy) \u2014 no ~1 GB map loads \u2014 so it can be run standalone; the surrounding cells' cached outputs stay valid."
+  },
+  {
+   "step": "8. (RECOMMENDED, see data_gaps) Preserve the lightcone methods prose rather than deleting it with fig02.",
+   "detail": "If adopted, keep builder lines 490-533 (the md(...) call) and instead: change line 491 to '## \u00a71d \u2014 From painted halos to the released map suite (lightcone construction)'; keep lines 493-516 verbatim (Lightcone construction / Compositing / tau formula / Ray tracing paragraphs); DELETE lines 517-532 (the '**This figure** shows one realization...' paragraph and the whole colormap-convention paragraph, which only describe the removed panels). Then the deletion range in step 1 becomes 534-751 instead of 489-751."
+  },
+  {
+   "step": "9. Remove the stale rendered artifacts (save() never prunes).",
+   "detail": "rm /mnt/home/mlee1/BIND/papers/01_pipeline/figs_v2/fig02_map_suite.pdf, figs_v2/fig17_feedback_sky.pdf, figs_preview/fig02_map_suite.png, figs_preview/fig17_feedback_sky.png. (These are gitignored per the repo's .gitignore figure rules, so no git rm needed.)"
+  },
+  {
+   "step": "10. Update FIGURE_NUMBERS.md \u2014 dead blocks AND a silent cell-index shift.",
+   "detail": "Delete the '## fig2' block (lines 22-25) and the '## fig17' block (lines 27-28). Edit lines 12-13 under '## hero': 'hero mean-y response node/fid (panels e,f): 0.921 (weak) / 1.039 (strong) \u2014 fig 17 prints the same numbers inverted, as fid/node (cell 4)' -> drop the 'fig 17 prints...' clause. THEN decrement every '(cell N)' citation for N>=13 by exactly 4 (because CELLS indices 7,8,9,10 are removed): 13->9 (fig3), 15->11 (fig4), 17->13 (fig18), 19->15 (fig11), 21->17 and 23->19 (fig5), 25->21 (fig7), 27->23 (fig20), 29->25 (fig12), 31->27 (fig13), 33->29 (fig8), 36->32 (fig9), 38->34 (coverage/alpha-hat), 40->36 (fig15), 42->38 (fig10), 44->40 (fig16), 46->42 (fig14), 49->45 (fig19), 51->47 (release check). Citations for cells 2, 4, 6 (dataset, hero, fig1) are UNCHANGED."
+  },
+  {
+   "step": "11. Leave SCORECARD.md and main.tex alone.",
+   "detail": "SCORECARD.md lines 78, 90, 95, 100 credit 'fig 17' as a round-1 grading improvement \u2014 it is a historical log, not a live cross-reference; at most append a dated note that fig 17 was later cut as redundant with the hero. main.tex: ZERO edits (verified no figs_v2 reference; its figs/fig02_validation_field.pdf is an unrelated v1 figure)."
+  },
+  {
+   "step": "12. Rebuild and re-execute.",
+   "detail": "Rebuild: /mnt/home/mlee1/venvs/BIND_env/bin/python /mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py (prints 'wrote paper1_figures.ipynb with N cells'; N drops by 4 from the current count, or by 3 if step 8 keeps the md cell). Re-execution: only the fig01 cell strictly needs re-running (step 7); a full re-run via _run_figures_nb.py / run_figures.sbatch is optional. NOTE: rebuilding OVERWRITES paper1_figures.ipynb and DISCARDS all currently stored cell outputs, so a full re-execute becomes necessary in practice \u2014 budget for it. Slurm submission is the user's action; do not submit."
+  },
+  {
+   "step": "13. Verify no dangling references remain.",
+   "detail": "timeout 60 grep -nE \"fig(s)? ?0?2\\b|fig(s)? ?17\\b|fig02_map_suite|fig17_feedback_sky|load_node_maps|verdict17|ratio_fmt17|kap_s|tau_s|y_s\\b\" /mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py \u2014 expect ZERO hits except benign ones ('figs 4' style refs to other figures and the y_str0 hero variable)."
+  }
+ ],
+ "risks": [
+  "ORDERING TRAP: deleting fig02 WITHOUT fig17 breaks the notebook \u2014 fig17 line 659 reads kap_s/tau_s/y_s defined at fig02 line 547 (NameError). Delete both, or fig17 first. (fig17 alone is safe to delete.)",
+  "SILENT METHODS LOSS: fig02's md cell (lines 493-516) is the sole statement of the tau = sigma_T (x_e/m_p) Sigma_gas definition with x_e=0.88, the 4-slab/80-lens-plane geometry, the 'no 1/a^2 weighting' y convention, the seed 1992+7r pairing, and the 1024^2 / 5x5 deg^2 / 0.293'/px spec. A naive whole-cell delete removes all of it with no compiler error. See change_spec step 8.",
+  "EVIDENCE LOSS: after deleting fig17 no figure shows the kappa or tau feedback response; the hero is y-only. The surviving hero claim 'kappa moves only at the percent level' would cite fig 4, which is a BIND-vs-truth validation figure, not a weak-vs-strong comparison. The kappa-rms ratios 0.989/1.005 survive only in FIGURE_NUMBERS.md, which step 10 deletes.",
+  "RENDERED-TEXT EDIT: fig01's on-figure annotation literally prints '(figs 0, 2)'. Editing the builder is not enough \u2014 figs_v2/fig01_pipeline_diagram.pdf must be regenerated or the published figure keeps pointing at a deleted figure.",
+  "CELL-INDEX DRIFT: FIGURE_NUMBERS.md cites '(cell N)' for every number in the paper. Removing 4 cells shifts N by -4 for everything after fig1, with no automated check. Getting this wrong makes every provenance citation in the crib sheet point at the wrong cell \u2014 a direct hit on the stated 'provenance discipline'.",
+  "REBUILD WIPES OUTPUTS: _build_figures_nb.py writes a fresh notebook with nbf.v4.new_code_cell(), so all stored outputs (including the printed numbers FIGURE_NUMBERS.md was extracted from) are discarded. A full re-execute is effectively mandatory after any builder edit; that re-run reloads dozens of ~1 GB map files, so it must go through Slurm (run_figures.sbatch), which this agent cannot submit.",
+  "MEMORY UPSIDE (not a risk, a benefit worth recording): deleting these two cells removes 3 (fig02: LC kappa/tau/y) + 6 (fig17: run_0153/run_0160 kappa/tau/y) sequential ~1 GB npz key loads = ~8.6 GB of I/O from the notebook run, which materially eases the ~10 GB cgroup. Adopting the data_gaps option (b) mitigation gives 4 GB of that back.",
+  "NUMBERING POLICY \u2014 REPORT ONLY, DO NOT DECIDE. Option A (keep fixed basenames, gaps at 02 and 17): zero churn, and figs_v2 ALREADY has a gap (fig06 is absent), so it is consistent with existing practice; LaTeX assigns its own \\ref numbers at ingest so readers never see the gaps. Option B (renumber to contiguous fig00..fig18): touches 19 save() calls, ~30 markdown headings ('## \u00a73a \u2014 Fig 5:' etc.), every inline 'fig N' cross-reference (lines 55-59, 189-190, 368, 1755, 2889, 4384, 4420, 4626 and more), and all of FIGURE_NUMBERS.md \u2014 high churn, high risk of a stale cross-reference surviving. Option C (keep basenames, strip the 'Fig N' numbers from the markdown headings and cite figures by section instead): moderate churn, removes the whole class of dangling-number bugs permanently."
+ ]
+}

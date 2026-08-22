@@ -1,0 +1,412 @@
+{
+ "item": "CR-6 \u2014 fig05_param_response overhaul (drop the Spearman-bin heatmap + dot matrix, replace with a single 13-statistic x 30-parameter importance heatmap) and fig07_covariation restricted to the same 13 statistics, all colored by VariableWindVelFactor",
+ "figures": [
+  "fig05_param_response",
+  "fig07_covariation",
+  "fig04_field_validation"
+ ],
+ "code_locations": [
+  {
+   "what": "fig05 narrative markdown cell (describes the two-panel heatmap+dot-matrix design; must be fully rewritten for the new single-heatmap design)",
+   "start_line": 2003,
+   "end_line": 2037
+  },
+  {
+   "what": "fig05 code cell (entire implementation: rebin_nan, spearman_masked, FAM5/FAM_EXTRA family tables, permutation nulls, imshow heatmap panel (a), cividis dot-matrix panel (b), save, diagnostic prints)",
+   "start_line": 2039,
+   "end_line": 2206
+  },
+  {
+   "what": "def rebin_nan(a, k) \u2014 NaN-safe block mean over last axis; KEEP verbatim",
+   "start_line": 2042,
+   "end_line": 2047
+  },
+  {
+   "what": "def spearman_masked(P, Y, min_n=100) \u2014 pairwise-valid Spearman wrapper over the global spearman() at line 148; KEEP verbatim",
+   "start_line": 2049,
+   "end_line": 2062
+  },
+  {
+   "what": "FAM5 list \u2014 the 7 heatmap families (S, Cl_ky, Cl_yy, Cl_tt, N_pk, PDF, V1) with per-family rebin factors; REPLACE with the 13-row STATS table",
+   "start_line": 2065,
+   "end_line": 2073
+  },
+  {
+   "what": "FAM_EXTRA list \u2014 ranking-only families N_min, f_gas(M), Y(M); DELETE (f_gas/Y removed per CR; N_min promoted into the main table)",
+   "start_line": 2074,
+   "end_line": 2078
+  },
+  {
+   "what": "FAM_ALL / labs5 / labs_all definitions",
+   "start_line": 2079,
+   "end_line": 2081
+  },
+  {
+   "what": "validity print loop over FAM_ALL",
+   "start_line": 2083,
+   "end_line": 2087
+  },
+  {
+   "what": "Yfam / Rfam / IMP dict construction (IMP = per-family max-over-bins |rho|, i.e. the metric the new heatmap needs)",
+   "start_line": 2089,
+   "end_line": 2091
+  },
+  {
+   "what": "blocks/edges5/R5/order \u2014 the concatenated 7-family bin matrix and column ordering; R5 and edges5 become dead once the bin-level heatmap is dropped",
+   "start_line": 2093,
+   "end_line": 2096
+  },
+  {
+   "what": "significance block: RHO_2SIG=2/sqrt(253), 200-permutation per-family nulls, NULL95 dict, NULL_MAX95 legacy 7-family row-max null, R5_show blanking",
+   "start_line": 2098,
+   "end_line": 2111
+  },
+  {
+   "what": "row-truncation logic: show / rows_h / n_hid (params kept only if >=1 cell above its family null)",
+   "start_line": 2113,
+   "end_line": 2117
+  },
+  {
+   "what": "figure/gridspec creation, 1x2 layout width_ratios [1.5, 1.0]",
+   "start_line": 2119,
+   "end_line": 2121
+  },
+  {
+   "what": "panel (a) imshow of R5_show[rows_h], cmap RdBu_r, vmin/vmax -0.75/0.75, family dividers, BLOCK_RANGE annotations, y ticklabels, colorbar",
+   "start_line": 2123,
+   "end_line": 2155
+  },
+  {
+   "what": "panel (b) dot matrix: top-5-per-family row selection, M6 matrix, cividis scatter with s \u221d (v/vmax)^2, top-3 numerals, per-family null fading, colorbar with per-family-null highlight band",
+   "start_line": 2157,
+   "end_line": 2190
+  },
+  {
+   "what": "save(fig, 'figs_v2/fig05_param_response')",
+   "start_line": 2191,
+   "end_line": 2192
+  },
+  {
+   "what": "fig05 diagnostic prints (significance thresholds, per-family nulls, hidden-row count, top-5 params, per-family top-5)",
+   "start_line": 2194,
+   "end_line": 2205
+  },
+  {
+   "what": "rebin-stability markdown cell (asserts the specific 10-family verdicts; numbers change under the 13-row table)",
+   "start_line": 2208,
+   "end_line": 2220
+  },
+  {
+   "what": "rebin-stability code cell: _ranking(scale) helper iterating FAM_ALL, x0.5/x2 comparison prints",
+   "start_line": 2222,
+   "end_line": 2247
+  },
+  {
+   "what": "fig07 narrative markdown cell (six observables incl. f_gas(M), Y(M), R(nu); must be rewritten)",
+   "start_line": 2250,
+   "end_line": 2266
+  },
+  {
+   "what": "fig07 code cell (entire implementation)",
+   "start_line": 2268,
+   "end_line": 2355
+  },
+  {
+   "what": "def color_curves(ax, x, Y, cvals) \u2014 plots 253 curves sorted by cvals with plt.cm.coolwarm(cvals[i]); KEEP verbatim",
+   "start_line": 2271,
+   "end_line": 2273
+  },
+  {
+   "what": "def cbar(ax, pi, rank2=False) \u2014 per-panel coolwarm colorbar labeled short_label(pnames[pi]); SIMPLIFY to one shared colorbar",
+   "start_line": 2275,
+   "end_line": 2282
+  },
+  {
+   "what": "IMP[r'$R(\\nu)$'] injection from t__peak_R__value \u2014 DELETE (R(nu) panel removed)",
+   "start_line": 2284,
+   "end_line": 2285
+  },
+  {
+   "what": "per-panel color-parameter selection p_S/p_yy/p_fg/p_tt/p_Y/p_R \u2014 DELETE, replace with a single PCOL=2",
+   "start_line": 2286,
+   "end_line": 2291
+  },
+  {
+   "what": "ell masks mS (<=2e4) / mE (<=ELL_TRUST=1.5e4), f_e = l(l+1)/2pi, mass axis, nuR axis",
+   "start_line": 2293,
+   "end_line": 2297
+  },
+  {
+   "what": "2x3 subplot grid creation, figsize (TWO_COL[0], 4.6)",
+   "start_line": 2299,
+   "end_line": 2299
+  },
+  {
+   "what": "panel (a) S(ell); panel (b) Cl_yy; panel (c) Cl_tt (with LogLocator 2x/5x minor-tick idiom at 2318-2321) \u2014 KEEP, restyle",
+   "start_line": 2300,
+   "end_line": 2322
+  },
+  {
+   "what": "panel (d) f_gas(M) scaling relation \u2014 DELETE per CR",
+   "start_line": 2324,
+   "end_line": 2328
+  },
+  {
+   "what": "panel (e) Y(M) scaling relation incl. logY, y_dex rigidity stamp \u2014 DELETE per CR",
+   "start_line": 2330,
+   "end_line": 2342
+  },
+  {
+   "what": "panel (f) R(nu) = <y>/<kappa> at peaks \u2014 DELETE per CR",
+   "start_line": 2343,
+   "end_line": 2347
+  },
+  {
+   "what": "fig07 tight_layout / save / prints (incl. the y_dex print that dies with panel e)",
+   "start_line": 2348,
+   "end_line": 2354
+  },
+  {
+   "what": "fig04 panels list \u2014 the current 10 panels (a) Cl_kk (b) S(l) (c) PDF (d) N_pk (e) N_min (f) V0 (g) V1 (h) V2 (i) Cl_ky (j) Cl_yy. fig05/fig07 row order must mirror whatever CR-for-fig04 produces; the 8 WL panels already exist as (a)-(h), and only Cl_tt and Cl_kappa_tau are missing from fig04's SZ row",
+   "start_line": 1354,
+   "end_line": 1399
+  },
+  {
+   "what": "global helpers the new cells rely on: ELL, ELL_TRUST=1.5e4, rebin(), spearman(), and (line 133-139) d/X_unit/pnames/ZS/ZI=1",
+   "start_line": 133,
+   "end_line": 152
+  }
+ ],
+ "data_verified": [
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz",
+   "keys": [
+    "t__cl_kappa__value (253,5,5,724)",
+    "t__suppression__value (253,5,724)",
+    "t__pdf__value (253,5,41)",
+    "t__peak_counts__value (253,5,68)",
+    "t__minima_counts__value (253,5,68)",
+    "t__mf_v0__value (253,5,29)",
+    "t__mf_v1__value (253,5,29)",
+    "t__mf_v2__value (253,5,29)",
+    "t__cl_yy__value (253,724)",
+    "t__cl_tt__value (253,724)",
+    "t__cl_kappa_y__value (253,5,724)",
+    "t__cl_kappa_tau__value (253,5,724)",
+    "t__cl_yt__value (253,724)",
+    "X_unit (253,30)",
+    "param_names (30)"
+   ],
+   "shape_note": "All 13 candidate statistics exist and are usable. valid flags: cl_kappa 253/253, cl_kappa_y 253/253, cl_kappa_tau 253/253, cl_yy 253/253, cl_tt 253/253, cl_yt 253/253, suppression 253/253, peak_counts 253/253, minima_counts 253/253, pdf 253/253, mf_v0/v1/v2 253/253. Finite fraction = 100.00% for ALL 13. (Contrast: peak_R 98.83% finite, wst valid only 40/253, dm_pdf valid only 177/253 \u2014 do NOT add those.)",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz',allow_pickle=True); [print(n, d['t__'+n+'__valid'].sum(), round(100*np.isfinite(d['t__'+n+'__value'].astype(float)).mean(),2)) for n in ['cl_kappa','cl_kappa_y','cl_kappa_tau','cl_yy','cl_tt','cl_yt','suppression','peak_counts','minima_counts','pdf','mf_v0','mf_v1','mf_v2','peak_R','wst','dm_pdf']]\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz :: t__cl_kappa__value",
+   "keys": [
+    "t__cl_kappa__value"
+   ],
+   "shape_note": "Axes are (run, z_i, z_j, ell) and the matrix IS symmetric in axes 1,2 (np.allclose True). z_s=1 auto-spectrum = [:, 1, 1, :] (ZI=1, source_redshifts=[0.5,1,1.5,2,2.44]). VERIFIED EXACTLY: t__suppression__value[:,ZI,:] == t__cl_kappa__value[:,ZI,ZI,:]/cl_dmo[ZI] to within 1e-6 (np.allclose True, median ratio 1.0). CRITICAL: the OFF-diagonal (tomographic cross-z) blocks are ~1e-19 against ~1e-11 diagonals, i.e. 5e-8 of sqrt(auto_i*auto_j) \u2014 they are numerically null and must NOT be used as 'tomographic cross-spectra'.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz',allow_pickle=True); ck=d['t__cl_kappa__value']; print(np.allclose(ck,np.swapaxes(ck,1,2))); print(np.array2string(ck[0,:,:,200],precision=3)); print(np.allclose(d['t__suppression__value'][:,1,:], ck[:,1,1,:]/d['cl_dmo'][1], rtol=1e-6))\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz :: param_names / X_unit",
+   "keys": [
+    "param_names",
+    "X_unit",
+    "X_native"
+   ],
+   "shape_note": "VariableWindVelFactor IS index 2 in param_names (0-based) => X_unit[:, 2], confirmed. X_unit[:,2] spans 0.00212-0.99642 (unit cube). It maps to X_native column 4 (rank corr 1.0), native range 3.711-14.727, and X_unit[:,2] is the LOG10-mapped native value (rank corr with log10(native)=1.0). Full ordered list: 0 WindEnergyIn1e51erg, 1 RadioFeedbackFactor, 2 VariableWindVelFactor, 3 RadioFeedbackReiorientationFactor, 4 MaxSfrTimescale, 5 FactorForSofterEQS, 6 IMFslope, 7 SNII_MinMass_Msun, 8 ThermalWindFraction, 9 VariableWindSpecMomentum, 10 WindFreeTravelDensFac, 11 MinWindVel, 12 WindEnergyReductionFactor, 13 WindEnergyReductionMetallicity, 14 WindEnergyReductionExponent, 15 WindDumpFactor, 16 SeedBlackHoleMass, 17 BlackHoleAccretionFactor, 18 BlackHoleEddingtonFactor, 19 BlackHoleFeedbackFactor, 20 BlackHoleRadiativeEfficiency, 21 QuasarThreshold, 22 QuasarThresholdPower, 23 UVBH0beta, 24 UVBH0Deltaz, 25 UVBHepbeta, 26 UVBHepDeltaz, 27 SNIa_Rate_Norm, 28 SNIa_Rate_DTD_power, 29 SofteningComovingType01.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz',allow_pickle=True); [print(i,str(s)) for i,s in enumerate(d['param_names'])]; X=d['X_unit']; print(X.shape, X[:,2].min(), X[:,2].max())\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz :: a__* x-axis arrays",
+   "keys": [
+    "a__cl_kappa__ell",
+    "a__cl_kappa_y__ell",
+    "a__cl_kappa_tau__ell",
+    "a__cl_yy__ell",
+    "a__cl_tt__ell",
+    "a__cl_yt__ell",
+    "a__suppression__ell",
+    "a__pdf__pdf_bins",
+    "a__peak_counts__nu",
+    "a__minima_counts__nu",
+    "a__mf_v0__mf_nu",
+    "a__mf_v1__mf_nu",
+    "a__mf_v2__mf_nu"
+   ],
+   "shape_note": "All SEVEN a__*__ell arrays are byte-identical (np.array_equal True across all pairs), 724 bins, 86.91 -> 52133.57; the notebook's global ELL = d['a__suppression__ell'] can be used for every spectrum. 207 bins have ell<=1.5e4 (ELL_TRUST), 277 have ell<=2e4. a__pdf__pdf_bins (41,) float32, kappa from -0.2214 to +0.2214, center 0.0. a__peak_counts__nu and a__minima_counts__nu (68,) identical grid -4.875..11.875 step 0.25. a__mf_v{0,1,2}__mf_nu (29,) -3..4 step 0.25.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz',allow_pickle=True); ks=['a__cl_kappa__ell','a__cl_kappa_tau__ell','a__cl_kappa_y__ell','a__cl_tt__ell','a__cl_yt__ell','a__cl_yy__ell','a__suppression__ell']; E=d[ks[0]]; print(all(np.array_equal(E,d[k]) for k in ks), (E<=1.5e4).sum(), (E<=2e4).sum(), len(E)); print(d['a__pdf__pdf_bins'][[0,20,40]], d['a__peak_counts__nu'][[0,67]], d['a__mf_v0__mf_nu'][[0,28]])\""
+  },
+  {
+   "path": "computed: 13x30 max-over-bins |Spearman rho| importance grid (the proposed fig05 matrix)",
+   "keys": [
+    "IMP[13,30]"
+   ],
+   "shape_note": "Rebinned bin counts per row (using rebin factors 16 spectra / 3 PDF / 4 counts / 2 MF): Cl_kk 45, S 45, PDF 13, N_pk 17, N_min 17, V0 14, V1 14, V2 14, Cl_yy 45, Cl_tt 45, Cl_ky 45, Cl_ktau 45, Cl_yt 45. Column order by peak |rho| desc: VariableWindVelFactor 0.706, IMFslope 0.608, WindEnergyIn1e51erg 0.541, BlackHoleRadiativeEfficiency 0.484, WindFreeTravelDensFac 0.446, RadioFeedbackReiorientationFactor 0.350, QuasarThreshold 0.317, VariableWindSpecMomentum 0.296, QuasarThresholdPower 0.252, BlackHoleAccretionFactor 0.229, WindEnergyReductionFactor 0.219, BlackHoleEddingtonFactor 0.194, SNII_MinMass_Msun 0.187, SeedBlackHoleMass 0.182, then 16 params all <=0.166 (RadioFeedbackFactor 0.166, MaxSfrTimescale 0.162, MinWindVel 0.152, WindDumpFactor 0.144, FactorForSofterEQS 0.143, ThermalWindFraction 0.129, UVBH0beta 0.129, SofteningComovingType01 0.128, WindEnergyReductionMetallicity 0.128, BlackHoleFeedbackFactor 0.124, WindEnergyReductionExponent 0.116, SNIa_Rate_DTD_power 0.108, UVBH0Deltaz 0.106, UVBHepDeltaz 0.101, UVBHepbeta 0.099, SNIa_Rate_Norm 0.088). Exactly 14/30 columns have >=1 cell above their own row's permutation null. Grid max is 0.706 (Cl_tt x VarWindVel) -> use vmax=0.75 for a |rho| colormap.",
+   "probe_command": "see scratchpad /tmp/claude-2107/-mnt-home-mlee1-BIND/cd141c7e-20d2-47a8-b36e-6fe94e24b33b/scratchpad/IMP13.npy ; built by a script that reproduces rebin_nan+spearman_masked from lines 2042-2062 over the 13-row STATS table and takes np.nanmax(np.abs(R),1)"
+  },
+  {
+   "path": "computed: 200-permutation nulls for the 13-row grid (seeded np.random.default_rng(4), one shared permutation stream, identical idiom to line 2102-2110)",
+   "keys": [
+    "NULL95 per statistic",
+    "grid-max null",
+    "column-max null",
+    "RHO_2SIG"
+   ],
+   "shape_note": "Single-cell 2sigma |rho| = 2/sqrt(253) = 0.126 (UNCHANGED \u2014 it does not depend on the grid). Per-STATISTIC (row) 95th-pct null of max-over-bins |rho|: Cl_kk 0.150, S 0.150, PDF 0.155, N_pk 0.177, N_min 0.163, V0 0.155, V1 0.147, V2 0.148, Cl_yy 0.158, Cl_tt 0.159, Cl_ky 0.153, Cl_ktau 0.158, Cl_yt 0.157 (span 0.147-0.177, essentially the SAME span as the current 7/10-family nulls 0.147-0.177 quoted in the notebook \u2014 because the nulls track the number of rebinned bins, which is unchanged). NEW numbers the redesign needs: 13-row COLUMN-max null (max over the 13 rows, per parameter) 95th pct = 0.196 (this replaces the legacy 7-family NULL_MAX95=0.191); 13-row GRID-max null (max over all 13x30 cells) 95th pct = 0.257.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python <<'PY' with rng=np.random.default_rng(4), 200 iters, null[it,r]=np.nanmax(np.abs(spearman(X[perm],Y[row])),1); n95=np.percentile(null[:,r],95); grid95=np.percentile(null.max(axis=(1,2)),95); colmax95=np.percentile(null.max(axis=1),95)"
+  },
+  {
+   "path": "computed: Cl_kappa vs suppression degeneracy",
+   "keys": [
+    "t__cl_kappa__value[:,1,1,:]",
+    "t__suppression__value[:,1,:]",
+    "cl_dmo"
+   ],
+   "shape_note": "WITHOUT rebinning the two rows are EXACTLY identical in Spearman: max|rho_ck - rho_sup| = 0.0 over all 30x724 cells, because S = Cl/cl_dmo[ZI] and cl_dmo has NO run axis (shape (5,724)) so the divisor is a per-bin constant and Spearman (indeed any per-bin monotone/linear correlation, incl. Pearson) is invariant. WITH the rebin=16 block-averaging they differ only trivially (max |Delta max|rho|| = 0.0166, mean 0.0021, rank correlation of the two rows' parameter orderings = 0.996) \u2014 the residual difference is purely the different ell-weighting inside a block, not new physics.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; from scipy.stats import rankdata; d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz',allow_pickle=True); X=d['X_unit']; ...spearman(X, d['t__cl_kappa__value'][:,1,1,:]) - spearman(X, d['t__suppression__value'][:,1,:]) -> max abs 0.0\""
+  },
+  {
+   "path": "computed: run-to-run dynamic range per statistic (fig07 legibility)",
+   "keys": [
+    "16-84 percentile spread of value/median, per bin"
+   ],
+   "shape_note": "Max over bins of the 16-84 spread of (run value / suite median): Cl_kk 0.205, S 0.225, PDF 1.976, N_pk 2.000, N_min 1.000, V0 0.023, V1 0.581, V2 0.549, Cl_yy 0.714, Cl_tt 0.836, Cl_ky 0.757, Cl_ktau 1.046, Cl_yt 0.873. Compare the bin-to-bin dynamic range of the median over the plotted window: Cl_kk 2.7e3, Cl_yy 3.2e3, Cl_tt 4.8e3, Cl_ky 5.1e3, Cl_ktau 1.0e4, Cl_yt 4.3e3, V0 1.6e2, S 1.11. CONSEQUENCE: on an absolute log-log axis the 253-curve colour spread for Cl_kk (<=20%) and V0 (<=2.3%) is invisible; every other panel is legible in absolute units.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"...a=stat[:,mask]; med=np.nanmedian(a,0); p16,p84=np.nanpercentile(a/med,[16,84],axis=0); print(np.nanmax(p84-p16))\""
+  },
+  {
+   "path": "computed: sign/zero structure that constrains fig07 axis scales",
+   "keys": [
+    "min/max/negative-fraction/zero-fraction per statistic at ZI=1"
+   ],
+   "shape_note": "cl_kappa_y has 0.126% negatives and cl_kappa_tau 0.062% negatives, but ONLY at ell>5.17e4 (first negative ell index 717 for ky, 721 for ktau) \u2014 ZERO negatives for ell<=2e4, so a log y-axis is safe under the mE=ELL<=1.5e4 mask. mf_v2 has 27.6% negative values -> LINEAR y-axis mandatory. mf_v1 10.3% zeros, mf_v0 strictly positive in [0.006,1]. pdf 39.0% zeros, peak_counts 17.8% zeros (11/68 bins all-zero across runs; nonzero nu range -2.125..11.875), minima_counts 66.3% zeros (44/68 bins all-zero; nonzero nu range -2.625..3.625) -> restrict the plotted nu window (fig04 already uses NU_LIM=(-3,4) at line 1310).",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"...for each stat print np.nanmin, np.nanmax, 100*np.mean(a<0), 100*np.mean(a==0); and (E[np.where((a<=0).any(0))[0]])[:5]\""
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/_tools/param_labels.py",
+   "keys": [
+    "short_label",
+    "PARAM_ABBREV"
+   ],
+   "shape_note": "Curated word-boundary-safe abbreviations for all 30 SB35 names; imported at _build_figures_nb.py:114 after sys.path.insert at :111. VariableWindVelFactor -> 'VarWindVelFactor'; IMFslope -> 'IMFslope'; WindEnergyIn1e51erg -> 'WindEnergy1e51erg'; BlackHoleRadiativeEfficiency -> 'BHRadiativeEff'; WindFreeTravelDensFac -> 'WindFreeTravelDens'; RadioFeedbackReiorientationFactor -> 'RadioFdbkReorient'. Longest abbreviation is 18 chars \u2014 at 30 rotated x-tick labels this needs rotation=90 (or 60, ha='right') and fontsize<=5.0.",
+   "probe_command": "sed -n '1,60p' /mnt/home/mlee1/BIND/papers/_tools/param_labels.py"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/_tools/paper_style.py",
+   "keys": [
+    "ONE_COL",
+    "TWO_COL",
+    "TWO_COL_TALL",
+    "save",
+    "panel_label",
+    "COLORS"
+   ],
+   "shape_note": "ONE_COL=(3.5,2.63), ONE_COL_SQ=(3.5,3.4), TWO_COL=(7.2,3.1), TWO_COL_TALL=(7.2,5.6). save(fig, stem) at line 81. Imported at _build_figures_nb.py:112.",
+   "probe_command": "grep -n 'TWO_COL\\|ONE_COL\\|def save' /mnt/home/mlee1/BIND/papers/_tools/paper_style.py"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py (dependency scan)",
+   "keys": [
+    "IMP",
+    "Rfam",
+    "FAM_ALL",
+    "labs_all",
+    "NULL95",
+    "NULL_MAX95",
+    "R5",
+    "Yfam",
+    "rebin_nan",
+    "spearman_masked",
+    "color_curves",
+    "p_S/p_yy/p_tt/p_fg/p_Y/p_R"
+   ],
+   "shape_note": "NO downstream cell after line 2355 references any fig05/fig07 local. rebin_nan and spearman_masked are defined at 2042/2049 and used ONLY inside the fig05 cell (2089-2107) and the rebin-stability cell (2228). IMP is mutated in the fig07 cell (line 2284 injects the R(nu) key) \u2014 that is the ONLY cross-cell coupling and it disappears when R(nu) is dropped. color_curves/cbar are defined and used only in the fig07 cell. => the rewrite is fully self-contained between lines 2003 and 2355.",
+   "probe_command": "grep -n 'rebin_nan\\|spearman_masked\\|\\bIMP\\b\\|Rfam\\|FAM_ALL\\|labs_all\\|NULL95\\|NULL_MAX95\\|R5\\b\\|Yfam\\|color_curves\\|p_S\\b\\|p_yy\\|p_tt\\|p_fg\\|p_Y\\b\\|p_R\\b' _build_figures_nb.py | awk -F: '$1>2355'"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py :: fig04 panels (cross-reference target)",
+   "keys": [
+    "panels list at 1354-1399"
+   ],
+   "shape_note": "fig04 currently has 10 panels in this order: (a) l(l+1)Cl_kk/2pi, (b) S(l), (c) PDF(kappa), (d) N_peak(nu), (e) N_min(nu), (f) V0(nu), (g) V1(nu), (h) V2(nu), (i) l(l+1)Cl_ky/2pi, (j) l(l+1)Cl_yy/2pi. The '8 WL statistics' the user refers to are EXACTLY (a)-(h) as they already exist. Only Cl_tautau and Cl_kappa_tau are absent from fig04 \u2014 the fig04 CR must add them for the 3-auto/2-cross claim to hold, and fig05/fig07 must reuse fig04's y-label LaTeX strings verbatim.",
+   "probe_command": "sed -n '1354,1399p' /mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py"
+  }
+ ],
+ "data_gaps": [
+  {
+   "requested": "13 distinct statistic rows: 8 WL (Cl_kappa, S, PDF, N_pk, N_min, V0, V1, V2) + 3 auto (Cl_kappa, Cl_yy, Cl_tt) + 2 cross (Cl_ky, Cl_ktau)",
+   "why_blocked": "Arithmetic: Cl_kappa is counted in BOTH the WL and auto lists, so 8+3+2 = 13 SLOTS but only 12 UNIQUE statistics. Worse, Cl_kappa and S(ell) carry IDENTICAL rank information: verified max|rho_Cl_kk - rho_S| = 0.0 at the un-rebinned bin level, because t__suppression__value[:,ZI,:] == t__cl_kappa__value[:,ZI,ZI,:]/cl_dmo[ZI] exactly and cl_dmo has no run axis. Any per-bin correlation-based importance (Spearman OR Pearson) gives byte-identical rows; after rebin=16 they still agree to max 0.017 in max|rho| with rank-corr 0.996. Two visually identical adjacent rows in a heatmap will read as a rendering bug.",
+   "closest_alternative": "RECOMMENDED: build the fig05 heatmap with 12 unique rows and label the WL-auto row 'C_l^{kappa kappa} = S(l)' with a one-line caption note ('the suppression is the raw spectrum divided by a run-independent DMO spectrum, so it carries identical rank information; its value is variance cancellation, not extra parameter sensitivity'). This is a genuinely publishable point. ALTERNATIVE if 13 rows are mandatory: keep both rows but define the Cl_kappa row as the TOMOGRAPHIC auto stack, np.concatenate([cl_kappa[:,z,z,:] for z in range(5)], axis=1) (253, 3620 -> rebin 16 -> 225 bins), and keep S(l) at ZI=1 only; they then differ for a defensible reason (5 source planes vs 1). A THIRD option is to add t__cl_yt__value as a 3rd cross (it is 253/253 valid, 100% finite, max|rho|=0.543 for VarWindVel) giving 13 genuinely distinct rows: 8 WL(with Cl_kk=S merged into 7) + yy + tt + ky + ktau + yt."
+  },
+  {
+   "requested": "tomographic Cl_kappa cross-source-plane spectra (if anyone wants the '3 autocorrelations' to mean the full 5x5 tomographic matrix)",
+   "why_blocked": "The off-diagonal blocks of t__cl_kappa__value are numerically null: at ell index 200, diag entries are 6.6e-13 ... 2.7e-11 while the (0,1) cross is 1.0e-19, i.e. ~5e-8 of sqrt(C_ii C_jj). They do vary run to run (183172 unique values) so they are not a constant fill, but they are ~7 orders of magnitude below any physical tomographic cross-spectrum \u2014 almost certainly cross-realization or unpaired. Using them would produce meaningless rho.",
+   "closest_alternative": "Use ONLY the diagonal [:, ZI, ZI, :] with ZI=1, exactly as the existing suppression row already does implicitly. If a tomographic statement is wanted, stack the FIVE AUTO planes (z indices (0,0),(1,1),(2,2),(3,3),(4,4)) \u2014 those are all physical."
+  },
+  {
+   "requested": "'importance' as a single scalar per (parameter, statistic) cell",
+   "why_blocked": "Not blocked \u2014 but 'importance' is undefined in the user's words and three defensible metrics give different column orderings. max-over-bins |rho| (the metric IMP already uses at line 2091) vs mean-over-bins |rho| have Spearman rank agreement of only 0.904 between their 30-parameter orderings; they disagree on the 3rd/4th slot (WindEnergy vs BHRadiativeEff) and mean|rho| promotes SeedBlackHoleMass into the top 9 while max|rho| ranks it 14th.",
+   "closest_alternative": "USE max-over-rebinned-bins |rho| (RECOMMENDED): it is the metric the current fig05 dot-matrix panel already reports as 'peak |rho|', it is what the existing per-family permutation nulls are built for (so all thresholds transfer with no reinterpretation), and it answers 'does this parameter move this statistic anywhere' which is the question a lever ranking asks. Report mean|rho| only as a robustness line in the printed diagnostics. Do NOT use a first-PC projection: it needs a sign convention per statistic and is not comparable across rows with different bin counts."
+  },
+  {
+   "requested": "R(nu) = <y>/<kappa> at WL peaks removal",
+   "why_blocked": "Not blocked. t__peak_R__value exists (253,5,14), 253/253 valid but only 98.83% finite \u2014 the ~1.2% non-finite bins are exactly why line 2284 needed spearman_masked. Deleting the panel removes the last consumer of both t__peak_R__value and a__peak_R__nu in the fig05/fig07 region.",
+   "closest_alternative": "n/a \u2014 delete lines 2284-2285 and 2343-2347 outright. Also grep for peak_R elsewhere before deleting the masked-Spearman machinery, since spearman_masked's raison d'etre was peak_R; keep spearman_masked anyway (cheap, and it is a no-op when everything is finite)."
+  },
+  {
+   "requested": "f_gas(M) and Y(M) removal from fig07",
+   "why_blocked": "Not blocked. Deleting panels (d) and (e) also deletes the ONLY place the notebook computes and prints y_dex (the 'Y(M) is rigid, 0.17 -> 0.03 dex' claim at lines 2336-2341 and the print at 2353-2354) and the 'p_fg / p_Y 2nd-ranked lever' story. The fig05 markdown at lines 2028-2032 also cites the scaling relations in the dot matrix.",
+   "closest_alternative": "If the 'Y(M) is rigid' number is cited in main.tex, move the y_dex computation + print into a standalone diagnostic print (no plot) at the end of the new fig07 cell, or into the fig03 halo-validation section, before deleting the panels. Grep main.tex for '0.17 dex' / 'rigid' first."
+  }
+ ],
+ "change_spec": [
+  {
+   "step": "1. Define the canonical statistic table ONCE, above fig05, and reuse it in fig05, fig07 and (ideally) fig04",
+   "detail": "Insert immediately after line 2062 (after spearman_masked) a single module-level list of dicts named STATS. Each entry: key (str), lab (LaTeX row/panel label), get (a lambda or precomputed (253,nb) float array at ZI=1), x (the x-axis array), xlab, ylab, rb (rebin factor), xscale, yscale, xlim. Concretely, in the order that mirrors fig04's panel order:\nSTATS = [\n dict(k='cl_kappa',      lab=r'$C_\\ell^{\\kappa\\kappa}$', A=d['t__cl_kappa__value'][:, ZI, ZI, :],   x=ELL, rb=16, grp='WL/auto'),\n dict(k='suppression',   lab=r'$S(\\ell)$',               A=d['t__suppression__value'][:, ZI, :],    x=ELL, rb=16, grp='WL'),\n dict(k='pdf',           lab=r'PDF$(\\kappa)$',           A=d['t__pdf__value'][:, ZI, :],            x=d['a__pdf__pdf_bins'],       rb=3, grp='WL'),\n dict(k='peak_counts',   lab=r'$N_{\\rm pk}$',            A=d['t__peak_counts__value'][:, ZI, :],    x=d['a__peak_counts__nu'],     rb=4, grp='WL'),\n dict(k='minima_counts', lab=r'$N_{\\rm min}$',           A=d['t__minima_counts__value'][:, ZI, :],  x=d['a__minima_counts__nu'],   rb=4, grp='WL'),\n dict(k='mf_v0',         lab=r'$V_0$',                   A=d['t__mf_v0__value'][:, ZI, :],          x=d['a__mf_v0__mf_nu'],        rb=2, grp='WL'),\n dict(k='mf_v1',         lab=r'$V_1$',                   A=d['t__mf_v1__value'][:, ZI, :],          x=d['a__mf_v1__mf_nu'],        rb=2, grp='WL'),\n dict(k='mf_v2',         lab=r'$V_2$',                   A=d['t__mf_v2__value'][:, ZI, :],          x=d['a__mf_v2__mf_nu'],        rb=2, grp='WL'),\n dict(k='cl_yy',         lab=r'$C_\\ell^{yy}$',           A=d['t__cl_yy__value'],                    x=ELL, rb=16, grp='auto'),\n dict(k='cl_tt',         lab=r'$C_\\ell^{\\tau\\tau}$',     A=d['t__cl_tt__value'],                    x=ELL, rb=16, grp='auto'),\n dict(k='cl_kappa_y',    lab=r'$C_\\ell^{\\kappa y}$',     A=d['t__cl_kappa_y__value'][:, ZI, :],     x=ELL, rb=16, grp='cross'),\n dict(k='cl_kappa_tau',  lab=r'$C_\\ell^{\\kappa\\tau}$',   A=d['t__cl_kappa_tau__value'][:, ZI, :],   x=ELL, rb=16, grp='cross'),\n]\nZI is already 1 (line 139). ELL is already d['a__suppression__ell'] (line 140) and is byte-identical to every other a__*__ell \u2014 verified. Optionally append dict(k='cl_yt', lab=r'$C_\\ell^{y\\tau}$', A=d['t__cl_yt__value'], x=ELL, rb=16, grp='cross') to reach 13 genuinely distinct rows. Cast every A with np.asarray(..., float) before use (pdf/peak arrays are float32/float64 mixed)."
+  },
+  {
+   "step": "2. Compute the fig05 importance grid",
+   "detail": "Replace lines 2089-2096 with:\nYs   = {s['k']: rebin_nan(np.asarray(s['A'], float), s['rb']) for s in STATS}\nRs   = {s['k']: spearman_masked(X_unit, Ys[s['k']]) for s in STATS}   # each (30, nb)\nIMPg = np.array([np.nanmax(np.abs(Rs[s['k']]), 1) for s in STATS])     # (n_stat, 30)  <- THE HEATMAP\nKeep the validity print loop (2083-2087) but iterate STATS; it will report 100.00% finite for all 12/13 rows (verified), so it stays a hygiene guarantee. Keep rebin_nan (2042-2047) and spearman_masked (2049-2062) VERBATIM. Reference values you should reproduce exactly (max|rho|, rebin as above): Cl_kk row [VarWindVel 0.576, IMFslope 0.464, BHRadEff 0.428, WindEnergy 0.336]; S row [0.576, 0.472, 0.428, 0.319]; PDF [VarWindVel 0.586, BHRadEff 0.421, IMFslope 0.354]; N_pk [IMFslope 0.439, BHRadEff 0.414, WindEnergy 0.314]; N_min [IMFslope 0.485, BHRadEff 0.420, VarWindVel 0.334]; V0 [IMFslope 0.593, VarWindVel 0.427, BHRadEff 0.417]; V1 [IMFslope 0.533, BHRadEff 0.484, WindEnergy 0.299]; V2 [IMFslope 0.608, BHRadEff 0.421, RadioFdbkReorient 0.325]; Cl_yy [VarWindVel 0.561, WindEnergy 0.419, IMFslope 0.368]; Cl_tt [VarWindVel 0.706, WindEnergy 0.541, WindFreeTravelDens 0.446]; Cl_ky [VarWindVel 0.590, IMFslope 0.472, WindEnergy 0.442]; Cl_ktau [VarWindVel 0.652, WindEnergy 0.509, WindFreeTravelDens 0.389]; Cl_yt [VarWindVel 0.543, WindEnergy 0.487, BHRadEff 0.354]."
+  },
+  {
+   "step": "3. Recompute the significance thresholds for the new grid geometry",
+   "detail": "Replace lines 2098-2111. Keep the SAME idiom (rngp = np.random.default_rng(4); 200 iterations; ONE shared permutation stream across rows so the nulls are comparable):\nRHO_2SIG = 2/np.sqrt(len(X_unit))          # 0.126 \u2014 UNCHANGED, it is per-cell and grid-independent\nnull = np.empty((200, len(STATS), X_unit.shape[1]))\nfor it in range(200):\n    perm = rngp.permutation(len(X_unit))\n    for r, s in enumerate(STATS):\n        null[it, r] = np.nanmax(np.abs(spearman_masked(X_unit[perm], Ys[s['k']])), 1)\nNULL95   = {s['k']: float(np.percentile(null[:, r], 95)) for r, s in enumerate(STATS)}\nNULL_COL = float(np.percentile(null.max(axis=1), 95))    # 0.196 \u2014 per-parameter, replaces the legacy NULL_MAX95=0.191\nNULL_GRID= float(np.percentile(null.max(axis=(1, 2)), 95))  # 0.257 \u2014 whole-grid look-elsewhere\nEXPECTED VALUES (verified, rng seed 4, 200 perms): NULL95 = Cl_kk 0.150, S 0.150, PDF 0.155, N_pk 0.177, N_min 0.163, V0 0.155, V1 0.147, V2 0.148, Cl_yy 0.158, Cl_tt 0.159, Cl_ky 0.153, Cl_ktau 0.158, Cl_yt 0.157. Note the per-row null span (0.147-0.177) is UNCHANGED from the current 7/10-family span quoted in the markdown, because the nulls depend only on the number of rebinned bins, which is unchanged. What DOES change is the multiplicity correction: the row-max null goes 0.191 -> 0.196 (7 families -> 13 rows) and a new whole-grid null 0.257 appears. Delete the old NULL_MAX95 line 2110 and the R5_show blanking line 2111 (no bin-level heatmap survives). Runtime: 200 x 13 spearman_masked calls on (253,30)x(253,<=45) is ~10 s; keep it inline, no caching needed."
+  },
+  {
+   "step": "4. fig05 \u2014 build the single heatmap (replaces both panels)",
+   "detail": "Delete lines 2113-2190 entirely and replace with a single-axes figure.\nORDERING: columns sorted by peak importance descending, col_order = np.argsort(-IMPg.max(0)) \u2014 verified head: VariableWindVelFactor(0.706), IMFslope(0.608), WindEnergyIn1e51erg(0.541), BlackHoleRadiativeEfficiency(0.484), WindFreeTravelDensFac(0.446), RadioFeedbackReiorientationFactor(0.350), QuasarThreshold(0.317), VariableWindSpecMomentum(0.296), QuasarThresholdPower(0.252), BlackHoleAccretionFactor(0.229), WindEnergyReductionFactor(0.219), BlackHoleEddingtonFactor(0.194), SNII_MinMass_Msun(0.187), SeedBlackHoleMass(0.182) then 16 inert params <=0.166. Rows stay in the STATS order (WL block, then auto, then cross) \u2014 do NOT sort rows; the grouping is the message. Draw thin horizontal separators (axh.axhline(y=7.5 and 9.5, color='k', lw=0.6)) between the WL / auto / cross blocks and label them on the left with a bracketed group annotation.\nKEEP ALL 30 COLUMNS (the user asked for 30 parameter names on x). Do NOT reuse the old row-truncation (`show`/`rows_h`/`n_hid`, lines 2113-2117) \u2014 the whole point of the new layout is that the inert half is visibly inert. Instead mark it: draw a vertical divider after the last column whose peak clears NULL_COL=0.196 (that is 12 columns: index 0..11, since BlackHoleEddingtonFactor 0.194 < 0.196 \u2014 verify at build time rather than hardcoding) and annotate 'below the 13-row look-elsewhere null'.\nCOLORMAP/NORM: this is a MAGNITUDE, not a signed quantity \u2014 use a sequential map, cmap='magma_r' or 'cividis' (cividis matches the current panel-b colorbar so the paper stays internally consistent), norm=Normalize(0, 0.75) (grid max is 0.706). Do NOT use RdBu_r \u2014 there is no sign to show once you take |rho| max-over-bins.\nSIGNIFICANCE MARKING: (i) mask cells below their OWN row's NULL95 by drawing them in a light neutral (set a masked array: IMPshow = np.where(IMPg >= np.array([NULL95[s['k']] for s in STATS])[:, None], IMPg, np.nan) and cmap.set_bad('0.92')); (ii) overplot a small marker (e.g. a white dot, s=3) in cells that also exceed NULL_GRID=0.257, i.e. survive the whole-grid look-elsewhere; (iii) print the numeric value inside a cell only for cells >= 0.30 (fontsize 4.2, color chosen by luminance) \u2014 with 13x30=390 cells, annotating all of them is unreadable.\nTICKS: axh.set_xticks(range(30)); axh.set_xticklabels([short_label(pnames[i]) for i in col_order], rotation=90, fontsize=4.6) (longest abbreviation is 18 chars \u2014 'WindFreeTravelDens' / 'SofteningComType01' \u2014 rotation=90 is required, 40-degree rotation will overrun). axh.set_yticks(range(len(STATS))); axh.set_yticklabels([s['lab'] for s in STATS], fontsize=6.4).\nFIGSIZE: figsize=(TWO_COL[0], 3.4) for 12-13 rows x 30 cols with rotation=90 labels; use fig.subplots_adjust(bottom=0.34) so the rotated names fit. imshow(..., aspect='auto', interpolation='nearest', rasterized=True). Colorbar label r'peak $|\\rho|$ over bins'; add a highlight band on the colorbar spanning min(NULL95)=0.147 to max(NULL95)=0.177 with the existing idiom (cb.ax.axhspan(..., color=COLORS['highlight'], alpha=0.30, lw=0), lines 2185-2190) and a second thin line at NULL_GRID=0.257.\nsave(fig, 'figs_v2/fig05_param_response') \u2014 keep the stem UNCHANGED so main.tex \\includegraphics keeps resolving."
+  },
+  {
+   "step": "5. fig05 \u2014 rewrite the diagnostic prints (lines 2194-2205)",
+   "detail": "print RHO_2SIG (0.126), the per-row NULL95 dict, NULL_COL (0.196), NULL_GRID (0.257); the number of columns clearing NULL_COL (12/30 by peak; 14/30 clear at least one ROW-level null \u2014 report BOTH, they differ and the caption must use the right one); the top-3 parameters per statistic (values listed in step 2); and an explicit line stating that the Cl_kappa and S(l) rows agree to max 0.017 in peak |rho| (rank-corr 0.996) because S = Cl/Cl_DMO with a run-independent denominator. Also print the mean|rho| ordering as the robustness alternative and its rank agreement with the max|rho| ordering (0.904)."
+  },
+  {
+   "step": "6. Update the rebin-stability cell (2222-2247) to the new row table",
+   "detail": "Rewrite _ranking(scale) to iterate STATS instead of FAM_ALL: for each s, k = max(1, int(round(s['rb']*scale))); R = spearman_masked(X_unit, rebin_nan(np.asarray(s['A'], float), k)); out[s['k']] = tuple(np.argsort(-np.nanmax(np.abs(R), 1))[:3]). VERIFIED NEW VERDICTS (13-row table incl. cl_yt): rebin HALVED -> top-1 identical 12/13, top-2 set 12/13, top-3 set 10/13, with changes in N_pk (IMFslope<->BHRadEff rank-1/2 swap), N_min, V0, V1, V2; rebin DOUBLED -> top-1 12/13, top-2 set 12/13, top-3 set 8/13, with changes in PDF, N_min, V0, V2, Cl_yt. Every disagreement is confined to the near-tied IMFslope / BHRadiativeEfficiency / VariableWindVelFactor triple or to 3rd place; the 5 spectrum rows (Cl_kk, S, Cl_yy, Cl_tt, Cl_ky, Cl_ktau) are 100% stable in both directions. The markdown at 2208-2220 currently asserts '10/10 in both directions' for the top-2 pair and must be updated to 12/13 (halved) and 12/13 (doubled), and the '(N_pk halved, N_min doubled)' exception sentence must be rewritten to the list above."
+  },
+  {
+   "step": "7. fig07 \u2014 panel set, layout and the single colour parameter",
+   "detail": "Replace lines 2284-2354. Delete lines 2284-2285 (IMP[R(nu)] injection), 2286-2291 (p_S/p_yy/p_fg/p_tt/p_Y/p_R), 2324-2328 (f_gas panel d), 2330-2342 (Y(M) panel e + y_dex), 2343-2347 (R(nu) panel f), 2353-2354 (y_dex print).\nSet ONE colour parameter: PCOL = 2  # VariableWindVelFactor \u2014 VERIFIED param_names[2]=='VariableWindVelFactor', X_unit[:,2] in [0.0021, 0.9964], log10-mapped from native col 4, native range 3.711-14.727. Assert it in-cell: assert pnames[PCOL] == 'VariableWindVelFactor'. Pass X_unit[:, PCOL] to color_curves for EVERY panel.\nLayout: 12 panels -> fig, ax = plt.subplots(3, 4, figsize=(TWO_COL[0], 6.6)) (or 4x3 at (TWO_COL[0], 8.0)); iterate ax.ravel() over STATS so the panel order is byte-identical to the fig05 row order and to fig04's panel order. Panel letters via panel_label(a, '(a)') ... '(l)'.\nColorbar: DELETE the per-panel cbar() helper's per-panel call pattern; keep the function but call it ONCE \u2014 replace the 6 per-panel colorbars with a single figure-level colorbar, sm = ScalarMappable(cmap='coolwarm', norm=Normalize(0, 1)); cb = fig.colorbar(sm, ax=ax.ravel().tolist(), fraction=0.02, pad=0.015); cb.set_label(short_label(pnames[PCOL]) + ' (prior units, $\\\\log_{10}$-mapped; native 3.71-14.73)', fontsize=6). Keep color_curves (2271-2273) VERBATIM \u2014 the argsort(cvals) draw order is what makes the gradient read.\nPer-panel axes (verified safe):\n  Cl_kk:   x=ELL[mE], y=f_e*A[:, mE],  xscale log, yscale log, ylab r'$\\ell(\\ell{+}1)C_\\ell^{\\kappa\\kappa}/2\\pi$'\n  S(l):    x=ELL[mS], y=A[:, mS],      xscale log, yscale linear, axhline(1, COLORS['dmo'], ':')\n  PDF:     x=a__pdf__pdf_bins, yscale log (39% zeros -> mask with np.where(A>0, A, np.nan))\n  N_pk:    x=a__peak_counts__nu, xlim NU_LIM=(-3,4), yscale log, mask zeros (11/68 bins all-zero)\n  N_min:   x=a__minima_counts__nu, xlim (-3,4), yscale log, mask zeros (44/68 bins all-zero; nonzero only -2.625..3.625)\n  V0/V1:   x=a__mf_v*__mf_nu, xlim (-3,4), yscale LINEAR (V1 has 10.3% zeros)\n  V2:      x=a__mf_v2__mf_nu, xlim (-3,4), yscale LINEAR MANDATORY (27.6% negative values)\n  Cl_yy / Cl_tt / Cl_ky / Cl_ktau / (Cl_yt): x=ELL[mE], y=f_e*A[:, mE], log-log. VERIFIED no negatives for ell<=2e4 in cl_ky/cl_ktau (first negatives at ell>5.17e4), so log is safe under mE.\nKeep mS = ELL <= 2e4 and mE = ELL <= ELL_TRUST (1.5e4) and f_e = ELL[mE]*(ELL[mE]+1)/(2*np.pi) from lines 2293-2295 unchanged. Keep the LogLocator/LogFormatterSciNotation 2x/5x-minor idiom (lines 2318-2321) for Cl_tt AND apply it to Cl_ky and Cl_ktau (all three span <2 decades of l(l+1)Cl/2pi in the plotted window). Delete `mass = d['a__scaling_f_gas__log_mass_bins']` (2296) and `nuR = d['a__peak_R__nu']` (2297) \u2014 unused after the deletions."
+  },
+  {
+   "step": "8. fig07 \u2014 annotate the response strength per panel (needed because one colour parameter is not the top lever everywhere)",
+   "detail": "Stamp each panel with its own VariableWindVelFactor sensitivity, taken from the fig05 grid: rho_col = IMPg[r, PCOL]. VERIFIED VALUES: Cl_kk 0.576, S 0.576, PDF 0.586, N_pk 0.239, N_min 0.334, V0 0.427, V1 0.206, V2 0.236, Cl_yy 0.561, Cl_tt 0.706, Cl_ky 0.590, Cl_ktau 0.652, Cl_yt 0.543. Render as ax.text(0.04, 0.06, rf'peak $|\\rho|={rho_col:.2f}$', transform=ax.transAxes, fontsize=4.8, va='bottom'). This makes the deliberately-flat panels legible as physics rather than as a plotting failure: VariableWindVelFactor is the #1 lever for 8 of the 13 statistics but ranks below its own row null (0.147-0.177) nowhere, yet is visually weak for N_pk (0.239), V1 (0.206) and V2 (0.236) where IMFslope (0.439/0.533/0.608) dominates. Say so in one caption sentence and cross-reference the fig05 column. This also makes fig05 and fig07 explicitly the same measurement viewed two ways, which is what the CR asks for."
+  },
+  {
+   "step": "9. fig07 legibility guard for the two near-degenerate panels",
+   "detail": "VERIFIED: the run-to-run 16-84 spread of value/median maxes at 0.205 for Cl_kk and 0.023 for V0, against a bin-to-bin dynamic range of the median of 2.7e3 (Cl_kk, log-log) and 1.6e2 (V0). On an absolute axis the 253 coloured curves for those two panels will overlap into a single line and no colour gradient will be visible. Choose ONE of: (A) RECOMMENDED \u2014 drop the raw Cl_kk panel from fig07 (keep it in fig05) and note that S(l) is the same statistic with the cosmic-variance-dominated envelope divided out; fig07 then has 11 (or 12 with cl_yt) panels; (B) plot the Cl_kk and V0 panels as value / suite-median(value) per bin with a linear y-axis, matching the S(l) treatment, and label them r'$C_\\ell^{\\kappa\\kappa}/\\langle C_\\ell^{\\kappa\\kappa}\\rangle_{\\rm suite}$' and r'$V_0/\\langle V_0\\rangle_{\\rm suite}$'; (C) keep them absolute and accept two flat panels. Do NOT pick (C) silently. Note that under (B) the Cl_kk panel becomes visually near-identical to the S(l) panel (they differ only by the run-independent DMO normalization), which is an argument for (A)."
+  },
+  {
+   "step": "10. Rewrite both markdown cells",
+   "detail": "fig05 md (2003-2037): drop every reference to the two-panel design, the bin-level heatmap, the 7 concatenated families, the dot matrix, the 'roughly half the parameter rows never clear their family nulls' truncation claim, and the f_gas(M)/Y(M) families. New text: a 13-row (or 12-row) x 30-column importance map; importance = max over rebinned bins of |Spearman rho| between the unit-cube parameter and the statistic; the WL/auto/cross grouping mirrors fig 4's panels one-for-one; thresholds are the single-cell 2sigma null 0.126, the per-statistic permutation null 0.147-0.177 (200 seeded label shuffles, max over that statistic's bins), the 13-row per-parameter look-elsewhere null 0.196 and the whole-grid null 0.257; 12 of 30 parameters clear the per-parameter look-elsewhere null; the response is concentrated on VariableWindVelFactor, IMFslope, WindEnergyIn1e51erg, BlackHoleRadiativeEfficiency and WindFreeTravelDensFac; add the one-sentence note that the C_l^kk and S(l) rows are identical by construction. fig07 md (2250-2266): drop the six-observables sentence, the 'top-ranked for (a,b,f) / second-ranked for (c,d,e)' scheme, the Y(M)-rigidity paragraph and the peak-counts-omitted parenthetical (peaks are now IN the panel set); state that every panel is coloured by the SAME parameter, VariableWindVelFactor (the single strongest lever in fig 5, top-ranked for 8 of the 13 statistics), so the reader can compare response coherence across probes at fixed lever; note the 2 panels where it is not the leading lever (V1, V2 -> IMFslope) and point at the per-panel peak |rho| stamp."
+  },
+  {
+   "step": "11. Post-edit verification",
+   "detail": "Rebuild with /mnt/home/mlee1/venvs/BIND_env/bin/python /mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py (emits paper1_figures.ipynb), then execute via the existing runner _run_figures_nb.py. Check the printed diagnostics reproduce: RHO_2SIG 0.126; NULL95 span 0.147-0.177; NULL_COL 0.196; NULL_GRID 0.257; grid max 0.706 at (Cl_tt, VariableWindVelFactor); col_order[:5] = VariableWindVelFactor, IMFslope, WindEnergyIn1e51erg, BlackHoleRadiativeEfficiency, WindFreeTravelDensFac; rebin-stability 12/13 top-1 in both directions. Confirm figs_v2/fig05_param_response.pdf and figs_v2/fig07_covariation.pdf are regenerated and that no other figure's output changed (fig05/fig07 locals are not consumed anywhere after line 2355 \u2014 verified)."
+  }
+ ],
+ "risks": [
+  "Cl_kappa and S(ell) are the SAME measurement: verified max|rho_Cl_kk - rho_S| = 0.0 without rebinning (S = Cl/cl_dmo[ZI], and cl_dmo has no run axis). Shipping them as two adjacent heatmap rows will look like a duplicated-row rendering bug to a referee. Decide the merge-or-relabel question BEFORE implementing, not after."
+ ]
+}

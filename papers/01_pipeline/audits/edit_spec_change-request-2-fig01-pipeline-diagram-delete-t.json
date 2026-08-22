@@ -1,0 +1,216 @@
+{
+ "item": "CHANGE REQUEST 2 \u2014 fig01_pipeline_diagram: delete the right-edge stage annotation and expand the painted columns from {gas, y} to {DM, gas, stars, y} (5-column layout with the DMO condition)",
+ "figures": [
+  "fig01_pipeline_diagram"
+ ],
+ "code_locations": [
+  {
+   "what": "Fig-1 markdown cell (md(r'''...''')). Contains the two sentences that must be re-worded: L365-367 'The three theta rows share one fixed log stretch per column (the gas Sigma and Compton y norms are each computed over all three rows)' and L368-369 '... ray-traced in 1d (fig 2) \u2014 the stage annotated at the diagram's right edge.'",
+   "start_line": 333,
+   "end_line": 371
+  },
+  {
+   "what": "Fig-1 code cell, full extent: code(r''' at 373 ... ''') at 487",
+   "start_line": 373,
+   "end_line": 487
+  },
+  {
+   "what": "Data-provenance comment header naming generated_patches [DM,Gas,Stars] and thermo_patches [y,T,K,P_e] (already correct; keep)",
+   "start_line": 374,
+   "end_line": 379
+  },
+  {
+   "what": "stage1 load: dmo_box, centers, r200c, masses, BOX/PATCH constants",
+   "start_line": 380,
+   "end_line": 383
+  },
+  {
+   "what": "Three-Sobol-node selection (r_lo/r_mid/r_hi from native col 2 WindEnergyIn1e51erg); RUNS3, ROWLB",
+   "start_line": 385,
+   "end_line": 393
+  },
+  {
+   "what": "Showcase-halo selection: max |log10 gas-mass response| among the 10 most massive in 10^13.4-13.8; sets i_h and cond",
+   "start_line": 395,
+   "end_line": 404
+  },
+  {
+   "what": "Per-run patch load loop building gas3, y3 \u2014 MUST be extended to dm3, st3 (and made single-decompress)",
+   "start_line": 406,
+   "end_line": 413
+  },
+  {
+   "what": "figure + gridspec: figsize=(TWO_COL[0], 4.4), add_gridspec(3, 4, width_ratios=[2.6,1.15,1.0,1.0]) \u2014 becomes 3x6",
+   "start_line": 415,
+   "end_line": 417
+  },
+  {
+   "what": "Left full-box DMO panel axb (unchanged)",
+   "start_line": 419,
+   "end_line": 433
+  },
+  {
+   "what": "Middle DMO-condition panel axc at gs[1,1] (column index unchanged at 1)",
+   "start_line": 435,
+   "end_line": 446
+  },
+  {
+   "what": "Column norms: gnorm/ynorm LogNorms pooled over all three rows \u2014 add dnorm (DM) and snorm (stars)",
+   "start_line": 449,
+   "end_line": 450
+  },
+  {
+   "what": "Row render loop: creates axg=gs[k,2], axy=gs[k,3]; column headers at k==0; theta row label; ConnectionPatch from axc to axg",
+   "start_line": 451,
+   "end_line": 468
+  },
+  {
+   "what": "Highlighted-halo -> condition-patch arrow (unchanged)",
+   "start_line": 470,
+   "end_line": 473
+  },
+  {
+   "what": "DELETE THIS BLOCK \u2014 the 'text on the right of the plot': 2 comment lines + the rotated fig.text at x=1.015 ('assemble 20 painted snapshots -> lux multi-plane ray trace -> kappa/tau/y lightcone maps (figs 0, 2)')",
+   "start_line": 475,
+   "end_line": 480
+  },
+  {
+   "what": "save(fig, 'figs_v2/fig01_pipeline_diagram'); plt.show(); provenance print of halo mass/r200/run WindE values",
+   "start_line": 482,
+   "end_line": 486
+  }
+ ],
+ "data_verified": [
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/runs/run_0058/snap_096/composite_slab00.npz",
+   "keys": [
+    "generated_patches",
+    "thermo_patches",
+    "halo_centers",
+    "halo_masses",
+    "halo_r200",
+    "condition_sums",
+    "n_halos",
+    "slab_idx",
+    "n_slabs",
+    "box_size"
+   ],
+   "shape_note": "generated_patches (666,3,128,128) float32; thermo_patches (666,4,128,128) float32. DEFLATE-COMPRESSED (compress_type=8) => mmap_mode='r' is NOT usable; touching a key decompresses the whole array (131 MB for generated_patches, 175 MB for thermo_patches). Channel order CONFIRMED empirically: ch0=DM (sum 2.79e14 Msun/h, 0 zeros), ch1=Gas (0.157-0.187 x DM), ch2=Stars (63.7-81.6% zero pixels, total 7.56e12 -> 4.38e11 across the three rows). thermo ch0=compton_y (2e-11..1.2e-5), ch1=T (1.2e4..2.3e7 K), ch2=entropy K (6.8..3200), ch3=P_e (1.7e-19..3.5e-12) \u2014 matches bind.data.THERMO_KEYS = ('compton_y','temperature','entropy','pressure') and pipeline.py L970-972 species order (DM_hydro, Gas, Stars).",
+   "probe_command": "python scratchpad/probe_hdr.py .../run_0058/snap_096/composite_slab00.npz   (zipfile + np.lib.format.read_array_header)  AND  python scratchpad/probe_chan.py (loads generated_patches[25] and thermo_patches[25] for runs 58/145/56 and prints per-channel min/max/sum/zerofrac)"
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_lightcone_tng/snap_096/stage1/stage1_slab00.npz",
+   "keys": [
+    "dmo",
+    "condition",
+    "large_scale",
+    "halo_centers",
+    "halo_masses",
+    "halo_r200",
+    "n_halos",
+    "slab_idx",
+    "n_slabs",
+    "box_size",
+    "npix"
+   ],
+   "shape_note": "dmo (4198,4198) f32; condition (666,128,128) f32; UNCOMPRESSED (compress_type=0) so mmap_mode='r' works here. condition[25].sum()=3.3162e14 Msun/h == composite condition_sums[25] exactly.",
+   "probe_command": "python scratchpad/probe_hdr.py /mnt/home/mlee1/ceph/bind_lightcone_tng/snap_096/stage1/stage1_slab00.npz"
+  },
+  {
+   "path": "(selection reproduction) /mnt/home/mlee1/ceph/bind_sb35/design/astro_params_sobol.npy + emulator_dataset_xpkfix.npz run_ids",
+   "keys": [
+    "astro_params_sobol (256,35)",
+    "run_ids"
+   ],
+   "shape_note": "Reproduced the notebook's live selection EXACTLY: RUNS3 = [58, 145, 56] with WindEnergyIn1e51erg (native col 2) = 0.9069 / 3.5894 / 14.3654; showcase halo i_h = 25, log10 M200c = 13.794, r200c = 0.659 Mpc/h. Candidate band (10 most massive in 10^13.4-13.8) = [38,11,56,25,45,52,664,49,70,660], |dlog10 M_gas| response = [0.055,0.063,0.050,0.078,0.047,0.029,0.051,0.056,0.047,0.054] -> argmax = index 3 -> halo 25.",
+   "probe_command": "python scratchpad/probe_fig01.py (verbatim re-run of builder lines 386-403)"
+  },
+  {
+   "path": "(stretch calibration) pooled patches for halo 25, runs [58,145,56]",
+   "keys": [
+    "dm3",
+    "gas3",
+    "st3",
+    "y3"
+   ],
+   "shape_note": "Percentile table over the pooled 3-row stack. DM: p20(>0)=3.276e9, p99.9=6.069e11 -> 2.27 dec (p5 -> 2.43 dec, p55 -> 1.84 dec). GAS (current recipe p55(>0)): 1.925e9 -> 5.943e10 = 1.49 dec. STARS: p55(>0)=1.428e7 -> 3.39 dec but 88.6% of pixels below vmin; p70(>0)=4.068e7 -> 2.93 dec, 92.4% below vmin; p80 -> 2.50 dec. Y (current p55(>0)): 4.774e-9 -> 3.014e-6 = 2.80 dec. Stars nonzero pixels per row = 5954 / 3509 / 3016; stars zero fraction per row = 0.6366 / 0.7858 / 0.8159; stars log10 nonzero percentiles (1/10/50/90/99) = 4.54/5.86/7.03/8.74/10.2.",
+   "probe_command": "python scratchpad/probe_stretch.py"
+  },
+  {
+   "path": "(units / mass closure) condition vs generated_patches",
+   "keys": [
+    "condition[25]",
+    "generated_patches[25,0:3]"
+   ],
+   "shape_note": "Values are MASS PER PIXEL in Msun/h (not per-area surface density): (DM+gas+stars)/condition = 0.9966 / 1.0032 / 1.0016 for the three rows, i.e. the painted channels close the DMO condition mass to 0.3%. pipeline.py L978 confirms masses_msunh = mass_1e10*1e10. Column label 'Sigma' with no explicit units (the current convention) therefore remains valid for DM and stars.",
+   "probe_command": "python -c \"...\" comparing patches.npz sums to stage1 condition[25].sum() and composite condition_sums[25]"
+  },
+  {
+   "path": "(layout validation) rendered mock of the proposed 5-column figure",
+   "keys": [
+    "mock01.png"
+   ],
+   "shape_note": "Rendered the exact proposed layout (3x6 gridspec, width_ratios [2.05,0.95,1,1,1,1], figsize (7.2,4.4)) with the proposed norms and inspected it. Stars column reads correctly: visibly dense in the low-wind row and sparse in the high-wind row; zero pixels render as the darkest cividis (via cmap.set_bad) rather than white; DM column reads as expected but is near-identical across rows.",
+   "probe_command": "python /tmp/claude-2107/-mnt-home-mlee1-BIND/cd141c7e-20d2-47a8-b36e-6fe94e24b33b/scratchpad/mock01.py  (output mock01.png, visually inspected)"
+  }
+ ],
+ "data_gaps": [
+  {
+   "requested": "A dark-matter column that visibly responds to the feedback parameters",
+   "why_blocked": "Not a cache gap \u2014 a physics/rendering fact. The DM channel is essentially feedback-invariant on this patch: total DM mass per row = 2.792e14 / 2.807e14 / 2.794e14 Msun/h (0.5% spread) across WindE = 0.91 -> 14.37. The visible per-pixel scatter (mean |ratio-1| = 0.23 between the low and high rows) is generative stochasticity, not response. The DM column will therefore look like three near-identical images, and also closely resembles the DMO condition panel (log-log Pearson r = 0.966; the condition is the TOTAL matter column, 1.188x the DM-only mass = 1/(1-f_b)).",
+   "closest_alternative": "Keep the DM column (the user asked for it) but make its near-invariance the POINT rather than an accident: annotate the DM header as e.g. 'DM Sigma (0.5%)' or add a one-line footer 'DM total is feedback-invariant to 0.5%; gas +20%, stars -17x across the three rows', and print the three totals in the cell's provenance print(). If a responsive matter column is wanted instead, the honest substitute is a DM/DMO-condition ratio panel or the total-matter Sigma, both computable from the same arrays."
+  },
+  {
+   "requested": "Per-column colorbars for the four new painted columns",
+   "why_blocked": "Not blocked, but at 4 columns x ~0.85 in width inside a 7.2 in figure there is no room for four vertical bars without shrinking the panels below legibility; the current figure deliberately has none.",
+   "closest_alternative": "State the shared-per-column log stretch in the markdown (it is already stated for gas/y at L365-367) and print the four (vmin, vmax) pairs in the cell's provenance print() so every number in the caption is traceable, matching the notebook's provenance discipline."
+  }
+ ],
+ "change_spec": [
+  {
+   "step": "1. Delete the right-edge stage annotation (the literal ask)",
+   "detail": "Remove builder lines 475-480 in their entirety \u2014 the two comment lines '# ray-trace/lightcone stage (the schematic's last step, previously missing):' / '# annotated at the right edge so the diagram ends where figs 0 and 2 begin' and the four-line fig.text(1.015, 0.5, 'assemble 20 painted snapshots\\n' r'$\\to$ lux multi-plane ray trace' '\\n' r'$\\to$ $\\kappa/\\tau/y$ lightcone maps (figs 0, 2)', rotation=90, ha='left', va='center', fontsize=6, color='0.25'). This is the ONLY artist outside the axes on the right; because its x=1.015 lies outside the figure, save() with bbox_inches='tight' currently pads the PDF to include it, so removing it also tightens the saved bbox. Do NOT remove the in-panel white text at L431-432 ('TNG300-Dark, 51 Mpc/$h$ slab') or the axc labels at L441-446 \u2014 those are inside the diagram."
+  },
+  {
+   "step": "2. Reword the two markdown sentences that reference the deleted text and the 2-column layout",
+   "detail": "In the md cell (L333-371): (a) at L368-369 delete the trailing clause ' \u2014 the stage annotated at the diagram's right edge' from 'The painted snapshots are assembled into the 20-shell lightcone and ray-traced in \u00a71d (fig 2)'; (b) at L365-367 replace '(the gas $\\Sigma$ and Compton $y$ norms are each computed over all three rows)' with '(the DM, gas, stellar $\\Sigma$ and Compton $y$ norms are each computed over all three rows)'; (c) extend the 'This figure' paragraph to name the four painted channels, e.g. 'the same halo ... painted under three Sobol nodes bracketing the SN-wind energy, shown as the four output channels dark matter, gas, stars, and Compton $y$ (the model also emits $T$, $K$, $P_e$).' Optionally add the verified closure sentence: 'The three mass channels close the DMO condition's total mass to 0.3%.'"
+  },
+  {
+   "step": "3. Load the two extra channels in the per-run loop (L406-413), single-decompress",
+   "detail": "Replace the loop body with: dm3, gas3, st3, y3 = [], [], [], [] ; for r in RUNS3: g = np.load(SB35/f\"runs/run_{r:04d}/snap_096/composite_slab00.npz\") ; gp = g[\"generated_patches\"][i_h] ; dm3.append(gp[0].copy()) ; gas3.append(gp[1].copy()) ; st3.append(gp[2].copy()) ; y3.append(g[\"thermo_patches\"][i_h, 0].copy()) ; del g, gp ; then gc.collect() and dm3, gas3, st3, y3 = map(np.array, (dm3, gas3, st3, y3)). IMPORTANT: bind the key ONCE into gp \u2014 the npz is DEFLATE-compressed, so g['generated_patches'] decompresses the full 131 MB array on every key access; the current code at L409 already pays that once per run, and naively adding two more g[...] accesses would triple it. Each resulting array is (3,128,128) f32 = 196 kB, negligible. Channel indices are confirmed: 0=DM, 1=Gas, 2=Stars; thermo 0=compton_y."
+  },
+  {
+   "step": "4. Widen the gridspec from 4 to 6 columns (L415-417)",
+   "detail": "fig = plt.figure(figsize=(TWO_COL[0], 4.4))  # TWO_COL[0]=7.2 in, unchanged ; gs = fig.add_gridspec(3, 6, width_ratios=[2.05, 0.95, 1.0, 1.0, 1.0, 1.0], wspace=0.06, hspace=0.10). Column 0 = full DMO box (axb, gs[:,0], unchanged code at L419-433); column 1 = DMO condition patch (axc, gs[1,1], unchanged code at L435-446); columns 2..5 = DM | gas | stars | Compton y. The left panel shrinks from 2.6 to 2.05 and the condition column from 1.15 to 0.95 to buy room for the two new square panels; wspace tightens 0.08 -> 0.06. This exact configuration was rendered and inspected (scratchpad/mock01.png) and reads correctly at 7.2 in."
+  },
+  {
+   "step": "5. Replace the two per-column norms at L449-450 with four",
+   "detail": "cmv = plt.get_cmap(\"cividis\").copy(); cmv.set_bad(cmv(0.0))   # zero-star pixels render as the log floor, not white\\ndnorm = LogNorm(vmin=np.percentile(dm3[dm3 > 0], 20), vmax=np.percentile(dm3, 99.9))\\ngnorm = LogNorm(vmin=np.percentile(gas3[gas3 > 0], 55), vmax=np.percentile(gas3, 99.9))   # UNCHANGED\\nsnorm = LogNorm(vmin=np.percentile(st3[st3 > 0], 70), vmax=np.percentile(st3, 99.9))\\nynorm = LogNorm(vmin=np.percentile(y3[y3 > 0], 55), vmax=np.percentile(y3, 99.9))         # UNCHANGED\\nMeasured limits with these recipes: DM 3.276e9 -> 6.069e11 (2.27 dec), gas 1.925e9 -> 5.943e10 (1.49 dec), stars 4.068e7 -> 3.49e10 (2.93 dec), y 4.774e-9 -> 3.014e-6 (2.80 dec). RATIONALE for the two new choices: DM has ZERO empty pixels and a much larger dynamic range than gas, so the gas p55 floor would clip 55% of a perfectly well-sampled field \u2014 p20 keeps 2.27 decades with only 20% clipped. STARS are 74.6% exactly-zero (per row 0.637/0.786/0.816) and their nonzero pixels span 5.7 decades (log10 p1..p99 = 4.54..10.2), so a low floor turns the panel into uniform noise; p70 of the POOLED nonzero pixels gives 2.93 decades and leaves the surviving stellar clumps crisp. Do NOT use symlog (there are no negatives; zeros are physically 'no stars' and belong at the colormap floor), and do NOT compute the stars percentile per row \u2014 the row-to-row zero fraction IS the signal, so pooling across all three rows is mandatory (this is already the convention for gas and y)."
+  },
+  {
+   "step": "6. Rewrite the row render loop (L451-468) for four painted columns",
+   "detail": "COLS = [(dm3, cmv, dnorm, r\"DM $\\Sigma$\"), (gas3, cmv, gnorm, r\"gas $\\Sigma$\"), (st3, cmv, snorm, r\"stars $\\Sigma$\"), (y3, plt.get_cmap(\"inferno\"), ynorm, r\"Compton $y$\")]\\nfor k, r in enumerate(RUNS3):\\n    axfirst = None\\n    for c, (arr, cm, nrm, lab) in enumerate(COLS):\\n        a = fig.add_subplot(gs[k, 2 + c])\\n        a.imshow(np.ma.masked_less_equal(arr[k], 0), origin=\"lower\", cmap=cm, norm=nrm, rasterized=True)\\n        a.set_xticks([]); a.set_yticks([])\\n        if k == 0:\\n            a.text(0.5, 1.06, lab, transform=a.transAxes, ha=\"center\", fontsize=7)\\n        if c == 0:\\n            axfirst = a\\n            a.text(0.04, 0.05, f\"$\\\\theta$ {ROWLB[k].replace('-', ' ')}: WindE={WE[r]:.1f}\", transform=a.transAxes, fontsize=5.0, color=\"w\", va=\"bottom\", path_effects=[pe.withStroke(linewidth=1.2, foreground=\"black\")])\\n    fig.add_artist(ConnectionPatch(xyA=(1.0, 0.5), coordsA=axc.transAxes, xyB=(0.0, 0.5), coordsB=axfirst.transAxes, arrowstyle=\"-|>\", color=\"0.35\", lw=0.8, shrinkA=2, shrinkB=2))\\nNotes: the paint arrow now terminates on the DM panel (leftmost painted column) instead of the old axg \u2014 keep one arrow per row, as now. The masked_less_equal wrapper is a no-op for DM/gas/y (no zeros) and is what makes the stars panel legal under LogNorm; it MUST be paired with cmv.set_bad or the 63-82% zero pixels render transparent (= white in the PDF). All three mass channels keep cividis (same physical quantity, M_sun/h per pixel) and y keeps inferno, matching figs 0 and 2; pe is already imported at L121."
+  },
+  {
+   "step": "7. Extend the provenance print (L484-486)",
+   "detail": "Append the numbers that the new columns' caption depends on: print(f\"halo: log10 M = {np.log10(masses[i_h]):.2f}, r200c = {r200c[i_h]:.2f} Mpc/h; runs {RUNS3} with WindEnergyIn1e51erg = \" + \", \".join(f\"{WE[r]:.2f}\" for r in RUNS3)) ; print(\"patch totals [Msun/h] DM / gas / stars per row: \" + \" | \".join(f\"{dm3[k].sum():.3e} {gas3[k].sum():.3e} {st3[k].sum():.3e}\" for k in range(3))) ; print(f\"mass closure (DM+gas+stars)/DMO condition = \" + \", \".join(f\"{(dm3[k]+gas3[k]+st3[k]).sum()/cond.sum():.4f}\" for k in range(3))) ; print(f\"star-occupied pixel fraction per row = \" + \", \".join(f\"{(st3[k]>0).mean():.3f}\" for k in range(3))) ; print(f\"log stretches: DM {dnorm.vmin:.3e}-{dnorm.vmax:.3e}, gas {gnorm.vmin:.3e}-{gnorm.vmax:.3e}, stars {snorm.vmin:.3e}-{snorm.vmax:.3e}, y {ynorm.vmin:.3e}-{ynorm.vmax:.3e}\"). Expected output (verified): totals DM 2.792e14/2.807e14/2.794e14, gas 4.373e13/4.980e13/5.233e13, stars 7.559e12/2.215e12/4.380e11; closure 0.9966/1.0032/1.0016; star pixel fraction 0.363/0.214/0.184. Add del dm3, gas3, st3, y3, dmo_box, cond; gc.collect() at the end if not already present."
+  },
+  {
+   "step": "8. Keep the run and halo selection as-is",
+   "detail": "Do NOT hard-code or change RUNS3 or i_h. The live selection at L385-403 is deterministic and was re-run to confirm it yields RUNS3 = [58, 145, 56] (WindEnergyIn1e51erg = 0.91 / 3.59 / 14.37, TNG fiducial 3.6) and i_h = 25 (log10 M200c = 13.794, r200c = 0.659 Mpc/h). The halo criterion optimizes gas response only, but halo 25 happens also to be an excellent stars showcase (stellar mass falls 7.56e12 -> 4.38e11, a factor 17, and the occupied-pixel fraction falls 0.363 -> 0.184 across the same three rows), so no re-selection is needed. Leave the two-array probe at L397-401 (glo/ghi) untouched \u2014 it already loads only channel 1 of two runs and dels them."
+  },
+  {
+   "step": "9. Rebuild and re-execute",
+   "detail": "cd /mnt/home/mlee1/BIND/papers/01_pipeline && /mnt/home/mlee1/venvs/BIND_env/bin/python _build_figures_nb.py   (regenerates paper1_figures.ipynb), then execute via _run_figures_nb.py (nbclient, kernel pinned to the BIND venv). save() writes figs_v2/fig01_pipeline_diagram.pdf plus a PNG into ../figs_preview/. Only this one figure changes; no other cell reads dm3/st3/snorm/dnorm/cmv (verified: those names appear nowhere else in the 4654-line builder)."
+  }
+ ],
+ "risks": [
+  "The DM column carries almost no row-to-row signal \u2014 total DM mass varies only 0.5% (2.792e14 / 2.807e14 / 2.794e14 Msun/h) across WindE 0.91 -> 14.37, and it is 96.6%-log-correlated with the DMO condition panel right next to it. A referee may read it as three redundant panels. Mitigate by stating in the caption that DM invariance is the control (gas +20%, stars -17x, DM 0.5%) rather than leaving it implicit.",
+  "LogNorm + zeros: 63.7-81.6% of the stars panel pixels are exactly 0. Without np.ma.masked_less_equal AND cmv.set_bad(cmv(0.0)), matplotlib maps them to the transparent 'bad' color, which prints as WHITE in the PDF \u2014 the high-wind row would look like a blank panel. This pairing is mandatory, not cosmetic.",
+  "The stars vmin percentile must be taken over the POOLED three-row nonzero pixels (as gas and y already are). A per-row percentile would renormalize away the very feedback signal the new column exists to show.",
+  "Panel shrinkage: adding two columns inside the fixed TWO_COL[0]=7.2 in width drops the left TNG300-Dark box from width_ratio 2.6 to 2.05 (~21% smaller). The mock render is still legible, but if the box panel is judged too small the fallback is figsize=(TWO_COL[0], 4.8) with the box spanning gs[:,0] over a taller figure, not a wider one (7.2 in is the journal column limit).",
+  "Memory: the composite npz is DEFLATE-compressed so mmap_mode='r' silently fails/raises; every key access decompresses the full 131 MB (generated_patches) or 175 MB (thermo_patches) array. Bind generated_patches[i_h] to a local ONCE per run (step 3) \u2014 repeating g['generated_patches'] three times per run would decompress ~400 MB per iteration inside a ~10 GB cgroup that also holds the 70 MB dmo_box.",
+  "Deleting the fig.text at x=1.015 changes the bbox_inches='tight' crop, so the saved PDF's aspect ratio and physical width will shift slightly. Any \\includegraphics[width=...] in the LaTeX source that was tuned against the old crop should be re-checked.",
+  "The deleted right-edge text was the only in-figure pointer from fig 1 to figs 0/2. The markdown edit in step 2 keeps the '\u00a71d (fig 2)' cross-reference in prose; make sure the paper's caption for fig 1 also still names the downstream figure, or the schematic reads as ending abruptly at the painted patches."
+ ]
+}

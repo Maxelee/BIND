@@ -1,0 +1,98 @@
+{
+ "item": "item2-pipeline-diagram \u2014 adversarial verification of the fig01_pipeline_diagram change spec",
+ "confirmed": [
+  "CACHE KEYS/SHAPES/COMPRESSION \u2014 CONFIRMED exactly. zipfile+np.lib.format header probe of /mnt/home/mlee1/ceph/bind_sb35/runs/run_0058/snap_096/composite_slab00.npz: generated_patches (666,3,128,128) f32 compress_type=8 (DEFLATE) 92.4MB->130.9MB; thermo_patches (666,4,128,128) f32 compress_type=8 157.8MB->174.6MB; plus halo_centers (666,2), halo_masses (666,), halo_r200 (666,), condition_sums (666,), n_halos, slab_idx, n_slabs, box_size. /mnt/home/mlee1/ceph/bind_lightcone_tng/snap_096/stage1/stage1_slab00.npz: dmo (4198,4198) f32, condition (666,128,128) f32, large_scale (666,3,128,128), + metadata, all compress_type=0.",
+  "CHANNEL SEMANTICS \u2014 CONFIRMED both empirically and in source. Empirically for halo 25, runs 58/145/56: gen ch0 zerofrac 0.0000 sum 2.79e14 (DM); ch1 = 0.1566/0.1774/0.1873 x ch0 (Gas); ch2 zerofrac 0.6366/0.7858/0.8159 (Stars); thermo ch0 in [2.0e-11, 1.2e-5] (compton_y), ch1 [1.16e4, 2.26e7] (T), ch2 [6.75, 3200] (entropy), ch3 [1.74e-19, 3.46e-12] (P_e). Source: /mnt/home/mlee1/BIND/src/bind/data.py:53 THERMO_KEYS = ('compton_y','temperature','entropy','pressure'); /mnt/home/mlee1/BIND/src/bind/inference/pipeline.py:969-973 species = [DM_hydro, Gas, Stars] and :978 masses_msunh = mass_1e10*1e10; /mnt/home/mlee1/BIND/src/bind/inference/paint_stages.py:522 and :623 write generated_patches = gen[:, :3].",
+  "SELECTION REPRODUCTION \u2014 CONFIRMED digit-for-digit by re-running builder lines 386-405 verbatim: RUNS3 = [58,145,56], WindEnergyIn1e51erg (astro_params_sobol.npy col 2) = 0.9069387847 / 3.5894462921 / 14.3653686805; band = [38,11,56,25,45,52,664,49,70,660]; resp = [0.0551,0.0633,0.0504,0.0780,0.0470,0.0294,0.0513,0.0560,0.0467,0.0540]; argmax -> i_h = 25; log10 M = 13.7940; r200c = 0.6592 Mpc/h.",
+  "MASS CLOSURE / UNITS \u2014 CONFIRMED. condition[25].sum() = 3.31619e14 and composite condition_sums[25] = 3.31619e14 compare EXACTLY equal (float32 ==). (DM+gas+stars)/cond = 0.9966 / 1.0032 / 1.0016; cond/DM = 1.1877 / 1.1816 / 1.1870, matching 1/(1-f_b) = 1.1867 for f_b = 0.0486/0.3089. Values are mass-per-pixel in Msun/h.",
+  "STRETCH CALIBRATION NUMBERS \u2014 CONFIRMED to 4 sig figs on the pooled 3-row stack: DM p20(>0)=3.2755e9, p99.9=6.0687e11 (2.27 dec, 20.0% clipped); DM p5=2.2507e9 (2.43 dec); DM p55=8.6725e9 (1.84 dec); GAS p55(>0)=1.9252e9 -> 5.9430e10 (1.49 dec); STARS p55(>0)=1.4276e7 (3.39 dec, 88.6% below vmin), p70(>0)=4.0685e7 -> 3.4905e10 (2.93 dec, 92.4% below), p80=1.1004e8 (2.50 dec); Y p55(>0)=4.7737e-9 -> 3.0137e-6 (2.80 dec). Stars log10 nonzero pct 1/10/50/90/99 = 4.54/5.86/7.03/8.74/10.2. Stars nonzero per row = 5954/3509/3016; pooled star zerofrac 0.7461.",
+  "PROVENANCE-PRINT NUMBERS IN STEP 7 \u2014 CONFIRMED: DM totals 2.7922e14/2.8066e14/2.7939e14 (0.518% spread), gas 4.3731e13/4.9798e13/5.2334e13 (+19.7%), stars 7.5589e12/2.2146e12/4.3804e11 (17.3x drop), star-occupied pixel fraction 0.363/0.214/0.184, closure 0.9966/1.0032/1.0016.",
+  "ZERO-PIXEL / set_bad REQUIREMENT \u2014 CONFIRMED. dm3, gas3, y3 each have exactly 0 pixels <= 0 (so np.ma.masked_less_equal is a genuine no-op there); st3 is 74.6% zero pooled. Default 'bad' color is transparent (renders white on paper); with cmv=plt.get_cmap('cividis').copy(); cmv.set_bad(cmv(0.0)) -> bad = [0., 0.135112, 0.304751, 1.] and the rendered stars panels are dark, not blank. Verified live on matplotlib 3.10.1 (plt.get_cmap().copy() is not deprecated there).",
+  "ENVIRONMENT/HELPER FACTS \u2014 CONFIRMED: /mnt/home/mlee1/BIND/papers/_tools/paper_style.py defines TWO_COL = (7.2, 3.1) so TWO_COL[0] = 7.2; save() does fig.savefig(f'{stem}.pdf', bbox_inches='tight', pad_inches=0.02); 'import matplotlib.patheffects as pe' is at builder line 121; _run_figures_nb.py drives nbclient with km.kernel_cmd pinned to sys.executable.",
+  "BBOX EFFECT OF DELETING THE RIGHT-EDGE TEXT \u2014 CONFIRMED, and my reproduction is exact. I rebuilt the current cell verbatim from cached arrays: saved PDF = 7.113 x 3.409 in, identical to the committed /mnt/home/mlee1/BIND/papers/01_pipeline/figs_v2/fig01_pipeline_diagram.pdf MediaBox (512.146625 x 245.4573 pt). Removing the fig.text gives 5.988 x 3.409 in. So the out-of-canvas text does inflate the tight crop (see correction on 'slightly').",
+  "NO NAME COLLISIONS \u2014 CONFIRMED: grep over the current builder for \\bdm3\\b|\\bst3\\b|\\bsnorm\\b|\\bdnorm\\b|\\bcmv\\b|COLS|axfirst returns nothing; gas3/y3 appear only inside the fig-1 cell (lines 407-456).",
+  "PROPOSED LAYOUT RENDERS AND READS \u2014 CONFIRMED by building the spec's exact 3x6 layout with the real arrays (render at /tmp/claude-2107/-mnt-home-mlee1-BIND/cd141c7e-20d2-47a8-b36e-6fe94e24b33b/scratchpad/r_new_notxt.png): stars column is visibly dense in the low-wind row and sparse in the high-wind row; no white/blank panel; column headers and row labels fit."
+ ],
+ "corrections": [
+  {
+   "claim": "The builder is 4654 lines and the fig-1 cells live at md 333-371 / code 373-487 (all code_locations line numbers).",
+   "verdict": "WRONG",
+   "correct_fact": "The file was modified DURING this audit and every fig-1 line number is now +1. /mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py was 279413 bytes / 4654 lines (mtime 2026-07-29 12:18) at the start of my session and is now 263254 bytes / 4393 lines (mtime 2026-07-30 06:23:33, md5 c7a0d638c812b592365149c3eefcab41). Current authoritative ranges: md cell 333-372; code cell 374-488; provenance header 375-380; stage1 load 381-384; Sobol selection 386-394; halo selection 396-405; per-run loop 407-414; figure+gridspec 416-418; axb 420-434; axc 436-447; norms 450-451; row loop 452-469; halo arrow 471-474; right-edge block 476-481; save/print 483-487."
+  },
+  {
+   "claim": "DELETE THIS BLOCK \u2014 start_line 475, end_line 480 (2 comment lines + the four-line fig.text).",
+   "verdict": "WRONG",
+   "correct_fact": "As of now the block is 476-481 (line 475 is blank; comments 476-477; fig.text 478-481). Applying the spec's 475-480 literally deletes the blank line, both comments, and only the first three fig.text lines, leaving line 481 ('         rotation=90, ha=\"left\", va=\"center\", fontsize=6, color=\"0.25\")') orphaned -> SyntaxError in the emitted cell. The edit must be anchored on the literal string 'fig.text(1.015, 0.5,' rather than on line numbers."
+  },
+  {
+   "claim": "The markdown at L368-369 reads '... ray-traced in \u00a71d (fig 2) \u2014 the stage annotated at the diagram's right edge', and step 2 should keep the '\u00a71d (fig 2)' cross-reference.",
+   "verdict": "WRONG",
+   "correct_fact": "That sentence no longer exists. Current lines 367-370 read: 'The painted / snapshots are then composited into full-box planes, assembled into the 20-shell lightcone and / ray-traced by `lux` into the released $\\kappa/\\tau/y$ maps (fig 0) \u2014 the / stage annotated at the diagram's right edge.' The clause to delete now straddles the end of line 369 ('\u2014 the') and the start of line 370 ('stage annotated at the diagram's right edge.')."
+  },
+  {
+   "claim": "The fig.text string ends '-> kappa/tau/y lightcone maps (figs 0, 2)' and the comment says 'so the diagram ends where figs 0 and 2 begin'.",
+   "verdict": "WRONG",
+   "correct_fact": "Current line 480 is r\"$\\to$ $\\kappa/\\tau/y$ lightcone maps (fig 0)\" and line 477 is '# annotated at the right edge so the diagram ends where fig 0 begins'. Both spec quotes are stale."
+  },
+  {
+   "claim": "Risk: 'The deleted right-edge text was the only in-figure pointer from fig 1 to figs 0/2 ... make sure the paper's caption still names the downstream figure.'",
+   "verdict": "WRONG",
+   "correct_fact": "fig 2 does not exist any more. FIGURE_EDIT_PLAN.md item 3 (delete fig02_map_suite and fig17_feedback_sky) has already been applied to the builder: grep for 'fig02_map_suite' / 'fig17_feedback_sky' / 'fig 2)' returns nothing, and only 18 save() calls remain (fig00, fig01, fig03, fig04, fig18, fig11, fig05, fig07, fig20, fig12, fig13, fig08, fig09, fig15, fig10, fig16, fig14, fig19). The only surviving downstream pointer is to fig 0."
+  },
+  {
+   "claim": "save() writes figs_v2/fig01_pipeline_diagram.pdf plus a PNG into ../figs_preview/.",
+   "verdict": "WRONG",
+   "correct_fact": "paper_style.save() computes prev = p.parent.parent/'figs_preview' with p = Path('figs_v2/fig01_pipeline_diagram'), i.e. Path('.')/'figs_preview' -> /mnt/home/mlee1/BIND/papers/01_pipeline/figs_preview/fig01_pipeline_diagram.png (that directory exists and holds the 726448-byte PNG). '../figs_preview' (= /mnt/home/mlee1/BIND/papers/figs_preview) does not exist."
+  },
+  {
+   "claim": "stage1_slab00.npz is UNCOMPRESSED (compress_type=0) 'so mmap_mode=\"r\" works here'; the composite npz is DEFLATE-compressed so 'mmap_mode=\"r\" is NOT usable' / 'silently fails/raises'.",
+   "verdict": "WRONG",
+   "correct_fact": "mmap_mode is irrelevant for ANY .npz. Probed on numpy 2.1.3: np.load(stage1_slab00.npz, mmap_mode='r') returns an NpzFile and z['condition'] is a plain numpy.ndarray (isinstance(np.memmap) == False), fully read into RAM; the same call on the compressed composite npz neither raises nor warns \u2014 mmap_mode is silently ignored in both cases. Compression changes only the CPU cost, not the mmap-ability. (The practical advice \u2014 bind the key once per run \u2014 is still correct, for a different reason.)"
+  },
+  {
+   "claim": "'The left panel shrinks from 2.6 to 2.05 (~21% smaller)' and 'four columns x ~0.85 in width'.",
+   "verdict": "WRONG",
+   "correct_fact": "width_ratios are normalized by their SUM, which changes from 5.75 to 7.0, so the shrink is far larger than the 2.05/2.6 ratio suggests. Measured with fig.canvas.draw() at figsize (7.2,4.4): axb 2.380 x 2.380 in -> 1.556 x 1.556 in = -34.6% linear / -57% area; axc (DMO condition) 1.053 -> 0.721 in (-31.5%); painted panels 0.916 -> 0.759 in (-17%). The painted panels are 0.759 in, not ~0.85 in."
+  },
+  {
+   "claim": "The proposed gridspec is 3x6 with width_ratios [2.05, 0.95, 1.0, 1.0, 1.0, 1.0], wspace 0.06 ('this exact configuration was rendered and inspected').",
+   "verdict": "IMPRECISE",
+   "correct_fact": "This silently deviates from the change request. /mnt/home/mlee1/BIND/papers/01_pipeline/FIGURE_EDIT_PLAN.md:92-93 specifies 'Gridspec 3 x 6, width_ratios [2.6, 1.15, 1.0, 1.0, 1.0, 1.0]'. Measured under the REQUESTED ratios (wspace 0.08): box 1.755 in, condition 0.776 in, painted 0.675 in \u2014 i.e. the request favours the left box, the spec favours the painted columns. The substitution may be the better design but must be declared, not slipped in."
+  },
+  {
+   "claim": "'The DM column will therefore look like three near-identical images.'",
+   "verdict": "WRONG",
+   "correct_fact": "Only the TOTAL is invariant (0.518% spread). Per pixel the rows differ by rms 0.133-0.137 dex, mean|ratio-1| = 0.229-0.236, log-space pairwise r = 0.952/0.955/0.955 \u2014 MORE decorrelated from each other than each is from the DMO condition (r = 0.966-0.972), and comparable to the gas column's own row-to-row scatter (0.155 dex). In the rendered mock the three DM panels are visibly different. The actual risk is the inverse of the one stated: a referee will see structure changing row to row and read pure sampling noise as feedback response."
+  },
+  {
+   "claim": "'the condition ... log-log Pearson r = 0.966'.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "r(log10 DM, log10 cond) = 0.9664 / 0.9699 / 0.9719 for rows 0/1/2 (the quoted 0.966 is only row 0)."
+  },
+  {
+   "claim": "Risk: 'Deleting the fig.text ... the saved PDF's aspect ratio and physical width will shift slightly.'",
+   "verdict": "IMPRECISE",
+   "correct_fact": "Not slight: measured 7.113 x 3.409 in -> 5.988 x 3.409 in, a 15.8% width reduction. Under \\includegraphics[width=\\textwidth] the same content is then scaled up by 7.113/5.988 = 1.188, so every in-figure font/line renders 18.8% larger \u2014 a visible restyle, and generally the desired one."
+  },
+  {
+   "claim": "Risk: 'Any \\includegraphics[width=...] in the LaTeX source that was tuned against the old crop should be re-checked.'",
+   "verdict": "UNVERIFIABLE",
+   "correct_fact": "No such include exists. /mnt/home/mlee1/BIND/papers/01_pipeline/main.tex never references fig01_pipeline_diagram or figs_v2 at all \u2014 it still points at the previous figure set (figs/fig01_map_gallery.pdf, figs/fig02_validation_field.pdf, ...). All 13 includes use width=\\textwidth except line 818 (figs/fig11_fgas_saturation.pdf at 3.5in). The figs_v2 suite is not yet wired into the draft."
+  },
+  {
+   "claim": "The shared-stretch sentence is at 'L365-367'.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "The sentence begins with 'The' at the end of line 364 and runs to line 367; the parenthetical the spec wants to edit is on lines 365-366. Line numbers here happen to be unchanged by the concurrent edit, but the quoted anchor is one line short at the start."
+  }
+ ],
+ "additional_findings": [
+  "CONCURRENCY HAZARD (most important): /mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py is being edited by another agent right now (item 3 of FIGURE_EDIT_PLAN.md landed between my first and last probe). Any change spec keyed to absolute line numbers will rot within minutes. The executing agent must anchor every edit on unique literal strings ('fig.text(1.015, 0.5,', 'gas3, y3 = [], []', 'gs  = fig.add_gridspec(3, 4', 'gnorm = LogNorm(') and re-grep immediately before editing.",
+  "STARS FLOOR IS DEFENSIBLE BUT UNDER-DOCUMENTED: at the proposed p70 pooled-nonzero floor only 13.9% / 5.7% / 3.2% of pixels per row are at or above vmin \u2014 but those pixels carry 99.5% / 99.1% / 95.4% of the stellar mass in that row. That is the number that justifies the choice and belongs in the provenance print, not just the decade count.",
+  "AMBIGUOUS BLACK IN THE STARS PANEL: because cmv.set_bad(cmv(0.0)) makes masked (exactly-zero) pixels identical to the vmin color, 'no stars' and 'stars below the floor' are indistinguishable in the rendered panel. Harmless but should be one clause in the caption.",
+  "ARROW GEOMETRY DEGRADES: the ConnectionPatch from axc to the leftmost painted column now spans a much larger gap relative to panel size (axc drops to 0.721 in). In my render of the spec's layout the three arrows become long diagonals sweeping across the 'paint with theta (30 astro params)' annotation. Consider drawing a single arrow to the middle row, or moving the annotation.",
+  "LEFT-PANEL TEXT OVERFLOW RISK: 'TNG300-Dark, 51 Mpc/$h$ slab' at fontsize 7 is ~1.26 in wide inside a 1.556 in panel (spec ratios) or 1.755 in (requested ratios) \u2014 72-81% of the panel width. Drop it to fontsize 6 or shorten it.",
+  "THE FIGURE IS HEIGHT-STARVED, NOT WIDTH-STARVED: the saved crop is only 3.41 in tall out of a 4.4 in canvas because every imshow axes is aspect-locked and shrinks inside its cell. If the painted panels are judged too small, the cheap fix is to raise figsize height AND let the left box span fewer rows, or reduce the left box's width_ratio deliberately \u2014 not to widen past 7.2 in.",
+  "MEMORY IS A NON-ISSUE AT THE STATED SIZES: decompressing generated_patches costs 130.9 MB and thermo_patches 174.6 MB per run (transient), dmo is 70.5 MB, and large_scale (130.9 MB) is never touched. The spec's warning about '~400 MB per iteration' is correct in kind but comfortably inside the ~10 GB cgroup; the single-bind idiom is still the right call for speed (DEFLATE decompression of 131 MB dominates the cell runtime).",
+  "REPRODUCTION ARTIFACTS for the reviewer/executor (do not commit): current-layout reproduction /tmp/claude-2107/-mnt-home-mlee1-BIND/cd141c7e-20d2-47a8-b36e-6fe94e24b33b/scratchpad/r_current_txt.png (bit-matches the committed PDF's MediaBox) and proposed-layout render r_new_notxt.png; probe scripts hdr.py, sel.py, chan.py, repro.py in the same directory; cached arrays patches.npz (dm3/gas3/st3/y3 for halo 25, runs 58/145/56) and cond.npy."
+ ]
+}

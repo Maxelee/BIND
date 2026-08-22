@@ -1,0 +1,293 @@
+{
+ "item": "CR 7 \u2014 fig20_vandaalen_matrix: move panel-(a) colorbar to the right, delete the bottom figure footer, delete all free text in panel (b) (incl. r=0.98), delete all text + arrows in panel (c)",
+ "figures": [
+  "fig20_vandaalen_matrix"
+ ],
+ "code_locations": [
+  {
+   "what": "\u00a73c markdown narrative for Fig 20 \u2014 the prose source every migrated caption sentence should be quoted from (projected-cylinder definition at 2385-2392, the ten f~>1 nodes at 2399-2403, the 0.93<->0.81 calibration at 2388-2392)",
+   "start_line": 2357,
+   "end_line": 2408
+  },
+  {
+   "what": "The entire fig20 code(r'''...''') cell (notebook cell 27). Figure body is 2411-2725; 2410 and 2726 are the code() wrapper lines.",
+   "start_line": 2410,
+   "end_line": 2726
+  },
+  {
+   "what": "fig/axes creation: plt.subplots(1, 3, figsize=(TWO_COL[0], 2.55), gridspec_kw=dict(width_ratios=[1.15, 1.0, 1.0])) \u2014 width_ratios[0] must be bumped when the colorbar moves to the right of (a)",
+   "start_line": 2597,
+   "end_line": 2598
+  },
+  {
+   "what": "Panel (a) block, variable `a` = ax[0]: imshow(Pb) 5 ell-bands x 4 mass bins, Reds + Normalize(0.5,1.0), aspect='auto', origin='lower'; 20 in-cell r annotations; x/y ticks; sec20 = secondary_yaxis('right') carrying k; green vD20 Rectangle; black best-cell Rectangle; colorbar; white '(a)' corner label",
+   "start_line": 2600,
+   "end_line": 2638
+  },
+  {
+   "what": "Panel (a) in-cell numeric annotations a.text(j, i, f'{Pb[i,j]:.2f}', fontsize=6) \u2014 these ARE the data, must be kept",
+   "start_line": 2606,
+   "end_line": 2611
+  },
+  {
+   "what": "Panel (a) secondary y-axis sec20 (k = (ell+1/2)/chi_star) \u2014 occupies the RIGHT side of panel (a); this is why the colorbar move needs an enlarged pad",
+   "start_line": 2619,
+   "end_line": 2622
+  },
+  {
+   "what": "Panel (a) green 'vD20' TEXT at the bottom edge of the axes: a.text(2.0, -0.38, 'vD20', fontsize=5.2, color=COLORS['secondary'], ha='center', va='bottom') \u2014 the only 'text at the bottom' that is inside a panel",
+   "start_line": 2626,
+   "end_line": 2627
+  },
+  {
+   "what": "THE PANEL-(a) COLORBAR: cb20 = fig.colorbar(im, ax=a, fraction=0.045, pad=0.16, location='left') + cb20.set_label(r'$r\\,(S_\\ell,\\ \\tilde f^{\\,\\rm cyl}_{\\rm bar,500c})$', fontsize=6.5)",
+   "start_line": 2632,
+   "end_line": 2633
+  },
+  {
+   "what": "Panel (b) block, variable `b` = ax[1]: scatter S(ell~970) vs group-bin f~_bar colored by X_unit[:, p_dom] (IMFslope), dashed OLS, fiducial star, axhline(1), the two free-text stamps, axis labels, legend, its own right-side colorbar cbb20, panel_label",
+   "start_line": 2640,
+   "end_line": 2670
+  },
+  {
+   "what": "Panel (b) r-stamp: b.text(0.05, 0.84, rf'$r={Pb[i_b, j_b]:.2f}$', transform=b.transAxes, fontsize=7, va='top') \u2014 renders 'r = 0.98'",
+   "start_line": 2652,
+   "end_line": 2654
+  },
+  {
+   "what": "Panel (b) definition stamp (the unreadable one): b.text(0.05, 0.70, 'projected $R_{500c}$ aperture, $\\pm25.6\\,$Mpc/$h$ slab,\\nannulus-subtracted -- not the 3D spherical $\\tilde f$ of vD+20', fontsize=4.4, color='0.35', bbox=dict(facecolor='w', alpha=0.72, edgecolor='none', pad=1.2)) \u2014 sits directly on the scatter cloud",
+   "start_line": 2655,
+   "end_line": 2661
+  },
+  {
+   "what": "Panel (b) legend (draws the word 'fiducial' for the red star) and colorbar cbb20 label 'IMFslope (prior units)' \u2014 recommend KEEP both",
+   "start_line": 2665,
+   "end_line": 2669
+  },
+  {
+   "what": "Panel (c) block, variable `c` = ax[2]: vD+20 3-D fit curve, +/-0.01 grey band, green obs-groups axvspan, BIND Sobol scatter, axhline(0), two annotate()+arrow calls, red x>1 axvspan, lims/labels, legend, sec_c top axis, panel_label",
+   "start_line": 2672,
+   "end_line": 2712
+  },
+  {
+   "what": "Panel (c) TEXT+ARROW #1: c.annotate('saturated top', xy=(0.96, -0.004), xytext=(0.62, -0.045), fontsize=6, ha='center', arrowprops=dict(arrowstyle='->', lw=0.6, color='0.4'))",
+   "start_line": 2691,
+   "end_line": 2693
+  },
+  {
+   "what": "Panel (c) red shaded band with NO text: c.axvspan(1.0, 1.06, color=COLORS['highlight'], alpha=0.10, lw=0, zorder=0) \u2014 keep, but it becomes unexplained once annotate #2 is deleted",
+   "start_line": 2697,
+   "end_line": 2697
+  },
+  {
+   "what": "Panel (c) TEXT+ARROW #2: c.annotate('cylinder-closure regime\\n(no 3D equivalent)', xy=(1.02, 0.017), xytext=(0.60, 0.021), fontsize=4.4, color=COLORS['highlight'], arrowprops=dict(arrowstyle='->', lw=0.5, color=COLORS['highlight'], alpha=0.7))",
+   "start_line": 2698,
+   "end_line": 2702
+  },
+  {
+   "what": "Panel (c) legend (3 entries: 'vD+20 fit (k=0.5, 3D - top axis)', 'obs. groups (3D - top axis)', 'BIND Sobol: DeltaS(k~0.4)') \u2014 recommend KEEP; it is the only key for the three graphical elements",
+   "start_line": 2707,
+   "end_line": 2707
+  },
+  {
+   "what": "Panel (c) secondary top axis sec_c (x/1.16 <-> x*1.16) and its label '3D-equiv. $\\tilde f$ (truth-calibrated $\\times1/1.16$)' \u2014 KEEP, it carries the calibration factor",
+   "start_line": 2708,
+   "end_line": 2711
+  },
+  {
+   "what": "fig.tight_layout(w_pad=1.2, rect=(0, 0.055, 1, 1)) \u2014 the rect reserves the bottom 5.5% for the footer and MUST be reverted when the footer goes",
+   "start_line": 2714,
+   "end_line": 2714
+  },
+  {
+   "what": "THE BOTTOM FOOTER: fig.text(0.5, 0.005, 'panel (c) calibration: truth f~^cyl_bar,500c = 0.93 <-> 3D f~ ~= 0.81 (Nelson et al. 2024, TNG-Cluster) -- the vD+20 fit and obs. groups band are the literature 3-D relation, read against the top axis', ha='center', va='bottom', fontsize=5.4)",
+   "start_line": 2715,
+   "end_line": 2722
+  },
+  {
+   "what": "save(fig, 'figs_v2/fig20_vandaalen_matrix') \u2014 writes figs_v2/*.pdf AND figs_preview/*.png (the .png the user looked at)",
+   "start_line": 2723,
+   "end_line": 2723
+  },
+  {
+   "what": "papers/_tools/paper_style.py save(): fig.savefig(f'{stem}.pdf', bbox_inches='tight', pad_inches=0.02) then fig.savefig(figs_preview/'<name>.png', dpi=200, same bbox/pad). One call, two files, no format switch.",
+   "start_line": 81,
+   "end_line": 93
+  },
+  {
+   "what": "main.tex caption/figure block for \\label{fig:vandaalen} \u2014 STILL points at the v1 figs/fig08_vandaalen_analog.pdf, not figs_v2/fig20_vandaalen_matrix.pdf. This is where the migrated text must land.",
+   "start_line": 619,
+   "end_line": 632
+  }
+ ],
+ "data_verified": [
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/analysis_cache/atlas_cubes/atlas_cube_snap096.npz",
+   "keys": [
+    "sobol_valid",
+    "sobol_m_tot_500c_bg",
+    "sobol_m_gas_500c_bg",
+    "sobol_m_star_500c",
+    "z",
+    "snap",
+    "n_halos",
+    "M_fof",
+    "r200",
+    "fid_m_tot_500c_bg",
+    "fid_m_gas_500c_bg",
+    "fid_m_star_500c"
+   ],
+   "shape_note": "sobol_* cubes are (256, 2933), indexed by run NUMBER; the cell slices with run_ids -> (253, 2933). Present and readable.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; z=np.load('/mnt/home/mlee1/ceph/bind_sb35/analysis_cache/atlas_cubes/atlas_cube_snap096.npz'); print({k:z[k].shape for k in ('sobol_m_tot_500c_bg','sobol_m_gas_500c_bg','sobol_m_star_500c')})\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/analysis_cache/atlas_cubes/atlas_cube_snap085.npz",
+   "keys": [
+    "sobol_m_tot_500c_bg",
+    "sobol_m_gas_500c_bg",
+    "sobol_m_star_500c",
+    "z"
+   ],
+   "shape_note": "(256, 2813) \u2014 the z=0.18 rank-stability check only; not touched by this cosmetic change.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; z=np.load('/mnt/home/mlee1/ceph/bind_sb35/analysis_cache/atlas_cubes/atlas_cube_snap085.npz'); print({k:z[k].shape for k in ('sobol_m_tot_500c_bg','sobol_m_gas_500c_bg','sobol_m_star_500c')})\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/runs/bind/run_0000/Cl_kappa.npz and /mnt/home/mlee1/ceph/bind_science/runs/dmo/run_0000/Cl_kappa.npz",
+   "keys": [
+    "cl"
+   ],
+   "shape_note": "Both exist; the cell asserts cl.shape[-1] == len(ELL) (724). Supplies the fiducial star S(ell~970)=0.9975 in panel (b).",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import pathlib; [print(p.exists(), p) for p in [pathlib.Path('/mnt/home/mlee1/ceph/bind_science/runs/bind/run_0000/Cl_kappa.npz'), pathlib.Path('/mnt/home/mlee1/ceph/bind_science/runs/dmo/run_0000/Cl_kappa.npz')]]\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/halo_atlas/fid_snap096.npz",
+   "keys": [
+    "m_tot_500c_bg",
+    "m_gas_500c_bg",
+    "m_star_500c"
+   ],
+   "shape_note": "Exists; supplies fbar_fid = 0.801 (632 halos) for the panel-(b) fiducial star. Its sibling truth_snap096.npz also exists (needed only if the 0.93 calibration is ever computed live).",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import pathlib; print(pathlib.Path('/mnt/home/mlee1/ceph/bind_science/halo_atlas/fid_snap096.npz').exists())\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz",
+   "keys": [
+    "t__suppression__value",
+    "X_unit",
+    "run_ids",
+    "param_names",
+    "a__suppression__ell",
+    "source_redshifts"
+   ],
+   "shape_note": "Present; suppression (253,5,724) at ZI=1 -> Sb over 5 geometric ell-bands on [300, ELL_TRUST=1.5e4].",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import pathlib; print(pathlib.Path('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz').exists())\""
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/figs_preview/fig20_vandaalen_matrix.png",
+   "keys": [],
+   "shape_note": "165006 bytes, Jul 28 17:27 \u2014 SAME timestamp as figs_v2/fig20_vandaalen_matrix.pdf (126413 B). Confirms the user's '.png' is the figs_preview companion written by the same save() call; there is no separate .png build step.",
+   "probe_command": "ls -la /mnt/home/mlee1/BIND/papers/01_pipeline/figs_preview/ | grep -i fig20 ; ls -la /mnt/home/mlee1/BIND/papers/01_pipeline/figs_v2/ | grep -i fig20"
+  },
+  {
+   "path": "VERIFIED LAYOUT RENDER: /tmp/claude-2107/-mnt-home-mlee1-BIND/cd141c7e-20d2-47a8-b36e-6fe94e24b33b/scratchpad/{cb_right030.png, cb_top007.png, cb_right_wide.png}",
+   "keys": [],
+   "shape_note": "I rebuilt panel (a) verbatim (Pb hardcoded from FIGURE_NUMBERS.md line 67) under matplotlib 3.10.1 + paper_style.setup() and rendered three colorbar placements. location='right', pad=0.30 CLEARS the sec20 k ticks+label and does NOT collide with panel (b); but at width_ratios[0]=1.15 panel (a)'s x tick labels collide ('13.0-13.313.3-13.6'). With width_ratios=[1.45,1.0,1.0] and xticklabel fontsize 5.0 the collision is gone and the layout is clean. location='top', pad=0.07 is also clean but makes panel (a) visibly SHORTER than (b)/(c).",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python /tmp/claude-2107/-mnt-home-mlee1-BIND/cd141c7e-20d2-47a8-b36e-6fe94e24b33b/scratchpad/cbtest.py  (and cbtest2.py for the widened variant)"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/FIGURE_NUMBERS.md lines 66-74",
+   "keys": [
+    "fig20 Pearson r matrix",
+    "fig20 best cell",
+    "fig20 vD cell",
+    "fig20 halo-side rank stability",
+    "fig20 geometry"
+   ],
+   "shape_note": "All fig20 numbers are already stamped: best cell ell~970 x [13.3,13.6) r=0.975, single-bin R2=0.951; f~_bar median 0.955 range 0.755-1.041; fiducial S(ell~970)=0.9975, f~_bar=0.801 (632 halos). The caption can quote these verbatim \u2014 no re-run needed to obtain them.",
+   "probe_command": "sed -n '66,74p' /mnt/home/mlee1/BIND/papers/01_pipeline/FIGURE_NUMBERS.md"
+  }
+ ],
+ "data_gaps": [
+  {
+   "requested": "A live-printed value for the panel-(c) footer's truth calibration f~^cyl_bar,500c = 0.93 <-> 3-D f~ ~ 0.81 (the x1.16 factor), so the caption can quote a stamped number instead of prose.",
+   "why_blocked": "grep over the whole builder shows 1.16 appears ONLY at lines 2391 (md), 2678 (comment), 2709/2710 (the secondary-axis lambda + label) and 2719 (the footer). 0.93 is never computed anywhere in _build_figures_nb.py and is absent from FIGURE_NUMBERS.md. It is an external audit number carried in as a literal, so it cannot be cited as a live stamp.",
+   "closest_alternative": "Either (i) cite it in the caption as an external calibration exactly as the \u00a73c md already words it (lines 2388-2392, incl. Nelson et al. 2024 arXiv:2311.06338) \u2014 no code change; or (ii) compute it live in ~5 deterministic lines from /mnt/home/mlee1/ceph/bind_science/halo_atlas/truth_snap096.npz (keys m_gas_500c_bg, m_star_500c, m_tot_500c_bg) in the same 6e13-2e14 M500c,bg bin: np.median((m_gas_500c_bg+m_star_500c)/m_tot_500c_bg)/OB_OM. Option (ii) could change a number the paper already quotes \u2014 do NOT do it silently inside a cosmetic edit."
+  },
+  {
+   "requested": "The count '10 nodes with f~^cyl > 1' that justified the red x>1 axvspan in panel (c) and must move into the caption once the annotation is deleted.",
+   "why_blocked": "The number 10 is asserted only in prose (md line 2399) and in the code comment at 2694-2696. No print() in the cell emits it and it is not in FIGURE_NUMBERS.md; the only related stamp is 'range 0.755-1.041' (line 72), which proves >1 exists but not how many.",
+   "closest_alternative": "Add one deterministic line after ok_vd is built (line 2553): print(f\"nodes with f~^cyl > 1: {(ftvd > 1).sum()} / {ok_vd.sum()}\"), and record the result in FIGURE_NUMBERS.md under '## fig20'. Pure arithmetic on already-loaded ftvd, no new I/O, no RNG."
+  },
+  {
+   "requested": "Regenerating only the .png the user named.",
+   "why_blocked": "papers/_tools/paper_style.py save() (lines 81-93) has no format switch: one call always writes {stem}.pdf into figs_v2/ AND <paper dir>/figs_preview/<name>.png at dpi=200, both with bbox_inches='tight', pad_inches=0.02. There is no .png-only path.",
+   "closest_alternative": "Re-run cell 27; both files are rewritten together and stay in sync. The .pdf in figs_v2/ is the paper artifact, the .png in figs_preview/ is the reviewer preview the user was looking at."
+  }
+ ],
+ "change_spec": [
+  {
+   "step": "0. Preconditions and rebuild path",
+   "detail": "Edit ONLY /mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py (single source of truth). Do NOT hand-edit paper1_figures.ipynb \u2014 build() at the end of the builder overwrites it wholesale. After editing: cd /mnt/home/mlee1/BIND/papers/01_pipeline && /mnt/home/mlee1/venvs/BIND_env/bin/python _build_figures_nb.py, then execute with _run_figures_nb.py (or run_figures.sbatch \u2014 do not submit slurm yourself). fig20 is notebook cell 27. This change touches no data path, so every FIGURE_NUMBERS.md fig20 entry (lines 66-74) stays valid; no science re-verification needed."
+  },
+  {
+   "step": "1. Move the panel-(a) colorbar from left to right (RECOMMENDED; layout-verified)",
+   "detail": "Line 2632: replace  cb20 = fig.colorbar(im, ax=a, fraction=0.045, pad=0.16, location=\"left\")  with  cb20 = fig.colorbar(im, ax=a, fraction=0.045, pad=0.30, location=\"right\"). Keep line 2633's set_label unchanged; optionally add cb20.ax.tick_params(labelsize=5.6). CURRENT side = LEFT \u2014 the bar sits at the extreme left of the whole figure, outside the ell ylabel; that is the 'wrong side'. TARGET = RIGHT, matching panel (b)'s cbb20 which is already default-right. pad MUST be ~0.30 (not the default 0.05) because a.secondary_yaxis('right') (sec20, lines 2619-2622) draws k tick labels plus a rotated axis label outside the axes bbox and make_axes does not reserve room for them. Verified by render: pad=0.30 clears sec20 completely and does not touch panel (b)."
+  },
+  {
+   "step": "2. Compensate the width step 1 steals from panel (a)",
+   "detail": "Line 2598: width_ratios=[1.15, 1.0, 1.0] -> width_ratios=[1.45, 1.0, 1.0]. AND line 2614: x-ticklabel fontsize 5.6 -> 5.0. Without BOTH, the four mass-bin tick labels ('13.0-13.3', '13.3-13.6', '13.6-13.9', '>=13.9') run into each other \u2014 I reproduced this collision at 1.15/5.6 and confirmed it is gone at 1.45/5.0. Optional balance if (b) then looks pinched (it carries its own colorbar): [1.45, 1.10, 1.0], check by eye."
+  },
+  {
+   "step": "2b. ALTERNATIVE to steps 1-2 (horizontal bar above the matrix)",
+   "detail": "cb20 = fig.colorbar(im, ax=a, fraction=0.045, pad=0.07, location=\"top\") plus cb20.ax.tick_params(labelsize=5.6); leave width_ratios and tick fontsize alone. Rendered and fully clean (no collisions at all), but it shortens panel (a)'s axes box while (b)/(c) stay full height. Use step 1 for the literal reading of 'wrong side'; use 2b only if the height mismatch is acceptable."
+  },
+  {
+   "step": "3. Delete the bottom-of-figure footer (the 'text on the bottom of the plot')",
+   "detail": "Delete lines 2715-2722 entirely \u2014 the two '# figure-level footer ...' comment lines plus the whole fig.text(0.5, 0.005, 'panel (c) calibration: ...', ha='center', va='bottom', fontsize=5.4) call. THEN, mandatorily, line 2714: fig.tight_layout(w_pad=1.2, rect=(0, 0.055, 1, 1)) -> fig.tight_layout(w_pad=1.2). Leaving the rect in place preserves a dead 5.5%-height white strip along the bottom."
+  },
+  {
+   "step": "3b. Judgement call: the green 'vD20' text at the bottom of panel (a)",
+   "detail": "Lines 2626-2627, a.text(2.0, -0.38, 'vD20', fontsize=5.2, color=COLORS['secondary']). This is the only OTHER text 'at the bottom'. RECOMMEND KEEPING: it is the sole key for the green Rectangle at 2624-2625 (panel (a) has no legend), and the user addressed their other complaints to named panels while this one said 'the plot'. If the reviewer does want it gone, delete 2626-2627 and add to the caption: 'green outline in (a): the cells comparable to van Daalen et al. (2020), k ~ 0.4-0.5 h/Mpc, M500c ~ 1e14 Msun/h.'"
+  },
+  {
+   "step": "4. Delete the r=0.98 stamp in panel (b)",
+   "detail": "Delete lines 2652-2654 (the '# r-stamp BELOW the panel letter' comment plus b.text(0.05, 0.84, rf'$r={Pb[i_b, j_b]:.2f}$', transform=b.transAxes, fontsize=7, va='top')). NO ON-FIGURE INFORMATION IS LOST: the identical number is already printed inside panel (a) as the black-outlined cell at row ell=970, column 13.3-13.6, which reads '0.98'. i_b/j_b remain in use (lines 2530-2540, 2587, 2630, 2643-2646, 2663-2664) so no variable becomes unused. For the caption, quote the full-precision stamp from FIGURE_NUMBERS.md line 68: r=0.975, single-bin R2=0.951."
+  },
+  {
+   "step": "5. Delete the unreadable definition box in panel (b)",
+   "detail": "Delete lines 2655-2661 (two comment lines plus the whole b.text(0.05, 0.70, 'projected $R_{500c}$ aperture, $\\pm25.6\\,$Mpc/$h$ slab,\\nannulus-subtracted -- not the 3D spherical $\\tilde f$ of vD+20', fontsize=4.4, va='top', ha='left', color='0.35', bbox=dict(facecolor='w', alpha=0.72, edgecolor='none', pad=1.2)) call). THIS TEXT IS NOT RECOVERABLE from the axes \u2014 the only surviving hint is the 'cyl' superscript in the x-label at 2662-2663 \u2014 so its content MUST move to the caption (step 8, sentence ii). KEEP b.legend(...) at 2665 (a legend, and the only identifier for the red fiducial star) and KEEP the cbb20 label 'IMFslope (prior units)' at 2668."
+  },
+  {
+   "step": "6. Delete all text and arrows in panel (c)",
+   "detail": "Delete lines 2691-2693 (c.annotate('saturated top', xy=(0.96,-0.004), xytext=(0.62,-0.045), arrowprops=dict(arrowstyle='->', lw=0.6, color='0.4'))) and the c.annotate('cylinder-closure regime\\n(no 3D equivalent)', xy=(1.02,0.017), xytext=(0.60,0.021), arrowprops=dict(arrowstyle='->', lw=0.5, color=COLORS['highlight'], alpha=0.7)) call at 2698-2702 (its explanatory comments 2694-2696 may stay or go). KEEP line 2697 c.axvspan(1.0, 1.06, ...) \u2014 a shaded band, not text. KEEP the legend at 2707: with both annotations gone it is the only key distinguishing the dashed vD+20 curve, the green obs-groups band and the blue Sobol points, and its '(3D - top axis)' hints become the only on-figure pointer to sec_c once the footer is deleted. KEEP sec_c + its label (2708-2711) and panel_label(c, '(c)') (2712)."
+  },
+  {
+   "step": "6b. Optional y-limit tightening in panel (c)",
+   "detail": "Line 2704: c.set_ylim(-0.12, 0.03). The lower half of that range mainly hosted the 'saturated top' callout at xytext=(0.62, -0.045). After step 6 the vD curve itself still reaches about -0.075 at f~=0.35, so -0.12 is only mildly generous. Leave as-is unless the reviewer wants it tighter; -0.10 is safe."
+  },
+  {
+   "step": "7. Add the one missing print stamp (recommended, cheap)",
+   "detail": "Insert immediately after line 2553 (ok_vd = np.isfinite(ftvd)):  print(f\"nodes with f~^cyl > 1 (cylinder-closure regime): {(ftvd > 1).sum()} / {ok_vd.sum()}\")  and append the result to FIGURE_NUMBERS.md under '## fig20'. This makes the caption's claim about the red x>1 band quotable from a live stamp rather than prose. Deterministic, no new I/O, no RNG."
+  },
+  {
+   "step": "8. Caption text to write into main.tex (the migration target)",
+   "detail": "The caption block is main.tex lines 619-632 (\\label{fig:vandaalen}), which STILL does \\includegraphics[width=\\textwidth]{figs/fig08_vandaalen_analog.pdf} \u2014 the v1 two-panel figure \u2014 with a v1 caption quoting r=0.96/0.94/0.87 at ell=1000/3000/6000. Repoint it to figs_v2/fig20_vandaalen_matrix.pdf and rewrite. Sentences that must appear, with sources: (i) 'the group-scale cell is the hinge: r = 0.98 (R^2 = 0.95) for the single 10^{13.3}-10^{13.6} Msun/h bin at ell ~ 970' [FIGURE_NUMBERS.md line 68; also the black-outlined cell in (a)]. (ii) 'f~^cyl_{bar,500c} is a projected-cylinder baryon fraction: 500c aperture, +/-25.6 Mpc/h line-of-sight slab, annulus-subtracted -- not the 3-D spherical f~ of van Daalen et al. (2020)' [verbatim from the deleted panel-(b) box; md lines 2385-2392]. (iii) 'green outline in (a): the vD20-comparable cells' [only if step 3b removes the vD20 text]. (iv) 'in (c) the dashed vD+20 fit and the green observational band are the literature 3-D relation and must be read against the top axis, which applies the truth calibration f~^cyl = 0.93 <-> 3-D f~ ~ 0.81 (Nelson et al. 2024, TNG-Cluster, arXiv:2311.06338), i.e. x1/1.16' [the deleted footer; md lines 2388-2392]. (v) 'the suite sits on the flat, saturated top of the relation (f~^cyl median 0.955, range 0.755-1.041)' [replaces the 'saturated top' arrow; FIGURE_NUMBERS.md line 72]. (vi) 'the shaded band at f~^cyl > 1 marks the cylinder-closure regime with no 3-D counterpart: a projected, annulus-subtracted cylinder can partially over-close where a sphere cannot; these are the weak-wind enhancement-branch nodes of Fig. 12' [replaces the second arrow; count from step 7; md lines 2399-2403]. Follow the repo's '% src:' provenance discipline on every new sentence."
+  },
+  {
+   "step": "9. Verify the render",
+   "detail": "After re-running cell 27, open /mnt/home/mlee1/BIND/papers/01_pipeline/figs_preview/fig20_vandaalen_matrix.png (dpi 200) and check: colorbar sits to the right of (a) and clear of the k secondary axis; (a)'s four x tick labels do not touch; no white strip below the panels; (b) shows only the scatter, dashed OLS, star + 'fiducial' legend and its colorbar; (c) shows curve/band/points/legend/top-axis with zero arrows and zero free text. figs_v2/fig20_vandaalen_matrix.pdf is rewritten by the same save() call."
+  }
+ ],
+ "risks": [
+  "Removing the fig.text footer WITHOUT also reverting rect=(0, 0.055, 1, 1) at line 2714 leaves a blank 5.5%-height band at the bottom \u2014 the same defect the user complained about, just empty. These two edits are inseparable.",
+  "Moving the colorbar to location='right' at the default pad will overplot sec20's k tick labels and rotated axis label; make_axes does not reserve room for a secondary axis. pad=0.30 is required and was render-verified.",
+  "Moving the colorbar to the right without bumping width_ratios[0] (1.15 -> 1.45) and shrinking the x-ticklabel fontsize (5.6 -> 5.0) makes panel (a)'s mass-bin tick labels collide into '13.0-13.313.3-13.6'. I reproduced the collision and confirmed the fix.",
+  "Panel (b)'s definition stamp is the ONLY on-figure statement that f~ here is a projected cylinder rather than the 3-D spherical f~ of vD+20. Deleting it without adding caption sentence (ii) leaves the figure quietly comparing two different quantities against a literature 3-D fit \u2014 a science-integrity regression, not a cosmetic one.",
+  "The panel-(c) red axvspan at 1.0-1.06 becomes an unexplained coloured stripe once its annotation is deleted; caption sentence (vi) is mandatory, and the '10 nodes' number it rests on is currently prose-only (see change_spec step 7).",
+  "If 'no text in panel b' / 'all text in panel c' is read literally enough to include the legends, panel (b) loses the identity of the red fiducial star and panel (c) becomes fully undecodable (three unlabelled graphical elements: dashed curve, green band, blue points). Recommend keeping both legends and confirming with the user before deleting them.",
+  "The '0.93 <-> 0.81, x1.16' calibration is a hardcoded external number with no live stamp anywhere in the builder. Once the footer is deleted it survives on the figure only as the sec_c axis label '(truth-calibrated x1/1.16)'. If that label is also trimmed the calibration disappears from the figure entirely.",
+  "main.tex still points \\label{fig:vandaalen} at the v1 figs/fig08_vandaalen_analog.pdf with a v1 caption quoting different r values (0.96/0.94/0.87 at ell=1000/3000/6000). Migrating text into that caption without also repointing \\includegraphics produces a caption describing a figure the paper does not show.",
+  "Do not hand-edit paper1_figures.ipynb: build() at the end of _build_figures_nb.py regenerates it wholesale.",
+  "No data path changes, so the ~1 GB map cubes are never touched and the ~10 GB cgroup is not at risk; the cell only reads the (256, 2933) atlas cubes, two small Cl_kappa.npz files and the 253-run statistics npz."
+ ]
+}

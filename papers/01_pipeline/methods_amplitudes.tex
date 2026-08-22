@@ -1,0 +1,265 @@
+% ============================================================================
+% Methods: how the family amplitudes are estimated (pedagogical version)
+% src: family_basis_all.py (span_fit ~L353-357, estimator now always OLS
+%      ~L518-522; ridge_amps ~L360-363 kept defined but unused since
+%      2026-08-12), lam_fit_amps ~L433-446, sig_pred ~L573), family_model.py;
+%      numeric constants recomputed 2026-08-12 from the shipped 8-latent
+%      family_model_bundle.npz; robustness numbers from the 2026-08-12
+%      bake-off + basis-weighting and anchor-invariance checks (WORKLOG).
+% 2026-08-12 (later same day): ridge estimator removed entirely (author
+%      decision) -- plain OLS/pinv everywhere, including clk (kappa=520,
+%      previously the only statistic to cross the ridge threshold). This
+%      fragment was rewritten in place: the "gentle thumb on the scale"
+%      section now explains why OLS is safe rather than motivating ridge;
+%      the near-twin story and SVD filter analysis are kept as the
+%      justification (and as the amplitude-interpretation caveat). See
+%      FAMILY_BASIS_METHODS.md's ESTIMATOR addendum for the full numbers.
+% Standalone fragment: assumes amsmath; adapt macros to the paper's style.
+% ============================================================================
+
+\subsection{How the model is fit: the amplitudes, step by step}
+\label{sec:amp-methods}
+
+\paragraph{The model in one sentence.}
+Every simulated universe's statistic is written as ``the average universe,
+plus a little extra,'' and the little extra is always a mixture of a
+handful of fixed, measured shapes:
+\begin{equation}
+\mathbf{y}(\boldsymbol{\lambda})
+\;\simeq\;
+\underbrace{\bar{\mathbf{y}}}_{\text{average universe}}
+\;+\;
+\sum_{k=1}^{K}
+\underbrace{a_k(\boldsymbol{\lambda})}_{\text{how much}}\;
+\underbrace{\mathbf{b}_k}_{\text{of shape }k}.
+\end{equation}
+Fitting the model therefore means answering exactly two questions, each of
+which turns out to be a small linear regression: \emph{(1) given a
+simulated curve, how much of each shape is in it?} and \emph{(2) given
+eight numbers measured in a simulation's halos, what mixture should we
+expect?}  Everything below is one of those two questions.
+
+\paragraph{The ingredients (all measured, none fit).}
+The curves $\mathbf{y}_r$ live on a fixed grid of $P$ bins ($P=24$
+$\ell$-bands for $S(\ell)$; $P=22$ $\nu$-bins for the PDF and peak/minima
+counts; $P=14$ for the Minkowski functionals).  The \emph{anchor}
+$\bar{\mathbf{y}}$ is simply the bin-by-bin average of the $N=256$
+Sobol-design curves, and each run's \emph{deviation} is
+$\mathbf{d}_r=\mathbf{y}_r-\bar{\mathbf{y}}$.  The \emph{shapes}
+$\mathbf{b}_k$ come from the independent twobound experiments: turn one
+feedback knob from its low to its high bound, subtract the two curves,
+and you get that knob's response shape.  Knobs whose response shapes look
+alike (correlation $\ge0.85$) are grouped into a family, and the family's
+archetype is the (response-strength-weighted) average of its members'
+shapes.  Each archetype is normalized so its largest excursion equals
+one.  That normalization is what makes the amplitudes readable:
+\emph{$a_k$ is the number of units of shape $k$ present, quoted at shape
+$k$'s peak, in the units of the statistic itself} --- for $S(\ell)$,
+$a_{C1}=-0.05$ means ``this universe carries a $C_1$-shaped suppression
+of depth $0.05$ where $C_1$ peaks.''
+
+\paragraph{Question 1: how much of each shape is in a given curve?}
+This is a projection.  We look for the mixture of shapes that lands as
+close as possible to the measured deviation:
+\begin{equation}
+\mathbf{a}_r=\arg\min_{\mathbf{a}}
+\Bigl\lVert\, \mathbf{d}_r-\textstyle\sum_k a_k \mathbf{b}_k \,\Bigr\rVert^2 .
+\label{eq:amp-objective}
+\end{equation}
+Least squares has a bookkeeping solution worth seeing once.  Collect the
+overlaps between the shapes, $G_{kj}=\mathbf{b}_k\!\cdot\!\mathbf{b}_j$
+(the $K\times K$ \emph{Gram matrix} --- its diagonal says how big each
+shape is, its off-diagonal how much two shapes resemble each other), and
+the overlaps of the data with each shape,
+$(\mathsf{B}\mathbf{d}_r)_k=\mathbf{b}_k\!\cdot\!\mathbf{d}_r$.  Then the
+best-fit amplitudes solve the small linear system
+\begin{equation}
+\mathsf{G}\,\mathbf{a}_r=\mathsf{B}\,\mathbf{d}_r .
+\label{eq:normal-eq}
+\end{equation}
+If the shapes were orthogonal, $\mathsf{G}$ would be diagonal and each
+amplitude would just be ``overlap of the data with my shape.''  They are
+not orthogonal --- and that is where the one subtlety of this section
+lives.
+
+\paragraph{The near-twin problem.}
+Suppose two shapes were exactly proportional.  Then only the \emph{sum}
+of their amplitudes would matter: $(a_1,a_2)=(10.3,-10)$ and $(0.2,0.1)$
+would produce identical curves, and the fit could return either,
+depending on noise.  Our families are not identical twins, but for
+$S(\ell)$ they are close: the four archetypes are smooth suppression-like
+curves that substantially resemble one another.  The degree of
+near-twinness is measured by the conditioning number
+$\kappa=\sigma_1/\sigma_K$ (the ratio of the largest to smallest singular
+value of $\mathsf{B}$): $\kappa=1$ means perfectly independent shapes,
+large $\kappa$ means some \emph{combination} of shapes is nearly
+invisible.  Measured values:
+\begin{center}
+\begin{tabular}{lccl}
+statistic & $\kappa(\mathsf{B})$ & estimator & singular values of $\mathsf{B}$\\
+\hline
+$S(\ell)$    & 520  & OLS & $(4.57,\,2.18,\,0.216,\,0.0088)$\\
+PDF          & 91   & OLS   & $(2.46,\,1.04,\,0.68,\,0.027)$\\
+$N_{\rm pk}$ & 10   & OLS   & $(3.41,\,1.35,\,1.02,\,0.61,\,0.33)$\\
+$N_{\rm min}$& 7.3  & OLS   & $(2.68,\,0.89,\,0.60,\,0.37)$\\
+$V_0$        & 49   & OLS   & $(2.89,\,0.63,\,0.060)$\\
+$V_1$        & 5.7  & OLS   & $(2.52,\,0.44)$\\
+$V_2$        & 1    & OLS   & $(1.93)$\\
+\end{tabular}
+\end{center}
+Every statistic --- $S(\ell)$ included --- uses the same plain-least-squares
+estimator (Eq.~\ref{eq:normal-eq} with $\alpha=0$; the minimum-norm
+solution when $\mathsf{G}$ is singular). $S(\ell)$'s $\kappa=520$ used to
+trigger a special ridge branch here; the next paragraph explains why that
+branch was removed and why doing so is safe.
+
+\paragraph{Why plain OLS is safe here.}
+A tempting fix for a near-twin basis is to add a small penalty on the
+amplitudes themselves, $+\,\alpha\lVert\mathbf{a}\rVert^2$ in
+Eq.~\ref{eq:amp-objective} (``ridge''), turning
+Eq.~\ref{eq:normal-eq} into
+$(\mathsf{G}+\alpha\mathbb{1})\,\mathbf{a}_r=\mathsf{B}\,\mathbf{d}_r$ ---
+in words, \emph{among mixtures that fit the curve almost equally well,
+prefer the one with small weights}. $S(\ell)$ shipped with exactly this
+fix for a time ($\alpha=10^{-2}\,\mathrm{tr}(\mathsf{G})/K=0.064$). We
+have since removed it in favor of one estimator everywhere, and the SVD
+filter-factor analysis that motivated ridge is precisely what shows the
+removal costs nothing.
+
+The singular value decomposition sorts amplitude space into directions
+ranked by how visible they are in the curve: direction $j$ produces a
+curve of size $\sigma_j$ per unit amplitude. Ridge multiplies the fitted
+coefficient of each direction by a filter
+$f_j=\sigma_j^2/(\sigma_j^2+\alpha)$; for $S(\ell)$ at the $\alpha$ above,
+\[
+f=(0.997,\;0.987,\;0.42,\;0.0012),
+\]
+so ridge would leave directions 1--2 (visible) essentially untouched,
+half-trust direction 3, and freeze direction 4. Direction 4 deserves its
+number: it is the amplitude combination
+$\mathbf{u}_4=(-0.76,+0.59,+0.27,+0.09)$ of $(C_1,\dots,C_4)$, and one
+full unit of it changes the predicted curve by at most $0.005$ --- half a
+percent of a unit-peak shape, below the model's own predictive
+uncertainty everywhere on the grid. That is exactly why plain least
+squares is safe: setting $\alpha=0$ sets every filter factor to $1$,
+including $f_4$, so it un-freezes $\mathbf{u}_4$ and assigns it a
+coefficient amplified by $1/\sigma_4\simeq115$ --- but because $\mathbf{u}_4$'s
+curve image is observationally invisible, that amplification changes the
+\emph{amplitude values} without moving the \emph{reconstructed curve}
+(span $R^2$ goes from $0.9984$ under ridge to $0.9997$ under OLS ---
+OLS reaches the free-amplitude ceiling exactly, ridge was $1.3\times10^{-3}$
+\emph{below} it) or the model's end-to-end accuracy (measured below). The
+estimator choice is therefore purely an \emph{identifiability} matter, not
+an accuracy trade-off, and the safest way to remove a special case is to
+remove it. Two habits follow, unchanged from when ridge existed: compare
+amplitudes between data sets only when both were fit with the \emph{same}
+estimator (mixing conventions --- e.g.\ one plain-least-squares point
+plotted against a ridge-fitted cloud --- lands hundreds of ``sigma'' away
+along $\mathbf{u}_4$ while representing a nearly identical curve; this
+repository shipped that exact bug once, in the amplitude corner plot,
+before both were unified onto OLS), and interpret \emph{individual}
+amplitudes only through the well-measured directions of $\mathsf{B}$
+--- never $\mathbf{u}_4$ alone.
+
+\paragraph{Two facts we get for free.}
+(1) The amplitude fit is a fixed matrix applied to each run's own curve
+($\mathsf{A}=\mathsf{D}\mathsf{X}$, one row at a time), so run $r$'s
+amplitudes never see any other run.  Cross-validation of the next step is
+therefore clean by construction.  (2) The amplitudes average to exactly
+zero over the design --- deviations from an average always do
+($\overline{\mathsf{A}}=\overline{\mathsf{D}}\mathsf{X}=\mathbf{0}$;
+verified at the $10^{-16}$ level).  This is why the model needs no fitted
+constant term below.
+
+\paragraph{Question 2: predicting the mixture from eight halo numbers.}
+The latents $\boldsymbol{\lambda}$ are eight medians measured in a
+simulation's halo population (baryon fraction, stellar fraction, gas
+concentration, temperature in a group-mass bin; electron pressure and
+$R_{200c}$ gas fraction in the group and cluster bins ---
+Table~\ref{tab:latents}).  They are measurements, never fit parameters.
+For each amplitude we now fit \emph{one straight line in eight
+variables}:
+\begin{equation}
+a_k(\boldsymbol{\lambda})
+= \mathbf{M}_k\cdot(\boldsymbol{\lambda}-\boldsymbol{\lambda}_{\rm ref}),
+\qquad
+\boldsymbol{\lambda}_{\rm ref}=\tfrac1N\textstyle\sum_r\boldsymbol{\lambda}_r ,
+\label{eq:latmap}
+\end{equation}
+with the slopes $\mathsf{M}$ obtained by ordinary least squares over the
+256 design runs.  No intercept appears because none is needed: the
+latents are centered on their design mean and the amplitudes average to
+zero, so the line passes through the origin of both.  (The bundle stores
+the intercept anyway; it is identically zero.)
+
+One interpretive warning, because the design is not a grid: the eight
+latents move \emph{together} across the design --- universes that expel
+gas also puff it up ($r(\tilde f_{\rm bar},c_{\rm gas})=0.94$).  The rows
+of $\mathsf{M}$ are \emph{partial} slopes --- the response to changing
+one latent while holding the other seven fixed --- and these are not the
+slopes you would read off a scatter plot of $a_k$ against one latent
+alone (those ``marginal'' slopes fold in every co-moving latent).  The
+construction figure draws exactly this distinction, and the tutorial's
+partial-vs-conditional sweeps are its curve-level counterpart.
+
+\paragraph{Putting it together.}
+Chaining the two regressions, the whole model is one affine map from
+measured halo numbers to curves:
+\begin{equation}
+\hat{\mathbf{y}}(\boldsymbol{\lambda})
+= \bar{\mathbf{y}}
++ \Theta\,(\boldsymbol{\lambda}-\boldsymbol{\lambda}_{\rm ref}),
+\qquad
+\Theta=\mathsf{B}^{\!\top}\mathsf{M}^{\!\top}\in\mathbb{R}^{P\times L}.
+\label{eq:composed}
+\end{equation}
+$\Theta$ is the model's full answer to ``how does bin $p$ respond to
+latent $j$'' --- factored into a shape dictionary measured from one-knob
+experiments ($\mathsf{B}$) and a sensitivity matrix fit on the design
+($\mathsf{M}$).  The anchor cannot be absorbed into the shapes: the
+$\mathbf{b}_k$ are built from response \emph{differences}, so they span
+the directions in which curves \emph{change}, while $\bar{\mathbf{y}}$
+records where the population \emph{sits} ($8.9\%$ of $\bar S-1$ lies
+outside the shapes' span --- $5\times10^{-3}$ in $S$ units, larger than
+the model's own precision at low $\ell$).
+
+\paragraph{How good is it, honestly.}
+Hide one fifth of the runs; refit the line (only the line --- the
+amplitudes are per-run, see above); predict the hidden curves from their
+measured latents; repeat five times so every run is hidden once.  The
+pooled score
+$R^2_{\rm e2e}=1-\sum_r\lVert\mathbf{d}_r-\hat{\mathbf{d}}_r\rVert^2
+/\sum_r\lVert\mathbf{d}_r\rVert^2$ is what we quote per statistic, and
+the per-bin scatter of those held-out errors,
+$\sigma_{\rm pred}(x_p)=\mathrm{std}_r[d_{rp}-\hat d^{\rm CV}_{rp}]$, is
+the shaded band drawn around every prediction (it matches a full
+leave-one-out computation to $\sim$1\%).  Read the band for what it is:
+an \emph{in-design average}.  It is strongly scale-dependent for
+$S(\ell)$ --- $0.004$ at $\ell\sim1.5\times10^{3}$, where the latents pin
+the response, versus $0.019$ at the $\ell\sim1.3\times10^{4}$ trough,
+where eight halo numbers genuinely underdetermine the small-scale
+physics.
+
+\paragraph{Stress tests (measured, not asserted).}
+Choices that sound consequential and are not: replacing the
+response-strength weighting in the family archetypes by a plain mean
+moves the shapes by $<0.5\%$ and $R^2_{\rm e2e}$ by at most $0.011$
+(PDF, whose 16-member family has many weak, noisy members --- the
+weighting is an approximate inverse-variance weight); the $S(\ell)$
+member responses being ratios to a fiducial reference rather than to the
+DMO leaves a smooth $\le13.5\%$ reweighting on the shapes that the
+amplitudes absorb entirely (span changes by $3\times10^{-5}$);
+re-anchoring the model on any curve within the shapes' span of
+$\bar{\mathbf{y}}$ --- the measured fiducial curve included --- is a pure
+relabeling of amplitudes that moves predictions by
+$\le1.3\times10^{-3}$; and, most directly, \emph{removing the ridge
+estimator itself} for $S(\ell)$ (the one statistic that ever used it) ---
+measured, not asserted, on the pipeline's own end-to-end cross-validation:
+$R^2_{\rm e2e}=0.9585$ (ridge) vs.\ $0.9593$ (OLS), and the fiducial
+trough prediction (the single hardest number this model produces, band
+$\ell\approx1.3\times10^4$) moves from $0.9112$ to $0.908$ against the
+same $0.881$ measured value and the same $\sim0.019$ predictive $\sigma$
+--- both within $1.5\sigma$ of measurement, neither reading as a
+regression. This is the measured version of the filter-factor argument
+above: the estimator moves the amplitudes along $\mathbf{u}_4$ and leaves
+everything the model is actually graded on --- the curve --- alone.

@@ -78,8 +78,12 @@ DEPS = {"fig20a_vandaalen_matrix": ["fig03_halo_validation"],
         "fig05_param_response": ["fig05a_sl_response"],
         "fig07_covariation": ["fig05a_sl_response"],
         "fig07n_covariation_noisy": ["fig05a_sl_response", "fig07_covariation"],
-        # fig23 reuses cl_relerr, defined in the fig04 cell.
-        "fig23_s3_opener": ["fig04_field_validation"]}
+        # fig23b (the demoted S(5000)-vs-f_gas opener) reuses cl_relerr, defined
+        # in the fig04 cell. fig23_s3_opener (the 2026-08-14 rebuild) defines its
+        # own cl_relerr23 and is self-contained given the setup cell, so it
+        # deliberately has NO entry here -- it renders in seconds instead of
+        # dragging in fig04's map loads.
+        "fig23b_s3_bridge_scatter": ["fig04_field_validation"]}
 
 # figures that are GUARDED on a cache that does not exist yet (2026-08-05 noisy-
 # twin campaign): they compile and, if picked, execute their guard branch (which
@@ -180,15 +184,19 @@ def main(wanted: list[str]) -> int:
         finally:
             nbformat.write(sub, HERE / "_subset_run.ipynb")
         print(f"\ndone in {time.time()-t0:.0f}s -> figs_v2/*.pdf + figs_preview/*.png")
+        # under BIND_CAMPAIGN=n1000 the setup cell's save shim tags every stem
+        # _n1000, so the completeness check must look for the tagged file
+        import os as _os
+        _tag = "_n1000" if _os.environ.get("BIND_CAMPAIGN") == "n1000" else ""
         for name, _ in picked:
-            p = HERE / "figs_v2" / f"{name}.pdf"
+            p = HERE / "figs_v2" / f"{name}{_tag}.pdf"
             if p.exists():
-                print(f"   {name}.pdf  {p.stat().st_size/1e3:.0f} kB")
+                print(f"   {p.name}  {p.stat().st_size/1e3:.0f} kB")
             elif name in GUARDED_PENDING:
-                print(f"   {name}.pdf  ABSENT (expected -- guarded on a cache that "
+                print(f"   {p.name}  ABSENT (expected -- guarded on a cache that "
                       "does not exist yet, see the cell's own printed guard message)")
             else:
-                print(f"   {name}.pdf  MISSING")
+                print(f"   {p.name}  MISSING")
     return 0
 
 

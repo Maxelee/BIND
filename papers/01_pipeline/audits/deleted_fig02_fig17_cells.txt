@@ -1,0 +1,263 @@
+# ═════════════════════════════════════════════════════════════════════════════
+md(r'''
+## §1d — Fig 2: from painted halos to the released map suite
+
+**Lightcone construction.** Twenty TNG300-Dark snapshots spanning $z=0.034$–2.44 tile the
+lightcone. Each snapshot is painted independently at its own scale factor $a=1/(1+z)$ (the
+redshift conditioning of §1c); the ray-tracing engine divides each snapshot into four slabs
+of 51.25 $h^{-1}$Mpc depth, creating 80 lens planes in total.
+
+**Compositing.** Painted patches are pasted back into full-box surface-density planes at
+each of the 20 lightcone snapshots ($z=0.034$–2.44), within $4\times R_{200c}$ circular
+apertures and a 15% edge taper; regions outside painted apertures carry no baryonic signal
+(a completeness statement quantified in §5, fig 14). The electron-column plane follows from
+the composited gas surface density,
+
+$$\tau=\sigma_T\,\frac{x_e}{m_p}\,\Sigma_{\rm gas},\qquad x_e=0.88,$$
+
+with per-plane physical-area factors applied at painting time; the Compton-$y$ channel is
+painted directly in physical units and summed over slabs (no extra $1/a^2$ weighting —
+validated against Planck conventions in earlier work).
+
+**Ray tracing.** The `lux` multi-plane algorithm deflects rays through the 20 lens planes
+(lens potentials from the *total* matter planes) and integrates $\kappa$, $\tau$, and $y$
+along the *same deflected rays*, so the three released fields are pixel-aligned by
+construction. Each Sobol node ships 50 realizations (random box rotations/translations,
+seed $1992+7r$ shared across all nodes and with the DMO and hydro-truth traces — the
+seed-pairing that §2 exploits) at five source planes $z_s\in\{0.5,1,1.5,2,2.44\}$, on a
+$1024^2$ grid over $5\times5\,\mathrm{deg}^2$ (0.293′/px, no beam).
+
+**This figure** shows one realization of the fiducial triplet: $\kappa(z_s{=}1)$, and the
+total-column $\tau$ and $y$ to $z=2.44$ — the same large-scale structure is visible in all
+three, as it must be for fields integrated along shared rays. Panel tags sit above the
+axes and the depth/scope clause ("total column to $z=2.44$, painted-halo gas only" — the
+completeness scope of §5b, so these map means undershoot all-sky expectations and must not
+be quoted as monopoles) is stated once in the footer, rather than stamped over the image in
+every panel.
+$\kappa$ crosses zero, so it is shown on a diverging stretch (negative convergence is
+decodable, unlike a sequential ramp) that is **linear and symmetric at $\pm2\sigma_\kappa$**,
+matching fig 0: v2's zero-anchored `TwoSlopeNorm` was piecewise-linear, so the lower half of
+its bar covered $0.02$ in $\kappa$ while the upper half covered $0.06$ and equal color steps
+did not mean equal $\kappa$ steps. Peaks now saturate instead, declared by the bar's extend
+arrow. $\tau$ and $y$ are strictly positive and shown on log stretches, with their bars
+labelled in fixed units ($10^{-3}$, $10^{-6}$) on 1–3–10 ticks — sci-notation ticks put only
+a single $10^{-3}$ label on $\tau$'s 1.5-decade range.
+''')
+
+code(r'''
+# ── Fig 2: kappa / tau / y map gallery ───────────────────────────────────────
+# data: bind_lightcone_tng/{kappa,tau,y}_maps.npz — (50 real, 5 z_s, 1024, 1024),
+#       fov 5 deg, same lux trace => the three fields share the same deflected
+#       ray grid (pixel-aligned); panels are shown at different depths
+#       (kappa at z_s=1; tau and y as the total column to z=2.44).
+from matplotlib.ticker import FuncFormatter, LogLocator
+
+FOV = 5.0
+arr = np.load(LC/"kappa_maps.npz"); kap = arr["kappa"][0, ZI].astype(float); del arr; gc.collect()
+arr = np.load(LC/"tau_maps.npz");   tau = arr["tau"][0, -1].astype(float);   del arr; gc.collect()
+arr = np.load(LC/"y_maps.npz");     ym  = arr["y"][0, -1].astype(float);     del arr; gc.collect()
+kap_s, tau_s, y_s = (gaussian_filter(m, 1.0) for m in (kap, tau, ym))  # 1-px cosmetic smoothing
+
+fig, ax = plt.subplots(1, 3, figsize=(TWO_COL[0], 2.7))
+ext = [0, FOV, 0, FOV]
+# kappa crosses zero -> diverging stretch, LINEAR and symmetric at +-2 sigma
+# (fig 0's convention). v2 used TwoSlopeNorm: its piecewise-linear mapping made
+# equal color steps mean unequal kappa steps -- the lower half of the bar
+# covered 0.02 in kappa while the upper half covered 0.06, so the bar could not
+# be read quantitatively. Peaks now saturate instead (bar's extend arrow says so).
+# This also retires the mpl 3.10 set_ticks()-blanks-a-TwoSlopeNorm-bar workaround.
+vk = 2.0*kap_s.std()
+tau_hi = np.percentile(tau_s, 99.8)       # log stretch spanning >=1.5 decades
+tau_lo = tau_hi/30.0
+ims = [
+    ax[0].imshow(kap_s, origin="lower", extent=ext, cmap="RdBu_r", rasterized=True,
+                 norm=Normalize(-vk, vk)),
+    ax[1].imshow(tau_s, origin="lower", extent=ext, cmap="magma", rasterized=True,
+                 norm=LogNorm(vmin=tau_lo, vmax=tau_hi)),
+    ax[2].imshow(y_s, origin="lower", extent=ext, cmap="inferno", rasterized=True,
+                 norm=LogNorm(vmin=np.percentile(y_s[y_s > 0], 50),
+                              vmax=np.percentile(y_s, 99.8))),
+]
+# panel tags sit ABOVE the axes: v2 stamped 2-line captions inside the image in
+# white-with-black-stroke at 7.5 pt, which is what made them hard to read. The
+# depth/scope clauses moved to the single footer line.
+titles = [r"(a) $\kappa$", r"(b) $\tau$", r"(c) Compton $y$"]
+# log bars are labelled in FIXED UNITS with 1-3-10 ticks: sci notation put only
+# ONE '10^-3' tick on tau's 1.5-decade range.
+cbl = [r"$\kappa$", r"$\tau\ [10^{-3}]$", r"$y\ [10^{-6}]$"]
+SCL = [None, 1e3, 1e6]
+cbs = []
+for j, a in enumerate(ax):
+    a.text(0.5, 1.02, titles[j], transform=a.transAxes, fontsize=8.5, ha="center",
+           va="bottom")
+    a.set_xlabel(r"$\theta_x$ [deg]"); a.set_xticks([0, 2.5, 5])
+    cb = fig.colorbar(ims[j], ax=a, fraction=0.046, pad=0.02,
+                      extend=("max" if j == 0 else "neither"),
+                      ticks=([-0.03, 0.0, 0.03] if j == 0 else None))
+    cb.set_label(cbl[j], fontsize=8, labelpad=1)
+    cb.ax.tick_params(labelsize=6.5)
+    if j:
+        cb.locator = LogLocator(base=10.0, subs=(1.0, 3.0), numticks=12)
+        cb.formatter = FuncFormatter(lambda v, p, s=SCL[j]: f"{v*s:g}")
+        cb.update_ticks()
+    cbs.append(cb)
+ax[0].set_ylabel(r"$\theta_y$ [deg]"); ax[0].set_yticks([0, 2.5, 5])
+for a in ax[1:]:
+    a.set_yticks([0, 2.5, 5]); a.set_yticklabels([])
+fig.tight_layout(w_pad=0.6)
+# footer anchored to the MIDDLE AXES, not the figure: equal-aspect images shrink
+# their axes box after tight_layout, so a fig.text y-coordinate lands far too low.
+ax[1].text(0.5, -0.26, r"$\kappa$ at $z_s=1$; $\tau$ and $y$ are the total column to "
+           r"$z=2.44$, painted-halo gas only.  Same ray trace: all three are pixel-aligned",
+           transform=ax[1].transAxes, ha="center", va="top", fontsize=7)
+save(fig, "figs_v2/fig02_map_suite")
+plt.show()
+print(f"kappa rms = {kap.std():.4f}; mean tau = {tau.mean():.3e}; mean y = {ym.mean():.3e}; "
+      f"kappa stretch +-{vk:.4f} (2 sigma); tau stretch {tau_lo:.2e}-{tau_hi:.2e}")
+''')
+
+# ═════════════════════════════════════════════════════════════════════════════
+md(r'''
+## §1e — Fig 17: the same sky under weak and strong feedback, as response maps (fig 0's ratio view)
+
+Redesigned (v2) at the author's request: rather than three columns of absolute maps, show
+what actually *changes* — $\kappa$, $\tau$, and $y$ each as a fid/weak and a fid/strong
+response map along the suite's dominant lever, `VariableWindVelFactor` (fig 5). Because every
+Sobol node paints the *same* DMO skeleton with the *same* ray seed, all six panels are
+pixel-aligned to the fiducial lightcone (fig 2) — every visible structure is a real halo
+responding to feedback, not resampled noise. **Rows** bracket the true fiducial against the
+weakest- and strongest-wind nodes; **columns** are $\kappa(z_s{=}1)$, $\tau$, and Compton $y$
+(each 1-px Gaussian-smoothed, matching fig 2's convention). $\kappa$ crosses zero
+pixel-by-pixel, so it is shown as the *difference* $\Delta\kappa=\kappa_{\rm fid}-\kappa_{\rm
+run}$ rather than a ratio; $\tau$ and $y$ are strictly positive, so they are shown as a
+$\log_2$ ratio fid/run on a symmetric diverging norm centered at 1 (the colorbars state the
+$\log_2$-symmetric stretch, with ticks relabeled back into physical ratio units, and span the
+full column height). The figure's message is carried *on* the figure: each column carries an
+in-panel verdict line computed live from the maps — the $\kappa$ column's rms ratios ($\simeq1$,
+near-blind: feedback is a few-percent effect on WL), and the $\tau$/$y$ columns' mean fid/run
+ratios, which flip sign between rows (weak winds leave the same halos systematically fainter
+than fiducial, red/ratio $>1$; strong winds leave them brighter, blue/ratio $<1$). Row labels
+sit outside the axes so they never collide with the $\theta_y$ tick labels. All headline
+ratios are recomputed live in the cell — nothing in the verdict lines is hand-typed.
+''')
+
+code(r'''
+# ── Fig 17: feedback-sky response maps (fid/weak, fid/strong x kappa/tau/y) ──
+# data: bind_lightcone_tng/{kappa,tau,y}_maps.npz (fiducial; kap_s/tau_s/y_s
+#       reused from fig 2 -- no reload) + bind_sb35/runs/run_NNNN/
+#       {kappa,tau,y}_maps.npz for the min/max VariableWindVelFactor nodes
+#       (6 x ~1GB key loads, sequential with del/gc); same DMO skeleton + ray
+#       seed => pixel-aligned across all six panels. kappa crosses zero -> the
+#       DIFFERENCE fid-run; tau/y are strictly positive -> a log2 ratio
+#       fid/run on a symmetric diverging norm centered at 1.
+from matplotlib.ticker import FuncFormatter
+
+VWV = sob[:, 4]                                        # VariableWindVelFactor (native)
+r_wlo = int(valid[np.argmin(VWV[valid])])
+r_whi = int(valid[np.argmax(VWV[valid])])
+
+def load_node_maps(r):
+    a = np.load(SB35/f"runs/run_{r:04d}/kappa_maps.npz")
+    k = gaussian_filter(a["kappa"][0, ZI].astype(float), 1.0); del a; gc.collect()
+    a = np.load(SB35/f"runs/run_{r:04d}/tau_maps.npz")
+    t = gaussian_filter(a["tau"][0, -1].astype(float), 1.0);   del a; gc.collect()
+    a = np.load(SB35/f"runs/run_{r:04d}/y_maps.npz")
+    y = gaussian_filter(a["y"][0, -1].astype(float), 1.0);     del a; gc.collect()
+    return k, t, y
+
+k_lo, t_lo, y_lo = load_node_maps(r_wlo)
+k_hi, t_hi, y_hi = load_node_maps(r_whi)
+
+dk_lo, dk_hi = kap_s - k_lo, kap_s - k_hi               # kappa: DIFFERENCE (crosses zero)
+eps_t = 1e-3*np.percentile(tau_s, 99.5)
+eps_y = 1e-3*np.percentile(y_s, 99.5)
+rt_lo, rt_hi = np.log2((tau_s+eps_t)/(t_lo+eps_t)), np.log2((tau_s+eps_t)/(t_hi+eps_t))
+ry_lo, ry_hi = np.log2((y_s+eps_y)/(y_lo+eps_y)),   np.log2((y_s+eps_y)/(y_hi+eps_y))
+rows17 = [("fid/weak", dk_lo, rt_lo, ry_lo), ("fid/strong", dk_hi, rt_hi, ry_hi)]
+
+vk17 = np.percentile(np.abs(np.concatenate([dk_lo.ravel(), dk_hi.ravel()])), 99.5)
+vt17 = np.percentile(np.abs(np.concatenate([rt_lo.ravel(), rt_hi.ravel()])), 99.5)
+vy17 = np.percentile(np.abs(np.concatenate([ry_lo.ravel(), ry_hi.ravel()])), 99.5)
+nk17, nt17, ny17 = Normalize(-vk17, vk17), Normalize(-vt17, vt17), Normalize(-vy17, vy17)
+
+y_ratio_lo, y_ratio_hi = y_s.mean()/y_lo.mean(), y_s.mean()/y_hi.mean()
+t_ratio_lo, t_ratio_hi = tau_s.mean()/t_lo.mean(), tau_s.mean()/t_hi.mean()
+k_ratio_lo, k_ratio_hi = kap_s.std()/k_lo.std(), kap_s.std()/k_hi.std()
+headline = (f"mean $y$ ratio (fid/weak) = {y_ratio_lo:.2f}, (fid/strong) = {y_ratio_hi:.2f}"
+            f"   |   $\\kappa$-rms ratio (fid/weak) = {k_ratio_lo:.3f}, "
+            f"(fid/strong) = {k_ratio_hi:.3f}   |   {len(run_ids)} feedback variants released")
+
+# per-column verdicts, computed live (not hand-written): kappa is judged on its
+# rms ratio, tau/y on whether the fid/run mean ratio changes sign weak->strong
+def verdict17(lo, hi, kind):
+    tag = "flips weak/strong" if (lo - 1)*(hi - 1) < 0 else "same sign both rows"
+    return f"{kind} = {lo:.2f} / {hi:.2f} — {tag}"
+k_tag = "near-blind" if max(abs(k_ratio_lo - 1), abs(k_ratio_hi - 1)) < 0.02 else "responds"
+col_verdicts17 = [f"rms ratio = {k_ratio_lo:.3f} / {k_ratio_hi:.3f} — {k_tag}",
+                  verdict17(t_ratio_lo, t_ratio_hi, "mean ratio"),
+                  verdict17(y_ratio_lo, y_ratio_hi, "mean ratio")]
+
+def ratio_fmt17(v, pos):
+    # 2-DECIMAL everywhere (v3): .2g rounded the log2 ticks ~1.149/~1.072 both
+    # to '1.1' (duplicate labels) while the <1 side showed 2 decimals
+    return f"{2**v:.2f}"
+
+fig, ax = plt.subplots(2, 3, figsize=(TWO_COL[0], 4.6))
+col_labels17 = [r"$\Delta\kappa=\kappa_{\rm fid}-\kappa_{\rm run}$",
+                r"$\tau_{\rm fid}/\tau_{\rm run}$", r"$y_{\rm fid}/y_{\rm run}$"]
+cn17 = [("RdBu_r", nk17), ("RdBu_r", nt17), ("RdBu_r", ny17)]
+ims17 = [[None]*3, [None]*3]
+for i, (rowlab, dk, rt, ry) in enumerate(rows17):
+    for j, (field, (cmap, norm)) in enumerate(zip((dk, rt, ry), cn17)):
+        im = ax[i, j].imshow(field, origin="lower", extent=ext, cmap=cmap, norm=norm,
+                             rasterized=True)
+        ims17[i][j] = im
+        ax[i, j].set_xticks([0, 2.5, 5]); ax[i, j].set_yticks([0, 2.5, 5])
+        if i == 0:
+            ax[i, j].set_xticklabels([])
+            ax[i, j].text(0.5, 1.15, col_labels17[j], transform=ax[i, j].transAxes,
+                          ha="center", va="bottom", fontsize=7)
+            ax[i, j].text(0.5, 1.03, col_verdicts17[j], transform=ax[i, j].transAxes,
+                          ha="center", va="bottom", fontsize=5.2, style="italic",
+                          color="0.25")
+        else:
+            ax[i, j].set_xlabel(r"$\theta_x$ [deg]")
+        if j > 0:
+            ax[i, j].set_yticklabels([])
+    ax[i, 0].set_ylabel(r"$\theta_y$ [deg]")
+
+# colorbars: one per column, spanning the FULL two-row height at the column's
+# right side. v3 overlap fixes: (i) the Delta-kappa ticks are shown x1e3 (1
+# decimal) so the '0.0075'-style labels can't clip into the tau column; (ii)
+# the MIDDLE (tau) bar carries NO axis label -- the identical 'ratio (log2-
+# symmetric stretch)' label lives on the right-hand y bar in clear margin,
+# and both ratio bars share the stretch; (iii) wspace widened below.
+cb_k17 = fig.colorbar(ims17[0][0], ax=[ax[0, 0], ax[1, 0]], fraction=0.05, pad=0.03)
+cb_t17 = fig.colorbar(ims17[0][1], ax=[ax[0, 1], ax[1, 1]], fraction=0.05, pad=0.03)
+cb_y17 = fig.colorbar(ims17[0][2], ax=[ax[0, 2], ax[1, 2]], fraction=0.05, pad=0.03)
+for cb in (cb_t17, cb_y17):
+    cb.ax.yaxis.set_major_formatter(FuncFormatter(ratio_fmt17))
+cb_k17.ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{1e3*v:.1f}"))
+cb_k17.set_label(r"$\Delta\kappa\ \times10^{3}$", fontsize=6)
+cb_y17.set_label(r"ratio (log$_2$-symmetric stretch, both ratio bars)", fontsize=6)
+for cb in (cb_k17, cb_t17, cb_y17):
+    cb.ax.tick_params(labelsize=5.5)
+
+# Row headers OUTSIDE the axes, past the theta_y ylabel -- the author's explicit
+# ask was that these never collide with the axis tick labels (unlike v1).
+for i, (rowlab, *_) in enumerate(rows17):
+    ax[i, 0].text(-0.50, 0.5, rowlab, transform=ax[i, 0].transAxes, rotation=90,
+                  va="center", ha="center", fontsize=8.5, fontweight="bold")
+
+fig.subplots_adjust(left=0.12, right=0.86, top=0.85, bottom=0.11, wspace=0.44,
+                    hspace=0.22)   # wspace 0.30->0.44: colorbar labels/ticks
+                    # must not cross the neighboring column's panel border
+fig.text(0.52, 0.01, headline, ha="center", va="bottom", fontsize=5.8)
+save(fig, "figs_v2/fig17_feedback_sky")
+plt.show()
+print(f"rows: run {r_wlo} (VarWindVel={VWV[r_wlo]:.1f}, weak) / "
+      f"run {r_whi} (VarWindVel={VWV[r_whi]:.1f}, strong) vs fiducial; {headline}")
+del k_lo, t_lo, y_lo, k_hi, t_hi, y_hi, dk_lo, dk_hi, rt_lo, rt_hi, ry_lo, ry_hi
+gc.collect()
+''')
+

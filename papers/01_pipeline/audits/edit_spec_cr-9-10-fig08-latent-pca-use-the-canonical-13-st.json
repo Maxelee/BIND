@@ -1,0 +1,357 @@
+{
+ "item": "CR 9 + 10 \u2014 fig08_latent_pca: use the canonical 13-statistic list; fig09_emulator_validation: split panels (b)+(c) into their own figure, drop the (a) inset, and add a truth-vs-emulated curve panel for every canonical statistic",
+ "figures": [
+  "fig08_latent_pca",
+  "fig09_emulator_validation",
+  "fig09b_emulator_heads (NEW)",
+  "fig09c_emulator_curves (NEW)",
+  "fig15_emulator_calibration (side effect)"
+ ],
+ "code_locations": [
+  {
+   "what": "fig08 narrative markdown cell (\"7 families\", \"21 family pairs\", 92-99% EVR claims) \u2014 must be rewritten for 12 families / 66 pairs",
+   "start_line": 3062,
+   "end_line": 3093
+  },
+  {
+   "what": "fig08 code cell in full (code(r''' ... ''')) \u2014 the only place fig08 is built",
+   "start_line": 3095,
+   "end_line": 3214
+  },
+  {
+   "what": "fam_matrix() helper \u2014 transform+standardize per family (log / log1p / raw); reusable unchanged for all 12 canonical families",
+   "start_line": 3098,
+   "end_line": 3105
+  },
+  {
+   "what": "FAM8 dict \u2014 THE 7-family list to replace (S, Cky, Cyy, Ctt, Npk, PDF, MFs-concatenated)",
+   "start_line": 3107,
+   "end_line": 3116
+  },
+  {
+   "what": "PCA/score loop \u2014 builds scores[lab] (253,2), evr[lab], n99[lab]; scales to any family count with no change",
+   "start_line": 3117,
+   "end_line": 3123
+  },
+  {
+   "what": "cca2() helper + CC / C8 / C8b matrices (rho1, rho2 between 2-PC planes)",
+   "start_line": 3125,
+   "end_line": 3131
+  },
+  {
+   "what": "permutation null over ALL family pairs (currently 21 pairs x 200 shuffles); becomes 66 pairs",
+   "start_line": 3133,
+   "end_line": 3144
+  },
+  {
+   "what": "peak-count noise floor (uses `pr` from the fig04 cell) + latent_drivers load for panel (c)",
+   "start_line": 3146,
+   "end_line": 3152
+  },
+  {
+   "what": "fig08 figure creation + panels (a) EVR bars, (b) rho1/rho2 heatmap, (c) suppression PC plane colored by f_gas; figsize (TWO_COL[0], 2.55), 1x3 width_ratios [1.15,1.0,1.05]",
+   "start_line": 3154,
+   "end_line": 3194
+  },
+  {
+   "what": "fig08 printed provenance numbers (EVR list, rho1/rho2 vs S, shared-second-direction list, nulls, pk noise/signal)",
+   "start_line": 3195,
+   "end_line": 3213
+  },
+  {
+   "what": "\u00a74.0 emulator methodology markdown \u2014 the 14-row per-head contract table, \"all 14 released heads\", the 584s/1.3s reference wall times",
+   "start_line": 3217,
+   "end_line": 3304
+  },
+  {
+   "what": "fig09 caption markdown \u2014 describes (a) lead + annotated inset, (b) median frac err, (c) response R^2, \"all 14 released statistics\"",
+   "start_line": 3307,
+   "end_line": 3325
+  },
+  {
+   "what": "fig09 code cell in full",
+   "start_line": 3327,
+   "end_line": 3505
+  },
+  {
+   "what": "STATS_EMU \u2014 the 14-head list (no cl_kappa). Shared global: also drives fig15 panel (b) and ALPHA",
+   "start_line": 3336,
+   "end_line": 3338
+  },
+  {
+   "what": "Emulator fit + batch predict; defines `em`, `pred`, `fit_time` (executed: 128s fit, 0.31s predict)",
+   "start_line": 3357,
+   "end_line": 3365
+  },
+  {
+   "what": "TRUTH dict + flat() + metrics{} (fe, response R2, cov1, cov2) \u2014 all reusable by a new cell",
+   "start_line": 3367,
+   "end_line": 3385
+  },
+  {
+   "what": "held-out run selection: res_all, fe_run, order_e, i_typ (median-|err| run), i_wc (95th-pct run), br_wc",
+   "start_line": 3387,
+   "end_line": 3401
+  },
+  {
+   "what": "fig09 figure + gridspec (1x3 [1.55,1.0,1.0]); gs9a subgrid gives axa (main) + axr (residual strip); ax1=(b), ax2=(c)",
+   "start_line": 3403,
+   "end_line": 3408
+  },
+  {
+   "what": "panel (a) main curves (measured vs emulated +-1sigma for run i_typ)",
+   "start_line": 3410,
+   "end_line": 3419
+  },
+  {
+   "what": "THE INSET TO REMOVE \u2014 axi = axa.inset_axes([0.52,0.55,0.45,0.42]) with the 95th-pct run + its annotation (this inset is also what triggers the tight_layout UserWarning at line 3470)",
+   "start_line": 3420,
+   "end_line": 3429
+  },
+  {
+   "what": "residual strip axr (5-95% envelope of all 50 held-out runs + typical + 95th-pct traces) \u2014 belongs with (a), keep",
+   "start_line": 3430,
+   "end_line": 3441
+  },
+  {
+   "what": "`names` label list (14 mathtext labels) + panel (b) frac-err bars + FAM9 family-median annotations ([('WL field',0,7),('SZ/cross spectra',7,12),('scalings',12,14)])",
+   "start_line": 3443,
+   "end_line": 3464
+  },
+  {
+   "what": "panel (c) response-R^2 bars",
+   "start_line": 3465,
+   "end_line": 3469
+  },
+  {
+   "what": "save + per-head printout loop (zip(STATS_EMU, names)) + branch split prints",
+   "start_line": 3470,
+   "end_line": 3491
+  },
+  {
+   "what": "any-z/any-grid demo (em.predict(theta, z_s=0.75, grids=...)) \u2014 closing cell of fig09",
+   "start_line": 3493,
+   "end_line": 3504
+  },
+  {
+   "what": "INSERT POINT for the new fig09b/fig09c md+code cells (between the fig09 code cell and the \u00a74b'' markdown)",
+   "start_line": 3506,
+   "end_line": 3507
+  },
+  {
+   "what": "fig15 cell \u2014 consumes STATS_EMU, `pred`, `TRUTH`, `names`, and defines ALPHA over STATS_EMU; any STATS_EMU change lands here too (panel (b) bars, the '14 detections' annotation at 3764-3767, the closing print at 3825-3829)",
+   "start_line": 3686,
+   "end_line": 3830
+  },
+  {
+   "what": "ALPHA_S = ALPHA['suppression'] consumed by fig10 \u2014 unaffected by adding heads, but confirms ALPHA is a cross-cell global",
+   "start_line": 4100,
+   "end_line": 4100
+  }
+ ],
+ "data_verified": [
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz",
+   "keys": [
+    "t__cl_kappa__value (253,5,5,724) log, src_axis=None, valid 253/253",
+    "t__suppression__value (253,5,724) raw, src_axis=0, valid 253/253",
+    "t__pdf__value (253,5,41) log1p",
+    "t__peak_counts__value (253,5,68) log1p",
+    "t__minima_counts__value (253,5,68) log1p",
+    "t__mf_v0/v1/v2__value (253,5,29) raw",
+    "t__cl_yy__value (253,724) log, src_axis=None",
+    "t__cl_tt__value (253,724) log, src_axis=None",
+    "t__cl_kappa_y__value (253,5,724) raw, src_axis=0",
+    "t__cl_kappa_tau__value (253,5,724) raw, src_axis=0",
+    "cl_dmo (5,724)"
+   ],
+   "shape_note": "ALL 12 unique canonical statistics are present with valid=253/253 and finite_frac=1.0000 \u2014 nothing is missing. cl_kappa is the only 4-D block (5x5 tomographic cube, src_axis=None, so it is NOT z_s-interpolatable by em.predict).",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np,json; d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz'); man=json.loads(str(d['manifest'])); [print(s, d['t__%s__value'%s].shape, int(d['t__%s__valid'%s].sum()), man['targets'][s]) for s in ['cl_kappa','suppression','pdf','peak_counts','minima_counts','mf_v0','mf_v1','mf_v2','cl_yy','cl_tt','cl_kappa_y','cl_kappa_tau']]\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz (bin axes)",
+   "keys": [
+    "a__cl_kappa__ell (724) 86.91-52134",
+    "a__suppression__ell (724)",
+    "a__cl_yy__ell / a__cl_tt__ell / a__cl_kappa_y__ell / a__cl_kappa_tau__ell (724 each, identical grid)",
+    "a__pdf__pdf_bins (41) -0.2214..0.2214",
+    "a__peak_counts__nu (68) -4.875..11.875",
+    "a__minima_counts__nu (68) same grid",
+    "a__mf_v0/v1/v2__mf_nu (29) -3..4"
+   ],
+   "shape_note": "Every canonical statistic has a 1-D bin axis stored in the same npz, so a per-statistic curve panel needs no external axis file. The notebook already binds ELL = d['a__suppression__ell'] at line 140.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz'); [print(k, d[k].shape, d[k].min(), d[k].max()) for k in sorted(f for f in d.files if f.startswith('a__'))]\""
+  },
+  {
+   "path": "sign/positivity audit over the plotted range ell<=2e4 (mE, 277 of 724 bins), z_s index ZI=1",
+   "keys": [
+    "cl_kappa auto: 1.45e-12..9.54e-09, neg_frac 0.000",
+    "suppression: 0.764..1.503",
+    "cl_yy: 3.16e-21..2.64e-16, neg 0",
+    "cl_tt: 5.38e-16..2.79e-11, neg 0",
+    "cl_kappa_y: 1.03e-17..6.17e-13, neg 0",
+    "cl_kappa_tau: 3.97e-15..3.89e-10, neg 0",
+    "pdf: 0..28.5 (hits exact 0 in tails)",
+    "peak_counts: 0..68.0 (hits 0)",
+    "minima_counts: 0..111.6 (hits 0)",
+    "mf_v0: 6e-3..1.0",
+    "mf_v1: 0..1.44e-2",
+    "mf_v2: -4.01e-4..6.27e-4, neg_frac 0.276"
+   ],
+   "shape_note": "All five spectra are strictly positive over ell<=2e4 at z_s=1 -> log-log panels are safe. pdf/peaks/minima touch zero -> linear y. mf_v2 is signed -> linear y, symmetric about 0.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz'); E=d['a__suppression__ell']; m=E<=2e4; a=d['t__cl_kappa_y__value'][:,1,m]; print(a.min(), a.max(), (a<0).mean())\""
+  },
+  {
+   "path": "fig08 machinery re-run at 12 families (exact copy of fam_matrix/cca2 from lines 3098-3131)",
+   "keys": [
+    "EVR(PC1+PC2): Ckk 99.1%, S 99.1%, PDF 92.3%, Npk 27.1%, Nmin 45.0%, V0 98.0%, V1 98.7%, V2 97.8%, Cyy 98.7%, Ctt 98.4%, Cky 98.4%, Ckt 99.6%",
+    "n99: Ckk 2, S 2, PDF 7, Npk 49, Nmin 21, V0/V1/V2 3/3/3, Cyy 3, Ctt 3, Cky 3, Ckt 2",
+    "rho1/rho2 vs S(l): Ckk 1.00/1.00, PDF 0.99/0.73, Npk 0.99/0.28, Nmin 0.97/0.14, V0 0.98/0.22, V1 1.00/0.37, V2 1.00/0.38, Cyy 0.93/0.87, Ctt 0.96/0.74, Cky 0.91/0.31, Ckt 0.99/0.89",
+    "permutation null over 66 pairs x200 shuffles: 1.3 s, rho1 median 0.11 / p95 0.18, rho2 median 0.03 / p95 0.08 (UNCHANGED from the 21-pair version)"
+   ],
+   "shape_note": "The whole 12-family PCA+CCA+null costs ~1.5 s, so CR 9 adds no meaningful runtime. Splitting MFs into V0/V1/V2 shows they are NOT interchangeable: rho2 vs S is 0.22/0.37/0.38 individually vs 0.08 for the concatenated MFs block, so the current 'MFs rho2 consistent with the null' claim in the markdown changes and must be rewritten.",
+   "probe_command": "see scratchpad-style heredoc: python - <<'EOF' ... fam_matrix/cca2 copied verbatim from _build_figures_nb.py lines 3098-3131, FAM = {Ckk: ck[:,1,1,:] log, S, PDF, Npk, Nmin, V0, V1, V2, Cyy, Ctt, Cky, Ckt} ... EOF"
+  },
+  {
+   "path": "DEGENERACY CHECK: C_l^kappakappa vs S(l) inside fam_matrix",
+   "keys": [
+    "np.allclose(cl_kappa[:,1,1,:], suppression[:,1,:]*cl_dmo[1]) -> True",
+    "max |Z_ckappa - Z_S| = 1.96e-11 (the two standardized matrices are the SAME matrix)",
+    "rho1/rho2(S, cl_kappa z_s=1 auto) = 1.000 / 1.000",
+    "rho1/rho2(S, FULL 5x5x724 cube) = 1.000 / 1.000",
+    "rho1/rho2(S, 5-plane autos) = 1.000 / 0.999"
+   ],
+   "shape_note": "At fixed cosmology the DMO trace is a per-bin constant, so log10(C_kk) = log10(S) + const and the per-bin standardization in fam_matrix removes the constant exactly. Adding cl_kappa as a 12th fig08 family produces a row/column of 1.00 BY CONSTRUCTION \u2014 not a measurement. Even the full tomographic cube is degenerate.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz'); a=d['t__cl_kappa__value'][:,1,1,:]; S=d['t__suppression__value'][:,1,:]; print(np.allclose(a, S*d['cl_dmo'][1]))\""
+  },
+  {
+   "path": "GP emulator: does a cl_kappa head exist and what does it cost? (bind.emulator, backend='gpgpu', n_components=12, epochs=400, lr=0.1; same seed-0 203/50 split as fig09)",
+   "keys": [
+    "STAT_SPECS['cl_kappa'] = StatSpec('Cl_kappa.npz','cl','log',None,'cl_err',('ell',)) \u2014 a first-class registered head (src/bind/emulator/dataset.py:79)",
+    "em.fit(..., stats=['cl_kappa']) -> k=12 PCs, 15.5-22.9 s on 1 CPU, peak RSS 0.90 GB",
+    "em.predict(X_native[test_idx]) -> cl_kappa (50,5,5,724), cl_kappa_err (50,5,5,724), 0.07 s",
+    "metrics with the notebook's own definitions: median |frac err| = 2.58%, response R^2 = 1.00, cov |z|<1 / |z|<2 = 0.69 / 0.91",
+    "z_s=1 auto slice alone: median |frac err| 2.61%"
+   ],
+   "shape_note": "The emulator DOES have a raw-kk head; fig09 simply does not fit it (STATS_EMU omits it because dataset.assemble already ships `suppression` as a direct head). Heads are fitted independently, so these numbers are exactly what a 15-head joint fit would print. Adding it raises the fig09 fit from 128 s to ~145 s.",
+   "probe_command": "timeout 900 /mnt/home/mlee1/venvs/BIND_env/bin/python - <<'EOF' ... em=Emulator(backend='gpgpu',n_components=12,backend_kwargs={'epochs':400,'lr':0.1}); em.fit(ds.subset(train_idx),stats=['cl_kappa']); pred=em.predict(X_native[test_idx]) ... EOF"
+  },
+  {
+   "path": "core.Emulator.predict branch interaction when BOTH 'suppression' and 'cl_kappa' are fitted (src/bind/emulator/core.py:180-197)",
+   "keys": [
+    "if 'suppression' in names -> cl_kappa_auto = suppression * cl_dmo (this branch wins)",
+    "elif 'cl_kappa' in names -> derives auto + suppression from the raw cube",
+    "out['cl_kappa'] is ALWAYS the directly-emulated 5x5 cube regardless of branch"
+   ],
+   "shape_note": "Adding 'cl_kappa' to STATS_EMU is safe: pred['suppression'] stays the direct head (unchanged fig09a/fig15 numbers), pred['cl_kappa'] is the new head. No key collision, no silent redefinition.",
+   "probe_command": "single-head probe printed keys: {'cl_kappa': (50,5,5,724), 'cl_kappa_err': (50,5,5,724), 'cl_kappa_auto': (50,5,724), 'suppression': (50,5,724)}"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/src/bind/emulator/backends.py (git status ' M')",
+   "keys": [
+    "git diff --stat: 1 file changed, 1 insertion(+), 1 deletion(-)",
+    "the hunk: MLPEnsemble.fit, `opt.step()` re-indented from outside the minibatch loop to inside it (line ~105)"
+   ],
+   "shape_note": "IRRELEVANT TO FIG09. fig09 constructs Emulator(backend='gpgpu') -> GPTorchBackend (gpytorch batched exact GP); MLPEnsemble is only reached with backend='mlp', which no Paper-I cell uses. The editable install resolves to /mnt/home/mlee1/BIND/src/bind/emulator/backends.py (verified), and the fix is live, but it changes nothing in figs 9/15/10/16. It is the bug already described in the \u00a74.0 markdown ('we also fixed a genuine bug in the released MLPEnsemble backend (opt.step() outside the epoch loop)') \u2014 so the source edit and the prose are consistent; it just needs committing.",
+   "probe_command": "cd /mnt/home/mlee1/BIND && git diff --stat src/bind/emulator/backends.py && git diff src/bind/emulator/backends.py | head -80"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/paper1_figures.ipynb (executed outputs, cells 33 and 36)",
+   "keys": [
+    "cell 33 (fig08): EVR 'S 99%, Cky 98%, Cyy 99%, Ctt 98%, Npk 27%, PDF 92%, MFs 95%'; nulls rho1 p95 0.18, rho2 p95 0.08; pk noise/signal 2.9",
+    "cell 36 (fig09): 'gpgpu fit (14 stats, <=12 PCA components each, 203 runs) in 128s'; 'batch prediction of 50 held-out runs in 0.31s'; UserWarning 'This figure includes Axes that are not compatible with tight_layout' at fig.tight_layout(w_pad=1.1)"
+   ],
+   "shape_note": "The crib sheet FIGURE_NUMBERS.md line 93 states 'fit 27s, 50-run batch predict 0.09s' \u2014 STALE/WRONG vs the notebook actually in the tree (128 s / 0.31 s). Use 128 s. Also: the tight_layout warning is caused by the inset axes that CR 10 removes, so removing it fixes the warning for free.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import json; nb=json.load(open('paper1_figures.ipynb')); [print(''.join(o.get('text',[]))) for i,c in enumerate(nb['cells']) if 'fig09_emulator_validation' in ''.join(c['source']) for o in c.get('outputs',[]) if o.get('output_type')=='stream']\""
+  }
+ ],
+ "data_gaps": [
+  {
+   "requested": "\"the canonical 13 statistics\" as 13 distinct fig08 families / 13 distinct fig09 curve panels",
+   "why_blocked": "The list 8 WL + 3 auto + 2 cross sums to 13 SLOTS but only 12 UNIQUE dataset arrays: cl_kappa is counted twice (once as a WL field statistic, once as the kappa auto-spectrum). There is no 13th array to plot.",
+   "closest_alternative": "Build 12 unique families/panels and state the 8+3+2 accounting in the caption (cl_kappa serves both roles). If exactly 13 panels are wanted, the honest 13th is cl_yt (the y-tau cross, already an emulator head, (253,724), valid 253/253) \u2014 it completes the 3x3 auto+cross spectrum block (kk, yy, tt / ky, kt, yt) and makes a clean 4x3 or 3x4 grid + 1. Do NOT duplicate cl_kappa in two panels."
+  },
+  {
+   "requested": "C_l^kappakappa as an independent fig08 family whose alignment with S(l) is a measurement",
+   "why_blocked": "PROVEN DEGENERATE. suppression is DEFINED in dataset.assemble (src/bind/emulator/dataset.py:357-361) as auto/cl_dmo with a single fixed DMO trace, so log10(C_kk) = log10(S) + const per bin; fam_matrix's per-bin standardization removes the constant exactly (max |Z_ckk - Z_S| = 2e-11). rho1 = rho2 = 1.000, for the z_s=1 auto AND for the full 5x5 cube.",
+   "closest_alternative": "Two options. (i) Include the C_kk row/column and label it on-figure as 'identical by construction at fixed cosmology' \u2014 it is a legitimate consistency anchor and reads as a deliberate control. (ii) Drop C_kk from fig08 and keep 11 families, footnoting that C_kk carries no PCA-level information beyond S(l) because the cosmology is fixed. Either way the cell must PRINT the degeneracy check (np.allclose(cl_kappa[:,ZI,ZI,:], S*cl_dmo[ZI])) so a reader cannot mistake the 1.00 for a result."
+  },
+  {
+   "requested": "A z_s-interpolated C_l^kappakappa panel (e.g. em.predict(theta, z_s=0.75)['cl_kappa'])",
+   "why_blocked": "STAT_SPECS['cl_kappa'] has src_axis=None (the block has TWO source-plane axes, 5x5, so the single-axis interpolator in core._interp_zs cannot be applied). em.predict(z_s=...) leaves cl_kappa on its stored 5x5 grid.",
+   "closest_alternative": "Use the derived key pred['cl_kappa_auto'] (shape (m,5,724), src_axis-aware, built from suppression * cl_dmo) for any z_s-generalization panel, or restrict the C_kk panel to the five stored planes (index [:, ZI, ZI, :] for z_s = 1)."
+  },
+  {
+   "requested": "Held-out prediction arrays for cl_kappa reusable without refitting",
+   "why_blocked": "`pred` and `TRUTH` in the fig09 cell are built strictly from STATS_EMU, which does not contain cl_kappa. A new cell cannot index pred['cl_kappa'] until the head is added upstream.",
+   "closest_alternative": "Add 'cl_kappa' to STATS_EMU (line 3336) \u2014 +15.5-22.9 s of fit time, verified \u2014 so that `pred`, `TRUTH` and `metrics` all carry it and every downstream cell reuses it for free. The alternative (fit a second single-head Emulator inside the new cell) duplicates 23 s and risks the two fits drifting apart."
+  }
+ ],
+ "change_spec": [
+  {
+   "step": "CR9-1. Replace the FAM8 dict (lines 3107-3116) with the canonical family dict",
+   "detail": "Rename FAM8 -> FAM13 and fams8 -> fams13 (also at 3129, 3130, 3140-3142, 3156, 3160, 3162, 3164, 3170-3171, 3177-3178, 3195-3202). New dict, in canonical order so the WL / SZ-auto / cross blocks are contiguous on the axes:\nFAM13 = {\n r\"$C_\\ell^{\\kappa\\kappa}$\": (d[\"t__cl_kappa__value\"][:, ZI, ZI, :], \"log\"),\n r\"$S(\\ell)$\":              (d[\"t__suppression__value\"][:, ZI, :], \"log\"),\n r\"PDF\":                    (d[\"t__pdf__value\"][:, ZI, :], \"raw\"),\n r\"$N_{\\rm pk}$\":           (d[\"t__peak_counts__value\"][:, ZI, :], \"log1p\"),\n r\"$N_{\\rm min}$\":          (d[\"t__minima_counts__value\"][:, ZI, :], \"log1p\"),\n r\"$V_0$\":                  (d[\"t__mf_v0__value\"][:, ZI, :], \"raw\"),\n r\"$V_1$\":                  (d[\"t__mf_v1__value\"][:, ZI, :], \"raw\"),\n r\"$V_2$\":                  (d[\"t__mf_v2__value\"][:, ZI, :], \"raw\"),\n r\"$C_\\ell^{yy}$\":          (d[\"t__cl_yy__value\"], \"log\"),\n r\"$C_\\ell^{\\tau\\tau}$\":    (d[\"t__cl_tt__value\"], \"log\"),\n r\"$C_\\ell^{\\kappa y}$\":    (d[\"t__cl_kappa_y__value\"][:, ZI, :], \"raw\"),\n r\"$C_\\ell^{\\kappa\\tau}$\":  (d[\"t__cl_kappa_tau__value\"][:, ZI, :], \"raw\"),\n}\nNote the two structural changes vs FAM8: (i) the concatenated \"MFs\" entry (old lines 3114-3115) is SPLIT into V0/V1/V2; (ii) three new families C_kk, N_min, C_ktau. Transforms follow dataset.STAT_SPECS exactly. ZI=1 (z_s=1) is already the notebook-wide working plane (line 139). Everything downstream (fam_matrix, the SVD loop, cca2, CC/C8/C8b) works unchanged \u2014 verified end-to-end in ~1.5 s."
+  },
+  {
+   "step": "CR9-2. Decide and annotate the C_kk == S(l) degeneracy (BLOCKING \u2014 do not ship silently)",
+   "detail": "rho1 = rho2 = 1.000 between C_kk and S(l) BY CONSTRUCTION (max |Z_ckk - Z_S| = 2e-11). Add immediately after the FAM13 dict:\n_ck = d[\"t__cl_kappa__value\"][:, ZI, ZI, :]\nassert np.allclose(_ck, d[\"t__suppression__value\"][:, ZI, :]*d[\"cl_dmo\"][ZI]), \"C_kk != S*C_DMO\"\nprint(\"C_kk and S(ell) are the SAME family at fixed cosmology (C_kk = S x C_DMO with a run-independent DMO trace): their rho1/rho2 = 1.00 is an identity, not a measurement -- the row is kept as a consistency anchor\")\nand mark the C_kk tick label on panels (a)/(b) with a dagger, e.g. add ax[1].text under the matrix: r\"$\\dagger$ $C_\\ell^{\\kappa\\kappa}\\equiv S\\times C_\\ell^{\\rm DMO}$ (identity row)\" at fontsize 4.5. If the reviewer prefers, drop C_kk entirely and run 11 families \u2014 the rest of the spec is unchanged except counts."
+  },
+  {
+   "step": "CR9-3. Re-layout fig08 for a 12x12 matrix",
+   "detail": "Current: fig, ax = plt.subplots(1, 3, figsize=(TWO_COL[0], 2.55), width_ratios=[1.15,1.0,1.05]) \u2014 panel (b) gets ~1.9 in for 7 cells = 0.27 in/cell. At 12 cells that collapses to 0.16 in/cell and the two stacked in-cell numbers (fontsize 4.6 / 3.8) become unreadable. Replace lines 3154-3155 with a 2-row layout that gives the matrix a full-height column:\nfig = plt.figure(figsize=TWO_COL_TALL)            # (7.2, 5.6), already imported at line 113\ngsL = fig.add_gridspec(2, 2, width_ratios=[1.0, 1.15], hspace=0.42, wspace=0.32)\naxA = fig.add_subplot(gsL[0, 0])   # (a) EVR bars, 12 bars\naxC = fig.add_subplot(gsL[1, 0])   # (c) suppression PC plane colored by f_gas (unchanged code, 3185-3190)\naxB = fig.add_subplot(gsL[:, 1])   # (b) 12x12 rho1/rho2 matrix, ~3.3 in square -> 0.27 in/cell, i.e. the SAME density as today\nThen rename ax[0]->axA, ax[1]->axB, ax[2]->axC throughout 3156-3190 and set axB.set_aspect('equal'). Keep fontsize 4.6/3.8 for the two in-cell numbers; rotate the x tick labels to 55 deg (ha='right', fontsize 5.5) because 12 mathtext labels are wider than 7. Replace fig.tight_layout(w_pad=1.0) at 3192 with fig.tight_layout()."
+  },
+  {
+   "step": "CR9-4. Panel (a): keep the stacked PC1/PC2 bars; update the noise-domination annotation",
+   "detail": "Lines 3157-3166 need no logic change (they iterate fams). But the hard-coded call-out at 3162-3163 (jpk = fams8.index(r\"$N_{\\rm pk}$\"); text at y=0.42 'noise-dom.') must now cover BOTH count families: N_pk EVR(PC1+PC2)=27.1% (n99=49) and the NEW N_min 45.0% (n99=21). Replace with a loop over [r\"$N_{\\rm pk}$\", r\"$N_{\\rm min}$\"] placing the label at 0.5*(evr[f][0]+evr[f][1]) + 0.06. Verified EVR values for the 12 bars: Ckk 99.1, S 99.1, PDF 92.3, Npk 27.1, Nmin 45.0, V0 98.0, V1 98.7, V2 97.8, Cyy 98.7, Ctt 98.4, Cky 98.4, Ckt 99.6."
+  },
+  {
+   "step": "CR9-5. Permutation null: 21 -> 66 pairs (code already generic, only the strings change)",
+   "detail": "Lines 3138-3143 loop over ia<ib so the pair count follows automatically: 12*11/2 = 66. Cost measured at 1.3 s for 200 shuffles x 66 pairs (was ~0.4 s). The null values do NOT move: rho1 median 0.11 / p95 0.18, rho2 median 0.03 / p95 0.08 \u2014 identical to the published 21-pair numbers. Update the hard-coded literals '21' in the comment at 3134 and in the print at 3210 to a computed len(fams13)*(len(fams13)-1)//2."
+  },
+  {
+   "step": "CR9-6. Update the fig08 printouts (3195-3213) and re-derive the narrative claims",
+   "detail": "Measured rho1/rho2 vs S(l) for the new 12-family set (these replace the crib-sheet line 88): Ckk 1.00/1.00 (identity), PDF 0.99/0.73, Npk 0.99/0.28, Nmin 0.97/0.14, V0 0.98/0.22, V1 1.00/0.37, V2 1.00/0.38, Cyy 0.93/0.87, Ctt 0.96/0.74, Cky 0.91/0.31, Ckt 0.99/0.89. Consequences for the markdown at 3062-3093: (i) 'shared SECOND direction (rho2>=0.5)' becomes {Cyy 0.87, Ckt 0.89, Ctt 0.74, PDF 0.73} \u2014 C_l^{kappa tau} is a NEW member of the shared-2-plane group and must be named; (ii) the sentence 'the MFs' rho2 is consistent with the null' is FALSIFIED by the split: individually V0/V1/V2 give rho2 = 0.22/0.37/0.38, all above the 0.08 null, whereas the concatenated MFs block gave 0.08. Rewrite that clause (the concatenation was diluting the signal). (iii) '92-99% of the variance in every family except peak counts' becomes 'except the peak and minimum counts (27% and 45%)'. (iv) '21 family pairs' -> '66 family pairs' in two places."
+  },
+  {
+   "step": "CR10-1. Remove the fig09 (a) inset",
+   "detail": "Delete lines 3420-3429 in full (the comment block, axi = axa.inset_axes([0.52, 0.55, 0.45, 0.42]), the two axi.plot calls, axi.set_xscale/tick_params, and the axi.text annotation). Keep i_wc / br_wc (defined at 3400-3401): they are still used by the residual-strip trace at 3435-3436 and by the print at 3477-3479. Bonus: the inset is the sole cause of the 'Axes not compatible with tight_layout' UserWarning emitted at line 3470 in the executed notebook; removing it clears the warning. Reword the print at 3477-3479 from 'inset = 95th-pct run' to 'residual strip highlights the 95th-pct run'."
+  },
+  {
+   "step": "CR10-2. Split panels (b) and (c) into a new figure fig09b_emulator_heads",
+   "detail": "In the fig09 cell, cut lines 3403-3408 down to a 1-column layout for (a) only:\nfig = plt.figure(figsize=(ONE_COL[0], 3.0))\ngs9a = fig.add_gridspec(2, 1, height_ratios=[2.4, 1.0], hspace=0.08)\naxa = fig.add_subplot(gs9a[0]); axr = fig.add_subplot(gs9a[1], sharex=axa)\n(delete the gs9 = fig.add_gridspec(1,3,...) line and the ax1/ax2 creation). Bump the (a) legend/label fontsizes from 5.2/4.2 to 6.5/5.5 now that the panel is not squeezed into 1.55/3.55 of a 7.2 in figure. Keep save(fig, 'figs_v2/fig09_emulator_validation') at 3471. Then, immediately after 3472 (plt.show()), build the companion:\nfig = plt.figure(figsize=(TWO_COL[0], 2.7))\nax1, ax2 = fig.subplots(1, 2)\n... paste lines 3443-3469 verbatim (names, fe_v, r2_v, xx, the FAM9 family-median annotations, the R^2 bars) ...\nfig.tight_layout(w_pad=1.1); save(fig, 'figs_v2/fig09b_emulator_heads'); plt.show()\nRelabel the panels (a)/(b) inside fig09b (panel_label(ax1,'(a)',loc='upper right'), ax2 -> '(b)'). `names`, `metrics`, `fe_v`, `r2_v`, `FAM9` stay module-level so fig15 (line 3761) keeps working."
+  },
+  {
+   "step": "CR10-3. Add the missing cl_kappa head so every canonical statistic has a prediction",
+   "detail": "Line 3336-3338: insert \"cl_kappa\" as element 0 ->\nSTATS_EMU = [\"cl_kappa\", \"suppression\", \"peak_counts\", \"minima_counts\", \"pdf\", \"mf_v0\",\n             \"mf_v1\", \"mf_v2\", \"cl_yy\", \"cl_tt\", \"cl_kappa_y\", \"cl_kappa_tau\", \"cl_yt\",\n             \"scaling_Y\", \"scaling_f_gas\"]   # 15 heads\nAt line 3443-3445 prepend r\"$C_\\ell^{\\kappa\\kappa}$\" to `names`. At line 3452 shift the family boundaries: FAM9 = [(\"WL field\", 0, 8), (\"SZ/cross spectra\", 8, 13), (\"scalings\", 13, 15)]. Verified new-bar values (identical to a joint fit because heads are fitted independently): cl_kappa median |frac err| = 2.58%, response R^2 = 1.00, cov |z|<1/2 = 0.69/0.91. Cost: fit 128 s -> ~145 s (+15.5-22.9 s measured on 1 CPU), peak RSS +0.9 GB, batch predict unchanged (~0.3 s). No key collision in em.predict (core.py:180 takes the 'suppression' branch; out['cl_kappa'] is the new head, out['suppression'] is untouched) \u2014 so fig09a, fig15c/d and fig10 numbers do not move."
+  },
+  {
+   "step": "CR10-4. Propagate the 14 -> 15 head count",
+   "detail": "Places that hard-code 14: fig09 cell comment line 3328 ('full 14-stat coverage'); \u00a74.0 markdown line 3257 ('all 14 released heads, not the previous 6') and the table at 3259-3274 (add a row: | $C_\\ell^{\\kappa\\kappa}$ | log | 12 | 2.6% | 1.00 | 0.69 / 0.91 | with a footnote that it is the same information as the S(l) row, compressed and fitted independently); line 3285 ('all 253 runs for the 14 heads'); line 3288-3290 ('14 heads', '584s for the full 14-statistic fit'); fig09 caption markdown line 3313 ('across all 14 released statistics'); fig15 markdown line 3673 ('all 14 heads'); fig15 on-panel annotation lines 3764-3766 ('not 14 detections'); fig15 closing print line 3827 ('COHERENT across the 14 heads'). fig15 panel (b) automatically grows to 15 bars (it iterates STATS_EMU at 3751-3758 and uses `names` at 3761) \u2014 check that 15 rotated labels still fit in the gs15[0,1:] axes; drop the label fontsize from 5.6 to 5.0 if not."
+  },
+  {
+   "step": "CR10-5. NEW FIGURE fig09c_emulator_curves \u2014 truth vs emulated, one panel per canonical statistic",
+   "detail": "Insert a new md() + code() pair between line 3505 (`''')` closing the fig09 cell) and line 3507. It refits NOTHING: `em`, `pred`, `TRUTH`, `test_idx`, `metrics`, `i_typ`, `i_wc`, `ELL`, `ZI`, `mE`, `d`, `flat` are all notebook globals that persist. Grid: 4 cols x 3 rows = 12 panels at figsize (TWO_COL[0], 6.4), fig.subplots(3, 4, ...) then axes.ravel(). Per panel plot the SAME held-out node i_typ in every panel (state that in the caption): truth solid color='0.15' lw=1.1, emulated dashed COLORS['bind'] lw=1.1, plus fill_between(x, p-e, p+e, color=COLORS['bind'], alpha=BAND_ALPHA, lw=0). Panel spec (key, slice for the (50,...) pred/TRUTH-test arrays, x array, scales):\n 1 cl_kappa      pred['cl_kappa'][i_typ, ZI, ZI, mE]      x=ELL[mE]                       loglog\n 2 suppression   pred['suppression'][i_typ, ZI, mE]       x=ELL[mE]                       semilogx, linear y\n 3 pdf           pred['pdf'][i_typ, ZI, :]                x=d['a__pdf__pdf_bins']          linear/linear\n 4 peak_counts   pred['peak_counts'][i_typ, ZI, :]        x=d['a__peak_counts__nu']        linear/linear, xlim(-3,6)\n 5 minima_counts pred['minima_counts'][i_typ, ZI, :]      x=d['a__minima_counts__nu']      linear/linear, xlim(-5,4)\n 6 mf_v0         pred['mf_v0'][i_typ, ZI, :]              x=d['a__mf_v0__mf_nu']           linear/linear\n 7 mf_v1         pred['mf_v1'][i_typ, ZI, :]              x=d['a__mf_v1__mf_nu']           linear/linear\n 8 mf_v2         pred['mf_v2'][i_typ, ZI, :]              x=d['a__mf_v2__mf_nu']           linear/linear + axhline(0)\n 9 cl_yy         pred['cl_yy'][i_typ, mE]                 x=ELL[mE]                        loglog   (NO z_s axis)\n10 cl_tt         pred['cl_tt'][i_typ, mE]                 x=ELL[mE]                        loglog   (NO z_s axis)\n11 cl_kappa_y    pred['cl_kappa_y'][i_typ, ZI, mE]        x=ELL[mE]                        loglog (positive over ell<=2e4, verified)\n12 cl_kappa_tau  pred['cl_kappa_tau'][i_typ, ZI, mE]      x=ELL[mE]                        loglog (positive, verified)\nTruth counterpart for panel k is TRUTH[key][test_idx][i_typ, <same slice>]; the 1-sigma band uses pred[key+'_err'] with the identical slice. Stamp each panel with its head's median |frac err| from metrics: axk.text(0.03, 0.06, f\"{100*metrics[key][0]:.1f}%\", transform=axk.transAxes, fontsize=5). Put a single figure-level legend on panel 1 only ('measured' / 'emulated +-1sigma'). mE = ELL <= 2e4 is already defined at line 3395; if the new cell is moved, re-derive it. Cost: pure plotting, < 2 s, no GP work."
+  },
+  {
+   "step": "CR10-6. Optional 13th panel and the 8+3+2 accounting note",
+   "detail": "If exactly 13 panels are wanted, add cl_yt (pred['cl_yt'][i_typ, mE], x=ELL[mE], loglog, positive over ell<=2e4 verified, median |frac err| 13.85%) as panel 13 and use a 4x4 grid with 3 blanks turned off, or 5+4+4. Do NOT satisfy '13' by drawing cl_kappa twice. The caption must spell out the accounting: '8 WL-field statistics (C_kk, S, PDF, N_pk, N_min, V0, V1, V2), 3 auto-spectra (C_kk again, C_yy, C_tautau) and 2 cross-spectra (C_ky, C_ktau) = 13 roles filled by 12 distinct arrays, since C_kk serves both the WL and auto blocks.'"
+  },
+  {
+   "step": "CR10-7. Update FIGURE_NUMBERS.md after re-execution",
+   "detail": "Lines 87-89 (fig8 block) must be regenerated for 12 families / 66 pairs. Lines 92-94 (fig9 block) need: the new cl_kappa entry '2.58%/1.00/0.69,0.91' prepended to the per-head list; the stale 'fit 27s, 50-run batch predict 0.09s' on line 93 corrected (the executed notebook prints 128 s / 0.31 s, and it becomes ~145 s with the 15th head); a new 'fig9b'/'fig9c' block. Line 105 (fig15 per-head coverage/alpha) gains a cl_kappa entry. Figure numbering: figs_v2/ has NO fig06 (free slot), but main.tex still points at the legacy figs/ set (fig06_bridge_fgas.pdf etc.), so reusing '06' would be ambiguous \u2014 use the fig09b / fig09c basenames above, or fig21/fig22 if the paper requires strictly numeric ordering."
+  }
+ ],
+ "risks": [
+  "BLOCKING SCIENCE RISK: C_l^kappakappa is mathematically identical to S(l) under fig08's standardize-then-PCA pipeline (verified: max |Z_ckk - Z_S| = 2e-11, rho1 = rho2 = 1.000, also for the full 5x5 cube). If the C_kk row is added to fig08 panel (b) without an explicit 'identity by construction' annotation, the figure will read as an independent 1.00 correlation and a referee will catch it. The same caution applies to fig09/fig09b: the C_kk bar (2.58%, R^2 1.00) and the S(l) bar (2.66%, R^2 0.72) are NOT two independent validations \u2014 they describe the same physical information, compressed and fitted independently.",
+  "The user's '13 statistics' is 13 roles over 12 unique arrays. Any implementer who blindly builds 13 panels will duplicate cl_kappa. Resolve before coding (see data_gaps item 1 and change-spec CR10-6).",
+  "Splitting the concatenated 'MFs' family into V0/V1/V2 CHANGES a published claim: the fig08 markdown states the MFs' rho2 is 'consistent with the null', but individually V0/V1/V2 give rho2 = 0.22/0.37/0.38 against a 0.08 null. That sentence (line 3084-3085) must be rewritten, not just renumbered.",
+  "Adding C_l^{kappa tau} to fig08 moves another claim: its rho2 vs S(l) is 0.89, so the 'only the thermodynamic spectra and the PDF share the second direction' list gains a cross-spectrum member (lines 3080-3084).",
+  "STATS_EMU is a cross-cell global: fig15 panel (b), the ALPHA inflation dict (line 3820) and the '14 heads / not 14 detections' annotations all follow it. Adding cl_kappa silently grows fig15's bar chart to 15 bars and changes 8 pieces of prose. Either propagate all of them (CR10-4) or keep STATS_EMU at 14 and fit cl_kappa in a separate single-head Emulator inside the new cell (+23 s, and two fits that can drift).",
+  "A 12x12 matrix with two numbers per cell needs ~0.27 in/cell to stay legible; at the current 1x3 layout it gets 0.16 in/cell. The re-layout to TWO_COL_TALL with the matrix in a full-height column (CR9-3) is not cosmetic \u2014 without it panel (b) is unreadable at print size.",
+  "Notebook re-execution cost: the fig09 emulator fit is the dominant cell (128 s measured, ~145 s with the 15th head) and fig15's learning curve refits suppression 16 more times. The full notebook rerun is a Slurm job (run_figures.sbatch) \u2014 do not attempt it inside a 10 GB / 1 CPU session; each individual probe above stayed under 0.9 GB, but the full notebook holds map cubes.",
+  "FIGURE_NUMBERS.md line 93 is already stale ('fit 27s, batch predict 0.09s' vs the notebook's 128 s / 0.31 s). Do not copy those numbers into new prose; re-extract from the executed notebook.",
+  "src/bind/emulator/backends.py is modified but uncommitted; the change (MLPEnsemble opt.step() moved inside the minibatch loop) is real and matches the \u00a74.0 prose, and has ZERO effect on figs 9/15/10/16 because they all use backend='gpgpu' (GPTorchBackend). It should be committed so the notebook's environment is reproducible, but it is not a blocker for these two change requests.",
+  "Panels 11/12 of the new curve figure use log-y for signed cross-spectra. That is safe only because every C_ky / C_ktau / C_yt value is positive over ell <= 2e4 at z_s=1 (verified, neg_frac = 0.000). If the ell cut is ever widened past 2e4, or a different z_s plane is chosen, those panels must switch to symlog.",
+  "peak_counts / minima_counts / pdf contain exact zeros (empty tail bins), so log-y or fractional-residual sub-panels will produce inf/NaN there; keep them linear, and if a residual strip is added use the notebook's existing thresh convention (|truth| > 1 for counts, from line 3376)."
+ ]
+}

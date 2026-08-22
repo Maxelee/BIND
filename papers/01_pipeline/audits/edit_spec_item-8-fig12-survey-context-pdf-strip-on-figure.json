@@ -1,0 +1,234 @@
+{
+ "item": "Item 8 \u2014 fig12_survey_context.pdf: strip on-figure stamp, delete the schematic \"kSZ-informed\" band, delete the panel-(b) inset; plus adjudicate the \"LSST/Euclid bands should be ~zero at large scales\" physics question (VERDICT: misconception, the code is correct \u2014 cosmetic edit, NOT a bug fix)",
+ "figures": [
+  "fig12_survey_context"
+ ],
+ "code_locations": [
+  {
+   "what": "Narrative md() cell for \u00a73d / Fig 12. Lines 2745-2752 are the prose describing the kSZ-informed schematic band; 2740-2745 are the 'Stage-IV statistical power ... resolves the envelope' sentence that the on-figure stamp duplicates. Must be edited in lockstep with the figure edits.",
+   "start_line": 2729,
+   "end_line": 2756
+  },
+  {
+   "what": "Whole Fig 12 code(r''' ... ''') cell (opening `code(r'''` at 2758, closing `''')` at 2857)",
+   "start_line": 2758,
+   "end_line": 2857
+  },
+  {
+   "what": "cl_relerr helper #2 (the fig12 one): A2SR at 2762, def at 2763, body 2764-2766. Uses the module-global 724-bin ELL grid.",
+   "start_line": 2762,
+   "end_line": 2766
+  },
+  {
+   "what": "Fiducial Cl load + survey error evaluation: bcl0/dcl0 loads, S_fid_full, err_lsst (ngal=27.0, sige=0.26, fsky=0.44), err_euc (ngal=30.0, sige=0.30, fsky=0.36)",
+   "start_line": 2768,
+   "end_line": 2772
+  },
+  {
+   "what": "Sobol suppression cube slice S_all, mask mS (ELL<=2e4), i5k (ell=5000 index), hiS enhancement-branch boolean",
+   "start_line": 2774,
+   "end_line": 2777
+  },
+  {
+   "what": "fig, ax = plt.subplots(1, 2, figsize=TWO_COL)",
+   "start_line": 2779,
+   "end_line": 2779
+  },
+  {
+   "what": "Panel (a) Sobol 5-95% fill, full min/max fill, fiducial S(ell) line",
+   "start_line": 2780,
+   "end_line": 2784
+  },
+  {
+   "what": "Panel (a) LSST-Y10 / Euclid outlined precision envelopes (the object the user is asking about). Draws S_fid_full*(1-err) and S_fid_full*(1+err) as dashed/dash-dot line pairs.",
+   "start_line": 2785,
+   "end_line": 2792
+  },
+  {
+   "what": "DELETE TARGET 1 \u2014 the 'kSZ-informed' SCHEMATIC hatched box: comment 2793-2796, `mkz = mS & (ELL >= 2e3)` at 2797, `ax[0].fill_between(ELL[mkz], 0.80, 0.90, ...)` with hatch='///' and legend label r'kSZ-informed / $A_{\\rm mod}\\sim0.8$ (schematic)' at 2798-2800",
+   "start_line": 2793,
+   "end_line": 2800
+  },
+  {
+   "what": "Panel (a) axhline(1), scales, xlim(90,2e4), ylim(0.75,1.3), axis labels, legend(loc='upper left', fontsize=5.2)",
+   "start_line": 2801,
+   "end_line": 2805
+  },
+  {
+   "what": "DELETE TARGET 2 \u2014 the on-figure text stamp: `S5 = S_all[:, i5k]` at 2807 and the 4-line `ax[0].text(0.97, 0.03, ...)` at 2808-2812 ('TNG prior: S(5000)in[...]' / 'NN% of nodes enhance' / 'Stage-IV statistical power (Gaussian, single-bin) resolves the envelope'). Comment banner at 2806.",
+   "start_line": 2806,
+   "end_line": 2812
+  },
+  {
+   "what": "panel_label(ax[0], '(a)', loc='lower left') \u2014 a text object, but a PANEL TAG; keep (the user said 'the text', meaning the stamp)",
+   "start_line": 2813,
+   "end_line": 2813
+  },
+  {
+   "what": "Panel (b): loads SCI/'ksz_confront/bind_tauy_xprof_snap085.npz', tau_n = xpb['tau'][:,0,:] (group bin 13.0-13.4), node_in_ds filter, median + 16/84 fills for hiS / ~hiS, axis labels, legend, panel_label '(b)'",
+   "start_line": 2815,
+   "end_line": 2829
+  },
+  {
+   "what": "DELETE TARGET 3 \u2014 the panel-(b) inset: comment 2831, `axr = ax[1].inset_axes([0.20, 0.34, 0.44, 0.28])` at 2832, rngB/boots 200-draw bootstrap loop 2833-2839, axr fills/plot/axhline/labels/ylim 2840-2846. All of rngB, boots, axr are local to this cell (verified by grep: no other use of `boots`, `rngB`, `mkz`, `S5`; the `axr` names at 1015 and 3407 are unrelated locals in other cells).",
+   "start_line": 2831,
+   "end_line": 2846
+  },
+  {
+   "what": "fig.tight_layout(w_pad=1.1); save(fig, 'figs_v2/fig12_survey_context'); plt.show()",
+   "start_line": 2847,
+   "end_line": 2849
+  },
+  {
+   "what": "Live prints (S(5000) range + enhancement fraction per z_s; central tau ratio). These feed FIGURE_NUMBERS.md lines 76-78. Keep \u2014 the numbers removed from the on-figure stamp survive here.",
+   "start_line": 2850,
+   "end_line": 2856
+  },
+  {
+   "what": "cl_relerr helper #1 (the fig-4 one), plus `lsst_kk = 100*cl_relerr(KKt, 27.0, 0.26, 0.44)` and the key comment `lsst_S = lsst_kk   # S=Cl/const -> identical relative error`. Algebraically IDENTICAL to the fig12 helper; only difference is the ell grid (parameter `ell=ell_f`, the map-recomputed grid, vs the module-global ELL).",
+   "start_line": 1290,
+   "end_line": 1296
+  },
+  {
+   "what": "cv_floor() \u2014 the CV-only (no shape-noise) variant used for the y-involved channels in fig 4, with CV_FSKY = 0.44 hardcoded and labelled on-figure. Relevant precedent for how fsky is documented.",
+   "start_line": 1298,
+   "end_line": 1305
+  }
+ ],
+ "data_verified": [
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz",
+   "keys": [
+    "a__suppression__ell",
+    "t__suppression__value",
+    "source_redshifts",
+    "run_ids"
+   ],
+   "shape_note": "ELL = a__suppression__ell is (724,), spanning 86.911688 -> 52133.569 (confirms the established fact). t__suppression__value is (253,5,724); the ZI=1 slice used by fig12 is (253,724). Sobol suppression envelope at low ell is EXTREMELY tight: at ell=87 the 5-95% band is [0.9994, 1.0009] (width 0.15%) and the full min/max is [0.9982, 1.0016]; at ell=305 5-95% = [0.9983,1.0034]; at ell=964 = [0.9781,1.0160]; at ell=5000 = [0.8738,1.0720]. Over the plotted mask mS (ELL<=2e4) the FULL envelope spans [0.7635, 1.5027] \u2014 note the current ylim(0.75,1.3) already clips the top of the enhancement branch.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz',allow_pickle=True); ELL=d['a__suppression__ell']; S=d['t__suppression__value'][:,1,:]; print(ELL.shape,ELL[0],ELL[-1]); [print(ELL[i], np.percentile(S[:,i],[5,95])) for i in [0,3,12,69]]\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/runs/bind/run_0000/Cl_kappa.npz",
+   "keys": [
+    "ell",
+    "cl",
+    "cl_err"
+   ],
+   "shape_note": "ell (724,) \u2014 np.allclose(bcl0['ell'], ELL) is True, so the fig12 helper's use of the module-global ELL against bcl0['cl'] is grid-consistent (no silent mis-alignment). cl (5,5,724), cl_err (5,5,724). The ZI=1 auto spectrum C_l^kk(z_s=1): 9.526e-9 at ell=87, 1.977e-9 at ell=305, 4.491e-10 at ell=964, 3.740e-11 at ell=5000, 1.685e-12 at ell=19978. cl_err/cl (the 50-realization standard error of the SIM's own measurement) = 6.66% at ell=87, falling to 0.62% at ell=2e4.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; b=np.load('/mnt/home/mlee1/ceph/bind_science/runs/bind/run_0000/Cl_kappa.npz'); print(b.files,[np.asarray(b[k]).shape for k in b.files]); print(b['cl'][1,1,[0,3,12,69]])\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/runs/dmo/run_0000/Cl_kappa.npz",
+   "keys": [
+    "ell",
+    "cl",
+    "cl_err"
+   ],
+   "shape_note": "cl (5,5,724), same 724-bin ell grid. S_fid_full = bcl0['cl'][1,1]/dcl0['cl'][1,1] evaluates to 1.0001 at ell=87, 1.0002 at ell=305, 0.9962 at ell=964, 0.9323 at ell=5000, 0.8949 at ell=19978.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; b=np.load('/mnt/home/mlee1/ceph/bind_science/runs/bind/run_0000/Cl_kappa.npz'); dm=np.load('/mnt/home/mlee1/ceph/bind_science/runs/dmo/run_0000/Cl_kappa.npz'); S=b['cl'][1,1]/dm['cl'][1,1]; print(S[[0,3,12,69]])\""
+  },
+  {
+   "path": "cl_relerr evaluated on the real 724-bin grid (fig12 recipe, verbatim)",
+   "keys": [
+    "err_lsst(ngal=27.0, sige=0.26, fsky=0.44)",
+    "err_euc(ngal=30.0, sige=0.30, fsky=0.36)"
+   ],
+   "shape_note": "N_l shape noise: LSST 2.1185e-10, Euclid 2.5385e-10 (with A2SR=(pi/180/60)^2=8.4616e-8 sr/arcmin^2). Fractional error sigma(C)/C, split into the CV mode-count prefactor sqrt(2/((2l+1)*dl*fsky)) and the (1+N_l/C_l) shape-noise factor: ell=87 -> CV 4.47%, N/C=0.022, LSST total 4.565%, Euclid 5.069%; ell=305 -> CV 1.27%, N/C=0.107, LSST 1.411%, Euclid 1.590%; ell=964 -> CV 0.40%, N/C=0.472, LSST 0.594%, Euclid 0.699%; ell=2981 -> LSST 0.426%, Euclid 0.536%; ell=5000 -> CV 0.08%, N/C=5.66, LSST 0.519%, Euclid 0.670%; ell=9969 -> LSST 0.981%, Euclid 1.290%; ell=19978 -> CV 0.02%, N/C=125.7, LSST 2.469%, Euclid 3.266%. The curve is U-shaped with a MINIMUM of 0.415% (LSST) / 0.516% (Euclid) at ell=2551. In S units the LSST band at ell=87 is [0.9545, 1.0458], at ell=305 [0.9861, 1.0143], at ell=964 [0.9903, 1.0022].",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz',allow_pickle=True); ELL=d['a__suppression__ell']; b=np.load('/mnt/home/mlee1/ceph/bind_science/runs/bind/run_0000/Cl_kappa.npz'); CL=b['cl'][1,1]; A2SR=(np.pi/180/60)**2; f=lambda n,s,fs: np.sqrt(2/((2*ELL+1)*np.maximum(ELL*0.15,1)*fs))*(1+s**2*A2SR/n/CL); e=f(27.,.26,.44); print([(round(ELL[i]),round(100*e[i],3)) for i in [0,3,12,40,69,105,148]])\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/runs/bind/run_0000/paired_perreal_fid.npz",
+   "keys": [
+    "ell",
+    "clk",
+    "pk",
+    "min",
+    "V0",
+    "V1",
+    "V2",
+    "sk",
+    "sigma0",
+    "nu",
+    "mf_nu",
+    "mf_scales"
+   ],
+   "shape_note": "clk (50,5,724) \u2014 the per-realization BIND C_l. Realization-to-realization scatter of C_l^kk(z_s=1) is 47.1% at ell=87, 35.7% at ell=305, 15.0% at ell=964, 6.8% at ell=5000, 4.4% at ell=2e4. This is the RAW cosmic-variance-dominated scatter of ONE 5x5 deg^2 patch and is exactly the quantity the survey band models (rescaled by fsky). Crucially: the suite's own S(ell) is CV-FREE by construction because every Sobol node shares the SAME DMO lightcone realization, so the 47% CV cancels in the run-to-run ratio \u2014 which is why the Sobol envelope at ell=87 is only 0.15% wide while a survey's error there is 4.6%.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; pr=np.load('/mnt/home/mlee1/ceph/bind_science/runs/bind/run_0000/paired_perreal_fid.npz'); c=pr['clk'][:,1,:]; print([(i, round(100*c[:,i].std(0)/c[:,i].mean(),2)) for i in [0,3,12,69,148]])\""
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/ksz_confront/bind_tauy_xprof_snap085.npz",
+   "keys": [
+    "tau",
+    "x",
+    "nodes"
+   ],
+   "shape_note": "Loaded as xpb in panel (b); tau[:,0,:] is the 10^13.0-13.4 Msun/h group bin; filtered to the 253 dataset nodes via np.isin(xpb['nodes'], run_ids). Unchanged by this item \u2014 panel (b) main curves stay, only the inset that reuses tau_n is removed.",
+   "probe_command": "grep -n \"xpb = np.load\" /mnt/home/mlee1/BIND/papers/01_pipeline/_build_figures_nb.py  (line 2816; same file also loaded at line 2903 for fig13)"
+  },
+  {
+   "path": "binning / fsky self-consistency check",
+   "keys": [
+    "dlnl=0.15",
+    "fsky=0.44 (LSST)",
+    "fsky=0.36 (Euclid)",
+    "footprint fsky"
+   ],
+   "shape_note": "fsky=0.44 corresponds to 18000 deg^2 (LSST-Y10 WL footprint, 18000/41252.96=0.4364); fsky=0.36 to ~15000 deg^2 (Euclid wide, 15000/41252.96=0.3636). Both are SURVEY-AREA values, not the simulation footprint. The simulation footprint is 5x5 deg^2 = 25 deg^2 -> fsky = 25/41252.96 = 6.06e-4 (NOT 6e-5 \u2014 the task brief is off by 10x); with n_real=50 independent patches the effective sky is 1250 deg^2 -> fsky_eff = 3.03e-2. Assumed bin width dl = max(0.15*ell, 1): 13.0 at ell=87, 45.8 at ell=305, 144.6 at ell=964, 750 at ell=5000, 2997 at ell=2e4. The PLOTTED ell grid is nearly linear with spacing ~71-80 everywhere (80.5 at ell=87, 78.5 at 305, 74.0 at 964, 70.7 at 5000, 71.8 at 2e4), so the assumed survey bin is NARROWER than the plot grid below ell~500 and much WIDER above it.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python -c \"import numpy as np; d=np.load('/mnt/home/mlee1/ceph/bind_sb35/emulator_dataset_xpkfix.npz',allow_pickle=True); E=d['a__suppression__ell']; print([(round(E[i]), round(E[i+1]-E[i],2), round(max(E[i]*0.15,1),2)) for i in [0,3,12,69,148]]); print(25/41252.96, 50*25/41252.96)\""
+  }
+ ],
+ "data_gaps": [
+  {
+   "requested": "A non-schematic, data-derived 'kSZ-informed' band (Amon & Efstathiou A_mod~0.8; Bigwood+24; Hadzhiyska+24)",
+   "why_blocked": "The band is hardcoded literal numbers `fill_between(ELL[mkz], 0.80, 0.90, ...)` at line 2798 with `mkz = mS & (ELL >= 2e3)`. Nothing on disk backs it \u2014 there is no released P(k)-suppression product, no A_mod chain, and no kSZ-informed posterior in bind_sb35 / bind_science / bind_lightcone_tng that maps to a C_l^kk suppression at z_s=1. The code comment itself says 'NOT derived from released products or data on disk'.",
+   "closest_alternative": "None needed \u2014 the request is to DELETE it, which resolves the provenance problem. If a survey-context reference were ever wanted back, the only defensible on-disk anchor is the kSZ confrontation product SCI/ksz_confront/ (used by fig13), which lives in f_gas / tau space, not in C_l-suppression space; converting it to an S(ell) band would require a new forward model (halo-model or a re-paint), i.e. new computation, not a cached lookup."
+  },
+  {
+   "requested": "A cosmic-variance-cancelled (ratio-aware) survey error band, if the reviewer wanted one",
+   "why_blocked": "Not blocked by data \u2014 blocked by physics. Sample-variance cancellation between numerator and denominator requires the two spectra to be measured from the SAME modes. A survey has one universe and one set of modes; the DMO denominator is a theory prediction, not a co-measured field, so there is nothing to cancel against. The cancellation the suite enjoys (all 253 Sobol nodes share one DMO lightcone) is a simulation-only luxury.",
+   "closest_alternative": "If one wanted to show the SUITE's measurement precision on S rather than a survey forecast, the on-disk quantity is bcl0['cl_err']/bcl0['cl'] (6.66% at ell=87 -> 0.62% at ell=2e4) \u2014 but that too is un-cancelled (it is the 50-patch SE of the BIND C_l alone). The genuinely CV-free number is the Sobol envelope width itself (0.15% at ell=87), which is already drawn."
+  }
+ ],
+ "change_spec": [
+  {
+   "step": "PHYSICS VERDICT (settle this first \u2014 it determines that item 8 is cosmetic, not a bug fix)",
+   "detail": "The user's intuition is a MISCONCEPTION. Both cl_relerr definitions are identical Gaussian mode-counting formulas. Fig12 (2763-2766): `Nl = sige**2*A2SR/ngal; dl = np.maximum(ELL*dlnl, 1.0); return np.sqrt(2.0/((2*ELL + 1)*dl*fsky))*(1 + Nl/cl)`. Fig4 (1291-1294): identical body, only `ell=ell_f` is a parameter instead of the global ELL. This is sigma(C_l)/C_l = sqrt(2/[(2l+1) dl fsky]) * (1 + N_l/C_l), i.e. the standard Knox formula. As ell -> 0 the number of independent modes in a bin, N_modes = (2l+1)*dl*fsky, SHRINKS (1003 modes at ell=87 vs 3.5e6 at ell=2e4), so the fractional error GROWS: 4.57% (LSST) / 5.07% (Euclid) at ell=87, 1.41%/1.59% at ell=305, 0.59%/0.70% at ell=964, minimum 0.42%/0.52% at ell=2551, then rising again to 2.47%/3.27% at ell=2e4 as shape noise N_l/C_l takes over (N_l/C_l = 0.022 at ell=87 but 125.7 at ell=2e4). The band is therefore U-shaped, and its LOW-ell flare is correct, textbook cosmic variance. What IS 'essentially zero at the largest scales' is the SIGNAL, not the error: the Sobol 5-95% envelope at ell=87 is [0.9994, 1.0009] \u2014 0.15% wide. The user is conflating 'baryons do nothing at large scales' (true, and visible as the pinch of the grey envelope at ell<300) with 'the survey error is zero there' (false; you cannot measure a 0.15% effect with a 4.6% error bar). Reading (a) of the audit brief \u2014 'the band is on a RATIO where sample variance partially cancels' \u2014 DOES NOT APPLY and would be wrong to implement. Fig12 does plot a ratio S(ell)=C_l^BIND/C_l^DMO, and the band is the raw C_l fractional error propagated as S_fid*(1 +/- err). That is CORRECT because the DMO denominator is a fixed theory/simulation curve with no survey sample variance: sigma_S/S = sigma_C/C exactly (the fig-4 cell states this explicitly at line 1296, `lsst_S = lsst_kk   # S=Cl/const -> identical relative error`). CV cancellation would require the numerator and denominator to sample the SAME modes \u2014 true inside the suite (all 253 nodes share one DMO lightcone, which is exactly why the 47.1% per-realization C_l scatter at ell=87 collapses to a 0.15%-wide Sobol envelope) but structurally unavailable to a survey. If anything the plotted band UNDER-states the real error, since it assumes a perfectly known DMO baseline and ignores non-Gaussian + super-sample covariance. So reading (b) holds: the divergence at low ell is correct physics. => Item 8 is a COSMETIC edit. Make the three deletions; change NO numbers in cl_relerr."
+  },
+  {
+   "step": "DELETE 1 \u2014 the 'kSZ-informed' schematic box (panel a)",
+   "detail": "Remove lines 2793-2800 in their entirety: the 4-line comment block (2793-2796), `mkz = mS & (ELL >= 2e3)` (2797), and the `ax[0].fill_between(ELL[mkz], 0.80, 0.90, facecolor=COLORS['highlight'], alpha=0.10, hatch='///', edgecolor=COLORS['highlight'], lw=0.4, label=r'kSZ-informed / $A_{\\rm mod}\\sim0.8$ (schematic)')` (2798-2800). `mkz` is defined and used only here (grep-verified: single hit at 2797 plus its use at 2798). No other symbol depends on it. Legend at 2805 drops from 5 to 4 entries automatically."
+  },
+  {
+   "step": "DELETE 2 \u2014 the on-figure text stamp (panel a)",
+   "detail": "Remove lines 2806-2812: the comment `# stamp built from LIVE values (no hardcoded numbers to go stale)` (2806), `S5 = S_all[:, i5k]` (2807), and the whole `ax[0].text(0.97, 0.03, f\"TNG prior: $S(5000)\\\\in[{S5.min():.2f},{S5.max():.2f}]$\\n\" f\"{100*hiS.mean():.0f}% of nodes enhance\\n\" \"Stage-IV statistical power (Gaussian,\\nsingle-bin) resolves the envelope\", transform=ax[0].transAxes, fontsize=5.2, ha='right', va='bottom')` call (2808-2812). `S5` is used nowhere else (grep-verified). KEEP `panel_label(ax[0], '(a)', loc='lower left')` at 2813 and `panel_label(ax[1], '(b)', loc='upper right')` at 2829 \u2014 those are panel tags, not the stamp. KEEP the live prints at 2850-2856; they are the provenance for FIGURE_NUMBERS.md lines 76-78 and preserve the numbers the stamp was reporting (S(5000) range + enhancement fraction per z_s, and the 1.77x central tau ratio). Move the removed numeric content into the LaTeX caption / the md cell instead."
+  },
+  {
+   "step": "DELETE 3 \u2014 the panel-(b) inset",
+   "detail": "Remove lines 2831-2846: the comment (2831), `axr = ax[1].inset_axes([0.20, 0.34, 0.44, 0.28])` (2832), `rngB = np.random.default_rng(11)` (2833), `boots = []` (2834), the 200-iteration bootstrap loop (2835-2838) that resamples `np.where(hiS)[0]` and `np.where(~hiS)[0]` and appends `np.nanmedian(tau_n[ie],0)/np.nanmedian(tau_n[isup],0)`, `boots = np.array(boots)` (2839), the `axr.fill_between(xpb['x'], np.percentile(boots,16,0), np.percentile(boots,84,0), ...)` (2840-2841), `axr.semilogx(...)` (2842-2843), `axr.axhline(1, ...)` (2844), `axr.set_ylabel('ratio', fontsize=5); axr.tick_params(labelsize=4.6)` (2845), `axr.set_ylim(0.6, 2.4)` (2846). All of `axr`, `rngB`, `boots`, `ie`, `isup` are cell-local (grep-verified: `boots`/`rngB` appear nowhere else; the `axr` hits at 1015 and 3407+ are independent locals in the fig-3 and fig-16 cells). `tau_n` and `hiS` remain required by 2820-2825 and by the print at 2854-2856, so do NOT remove them. Recommended replacement for the lost significance information: keep the existing terminal print at 2854-2856 ('central (R<0.3 r200c) tau, enhancement/suppression branch: 1.77x') and, if a quantitative hook is wanted on-figure, fold the 1.77x into the legend label of the S>1 curve at line 2820 rather than reintroducing an inset."
+  },
+  {
+   "step": "Keep the survey bands exactly as they are (2785-2792) \u2014 do not 'fix' them",
+   "detail": "Leave `err_lsst = cl_relerr(bcl0['cl'][ZI, ZI], 27.0, 0.26, 0.44)` and `err_euc = cl_relerr(bcl0['cl'][ZI, ZI], 30.0, 0.30, 0.36)` (2771-2772) and the outlined-envelope loop (2788-2792) untouched. The values are correct: ngal=27/arcmin^2, sigma_e=0.26, fsky=0.44 (18000 deg^2) for LSST-Y10; ngal=30/arcmin^2, sigma_e=0.30, fsky=0.36 (15000 deg^2) for Euclid."
+  },
+  {
+   "step": "OPTIONAL cosmetic mitigation of the user's visual complaint (implement only if the user wants more than the three deletions)",
+   "detail": "Two low-risk options that do not falsify the physics. (i) Add an explicit bin-width annotation to the LSST/Euclid legend labels, changing 'LSST-Y10 (Gaussian, 1-bin)' -> r'LSST-Y10 ($\\Delta\\ln\\ell=0.15$, Gaussian, 1 tomo-bin)' and likewise for Euclid at lines 2788-2789. This is the honest answer to 'why isn't it zero at low ell': the band is a PER-BIN cosmic-variance error at an assumed Delta_ln_ell = 0.15, so its width at low ell is set by the mode count of that bin. (ii) Truncate the drawn bands to the ell range where the Sobol envelope is actually resolvable \u2014 the LSST band first becomes narrower than the Sobol 5-95% width at ell=604 (Euclid at ell=676) and stays narrower out to ell=2e4 \u2014 e.g. define `mSV = mS & (ELL >= 3e2)` and use `ELL[mSV]` / `(...)[mSV]` in the loop at 2790-2792. This removes the visually jarring low-ell flare while remaining truthful, since below ell~300 the statement 'no survey can measure this' is what the flare means anyway. Do NOT choose option (ii) silently: it must be paired with a caption sentence saying the band is drawn only where it is informative."
+  },
+  {
+   "step": "Update the md() narrative cell (2729-2756) in lockstep",
+   "detail": "Delete the kSZ-band sentences at 2745-2752 \u2014 everything from 'Panel (a) now also draws the region preferred by kSZ-informed feedback analyses:' through '...the release brackets TNG-like feedback, not the full observationally allowed range.' Keep 2752-2755 (the panel-(b) description). Since the on-figure stamp is gone, the 'Stage-IV statistical power (Gaussian, single-bin) resolves essentially the full envelope at ell>~10^3' claim at 2743-2745 now lives ONLY in the prose \u2014 retain it there and reword '(and the on-figure stamp)' at 2743 to just 'the honest statement'. Also fold in the numbers that the stamp used to carry, e.g. 'S(5000) spans [0.839, 1.139] at z_s=1 with 38% of nodes enhancing' (these are printed live by 2850-2853 and recorded in FIGURE_NUMBERS.md line 77). Strongly recommended addition, since it directly answers the user's question in print: 'The survey precision is U-shaped in ell \u2014 cosmic-variance limited below ell~2500 (4.6% per Delta_ln_ell=0.15 bin at ell=87 for LSST-Y10) and shape-noise limited above it (2.5% at ell=2e4), with a 0.42% minimum at ell~2550. The apparent flare at large scales is not an artifact: it is the shrinking mode count. It is the baryonic SIGNAL, not the error, that vanishes at low ell \u2014 the Sobol envelope is only 0.15% wide at ell=87.'"
+  },
+  {
+   "step": "Bookkeeping after the edit",
+   "detail": "Update FIGURE_NUMBERS.md line 78, which currently reads '... kSZ band hardcoded SCHEMATIC S in [0.80,0.90] (cell 29)' \u2014 drop that clause once the band is deleted (it exists precisely to flag the hardcode). Line 77 (S(5000) ranges per z_s) is unaffected because the live prints at 2850-2853 are kept. No LaTeX edit is forced by the figure change: grep found NO reference to 'fig12_survey_context' or 'survey_context' anywhere in main.tex or any .tex/.md except the save() call at 2848 \u2014 but the caption in main.tex is keyed to whatever local filename it uses, so re-check main.tex's includegraphics list for the corresponding figure and strip any caption sentence about the kSZ-informed schematic band or the panel-(b) inset. Regeneration: the cell is cheap (the 200-draw bootstrap is the only non-trivial cost and it is being deleted); re-emit the notebook with _build_figures_nb.py and rerun via _run_figures_nb.py."
+  }
+ ],
+ "risks": [
+  "ANSWER THE PHYSICS QUESTION BEFORE EDITING, and do not let it become a code change. The tempting 'fix' \u2014 dividing out cosmic variance because fig12 plots a ratio \u2014 would be WRONG and would silently make the LSST/Euclid bands ~sqrt(2)x-to-arbitrarily too small at low ell. The DMO denominator is a fixed theory curve; sigma_S/S = sigma_C/C is exact. The fig-4 cell already encodes this at line 1296 ('S=Cl/const -> identical relative error'), so any change to the fig12 helper would also desynchronise it from fig 4 and from fig_scripts/fig09_cl_envelope.py, which the header comment at 2761 names as the source of the recipe.",
+  "Deleting the on-figure stamp (2806-2812) removes the ONLY place in the figure where 'S(5000) in [0.84,1.14]' and '38% of nodes enhance' appear. Those numbers are load-bearing for the paper's claim about the enhancement branch. They survive in the terminal print (2850-2853) and in FIGURE_NUMBERS.md, but a reader of the PDF loses them unless they are moved to the caption. Do the caption move in the same commit.",
+  "Deleting the inset (2831-2846) removes the only significance statement for the panel-(b) concentration claim (the bootstrap 16/84 ratio band). Panel (b) already shows 16-84 percentile fills on each branch, but those are node-to-node scatter, not the significance of the RATIO. If a referee asks 'is the concentration significant?', the answer now has to come from the printed 1.77x plus the retained per-branch bands. Consider surfacing the 1.77x in the legend or caption.",
+  "ylim(0.75, 1.3) at line 2802 was partly chosen to accommodate the kSZ box at S in [0.80, 0.90]. After deletion the lower half of the panel becomes empty-ish, but do NOT tighten the ylim reflexively: the full Sobol envelope over the plotted mask actually spans [0.7635, 1.5027], so the CURRENT limits already clip the top of the enhancement branch at 1.30 and the bottom at 0.75. Any ylim change is a separate decision; if it is made, prefer widening to (0.75, 1.55) to stop clipping rather than narrowing.",
+  "The `dlnl=0.15` bin assumption is decoupled from the plotted 724-point ell grid (grid spacing is a near-constant ~71-80, while the assumed bin is 13 at ell=87 and 2997 at ell=2e4). The band is therefore a per-bin error drawn as a continuous curve, so adjacent plotted points are NOT independent, and the band width is bin-width dependent (at ell=87 the assumed 13-wide bin is ~6x narrower than the 80-wide grid spacing, making the band ~2.5x wider than a grid-resolution binning would give). This is a labelling issue, not a bug \u2014 but if the user pushes back again on the low-ell flare, this is the real lever, and the honest fix is to state Delta_ln_ell on-figure, not to change the number.",
+  "fsky mixing is intentional but under-documented and is the one thing a careful referee could challenge: the SIGNAL (C_l shape, ell grid, fiducial S) comes from a 5x5 deg^2 x 50-realization lightcone (footprint fsky = 6.06e-4; effective 3.03e-2), while the ERROR uses fsky = 0.44 / 0.36 for the full Stage-IV footprints. That is the correct construction for a forecast ('this signal, measured over that survey area'), and fig 4 labels its CV_FSKY=0.44 convention on-figure (line 1300-1302). Fig 12 does not. Since the stamp that could have carried that caveat is being deleted, put the fsky values in the caption or in the legend labels."
+ ]
+}

@@ -1,0 +1,339 @@
+{
+ "item": "CR-4 \u2014 fig03_halo_validation: drop the residual row + Arnaud+10, relabel M_FoF\u2192M_200c, add a stellar-to-halo-mass panel, and split the radial profiles (y, tau, stars) into their own figure on a common r/r200c axis and common mass bins.",
+ "figures": [
+  "fig03_halo_validation",
+  "fig06_radial_profiles (NEW)"
+ ],
+ "code_locations": [
+  {
+   "what": "fig03 complete unit (banner + md prose + code cell). Banner 794, md(r''' 795 -> ''') 842, blank 843, code(r''' 844 -> ''') 1043.",
+   "start_line": 794,
+   "end_line": 1043
+  },
+  {
+   "what": "fig03 markdown prose block (describes 4 cols x 2 rows, Arnaud, the three mass conventions, the differing legend ranges) \u2014 must be rewritten wholesale",
+   "start_line": 795,
+   "end_line": 842
+  },
+  {
+   "what": "fig03 code cell body",
+   "start_line": 844,
+   "end_line": 1043
+  },
+  {
+   "what": "data loads: fa/ta (halo_atlas), tp (tau_profiles), pf/pt (profiles). Line 857 (tp) becomes dead in fig03 \u2014 grep confirms tp[...] is used ONLY at 978-1008, nowhere else in the file",
+   "start_line": 855,
+   "end_line": 859
+  },
+  {
+   "what": "logM / edges / fg_f / fg_t / OB_OM definitions (logM = np.log10(fa['M_fof']), edges = np.arange(13.0,14.8,0.2))",
+   "start_line": 861,
+   "end_line": 865
+  },
+  {
+   "what": "figure creation: plt.subplots(2, 4, figsize=(TWO_COL[0], 5.4), sharex='col')",
+   "start_line": 867,
+   "end_line": 867
+  },
+  {
+   "what": "panel (a) Y500c-M top row \u2014 KEEP, only relabel x + add stamp",
+   "start_line": 869,
+   "end_line": 881
+  },
+  {
+   "what": "panel (e) Y residual \u2014 DELETE the drawing (886-890, 898-899, 904); KEEP the computation 883-885, 891-892, 896-897; MOVE the text stamp 900-903 into panel (a)",
+   "start_line": 883,
+   "end_line": 904
+  },
+  {
+   "what": "panel (b) f_gas top row \u2014 KEEP; the bottom corner text at 917-920 is the one the user wants deleted",
+   "start_line": 906,
+   "end_line": 921
+  },
+  {
+   "what": "panel (b) bottom text object to DELETE: 'projected-cylinder $f_{\\rm gas}$; approach to cosmic\\npartly reflects cylinder closure'",
+   "start_line": 917,
+   "end_line": 920
+  },
+  {
+   "what": "panel (f) f_gas residual \u2014 DELETE the drawing (926-930, 932-933, 938); KEEP 923-925, 931; MOVE stamp 934-937 into panel (b)",
+   "start_line": 923,
+   "end_line": 938
+  },
+  {
+   "what": "panel (c) stacked y(r)/y(r500c) \u2014 MOVES to the new radial figure",
+   "start_line": 940,
+   "end_line": 966
+  },
+  {
+   "what": "Arnaud+10 GNFW parameters + gnfw() + gnfw_proj() \u2014 DELETE entirely",
+   "start_line": 944,
+   "end_line": 950
+  },
+  {
+   "what": "Arnaud+10 curve computation, loglog plot and legend entry label='Arnaud+10 (proj.)' \u2014 DELETE entirely",
+   "start_line": 961,
+   "end_line": 963
+  },
+  {
+   "what": "panel (g) y-profile residual \u2014 DELETE (or fold into the new radial figure as an optional residual row)",
+   "start_line": 968,
+   "end_line": 975
+  },
+  {
+   "what": "panel (d) stacked tau(r) from the tau_profiles cache \u2014 REPLACE with tau derived from pf/pt['prof_gas'] in the new figure",
+   "start_line": 977,
+   "end_line": 992
+  },
+  {
+   "what": "panel (h) tau residual \u2014 DELETE",
+   "start_line": 994,
+   "end_line": 1001
+  },
+  {
+   "what": "tau_ratio_in stamp block (feeds the FIGURE_NUMBERS.md 'tau-profile ratio (r<r500c) 1.040' line) \u2014 DELETE/replace",
+   "start_line": 1003,
+   "end_line": 1011
+  },
+  {
+   "what": "shared residual-row y-limits + \u00b15% guide band + label \u2014 DELETE (no residual row survives)",
+   "start_line": 1013,
+   "end_line": 1019
+  },
+  {
+   "what": "fig.align_ylabels / tight_layout \u2014 adjust for 1x3",
+   "start_line": 1021,
+   "end_line": 1022
+  },
+  {
+   "what": "bottom fig.text mass-conventions footer ('mass conventions: (a,b,e,f) x-axis $M_{\\rm FoF}$ ...') \u2014 DELETE entirely",
+   "start_line": 1023,
+   "end_line": 1026
+  },
+  {
+   "what": "save(fig, 'figs_v2/fig03_halo_validation')",
+   "start_line": 1027,
+   "end_line": 1027
+  },
+  {
+   "what": "print block: median Y ratio, tau-profile ratio, the linear-in-logM calibration coefficients. KEEP the Y/f_gas parts (headline release numbers, cited in FIGURE_NUMBERS.md); DELETE the tau_ratio_in clause at 1032",
+   "start_line": 1029,
+   "end_line": 1042
+  },
+  {
+   "what": "running_stat helper (median + 16/84 + optional bootstrap SE of the binned median) used by every panel",
+   "start_line": 154,
+   "end_line": 169
+  },
+  {
+   "what": "style import line (setup, save, panel_label, COLORS, BAND_ALPHA, ONE_COL/TWO_COL from papers/_tools/paper_style.py)",
+   "start_line": 112,
+   "end_line": 112
+  },
+  {
+   "what": "fig13_tauy_profiles save \u2014 the ONLY other radial-profile figure; it already uses R/r_{200c} and a 10^{13.0-13.4} group bin, so the new figure should match those conventions",
+   "start_line": 3038,
+   "end_line": 3038
+  }
+ ],
+ "data_verified": [
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/halo_atlas/fid_snap096.npz (and truth_snap096.npz)",
+   "keys": [
+    "M_fof",
+    "r200",
+    "sig_tot_bg",
+    "sig_gas_bg",
+    "m_dm_500c",
+    "m_gas_500c",
+    "m_star_500c",
+    "m_tot_500c_bg",
+    "m_gas_500c_bg",
+    "Y_500c",
+    "T_mw_500c",
+    "K_mw_500c",
+    "Pe_mw_500c",
+    "m_dm_200c",
+    "m_gas_200c",
+    "m_star_200c",
+    "m_tot_200c_bg",
+    "m_gas_200c_bg",
+    "z",
+    "snap"
+   ],
+   "shape_note": "2933 halos, index-paired fid<->truth. r200 and M_fof are BITWISE IDENTICAL between fid and truth (np.array_equal True) \u2014 they come from the shared DMO catalog. z = 0.0337243718735154 (scalar), snap = 96.  DECISIVE RESULT: M_fof is NOT a friends-of-friends mass, it is already the spherical-overdensity M200c. M_fof == (4/3)*pi*r200**3 * 200 * rho_crit0 * E(z)**2 * a**3 with rho_crit0 = 2.77536627e11 h^2 Msun/Mpc^3, Om=0.3089, OL=0.6911 \u2014 max|M_fof/pred - 1| = 3.53e-4 over all 2933 halos, median ratio 1.000 with 16/84 = (1.000, 1.000). The implied constant is 200*rho = 5.1856e13 (h^2 Msun/(Mpc/h)^3), i.e. rho_crit(z) = 2.5931e11 = 0.93434 * rho_crit0 = rho_crit0*E(z)^2*a^3 exactly. => r200 is in COMOVING Mpc/h (range 0.3584 / 0.4404 / 1.643 for min/median/max), and the fig01 showcase halo cross-checks exactly: log10M=13.79 -> r200 = 0.6572 Mpc/h vs the quoted 0.66.  CANDIDATE COMPARISON vs M_fof: (i) definitional = 1.000x (exact, 0 scatter); (ii) m_tot_200c_bg = median 1.098x, 16/84 (0.965, 1.290), 2 halos <=0, log10 floor 10.88 -> a NOISY background-subtracted projected-cylinder mass, not an SO mass; (iii) m_dm_200c+m_gas_200c+m_star_200c = median 1.274x, 16/84 (1.154, 1.502), 0.079 dex scatter -> a full-slab CYLINDER mass carrying the LOS background. RECOMMEND (i) == just relabel M_fof as M_200c; no arithmetic change at all.  m_star_200c: 2933/2933 > 0 for BOTH fid and truth; fid log10 range [10.838, 13.021] median 11.454; truth [10.844, 13.013] median 11.482; per-halo BIND/truth ratio median 0.9429 with 16/84 (0.755, 1.204). m_star_500c: fid [10.796, 12.971] med 11.403, truth [10.818, 12.963] med 11.425, ratio median 0.9669, 16/84 (0.751, 1.247).  Y_200c / T_200c / Pe_200c DO NOT EXIST (halo_atlas.py computes thermo aperture quantities only for tag=='500c'). f_gas at 200c DOES exist via m_gas_200c_bg/m_tot_200c_bg.",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python /tmp/claude-2107/-mnt-home-mlee1-BIND/cd141c7e-20d2-47a8-b36e-6fe94e24b33b/scratchpad/probe_atlas.py ; .../probe_m200.py ; .../probe_exact.py ; .../probe_final.py"
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/profiles/fid_snap096.npz (and truth_snap096.npz)",
+   "keys": [
+    "prof_DM",
+    "prof_gas",
+    "prof_star",
+    "prof_y",
+    "prof_Pe",
+    "counts",
+    "r_cen",
+    "mass_bins",
+    "z",
+    "snap"
+   ],
+   "shape_note": "prof_* are (4 mass bins, 18 radial bins), LOS-background-subtracted stacked surface densities (Msun/h per 128^2 patch pixel for DM/gas/star; dimensionless for y; cgs for Pe). Generator = examples/profiles.py on branch analysis/wl-tsz-bridge (git show analysis/wl-tsz-bridge:examples/profiles.py). CRITICAL CONSTANTS FROM THE GENERATOR: PIX = 6.25/128 = 0.048828125 comoving Mpc/h; R500_FAC = 0.659; BG_ANN = (2.5,3.0) Mpc/h; R_EDGES = np.geomspace(0.08,5.0,19); R_CEN = sqrt(R_EDGES[1:]*R_EDGES[:-1]); the per-halo radial coordinate is x = r_Mpch/(R500_FAC*r200_h) \u2014 i.e. r_cen is r/(0.659*r200), NOT a per-halo measured r500c. THEREFORE r/r200c = 0.659 * r_cen EXACTLY (it undoes the same constant; it is NOT an approximation, it REMOVES one).  r_cen (as cached, 'r/r500c') = [0.0897 0.1129 0.1421 0.1788 0.2249 0.2830 0.3561 0.4481 0.5638 0.7094 0.8927 1.1232 1.4133 1.7783 2.2375 2.8154 3.5425 4.4574]; * 0.659 -> r/r200c = [0.0591 0.0744 0.0936 0.1178 0.1482 0.1865 0.2347 0.2953 0.3716 0.4675 0.5883 0.7402 0.9314 1.1719 1.4745 1.8554 2.3345 2.9374].  mass_bins = [1e13, 2.5e13, 6e13, 1.5e14, 5e14] = log10 [13.000, 13.398, 13.778, 14.176, 14.699]; counts = [1887, 728, 254, 59] for BOTH fid and truth. These counts reproduce EXACTLY when binning halo_atlas M_fof by those edges \u2014 confirming the profile cache is binned by M200c (=M_fof) as the generator comment says. 5 halos with M>5e14 fall outside the top edge (2928 of 2933 used).  VALIDITY WINDOW (both fid and truth finite and >0): prof_y bin0 idx 2..15, bin1 1..15, bin2 0..17, bin3 0..16; prof_gas bin0 2..17, bin1 1..17, bin2 0..17, bin3 0..16; prof_star bin0 2..17, bin1 1..17, bin2 0..17, bin3 0..14 (bin3 has 3 negative outer bins from bg over-subtraction); prof_DM same as gas; prof_Pe only to idx 13 (4 negative outer bins in every bin).  PIXEL-RESOLUTION FLOOR per mass bin (median r200): bin0 r200=0.404 -> 1 px = 0.121 r200; bin1 0.543 -> 0.0898; bin2 0.731 -> 0.0668; bin3 1.008 -> 0.0484.  MEAN BIND/truth RATIO over r/r200c <= 1: prof_y [1.084, 1.050, 1.001, 0.998]; prof_gas [1.096, 1.076, 1.044, 1.044]; prof_star [0.882, 0.928, 0.951, 0.968]; prof_DM [0.999, 1.002, 1.003, 1.004].",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python /tmp/claude-2107/-mnt-home-mlee1-BIND/cd141c7e-20d2-47a8-b36e-6fe94e24b33b/scratchpad/probe_prof.py ; .../probe_prof2.py ; cd /mnt/home/mlee1/BIND && git show analysis/wl-tsz-bridge:examples/profiles.py"
+  },
+  {
+   "path": "/mnt/home/mlee1/ceph/bind_science/tau_profiles/tau_profiles_snap096.npz",
+   "keys": [
+    "r_r500",
+    "mass_bins",
+    "scale_factor",
+    "bind_prof",
+    "bind_ap1",
+    "bind_ap2",
+    "bind_cnt",
+    "truth_prof",
+    "truth_ap1",
+    "truth_ap2",
+    "truth_cnt"
+   ],
+   "shape_note": "bind_prof/truth_prof (4,15); r_r500 (15,) = geomspace(0.1,6.0,16) bin centres = [0.1146 0.1506 0.1979 0.2600 0.3415 0.4487 0.5896 0.7746 1.0177 1.3371 1.7567 2.3081 3.0324 3.9842 5.2346]; scale_factor = 0.9673758568617342 (= 1/(1+0.0337243718735154), identical to the profiles cache z). mass_bins = [1e13, 3e13, 1e14, 3e14, 1e15] = log10 [13.000, 13.477, 14.000, 14.477, 15.000] \u2014 DIFFERENT edges from the profiles cache, which is exactly the 'differing legend ranges' the user is complaining about. bind_cnt = truth_cnt = [2104, 680, 135, 14] \u2014 reproduces EXACTLY from halo_atlas M_fof, so also binned by M200c. Top bin has only 14 halos (currently plotted as BINS4=(1,1.0),(3,0.6)!).  Generator = examples/tau_profiles.py on branch analysis/ksz-desi-act-v2. It uses the SAME r500_over_r200 = 0.659 constant, so r/r200c = 0.659*r_r500 here too -> [0.0755 0.0992 0.1304 0.1713 0.2251 0.2957 0.3885 0.5105 0.6707 0.8811 1.1577 1.5210 1.9984 2.6256 3.4496].  KEY ENABLING FACT: tau_patches() is a PURE SCALAR MULTIPLY of the gas surface density \u2014 tau = Sigma_gas[Msun/h per pixel] * SIGMA_T*X_E_PER_MASS*MSUN_G/(H*area_cm2) with area_cm2 = (PIX_MPCH*a/H*MPC_CM)**2, SIGMA_T=6.6524e-25, M_P=1.6726e-24, X_E_PER_MASS=0.88/M_P, MSUN_G=1.989e33, MPC_CM=3.0857e24, H=0.6774, PIX_MPCH=6.25/128. Evaluated at a=0.9673758568617342 this gives K = 2.219785e-14. Therefore tau(r) can be reconstructed EXACTLY from profiles/prof_gas as tau = K*prof_gas, putting tau on the SAME mass bins and SAME radial grid as y and stars. Difference vs the cached bind_prof: the profiles cache IS background-subtracted and the tau cache is NOT, and the mass bins differ; measured ratio K*prof_gas(bin1)/interp(bind_prof(bin1)) ~= 0.75 at 0.2-1 r500 falling to 0.14 at 4.5 r500 (the fall-off is the un-subtracted cosmic tau floor of 6.5e-5 in the cached curve).",
+   "probe_command": "/mnt/home/mlee1/venvs/BIND_env/bin/python /tmp/claude-2107/-mnt-home-mlee1-BIND/cd141c7e-20d2-47a8-b36e-6fe94e24b33b/scratchpad/probe_final.py ; cd /mnt/home/mlee1/BIND && git show analysis/ksz-desi-act-v2:examples/tau_profiles.py"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/_tools/paper_style.py",
+   "keys": [
+    "ONE_COL",
+    "ONE_COL_SQ",
+    "TWO_COL",
+    "TWO_COL_TALL",
+    "COLORS",
+    "BAND_ALPHA",
+    "setup",
+    "save",
+    "panel_label"
+   ],
+   "shape_note": "ONE_COL=(3.5,2.63), ONE_COL_SQ=(3.5,3.4), TWO_COL=(7.2,3.1), TWO_COL_TALL=(7.2,5.6). COLORS = {bind '#0C5DA5', truth '#111111', dmo '#949494', highlight '#FF2C00', secondary '#00B945'}. BAND_ALPHA=0.25. panel_label(ax, text, loc) places '(a)' inside the axes at one of four corners. save(fig, 'figs_v2/slug') writes figs_v2/slug.pdf + a preview PNG.",
+   "probe_command": "sed -n '1,80p' /mnt/home/mlee1/BIND/papers/_tools/paper_style.py"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/figs_v2/ and _build_figures_nb.py save() calls",
+   "keys": [
+    "fig00_hero",
+    "fig01_pipeline_diagram",
+    "fig02_map_suite",
+    "fig03_halo_validation",
+    "fig04_field_validation",
+    "fig05_param_response",
+    "fig07_covariation",
+    "fig08_latent_pca",
+    "fig09_emulator_validation",
+    "fig10_astro_corner",
+    "fig11_zclosure",
+    "fig12_survey_context",
+    "fig13_tauy_profiles",
+    "fig14_completeness",
+    "fig15_emulator_calibration",
+    "fig16_inference_robustness",
+    "fig17_feedback_sky",
+    "fig18_highell_localize",
+    "fig19_fgas_erosita",
+    "fig20_vandaalen_matrix"
+   ],
+   "shape_note": "20 figures, numbers 00-20 with 06 MISSING \u2014 the fig06 slot is free for the new radial-profile figure (note: papers/01_pipeline/fig_scripts/fig06_bridge_fgas.py is a LEGACY standalone script superseded by the notebook; no figs_v2/fig06*.pdf exists). tp (tau_profiles) is loaded at line 857 and referenced ONLY at lines 978-1008, so dropping it from fig03 orphans nothing.",
+   "probe_command": "ls figs_v2/ ; grep -n 'save(fig, \"figs_v2' _build_figures_nb.py ; grep -n '\\btp\\[' _build_figures_nb.py"
+  },
+  {
+   "path": "/mnt/home/mlee1/BIND/papers/01_pipeline/main.tex + FIGURE_NUMBERS.md",
+   "keys": [
+    "Arnaud2010",
+    "fig03_validation_halo.pdf"
+   ],
+   "shape_note": "main.tex cites \\citep{Arnaud2010} exactly 3 times, ALL of them in the fig03 context: line 280 (body, 'projected pressure profile y(r)/y(r500c) compared against the Arnaud et al. universal profile'), line 348 (body, 'match ... to ~2 r500c, diverging at larger radius'), line 362 (the figure caption). main.tex line 353 still \\includegraphics{figs/fig03_validation_halo.pdf} \u2014 the OLD fig_scripts output, not figs_v2/fig03_halo_validation.pdf (pre-existing main.tex<->figs_v2 divergence). refs_needed.md:98 and dossier.md:184/196/492/612-614 also describe the Arnaud comparison.",
+   "probe_command": "grep -n 'Arnaud2010' main.tex ; grep -rn 'fig03|halo_validation|Arnaud' --include=*.tex --include=*.md ."
+  }
+ ],
+ "data_gaps": [
+  {
+   "requested": "Y_200c (a Compton-Y integrated in a 200c aperture) to make panel (a) fully self-consistent with the new M_200c x-axis",
+   "why_blocked": "halo_atlas.py computes the thermo aperture quantities inside `if tag == '500c'` only \u2014 Y_500c, T_mw_500c, K_mw_500c, Pe_mw_500c exist; there is no Y_200c/T_200c/K_200c/Pe_200c key in the npz. Producing one requires re-reducing every composite_slab*.npz for fid+truth at snap 096 (the run_halo_atlas.sh SLURM path), which is out of scope for a figure edit and forbidden here (no sbatch).",
+   "closest_alternative": "Keep Y_500c on the y-axis and M_200c on the x-axis, and state on-figure that Y is a 500c-aperture quantity (this is also the observational convention: Y_500c-M is the standard SZ scaling relation, and Planck/ACT report Y_500c). If a fully 200c figure is required, f_gas CAN move to 200c: m_gas_200c_bg/m_tot_200c_bg is cached and well-behaved (binned medians fid [0.0973 0.1121 0.1279 0.1376 0.1417 0.1448 0.1473 0.1482] vs truth [0.0889 0.1048 0.1202 0.1308 0.1362 0.1397 0.1425 0.1465], median ratio 1.0624 vs 1.0739 at 500c, 8/2933 negative vs 3/2933 at 500c)."
+  },
+  {
+   "requested": "Re-binning the stacked radial profiles onto mass bins that match the scaling-relation panels (or onto a single common set of edges shared by the profiles and tau_profiles caches)",
+   "why_blocked": "The mass bins are baked into the reduction. profiles/*.npz stores only the FINAL stacked mean profile (ssum/snum); the per-(mass-bin, radial-bin) pixel counts `snum` are NOT saved, so adjacent mass bins cannot be exactly merged and no finer binning is recoverable. Re-binning requires re-running examples/profiles.py --reduce over composite_slab*.npz (SLURM, forbidden here).",
+   "closest_alternative": "Use the profiles cache edges as THE single scheme: MB = [1e13, 2.5e13, 6e13, 1.5e14, 5e14] = log10 [13.000, 13.398, 13.778, 14.176, 14.699], counts [1887, 728, 254, 59]. Abandon the tau_profiles cache entirely and rebuild tau from prof_gas (see change spec) \u2014 then all three radial panels are on identical bins by construction. On the scaling panels keep the fine 0.2-dex running_stat grid and axvspan-shade the two plotted profile bins so the correspondence is visible. (If exact merging of profile bins 2+3 were ever wanted, an approximately correct count-weighted merge with weights sum_h r200_h^2 over the atlas halos in each bin is possible, since snum ~ dA_j/PIX^2 * sum_h r500_h^2 \u2014 but it is an approximation and is not needed for the recommended bin choice.)"
+  },
+  {
+   "requested": "A background-subtracted per-halo stellar mass for the SHMR panel",
+   "why_blocked": "halo_atlas.py stores sig_tot_bg and sig_gas_bg only; there is no sig_star_bg, and m_star_200c/m_star_500c are RAW full-slab cylinder sums with no _bg variant. The DM and star backgrounds cannot be separated from sig_tot_bg with what is cached.",
+   "closest_alternative": "Use raw m_star_200c for both BIND and truth and state the caveat on-figure. Quantified: the median total LOS background inside r200 is sig_tot_bg*npix = 3.52e12 Msun/h = 12.4% of the median raw cylinder mass 2.49e13; if the cosmic stellar share of that background is ~1%, the stellar background is ~3.5e10 = ~12% of the median m_star_200c = 2.85e11. It is common to BIND and truth and therefore largely cancels in the BIND/truth ratio, which is the validation statement. Do NOT quote absolute M_star as a physical SHMR without this caveat."
+  },
+  {
+   "requested": "A central-galaxy stellar-to-halo-mass relation (Behroozi/Moster style)",
+   "why_blocked": "m_star_200c is a PROJECTED-CYLINDER aperture sum through the whole slab: it includes satellites, ICL, and the LOS background. There is no central/satellite decomposition in the cache.",
+   "closest_alternative": "Present it as the aperture/total stellar content, not the central SHMR. Numerically the relation is near-linear (binned median log10 M_star,200c = [11.262 11.452 11.653 11.847 12.026 12.217 12.413 12.552] at log10 M200c = [13.1 ... 14.5], slope ~0.92 dex/dex) \u2014 a central-galaxy SHMR would have slope ~0.3-0.4 here, so mislabeling it would be a physics error. Label the axis $\\log_{10} M_{\\star,200c}$ and say 'aperture stellar mass (centrals + satellites + LOS)'."
+  }
+ ],
+ "change_spec": [
+  {
+   "step": "1. M_FoF -> M_200c is a PURE RELABEL. Do not recompute anything.",
+   "detail": "Verified: fa['M_fof'] == (4/3)*pi*fa['r200']**3 * 200 * rho_crit(z) to max 3.5e-4 relative, with r200 in comoving Mpc/h and rho_crit(z) = 2.77536627e11 * E(z)^2 * a^3 = 2.5931e11 h^2 Msun/Mpc^3 at z=0.0337244. So keep `logM = np.log10(fa['M_fof'])` unchanged and only change the axis labels from r\"$\\log_{10} M_{\\rm FoF}\\,[M_\\odot/h]$\" to r\"$\\log_{10} M_{200c}\\,[M_\\odot/h]$\". Optionally rename the variable to `logM200` for clarity. Add a one-line code comment: `# halo_atlas 'M_fof' is already the SO mass M200c = (4/3)pi r200^3 200 rho_c(z) (verified to 0.04%)`. REJECT m_tot_200c_bg (median 1.098x M_fof, 16/84 (0.965,1.290), 2 halos <=0) and m_dm+m_gas+m_star_200c (median 1.274x, 0.079 dex scatter) \u2014 both are projected-cylinder masses, not SO masses."
+  },
+  {
+   "step": "2. Rebuild fig03 as a single row of 3 panels.",
+   "detail": "Replace line 867 with `fig, ax = plt.subplots(1, 3, figsize=(TWO_COL[0], 2.6), sharex=True)` and change every `ax[0, 0]` -> `ax[0]`, `ax[0, 1]` -> `ax[1]`. Set the x label on all three: `for a in ax: a.set_xlabel(r\"$\\log_{10} M_{200c}\\,[M_\\odot/h]$\")`, and `ax[0].set_xlim(13.0, 14.7)` (shared). Panel letters: panel_label(ax[0],'(a)'), panel_label(ax[1],'(b)'), panel_label(ax[2],'(c)'). Replace lines 1021-1022 with `fig.tight_layout(w_pad=0.9)` (no `rect=` \u2014 the footer is gone) and drop `fig.align_ylabels(ax[:, 0])` (or use `fig.align_ylabels(ax)`)."
+  },
+  {
+   "step": "3. Panel (a) Y_500c-M_200c: keep as-is, absorb the (e) stamp.",
+   "detail": "Lines 869-881 unchanged except ax indexing and the new xlabel. Keep the computation at 883-885 (`ok`, `ry`, `cen_y/med_y/se_y = running_stat(logM[ok], 100*(ry-1), edges, boot=200)`), 891-892 (`rng_b`, `se_y_all`), 896-897 (`PIV3 = 13.5`, `fit_y = np.polyfit(cen_y - PIV3, med_y, 1, w=1/np.where(se_y>0, se_y, np.nan))`). DELETE the drawing at 886-890, 898-899, 904. MOVE the text block at 900-903 onto panel (a) as `ax[0].text(0.03, 0.86, f\"BIND/truth median = {100*(np.median(ry)-1):+.1f}% ({abs(np.median(ry)-1)/se_y_all:.0f}$\\\\sigma$)\\ncalib: {fit_y[1]:+.1f}% {fit_y[0]:+.1f}%/dex\", transform=ax[0].transAxes, fontsize=5.2, va='top')` \u2014 placed below the '(a)' tag at (0.04,0.96) so it does not collide. Expected live values (from the current run): median ratio 1.054, 8 sigma, fit +5.33% -10.60%/dex."
+  },
+  {
+   "step": "4. Panel (b) f_gas,500c: delete the bottom text, absorb the (f) stamp.",
+   "detail": "Keep 906-916 and 921 (with ax indexing). DELETE lines 917-920 verbatim \u2014 the object is `ax[0, 1].text(0.03, 0.03, \"projected-cylinder $f_{\\\\rm gas}$; approach to cosmic\\n\" \"partly reflects cylinder closure\", transform=..., fontsize=4.4, va=\"bottom\", ha=\"left\", color=\"0.35\")`. Keep the Omega_b/Omega_m dotted line at 912 and its label at 913-914 (retarget `ax[0,1]`->`ax[1]`). Keep the computation at 923-925 and 931 (`okf`, `rg`, `cen_g/med_g/se_g`, `fit_g`); DELETE the drawing at 926-930, 932-933, 938; MOVE 934-937 onto panel (b) as `ax[1].text(0.03, 0.86, f\"BIND/truth median = {100*(np.nanmedian(fg_f/fg_t)-1):+.1f}%\\ncalib: {fit_g[1]:+.1f}% {fit_g[0]:+.1f}%/dex\", transform=ax[1].transAxes, fontsize=5.2, va='top')`. Expected: 1.074, +7.20% -6.15%/dex."
+  },
+  {
+   "step": "5. NEW panel (c): stellar-to-halo mass relation.",
+   "detail": "Insert after panel (b), reusing the panel-(a) idiom exactly:\n```\nfor atl, c, ls, lab in [(fa, COLORS['bind'], '-', 'BIND'), (ta, COLORS['truth'], '--', 'TNG300 hydro')]:\n    oks = atl['m_star_200c'] > 0\n    cen, med, lo, hi, _ = running_stat(logM[oks], np.log10(atl['m_star_200c'][oks]), edges)\n    ax[2].fill_between(cen, lo, hi, color=c, alpha=BAND_ALPHA, lw=0)\n    ax[2].plot(cen, med, color=c, ls=ls, lw=1.6, label=lab)\nax[2].scatter(logM[::4], np.log10(fa['m_star_200c'])[::4], s=1.0, color=COLORS['bind'], alpha=0.10, lw=0, rasterized=True)\nax[2].set_ylabel(r'$\\log_{10} M_{\\star,200c}\\,[M_\\odot/h]$')\noks2 = (fa['m_star_200c'] > 0) & (ta['m_star_200c'] > 0)\nrs_ = fa['m_star_200c'][oks2]/ta['m_star_200c'][oks2]\ncen_s, med_s, _, _, se_s = running_stat(logM[oks2], 100*(rs_ - 1), edges, boot=200)\nfit_s = np.polyfit(cen_s - PIV3, med_s, 1, w=1/np.where(se_s > 0, se_s, np.nan))\nax[2].text(0.03, 0.86, f'BIND/truth median = {100*(np.median(rs_)-1):+.1f}%\\ntrend: {fit_s[1]:+.1f}% {fit_s[0]:+.1f}%/dex', transform=ax[2].transAxes, fontsize=5.2, va='top')\nax[2].text(0.97, 0.03, 'aperture $M_\\\\star$ (centrals+satellites,\\nLOS bg not subtracted, ~10%)', transform=ax[2].transAxes, fontsize=4.4, ha='right', va='bottom', color='0.35')\n```\nVERIFIED NUMBERS the panel will show: all 2933/2933 halos have m_star_200c > 0 in BOTH fid and truth, so no masking is needed. fid binned median log10 M_star = [11.262 11.452 11.653 11.847 12.026 12.217 12.413 12.552]; truth = [11.294 11.473 11.662 11.853 12.045 12.227 12.412 12.541] at bin centres [13.1 13.3 13.5 13.7 13.9 14.1 14.3 14.5]. 16/84 band width 0.25 -> 0.14 dex (comfortably visible). Global per-halo BIND/truth median 0.9429 (-5.7%), binned % diff [-7.8 -5.5 -4.8 -3.1 -3.8 -0.2 -0.8 -1.5] with bootstrap SE [0.83 1.22 1.42 1.61 1.58 3.15 2.99 5.50] -> significant at the low-mass end, consistent with the documented pre-composite -12% star bias. STARS-ARE-NOISY WARNING: the per-halo 16/84 ratio spread is (0.755, 1.204), i.e. +/-20-25%, far wider than for Y or f_gas; only the BINNED medians are meaningful, and the top two bins (n=32 and n=23 halos) have SE ~3-5.5%, so do NOT read a trend from them. Bin populations for edges np.arange(13.0,14.8,0.2): [1162, 732, 446, 294, 150, 88, 32, 23, 3] (the last, >=14.6, is dropped by running_stat's min_n=8).\nALTERNATIVE if a flatter, more diagnostic panel is preferred: plot f_star = m_star_200c/M_200c instead \u2014 fid binned [0.0148 0.0146 0.0148 0.0143 0.0141 0.0137 0.0133 0.0131], truth [0.0159 0.0152 0.0150 0.0145 0.0143 0.0137 0.0132 0.0125]; this pairs visually with panel (b)'s f_gas but is not literally 'the stellar-to-halo mass relationship' the user asked for. Using m_star_500c instead of 200c gives median ratio 0.9669 and a much weaker trend ([-6.8 -3.3 -1.5 -0.3 -1.3 -0.1 +0.3 +4.7]) \u2014 prefer 200c for consistency with the new x-axis."
+  },
+  {
+   "step": "6. Mark the two profile mass bins on all three fig03 panels (this is the 'consistent mass bins' fix).",
+   "detail": "Right after the axes are created add:\n```\nMB3 = np.log10(np.asarray(pf['mass_bins'], float))   # [13.000 13.398 13.778 14.176 14.699]\nPBINS = [(0, 1.0), (2, 0.6)]                          # the two bins plotted in the radial figure\nfor a in ax:\n    for bi, al in PBINS:\n        a.axvspan(MB3[bi], MB3[bi+1], color=COLORS['dmo'], alpha=0.10*al, lw=0, zorder=0)\n```\nand annotate once on panel (a): `ax[0].text(0.5, 0.02, 'shaded = the two mass bins of the radial-profile figure', transform=ax[0].transAxes, fontsize=4.4, ha='center', va='bottom', color='0.35')`. This keeps the 0.2-dex running median (needed for the 8-point weighted calibration fit) while making the bin correspondence explicit. DO NOT replace `edges` with the 4 profile edges: that collapses the calibration fit from 8 points to 4, drops the 5 halos above 5e14, and the top bin would hold only 59 halos."
+  },
+  {
+   "step": "7. Delete the tau_profiles dependency from fig03.",
+   "detail": "Delete line 857 (`tp = np.load(SCI/\"tau_profiles/tau_profiles_snap096.npz\")`), the whole (d) block 977-992, the (h) block 994-1001, and the tau stamp block 1003-1011 (which defines `_bins4`, `tr_in`, `tau_ratio_in`). Also delete the `tau-profile ratio` clause from the print at line 1032 (`f\"tau-profile ratio (r<r500c, plotted bins) = {tau_ratio_in:.3f}\"`), otherwise the cell raises NameError. Verified safe: `grep -n '\\btp\\['` shows tp is referenced ONLY at 978-1008."
+  },
+  {
+   "step": "8. Delete the Arnaud+10 comparison entirely.",
+   "detail": "Three objects: (i) lines 944-950 \u2014 `P0, c500, gam, alp, bet = 8.403, 1.177, 0.3081, 1.0510, 5.4905`, `def gnfw(x)`, `def gnfw_proj(R)`; (ii) lines 961-963 \u2014 `gp_proj = gnfw_proj(r_cen); gp_proj /= np.interp(1.0, r_cen, gp_proj)` and the `ax[0, 2].loglog(r_cen[rok], gp_proj[rok], color=COLORS['dmo'], ls=':', lw=1.0, label='Arnaud+10 (proj.)')` call including its legend entry; (iii) the md prose at 800-803 ('the stacked projected y(r)/y(r500c) profile against the *Abel-projected* Arnaud et al. (2010) GNFW shape (external context only ...)'). DOWNSTREAM: main.tex \\citep{Arnaud2010} at lines 280, 348 and 362 (caption) all describe this curve and must be removed/rewritten; that leaves the Arnaud2010 bib entry unused (harmless to BibTeX) and makes refs_needed.md:98 and dossier.md:184/196/492/612-614 stale."
+  },
+  {
+   "step": "9. Delete the bottom mass-conventions footer.",
+   "detail": "Lines 1023-1026 verbatim: `fig.text(0.5, 0.005, \"mass conventions: (a,b,e,f) x-axis $M_{\\\\rm FoF}$, y-quantities in \" \"500c apertures; (c,d,g,h) stacks binned by $M_{200c}$ \u2014 BIND/truth ratios are \" \"convention-independent\", ha=\"center\", va=\"bottom\", fontsize=5.4)`. Also drop `rect=(0, 0.03, 1, 1)` from the tight_layout at 1022 since the reserved footer strip is no longer needed. If any convention note is still wanted, put a 4.4pt note in panel (a) only: '$Y$ measured in a 500c aperture; $x$-axis is $M_{200c}$'."
+  },
+  {
+   "step": "10. Create the NEW radial-profile figure, sourced ENTIRELY from profiles/{fid,truth}_snap096.npz.",
+   "detail": "Slug: `figs_v2/fig06_radial_profiles` (the fig06 slot is free \u2014 no other save() uses it and figs_v2/ has no fig06*.pdf). Insert as a new `md(...)` + `code(...)` pair immediately after the fig03 unit (i.e. after old line 1043), so it reads as fig 3b in the narrative even if the file number is 06.\n```\nR500_FAC = 0.659                       # the constant baked into examples/profiles.py\nr200x = R500_FAC*pf['r_cen']           # EXACT undo -> r/r200c\nSIGMA_T, M_P, MSUN_G, MPC_CM, HH = 6.6524e-25, 1.6726e-24, 1.989e33, 3.0857e24, 0.6774\nPIXMH = 6.25/128.0\na_s   = 1.0/(1.0 + float(pf['z']))     # 0.9673758568617342\nK_TAU = SIGMA_T*(0.88/M_P)*MSUN_G/(HH*(PIXMH*a_s/HH*MPC_CM)**2)   # 2.219785e-14\nMB3   = np.log10(np.asarray(pf['mass_bins'], float))\nPBINS = [(0, 1.0), (2, 0.6)]           # 13.00-13.40 (N=1887) and 13.78-14.18 (N=254)\nrok   = (r200x >= 0.15) & (r200x <= 1.90)     # idx 4..15\nCH = [('prof_y',   1.0,   r'$y(r)$',                        '(a)'),\n      ('prof_gas', K_TAU, r'$\\\\tau(r)$',                     '(b)'),\n      ('prof_star',1.0,   r'$\\\\Sigma_\\\\star(r)$ [$M_\\\\odot/h$ px$^{-1}$]', '(c)')]\nfig, ax = plt.subplots(1, 3, figsize=(TWO_COL[0], 2.6), sharex=True)\nfor j, (key, sc, ylab, tag) in enumerate(CH):\n    for bi, al in PBINS:\n        yb, yt = sc*pf[key][bi], sc*pt[key][bi]\n        m = rok & np.isfinite(yb) & np.isfinite(yt) & (yb > 0) & (yt > 0)\n        ax[j].loglog(r200x[m], yb[m], color=COLORS['bind'],  lw=1.6 if al == 1.0 else 1.0, alpha=al,\n                     label=f'$10^{{{MB3[bi]:.1f}-{MB3[bi+1]:.1f}}}$ ($N$={int(pf[\"counts\"][bi])})')\n        ax[j].loglog(r200x[m], yt[m], color=COLORS['truth'], ls='--', lw=1.3 if al == 1.0 else 1.1, alpha=al)\n    ax[j].set_xlabel(r'$r/r_{200c}$'); ax[j].set_ylabel(ylab)\n    panel_label(ax[j], tag, loc='upper right')\nax[0].legend(title=r'$\\\\log_{10}M_{200c}\\\\,[M_\\\\odot/h]$', title_fontsize=5.6, fontsize=5.2, loc='lower left')\nax[0].plot([], [], color=COLORS['bind'], lw=1.6, label='BIND'); ...  # or a second legend on ax[2] for BIND vs truth linestyle\nfig.tight_layout(w_pad=0.9)\nsave(fig, 'figs_v2/fig06_radial_profiles')\n```\nWHY THIS SOLVES 'consistent mass bins': all three panels come from ONE cache, so they share mass_bins = [1e13, 2.5e13, 6e13, 1.5e14, 5e14] and r_cen (18 log bins) by construction \u2014 the mismatch that produced the old differing legend ranges is structurally impossible.\nWHY tau FROM prof_gas IS LEGITIMATE: examples/tau_profiles.py's tau_patches() is a pure scalar multiply of the same gas surface density, tau = Sigma_gas * SIGMA_T*x_e*MSUN_G/(H*area_cm2). K_TAU = 2.219785e-14 at a = 0.96738 (verified against the tau cache's own `scale_factor`, which is bit-identical to 1/(1+pf['z'])).\nRADIAL WINDOW justification: 0.15 r200c is >1.2 pixels even for the lowest-mass bin (bin0 median r200 = 0.404 Mpc/h -> 1 px = 0.121 r200); 1.90 r200c is the last radius where all three fields are positive in both bins (prof_y bin0 goes negative at idx 16-17, prof_star bin3 at idx 15-17). Indices 4..15 inclusive = 12 points, r/r200c 0.148 -> 1.855.\nBIN CHOICE justification: bin 0 (10^13.0-13.4, N=1887) is EXACTLY fig13's group selection, so the two profile figures now agree; bin 2 (10^13.8-14.2, N=254) replaces the old bin 3 (N=59) and the tau cache's bin 3 (N=14, far too sparse to plot).\nOPTIONAL 4th panel: prof_DM as an unbiased control (BIND/truth 0.999/1.003 inside r200) \u2014 strong visual contrast against the gas/star biases; use figsize=(TWO_COL[0], 2.6) with 4 columns or TWO_COL_TALL 2x2."
+  },
+  {
+   "step": "11. Stamps and printed numbers for the new radial figure.",
+   "detail": "Compute and print the mean BIND/truth ratio inside r200c on exactly the plotted bins (mirroring the old `tau_ratio_in` idiom that the FIGURE_NUMBERS.md line depended on):\n```\nrin = (r200x <= 1.0)\nfor key, lab in [('prof_y','y'), ('prof_gas','tau'), ('prof_star','Mstar'), ('prof_DM','DM')]:\n    for bi, _ in PBINS:\n        A, B = pf[key][bi], pt[key][bi]\n        m = rin & np.isfinite(A) & np.isfinite(B) & (A > 0) & (B > 0)\n        print(f'  {lab:5s} bin {MB3[bi]:.1f}-{MB3[bi+1]:.1f}: BIND/truth (r<r200c) = {np.mean(A[m]/B[m]):.3f}')\n```\nVERIFIED expected output: y 1.084 (bin0) / 1.001 (bin2); tau[=gas] 1.096 / 1.044; Mstar 0.882 / 0.951; DM 0.999 / 1.003. Put the two headline ones on-figure, e.g. `ax[j].text(0.04, 0.06, f'mean BIND/truth ($r<r_{{200c}}$) = {rat0:.3f} / {rat2:.3f}', transform=ax[j].transAxes, fontsize=5.2)`. Also state on-figure that these profiles are LOS-background-subtracted from a 2.5-3.0 Mpc/h annulus (that is what makes tau here differ from the old cached tau curve)."
+  },
+  {
+   "step": "12. Rewrite the fig03 markdown prose (lines 795-842) and add a new md block for fig06.",
+   "detail": "The current prose must lose: the 'four columns'/'top row ... bottom row' structure, the (c)/(d)/(g)/(h) panel references, the Arnaud sentence (800-803), the '$y$- and $\\\\tau$-profile caches use slightly different bin edges, hence the differing legend ranges' clause, the '\u00b15% guide band' sentence, and the 'Three mass conventions coexist by construction (x-axes $M_{\\\\rm FoF}$; ...)' sentence. It must gain: (i) a statement that the x-axis is M200c and that the atlas's 'M_fof' key IS the SO mass (verified to 0.04%), (ii) the new SHMR panel with its aperture/LOS caveat and the stars-are-noisy warning, (iii) a pointer to the new radial figure. The calibration-fit discussion (the linear-in-logM Delta_Y/Delta_fgas recommendation) MUST be kept \u2014 the fits are still computed and printed even though the residual panels are gone; say explicitly that the coefficients are printed by the cell rather than plotted. The new fig06 md block should state: single cache -> identical mass bins and radial grid; r/r200c is EXACT because the cache's own r-coordinate is r/(0.659 r200) and 0.659 is undone; tau = K*Sigma_gas with K = 2.219785e-14 at a = 0.96738; profiles are background-subtracted (2.5-3.0 Mpc/h annulus); inner cut at 0.15 r200c is the pixel-resolution floor of the lowest-mass bin."
+  }
+ ],
+ "risks": [
+  "HEADLINE NUMBERS LOSE THEIR FIGURE HOME. Deleting the residual row removes the panels that displayed the release-level linear-in-logM calibration (FIGURE_NUMBERS.md: 'Delta_Y(logM) = +5.33% - 10.60%/dex x (logM-13.5)', 'Delta_fgas = +7.20% - 6.15%/dex', 'post-correction residuals max|Y| 5.4%, max|fgas| 2.4%'). The spec keeps computing fit_y/fit_g and keeps the print block, and relocates the compact stamps into panels (a)/(b) \u2014 but if that is dropped, a quoted, user-facing calibration recipe becomes unfigured. Do not delete lines 883-885, 891-892, 896-897, 923-925, 931.",
+  "FIGURE_NUMBERS.md LINE BECOMES INVALID. 'fig3 ... tau-profile ratio (r<r500c) 1.040 (cell 13)' is computed from the tau_profiles cache being deleted. Its replacement from prof_gas is 1.096 (bin 10^13.0-13.4) / 1.044 (bin 10^13.8-14.2) \u2014 different bins AND background-subtracted, so the number legitimately changes. FIGURE_NUMBERS.md and any main.tex text quoting 1.040 must be updated after the re-run.",
+  "main.tex EDITS REQUIRED, NOT OPTIONAL. All three \\citep{Arnaud2010} occurrences (lines 280, 348, 362-caption) describe the removed curve, and the claim 'match the Arnaud et al. universal pressure profile to ~2 r500c' (line 347-348) must be deleted or restated. main.tex also still \\includegraphics{figs/fig03_validation_halo.pdf} (line 353) \u2014 the legacy fig_scripts output, NOT figs_v2/fig03_halo_validation.pdf \u2014 so the figure the paper compiles is already stale; adding a second figure makes the divergence worse. A caption + \\ref renumbering pass is needed for the new figure.",
+  "FIGURE RENUMBERING. fig06 is free in figs_v2/ but papers/01_pipeline/fig_scripts/fig06_bridge_fgas.py (legacy) and fig_scripts/DATA_MAP.md already use the name fig06 for a different figure. If the paper's figure order is meant to be the file number, inserting a figure between 03 and 04 forces a renumber of the whole downstream sequence; the low-churn choice is to keep the slug fig06_radial_profiles and let main.tex's \\ref ordering define the printed number.",
+  "tau AMPLITUDE CHANGES BY CONSTRUCTION. The new tau comes from the background-SUBTRACTED prof_gas, the old came from the non-subtracted tau_profiles cache. Measured K*prof_gas / cached bind_prof ~= 0.75 across 0.2-1 r500c falling to 0.14 at 4.5 r500c; the fall-off is the cached curve's un-subtracted cosmic floor (6.5e-5), and part of the 0.75 is the different mass bin (13.40-13.78 vs 13.48-14.00). Anyone comparing the new panel to the old one, or to a released tau product built from tau_profiles, will see an offset. State on-figure that this is the halo-only (background-subtracted) tau.",
+  "r500c -> r200c IS EXACT HERE, BUT ONLY BECAUSE 0.659 WAS A CONSTANT. Both generators hardcode r500c/r200c = 0.659 (an NFW c200~5 value) and bin by r/(0.659*r200), so multiplying by 0.659 recovers the true per-halo r/r200c with ZERO residual approximation \u2014 the new axis is strictly more accurate than the old one. Do NOT describe it as an approximate rescale. The corollary is a correction to the paper: the OLD 'r/r500c' axis was the approximate one (true r500c/r200c varies roughly 0.63-0.68 with concentration over this mass range, so the old axis carried a ~5% halo-to-halo radial misassignment). Any main.tex sentence claiming agreement 'to ~2 r500c' should be restated in r200c units (2 r500c ~ 1.3 r200c).",
+  "STARS ARE NOISY. Per-halo m_star_200c BIND/truth 16/84 spread is (0.755, 1.204) \u2014 5x wider than Y. The binned-median SEs rise to 3.15/2.99/5.50% in the three highest bins (n = 88/32/23 halos), so the apparent flattening of the deficit above logM ~ 14 is not significant. The band and the running median are trustworthy; individual points above logM = 14.1 are not. Also m_star_200c is a raw projected-cylinder sum with no background subtraction (LOS contamination ~10-12% of the median value), and it includes satellites/ICL \u2014 its slope is ~0.92 dex/dex, NOT the ~0.3-0.4 of a central-galaxy SHMR. Mislabelling it as 'the' SHMR would be a physics error.",
+  "MASS-BIN COARSENING TEMPTATION. If someone 'unifies' the bins by setting edges = log10(profiles mass_bins) on panels a/b/c, the weighted calibration fit drops from 8 points to 4, the top bin holds 59 halos, and the 5 halos above 5e14 are silently dropped. The shading approach in step 6 gives visual consistency without that cost. The profile bins themselves cannot be changed at all without re-running examples/profiles.py --reduce (SLURM; the per-radial-bin pixel counts snum are not cached, so bins cannot be merged exactly post hoc).",
+  "PANEL (a) MIXES APERTURES BY NECESSITY. Y_500c on an M_200c x-axis. Y_200c does not exist in the cache (halo_atlas.py computes thermo quantities only for tag=='500c') and cannot be produced without a re-reduction. f_gas COULD move to 200c (m_gas_200c_bg/m_tot_200c_bg exist; medians fid [0.0973...0.1482] vs truth [0.0889...0.1465], ratio 1.062) \u2014 but then (a) and (b) would use different apertures, which is worse. Recommend keeping both at 500c and noting it in one short on-panel line.",
+  "prof_Pe IS UNUSABLE beyond r/r200c ~ 1.17 (4 negative outer radial bins in every mass bin from background over-subtraction) \u2014 do not add it as a fourth panel. prof_DM is clean everywhere and is the better control channel."
+ ]
+}

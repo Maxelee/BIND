@@ -43,7 +43,8 @@ observables in both directions.
   (b) lightcone construction: TNG300-Dark multi-snapshot stages, per-halo
   painting, composite pasting (4×R200c circular aperture), lens planes, lux
   multi-plane ray tracing, truth lightcone from TNG300 hydro, paired DMO
-  trace; (c) map suite: κ(z_s), Compton-y, τ/electron-column (=FRB DM);
+  trace; (c) map suite: κ(z_s), Compton-y, τ/electron-column (∝ FRB DM:
+  DM[pc cm⁻³] = τ/(σ_T·pc), the pipeline's TAU_PER_DM);
   (d) statistics pipeline (Cl, peaks, PDF, MFs; MAS/CIC correction).
 - **Results:** (1) fiducial validation BIND vs hydro truth (WL Cl + peaks +
   PDF; y auto-spectrum; τ) — the headline "matches" figure(s); (2) R(ν)

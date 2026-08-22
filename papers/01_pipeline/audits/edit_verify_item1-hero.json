@@ -1,0 +1,103 @@
+{
+ "item": "item1-hero",
+ "confirmed": [
+  "ORIGINAL-FILE LINE RANGES (all verified against the 4654-line file that existed at session start, before it was overwritten): md caption cell = lines 175-198 (175 `md(r'''`, 198 `''')`); code cell = 200-330 (200 `code(r'''`, 330 `''')`); provenance comment 201-208 with the SB35 reference on 205-206; import on 209; `sob/valid/VWV0/r_hw/r_hs` on 212-216; `_hero_map` 218-222; six loads 224-229 (SB35 nodes on 228-229); stretches 231-240 (vk0=235, knorm0=236, tau_hi0=237, tnorm0=238, ynorm0=239-240); ratio block 242-253 (eps0=248, rw0/rs0=249-250, vr0=251, rnorm0=252, RTICKS0=253); panels0 268-271; draw loop 272-289; kappa bar 290-293 with `extend=\"max\"` on 290 and ticks [-0.03,0,0.03] on 292; ratio imshows 299-301; (e)/(f) labels 302-308 at (0.025,0.975) with white bbox; ratio bar 309-313 with `extend=\"both\"`; footer `fig.text(0.5, 0.045, ...)` 315-318 (the ONLY figure-level text in the cell \u2014 grep for `fig.text` in 200-330 returns only 315); `save` 319; print stamp 321-327; del+gc 328-329.",
+  "paper_style.save IS at /mnt/home/mlee1/BIND/papers/_tools/paper_style.py:81-93 and writes `<stem>.pdf` plus `p.parent.parent/figs_preview/<name>.png`, i.e. figs_v2/fig00_hero.pdf + figs_preview/fig00_hero.png. Both savefig calls use bbox_inches=\"tight\", pad_inches=0.02.",
+  "TWOBOUND A_SN1 PAIR IS A TRUE 1P PAIR. `np.nonzero(p0!=p1) == [2]`; p0[2]=0.9, p1[2]=14.4, fiducial/run_0000/params.npy[2]=3.6. Additionally verified (spec did not): p0 vs fiducial differ ONLY at index 2, and p1 vs fiducial differ ONLY at index 2. bind_science/runs/fiducial/run_0000/ contains exactly one file, params.npy.",
+  "TWOBOUND MAPPING. twobound_params.npy is (60,35); tp[0] is bit-equal to run_0000/params.npy and tp[1] to run_0001/params.npy. Verified against emulator_dataset_xpkfix.npz['param_names'] (30 names): astro 0 WindEnergyIn1e51erg -> col 2 (0.9/14.4, fid 3.6) = runs 0000/0001; astro 1 RadioFeedbackFactor -> col 3 (0.25/4.0); astro 2 VariableWindVelFactor -> col 4 (3.7/14.8, fid 7.4) = runs 0004/0005; astro 3 -> col 5 (10/40); astro 4 MaxSfrTimescale -> col 9 (1.135/4.54); astro 5 FactorForSofterEQS -> col 10; astro 29 SofteningComovingType01 -> col 34 (1.0/4.0) = runs 0058/0059.",
+  "TAU AVAILABILITY. All 60 twobound runs exist. `tau_maps.npz` is absent for exactly runs 0000-0007 and present for 0008-0059 (loop over all 60 dirs). runs 0000/0001 hold only kappa_maps.npz + y_maps.npz. bind_sb35/runs/run_0153 and run_0160 DO have all three.",
+  "NPZ GEOMETRY. twobound/run_0000/y_maps.npz and run_0001/y_maps.npz members: y.npy (50,5,1024,1024) float32, deflate (compress_type 8), 1048576128 B uncompressed, plus source_redshifts (5,), fov_deg, npix, n_real. Scalars: fov_deg=5.0, npix=1024, n_real=50, source_redshifts=[0.5,1.0,1.5,2.0,2.44] \u2014 byte-for-byte the same metadata as bind_lightcone_tng/y_maps.npz. `_hero_map(path,'y',-1)` therefore works unchanged.",
+  "PIXEL ALIGNMENT / SHARED SKY. Streaming only realization 0: r(twobound run_0000, LC fiducial) on RAW kappa plane ZI=1 = 0.98079; after gaussian_filter on the raw maps r = 0.99822 (2px), 0.99935 (4px), 0.99978 (8px); at the notebook's 1-px smoothing r = 0.99565. Relative rms difference on raw maps = 0.1958 (the spec's \"0.19\"). Contrast against LC realization 1 = 0.005 (1-px smoothed) \u2014 realization ordering is shared, realization 0 is the same sky.",
+  "bind_science/runs/bind/run_0000/kappa_maps.npz realization 0 IS bit-identical to bind_lightcone_tng/kappa_maps.npz realization 0 (np.array_equal True, max|diff| = 0.0).",
+  "MEAN-y RESPONSE (1-px smoothed, real 0, plane -1): fid 1.0447e-06, A_SN1=0.9 -> 9.7781e-07 (0.9360x), A_SN1=14.4 -> 1.1238e-06 (1.0758x); high/low = 1.1493. Direction confirmed: higher A_SN1 gives MORE mean y.",
+  "RATIO-MAP MACHINERY SURVIVES UNCHANGED: eps0 = 1e-3*p99.5(y_fid) = 1.5417e-08; vr0 = p99 of |log2 ratio| over both maps = 0.7636 (x1.698); RTICKS0 filter keeps exactly [0.625, 0.8, 1.0, 1.25, 1.6].",
+  "TAU STRETCH NUMBERS: min 1.1606e-05, p50 1.6370e-03, p99.8 = 6.2401e-03 (current vmax), current vmin = 2.0800e-04, max 1.4634e-02; current range = 1.4771 decades, clips 0.293% low / 0.200% high. LogNorm(1e-4, 1e-2) clips 0.082% low / 0.011% high.",
+  "Y STRETCH NUMBERS: no non-positive pixels after smoothing; min 1.4053e-10, p50 (= p50 of positives = median of ALL pixels) 4.5264e-07, p99.8 2.4520e-05, max 1.3628e-04. The current vmin IS the median, so exactly 50.0% of pixels clip at the bottom. LogNorm(1e-7,1e-4) clips 9.57% low / 0.0015% high.",
+  "KAPPA SATURATION: sigma_DMO = 0.018703, 2*sigma = 0.037406. Fraction above +vk0: DMO 3.619%, BIND 3.392%; fraction below -vk0: 0.000000 in BOTH (kappa_min = -0.0349 DMO / -0.0347 BIND). kappa_max = 0.4034 / 0.4183 = 10.8x / 11.2x vk0. Percentiles p99/p99.5/p99.9/p99.99 = 0.0669/0.0861/0.1386/0.2394 (DMO), 0.0649/0.0837/0.1376/0.2434 (BIND). So `extend=\"max\"` (not \"both\") was indeed the correct arrow.",
+  "NULL-PAIR NOISE FLOOR at 1 px: run_0058 mean ratio 0.9950, |log2| p50/p90/p99 = 0.124/0.318/0.556; run_0059 mean ratio 0.9857, 0.131/0.330/0.567. A_SN1 pair 0.167/0.411/0.679 and 0.177/0.454/0.839.",
+  "MATPLOTLIB 3.10.1 in /mnt/home/mlee1/venvs/BIND_env. A plain LogFormatterSciNotation() with LogLocator(subs=(1.,3.)) leaves exactly ONE visible label (10^-3) on the current tau range 2.08e-4..6.24e-3 \u2014 the FuncFormatter hack's justification is real. LogNorm(1e-4,1e-2) with plain sci notation gives 3 visible decade labels; LogNorm(1e-7,1e-4) gives 4. SymLogNorm(linthresh=vk0, linscale=1.0, vmin=-0.42, vmax=0.42, base=10) gives norm(0) = 0.500 exactly. AsinhNorm(linear_width=vk0, vmin=-0.045, vmax=0.42) gives norm(0) = 0.24638.",
+  "SB35 NODES BEING REMOVED: r_hw = 153 (VWV = 3.7109), r_hs = 160 (VWV = 14.7266); their A_SN1 values are 1.8517 and 9.1192 and they differ in all 30 astrophysical entries \u2014 the current e/f panels are genuinely NOT a 1P comparison. 253 valid runs out of a (256,35) design.",
+  "The two variables the spec proposes deleting from the Fig-0 cell (`sob`, `valid`) ARE re-created in the Fig-1 cell, so deleting them from Fig 0 is safe."
+ ],
+ "corrections": [
+  {
+   "claim": "All the `code_locations` line ranges (175-198, 200-330, 212-216, 228-229, 290-293, 315-318, 321-327, ...) identify the Fig-0 hero code in _build_figures_nb.py, so another agent can execute the spec against them.",
+   "verdict": "WRONG",
+   "correct_fact": "The file was REWRITTEN by a concurrent agent DURING this audit. At session start: `wc -l` = 4654. Now: 4392, mtime 2026-07-30 06:26:08 (one second before my `date` call), and it shrank again from 4396 to 4392 within the same minute. `git status` shows it as untracked (`?? papers/01_pipeline/_build_figures_nb.py`), so there is no committed baseline to diff against. The Fig-0 cell has ALREADY been repointed to twobound: current line 205-206 reads `bind_science/runs/twobound/run_{0000,0001}/y_maps.npz - the ONE-PARAMETER A_SN1 (WindEnergyIn1e51erg, native col 2) bracket`, 213 `TB = SCI/\"runs/twobound\"`, 214 `tbp = np.load(TB/\"twobound_params.npy\")`, 215 `A_LO, A_HI = float(tbp[0,2]), float(tbp[1,2])`, 227-228 load TB/run_0000 and TB/run_0001, 273-275 say `(b) BIND $\\kappa$` / `(c) BIND $\\tau$` / `(d) BIND $y$`, 292 has no `extend`, 305-306 are `(e) $A_{\\rm SN1} = {A_LO:g}$` / `(f) ...`. Every line number in the spec is void; any executor must re-derive them with grep at edit time."
+  },
+  {
+   "claim": "Fig 17 is the only other consumer of `sob`/`valid` (lines 643-645), and Fig 17 binds y_lo/y_hi at line ~655, so Fig 0 must use 0-suffixed names to avoid a collision that would 'silently corrupt Fig 17's ratio maps'.",
+   "verdict": "WRONG",
+   "correct_fact": "Two independent errors. (1) The Fig-17 cell AND the Fig-2 cell have both been DELETED from the current file: the original had 20 `save(fig,...)` calls including `figs_v2/fig02_map_suite` (line 601) and `figs_v2/fig17_feedback_sky` (line 744); the current file has 18 and neither exists. `grep -n 'kap_s\\|tau_s\\|y_s'` and `grep -n 'fig 17\\|map_suite'` both return NOTHING. So the collision risk, the safety argument, and the caption cross-reference advice about fig 17 are all moot. The surviving downstream consumer of `sob` is line 2645-2646 (`we_u = (np.log10(sob[:,2]) - ...)`), which the spec never identified. (2) Even in the original file the collision claim was false: Fig 17 ASSIGNED `k_lo, t_lo, y_lo = load_node_maps(r_wlo)` at line 656 and `k_hi, t_hi, y_hi = ...` at 657 BEFORE any use (first use at 659-663), so a Fig-0 binding would have been harmlessly overwritten, not silently corrupting anything \u2014 and Fig 0's own line 328 `del` removed them anyway."
+  },
+  {
+   "claim": "`sob` and `valid` are re-defined at lines 386/388 in the Fig 1 cell.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "grep -n and a python enumerate on the file both put them at 387 (`sob = np.load(...)`), 388 (`WE = sob[:,2]`), 389 (`valid = np.asarray(...)`), 390-392 (r_lo/r_mid/r_hi), 393 (RUNS3) \u2014 one line later than claimed. (The current file still has them at 387/389.) The structural conclusion \u2014 Fig 1 re-creates them before any later use \u2014 holds."
+  },
+  {
+   "claim": "Step 5: 'Replace the body of the `if nrm is not knorm0` branch (lines 280-289)'.",
+   "verdict": "WRONG",
+   "correct_fact": "No such branch exists. The code is a guard-and-continue: `if nrm is knorm0:` / `imk0 = im` / `continue` (original 277-279, current 281-283). The colorbar code is straight-line code after the `continue`, not the body of a negated conditional. An executor searching for `if nrm is not knorm0` finds nothing."
+  },
+  {
+   "claim": "`LogFormatterSciNotation(labelOnlyBase=False, minor_thresholds=(np.inf, np.inf))` is needed to label sub-decade ticks; without minor_thresholds the tau bar collapses to a single label.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "The second half is true (plain LogFormatterSciNotation leaves exactly one visible label, 10^-3, on 2.08e-4..6.24e-3), but `labelOnlyBase=False` plus infinite thresholds is NOT required. The formatter ALREADY WRITTEN into the current file at line 289 \u2014 `LogFormatterSciNotation(minor_thresholds=(3, 0.4))` \u2014 produces byte-identical visible labels: tau -> ['3x10^-4', '10^-3', '3x10^-3'], y -> ['10^-6', '3x10^-6', '10^-5']. Verified by filtering cb.ax.get_yticks() to cb.ax.get_ylim() after fig.canvas.draw()."
+  },
+  {
+   "claim": "With LogLocator(subs=(1.,3.)) the tau bar renders ['1e-4','3e-4','1e-3','3e-3','1e-2'].",
+   "verdict": "IMPRECISE",
+   "correct_fact": "That is the locator's full candidate set, not what is drawn. On the CURRENT tau range (2.0800e-04 .. 6.2401e-03) only three ticks fall inside the bar: 3e-4, 1e-3, 3e-3. 1e-4 and 1e-2 lie outside vmin/vmax and are not rendered. The quoted five-label list only appears if the norm is first decade-snapped to LogNorm(1e-4, 1e-2)."
+  },
+  {
+   "claim": "'Do NOT use AsinhNorm: norm(0) = 0.246, so zero would not be white.'",
+   "verdict": "WRONG",
+   "correct_fact": "The off-centring comes from the ASYMMETRIC limits the spec itself chose (vmin=-0.045, vmax=0.42), not from AsinhNorm. Probed in mpl 3.10.1: AsinhNorm(linear_width=vk0, vmin=-0.42, vmax=0.42)(0.0) = 0.5 exactly \u2014 identical centring to SymLogNorm, with no linthresh kink. The blanket prohibition is unfounded. Separately, the recommended SymLogNorm(vmin=-0.42, vmax=0.42) wastes the entire blue half of the bar: kappa_min is only -0.035, so ~92% of the negative half of the colour range is unpopulated."
+  },
+  {
+   "claim": "'per-pixel ratio S/N over sampling noise is only ~1.3 at 1-px smoothing (1.30 at 2 px, 1.38 at 4 px, 1.59 at 8 px)'.",
+   "verdict": "WRONG",
+   "correct_fact": "Measured (p50 |log2 ratio| of the A_SN1 pair divided by p50 of the null pair, both vs the LC fiducial, smoothing applied to the RAW maps): sigma=1 px -> 1.35/1.35; 2 px -> 1.37/1.41; 4 px -> 1.54/1.96; 8 px -> 2.27/3.17. The 4-px and 8-px figures are roughly a factor 2 below truth. This matters: at 4-8 px smoothing the feedback signal is 2-3x the sampling floor, so cosmetic smoothing IS a viable mitigation, which the spec's numbers wrongly rule out."
+  },
+  {
+   "claim": "Data-gap alternative (b): plotting log2(y_high/y_low) is cleaner because 'common-mode noise partially cancels'.",
+   "verdict": "WRONG",
+   "correct_fact": "There is no shared painting seed within the twobound campaign, so nothing cancels \u2014 the noise ADDS. Probe: the WITHIN-twobound null pair (run_0058 vs run_0059) has p50 |log2| = 0.149, LARGER than either run's 0.124 / 0.131 against the LC fiducial (approximately the quadrature sum). Likewise the A_SN1 hi/lo ratio has p50 = 0.273 vs 0.167/0.177 for the ratios-to-fiducial. The hi/lo panel is nevertheless a better contrast (S/N 0.273/0.149 = 1.83 vs 1.35) \u2014 but because the signal doubles (mean ratio 1.149 vs 0.936/1.076), not because noise cancels."
+  },
+  {
+   "claim": "The null twobound pair (run_0058/0059) measures 'pure generator sampling noise'.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "It is an UPPER BOUND on the noise, not a measurement of it. SofteningComovingType01 is a real varied parameter (1.0 / 4.0 about fiducial 2.0) and run_0059 shifts the mean y by 1.4% (ratio 0.9857) \u2014 not null. Because the floor is over-estimated, the spec's caption-honesty statement ('most of the texture a reader sees is generator noise') is not established by this probe; the true S/N is at least as good as quoted."
+  },
+  {
+   "claim": "Step 10: for the ratio bar, 'vr0 is the 99th percentile of |log2 ratio|, so ~1% of pixels genuinely lie outside the bar at each end'.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "vr0 is the p99 of the CONCATENATION of both maps, so 1.00% total lies outside, split 0.292% below -vr0 and 0.708% above +vr0. Per panel: (e) A_SN1=0.9 -> 0.402% below / 0.075% above; (f) A_SN1=14.4 -> 0.182% below / 1.342% above. So the low-end arrow on panel (f) is nearly cosmetic while the high-end arrow carries 1.3%."
+  },
+  {
+   "claim": "Step 8: after deleting the footer, 'reclaim the space by changing the gridspec bottom on line 257 from bottom=0.075 to bottom=0.015'.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "paper_style.save (line 89) uses `bbox_inches=\"tight\"`, so leftover whitespace below the axes is cropped from the PDF automatically \u2014 nothing needs 'reclaiming'. Lowering `bottom` instead enlarges the axes within the fixed 7.2x5.0 in canvas, changing panel aspect. Worse, the concurrent edit has ALREADY set `bottom=0.012` (current line 261) while the footer `fig.text(0.5, 0.045, ..., va=\"top\")` is STILL present (current lines 315-318), so the footer text now occupies y ~ 0.02-0.045, i.e. directly on top of panels (e)/(f)."
+  },
+  {
+   "claim": "vk0 = 2*sigma_DMO = 0.037399, sigma_DMO = 0.018700.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "Measured on realization 0, plane ZI=1, after 1-px gaussian_filter: sigma_DMO = 0.018703, vk0 = 0.037406. The spec's digits are not reproducible past the 4th significant figure; all downstream percentages (3.62% / 3.39% / 96.381 / 96.608) are correct."
+  },
+  {
+   "claim": "code_location 'save(fig, \"figs_v2/fig00_hero\") ... start_line 319, end_line 320'.",
+   "verdict": "IMPRECISE",
+   "correct_fact": "Line 319 is the `save(...)` call; line 320 is `plt.show()`, a separate statement not described anywhere in the spec."
+  }
+ ],
+ "additional_findings": [
+  "THE CURRENT ON-DISK FILE IS BROKEN AND WILL RAISE NameError. The concurrent edit deleted the `sob/valid/VWV0/r_hw/r_hs` block but left the print stamp intact: current lines 321-322 read `print(f\"hero: fiducial realization 0; weak/strong VariableWindVelFactor nodes \" f\"run_{r_hw:04d} (VWV={VWV0[r_hw]:.2f}) / run_{r_hs:04d} (VWV={VWV0[r_hs]:.2f}); \"...)`. `grep -n 'r_hw'` over the whole current file returns ONLY line 322 \u2014 the names are never defined. Executing the notebook cell will crash at the print after the figure has been saved.",
+  "THE FOOTER WAS NOT DELETED. The change request asked to remove the bottom text; current lines 315-318 still carry the full `fig.text(0.5, 0.045, \"same DMO halo skeleton and ray-tracing seed in every panel ... $\\\\kappa$ at $z_s=1$; $\\\\tau$, $y$ integrated to $z=2.44$\")`, now colliding with the panels because `bottom` was lowered to 0.012.",
+  "THE KAPPA STRETCH WAS SILENTLY REDEFINED, and the change is worse than either option the spec analysed. Current lines 235-236: `vk0 = float(np.percentile(np.abs(np.concatenate([kap_dmo0.ravel(), kap_fid0.ravel()])), 99.9))`. Measured: vk0 = 0.137943 = 7.38 sigma_DMO, 3.69x the old 2-sigma half-width. Consequences I measured: (i) 0.100% of pixels STILL exceed vk0 (kappa_max = 3.03 x vk0), so the new code comment on line 234 -- 'the bright peaks are shown rather than silently clipped and the bar needs no extend arrow' -- is FALSE; (ii) 93.7% of pixels now fall inside +-0.2*vk0, so both kappa panels will render as near-uniform pale grey; (iii) line 294 `cbk0.set_ticks(np.round([-vk0, 0.0, vk0], 3))` yields ticks [-0.138, 0, 0.138]; (iv) the print stamp on current line 326 still prints `kappa norm +-{vk0:.4f} (2 sigma)` and the md caption on line 193 still says `$\\pm2\\sigma_\\kappa$` -- both now false.",
+  "THE MD CAPTION WAS NOT UPDATED AT ALL and is now inconsistent with the code it documents. Current lines 182-183 still say 'under the suite's weakest- and strongest-`VariableWindVelFactor` nodes'; 193-194 still declare 'peaks saturate, declared by the bar's extend arrow' (the extend was removed at line 292); 196 still says 'the footer's depth clauses'; 197 still says 'All stamped numbers (node ids, mean-$y$ response)'. Only the fig-17 cross-reference (now 'fig 4' on line 190) and the smoothing wording (line 192) were touched.",
+  "PANELS e/f COULD ALSO BE DONE FOR KAPPA. Both twobound/run_0000 and run_0001 carry kappa_maps.npz with the same (50,5,1024,1024) geometry, so a kappa 1P response row is achievable from cache; only tau is blocked for this pair (runs 0000-0007 have no tau_maps.npz). If a tau 1P pair is ever wanted, the lowest available is runs 0008/0009 (MaxSfrTimescale, native col 9, 1.135/4.54 about fid 2.27).",
+  "MEMORY DISCIPLINE VERIFIED INDEPENDENTLY. All my probes streamed only realization 0 (5*1024*1024*4 = 21 MB decompressed) by parsing the .npy header inside the zip member and reading a bounded byte count; the full 1 GB members were never materialised. Reader helper at /tmp/claude-2107/-mnt-home-mlee1-BIND/cd141c7e-20d2-47a8-b36e-6fe94e24b33b/scratchpad/rd.py; a snapshot of the mid-edit file is at .../scratchpad/snapshot_0626.py (md5 73b44f05f4dd212492e27673658e0d33).",
+  "PROCESS RECOMMENDATION: because sibling agents are writing this file live (it changed twice inside one minute of my probing, and lost the entire fig02_map_suite and fig17_feedback_sky cells), no spec for this file should be expressed as line-number edits. Every step should be expressed as a unique anchor string to grep for plus the replacement text, and the executor should re-verify the anchor immediately before each edit."
+ ]
+}
